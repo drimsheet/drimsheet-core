@@ -18,6 +18,7 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 
 import { IPettyCashAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
+import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
 import { IGetLedgerAccountsQuery } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 
@@ -28,11 +29,33 @@ import {
   getLedgerAccountsUseCase,
   getLedgerAccountUseCase,
   getPermittedPostingAccountsUseCase,
+  setupHeaderAccountsUseCase,
 } from '@infra/ioc/usecases/ledger';
 
 @Route('ledger')
 @Tags('Ledger')
 export class LedgerController extends Controller {
+  /** Set up all header and equity accounts, with optional translated names. */
+  @Post('/header-accounts/setup')
+  @OperationId('setupHeaderAccounts')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async setupHeaderAccounts(
+    @Body() body?: IHeaderAccountNameAliasesReq
+  ) {
+    return setupHeaderAccountsUseCase(body);
+  }
+
   /**
    * Get paginated ledger accounts with optional filters
    */

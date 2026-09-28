@@ -6,6 +6,7 @@ import makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
 import makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
 import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
+import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
 
 import {
   accountingEntityService,
@@ -20,10 +21,28 @@ import {
   journalEntryService,
 } from '@infra/ioc/services/journal-entry';
 import {
+  assetDisposalLossAccountService,
+  bankChargeAccountService,
   cashAccountService,
+  directCostsAccountService,
+  employmentIncomeAccountService,
+  equityAccountService,
+  financeCostAccountService,
+  gainOnAssetSaleAccountService,
+  giftsAccountService,
+  grantsAccountService,
+  interestAccountService,
   ledgerAccountBalanceEnrichmentService,
   ledgerAccountPersistenceService,
   ledgerBalancePropagationPreparationService,
+  payablesAccountService,
+  receivablesAccountService,
+  rentAndUtilitiesAccountService,
+  servicesAccountService,
+  shortTermLoanAccountService,
+  taxExpenseAccountService,
+  unrealizedGainAccountService,
+  unrealizedLossAccountService,
 } from '@infra/ioc/services/ledger';
 import outboxService from '@infra/ioc/services/outbox';
 import { repoService } from '@infra/ioc/services/repo';
@@ -125,5 +144,34 @@ export const createBankAccountUseCase = makeTracedUseCase(
     ledgerAccountPersistenceService,
     fxLotAppService,
     fxCostBasisPersistenceService,
+  })
+);
+
+export const setupHeaderAccountsUseCase = makeTracedUseCase(
+  'ledger.setupHeaderAccountsUseCase',
+  makeSetupHeaderAccountsUsecase({
+    appContext,
+    eventBus: messaging.eventBus,
+    repoService,
+    ledgerAccountPersistenceService,
+    cashAccountService,
+    receivablesAccountService,
+    shortTermLoanAccountService,
+    payablesAccountService,
+    equityAccountService,
+    servicesAccountService,
+    employmentIncomeAccountService,
+    gainOnAssetSaleAccountService,
+    unrealizedGainAccountService,
+    grantsAccountService,
+    giftsAccountService,
+    directCostsAccountService,
+    rentAndUtilitiesAccountService,
+    bankChargeAccountService,
+    financeCostAccountService,
+    interestAccountService,
+    taxExpenseAccountService,
+    unrealizedLossAccountService,
+    assetDisposalLossAccountService,
   })
 );

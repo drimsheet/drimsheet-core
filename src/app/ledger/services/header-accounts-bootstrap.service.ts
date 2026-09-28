@@ -1,4 +1,3 @@
-import { TEntityId } from '@shared/types/uuid';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { IAssetDisposalLossAccountService } from '@domain/ledger/types/asset-disposal-loss.service.types';
@@ -7,7 +6,6 @@ import ICashAccountService from '@domain/ledger/types/cash-account.service.types
 import { IDirectCostsAccountService } from '@domain/ledger/types/direct-costs.service.types';
 import { IEmploymentIncomeAccountService } from '@domain/ledger/types/employment-income.service.types';
 import { IEquityAccountService } from '@domain/ledger/types/equity-account.service.types';
-import { EExpenseAccountBehavior } from '@domain/ledger/types/expense-account.types';
 import { IFinanceCostAccountService } from '@domain/ledger/types/finance-cost.service.types';
 import { IGainOnAssetSaleAccountService } from '@domain/ledger/types/gain-on-sale.service.types';
 import { IGiftsAccountService } from '@domain/ledger/types/gifts.service.types';
@@ -62,6 +60,10 @@ function appendAccount(
   bootstrap.events.push(...events);
 }
 
+/**
+ *
+ * @param deprecated: setup should be done from API level
+ */
 export default function makeHeaderAccountsBootstrapService(
   deps: IDependencies
 ): IHeaderAccountsBootstrapService {
@@ -111,7 +113,6 @@ export default function makeHeaderAccountsBootstrapService(
       await deps.shortTermLoanAccountService.createHeader(
         {
           name: 'Short Term Debt',
-          userId: accountingEntity.ownerId,
           createdBy,
           accountingEntity,
         },
@@ -204,7 +205,6 @@ export default function makeHeaderAccountsBootstrapService(
         {
           ...expenseHeaderPayload,
           name: 'Direct Costs',
-          behavior: EExpenseAccountBehavior.DefaultDirectCost,
         },
         repoOptions
       )

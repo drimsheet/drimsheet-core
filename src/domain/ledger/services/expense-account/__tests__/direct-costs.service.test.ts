@@ -100,7 +100,6 @@ describe('directCostsAccountService', () => {
         name: 'Direct Costs',
         createdBy: createdBy,
         accountingEntity,
-        behavior: EExpenseAccountBehavior.DefaultDirectCost,
       },
       repoOptions
     );
@@ -144,7 +143,6 @@ describe('directCostsAccountService', () => {
           name: 'Direct Costs',
           createdBy: createdBy,
           accountingEntity,
-          behavior: EExpenseAccountBehavior.DefaultDirectCost,
         },
         repoOptions
       )
@@ -262,20 +260,8 @@ describe('directCostsAccountService', () => {
     EExpenseAccountBehavior.CostOfServices,
     EExpenseAccountBehavior.CostOfRevenue,
   ])(
-    'preserves the existing %s behavior for headers and sub-accounts',
+    'preserves the existing %s behavior for sub-accounts',
     async (behavior) => {
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
-
-      const [header] = await service.createHeader(
-        {
-          name: 'Direct Costs',
-          createdBy: createdBy,
-          accountingEntity,
-          behavior,
-        },
-        repoOptions
-      );
-
       const controlAccount = makeControlAccount(behavior);
       mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
       mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
@@ -288,7 +274,6 @@ describe('directCostsAccountService', () => {
         repoOptions
       );
 
-      expect(header.behavior).toBe(behavior);
       expect(subAccount.behavior).toBe(behavior);
       expect(subAccount.currency).toBeNull();
     }

@@ -53,7 +53,7 @@ function makeCreateHeader(
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Expense),
       type: ELedgerType.Expense,
       subType: EExpenseSubType.DirectCosts,
-      behavior: payload.behavior,
+      behavior: EExpenseAccountBehavior.DefaultDirectCost,
       isControlAccount: true,
       controlAccountId: null,
       currency,

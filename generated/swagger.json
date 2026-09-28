@@ -373,6 +373,72 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IHeaderAccountNameAliasesReq": {
+        "properties": {
+          "cash_and_cash_equivalent": {
+            "type": "string"
+          },
+          "receivables": {
+            "type": "string"
+          },
+          "short_term_debt": {
+            "type": "string"
+          },
+          "payable": {
+            "type": "string"
+          },
+          "retained_earnings": {
+            "type": "string"
+          },
+          "opening_balance": {
+            "type": "string"
+          },
+          "services": {
+            "type": "string"
+          },
+          "employment_income": {
+            "type": "string"
+          },
+          "gain_on_asset_sale": {
+            "type": "string"
+          },
+          "unrealized_gains": {
+            "type": "string"
+          },
+          "grants": {
+            "type": "string"
+          },
+          "gifts": {
+            "type": "string"
+          },
+          "direct_costs": {
+            "type": "string"
+          },
+          "rent_and_utilities": {
+            "type": "string"
+          },
+          "bank_charge": {
+            "type": "string"
+          },
+          "finance_cost": {
+            "type": "string"
+          },
+          "interest": {
+            "type": "string"
+          },
+          "income_tax_expense": {
+            "type": "string"
+          },
+          "unrealized_loss": {
+            "type": "string"
+          },
+          "loss_on_asset_disposal": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "IPaginationResponseMeta": {
         "properties": {
           "page": {
@@ -3018,6 +3084,100 @@
           }
         ],
         "parameters": []
+      }
+    },
+    "/ledger/header-accounts/setup": {
+      "post": {
+        "operationId": "setupHeaderAccounts",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ILedgerAccountDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Set up all header and equity accounts, with optional translated names.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IHeaderAccountNameAliasesReq"
+              }
+            }
+          }
+        }
       }
     },
     "/ledger": {
