@@ -34,7 +34,6 @@ type TCreditCardReturnType = TAuditedEntity<
 
 interface IMakeHeaderPayload {
   name: string;
-  userId: TEntityId;
   accountingEntity: IAccountingEntity;
   createdBy: TEntityId;
 }

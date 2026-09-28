@@ -18,7 +18,6 @@ interface IHeaderPayload {
   name: string;
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
-  behavior: IDirectCostsAccount['behavior'];
 }
 
 interface ISubAccountPayload {

@@ -343,6 +343,33 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IHeaderAccountNameAliasesReq: {
+    dataType: 'refObject',
+    properties: {
+      cash_and_cash_equivalent: { dataType: 'string' },
+      receivables: { dataType: 'string' },
+      short_term_debt: { dataType: 'string' },
+      payable: { dataType: 'string' },
+      retained_earnings: { dataType: 'string' },
+      opening_balance: { dataType: 'string' },
+      services: { dataType: 'string' },
+      employment_income: { dataType: 'string' },
+      gain_on_asset_sale: { dataType: 'string' },
+      unrealized_gains: { dataType: 'string' },
+      grants: { dataType: 'string' },
+      gifts: { dataType: 'string' },
+      direct_costs: { dataType: 'string' },
+      rent_and_utilities: { dataType: 'string' },
+      bank_charge: { dataType: 'string' },
+      finance_cost: { dataType: 'string' },
+      interest: { dataType: 'string' },
+      income_tax_expense: { dataType: 'string' },
+      unrealized_loss: { dataType: 'string' },
+      loss_on_asset_disposal: { dataType: 'string' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IPaginationResponseMeta: {
     dataType: 'refObject',
     properties: {
@@ -2367,6 +2394,50 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_setupHeaderAccounts: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: { in: 'body', name: 'body', ref: 'IHeaderAccountNameAliasesReq' },
+  };
+  app.post(
+    '/api/v1/ledger/header-accounts/setup',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.setupHeaderAccounts
+    ),
+
+    async function LedgerController_setupHeaderAccounts(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_setupHeaderAccounts,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'setupHeaderAccounts',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
         });
       } catch (err) {
         return next(err);

@@ -113,7 +113,6 @@ describe('shortTermLoanAccountService', () => {
       const [account, events, audit] = await service.createHeader(
         {
           name: 'Short Term Debt',
-          userId: createdBy,
           accountingEntity,
           createdBy: createdBy,
         },
@@ -156,7 +155,6 @@ describe('shortTermLoanAccountService', () => {
         service.createHeader(
           {
             name: 'Short Term Debt',
-            userId: createdBy,
             accountingEntity,
             createdBy: createdBy,
           },

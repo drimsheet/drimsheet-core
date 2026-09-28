@@ -5,12 +5,6 @@ import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-u
 import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-accounting-entity.usecase';
 
 import { accountingEntityService } from '@infra/ioc/services/accounting';
-import {
-  headerAccountsBootstrapService,
-  ledgerAccountPersistenceService,
-  postingAccountBootstrapService,
-  suspenseAccountBootstrapService,
-} from '@infra/ioc/services/ledger';
 import { repoService } from '@infra/ioc/services/repo';
 import { userPreferencesService } from '@infra/ioc/services/user';
 import messaging from '@infra/messaging';
@@ -31,11 +25,7 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
     reportingPeriodRepo: accountingRepos.reportingPeriod,
     reportingContextRepo: accountingRepos.reportingContext,
     repoService,
-    ledgerAccountPersistenceService,
     accountingEntityService,
-    headerAccountsBootstrapService,
-    postingAccountBootstrapService,
-    suspenseAccountBootstrapService,
     eventBus: messaging.eventBus,
   })
 );
