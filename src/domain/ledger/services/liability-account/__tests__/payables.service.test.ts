@@ -79,6 +79,7 @@ describe('payablesAccountService', () => {
   });
 
   afterEach(() => {
+    expect(ledgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     jest.useRealTimers();
   });
 
@@ -141,27 +142,22 @@ describe('payablesAccountService', () => {
     });
   });
 
-  it('creates a statutory payable under a valid control account', async () => {
+  it('creates a statutory payable under a valid control account', () => {
     const controlAccount = makeControlAccount();
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-    ledgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
 
-    const [account, events, audit] =
-      await service.createStatutoryPayableSubAccount(
-        {
-          name: 'Personal Income Tax',
-          createdBy: createdBy,
-          accountingEntity,
-          currency: SYSTEM_CURRENCIES.USD,
-          isControlAccount: false,
-          controlAccountCode: controlAccount.code,
-          meta: {
-            taxAuthority: ' Federal Inland Revenue Service ',
-            taxType: ' personal_income_tax ',
-          },
-        },
-        repoOptions
-      );
+    const [account, events, audit] = service.createStatutoryPayableSubAccount({
+      controlAccount,
+      name: 'Personal Income Tax',
+      createdBy: createdBy,
+      accountingEntity,
+      currency: SYSTEM_CURRENCIES.USD,
+      isControlAccount: false,
+
+      meta: {
+        taxAuthority: ' Federal Inland Revenue Service ',
+        taxType: ' personal_income_tax ',
+      },
+    });
 
     expect(account).toMatchObject({
       code: LIABILITY_LEDGER_CODES.PAYABLES.TRADE,
@@ -184,33 +180,26 @@ describe('payablesAccountService', () => {
     expect(audit.entityId).toBe(account.id);
   });
 
-  it('creates a trade payable after the latest payable', async () => {
+  it('creates a trade payable after the latest payable', () => {
     const controlAccount = makeControlAccount(
       ELiabilityAccountBehavior.TradePayable
     );
     const counterpartyId = generateUUID();
     const invoiceId = generateUUID();
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-    ledgerAccountRepo.findLatestBySubType.mockResolvedValueOnce({
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      code: '201099',
-    } as ILedgerAccount);
 
-    const [account] = await service.createTradePayableSubAccount(
-      {
-        name: 'Supplier Invoice',
-        createdBy: createdBy,
-        accountingEntity,
-        isControlAccount: false,
-        controlAccountCode: controlAccount.code,
-        meta: { counterpartyId, invoiceId },
-      },
-      repoOptions
-    );
+    const [account] = service.createTradePayableSubAccount({
+      controlAccount,
+      name: 'Supplier Invoice',
+      createdBy: createdBy,
+      accountingEntity,
+      isControlAccount: false,
+
+      meta: { counterpartyId, invoiceId },
+    });
 
     expect(account).toMatchObject({
-      code: '201100',
-      materializedPath: `${LIABILITY_LEDGER_CODES.PAYABLES.HEADER}.201100`,
+      code: '201001',
+      materializedPath: `${LIABILITY_LEDGER_CODES.PAYABLES.HEADER}.201001`,
       behavior: ELiabilityAccountBehavior.TradePayable,
       controlAccountId: controlAccount.id,
       currency: null,
@@ -221,46 +210,44 @@ describe('payablesAccountService', () => {
     expect(Object.isFrozen(account.meta)).toBe(true);
   });
 
-  it('rejects a missing payable control account', async () => {
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce(null);
+  it('rejects a payable control account from another accounting entity', () => {
+    const suppliedControlAccount = {
+      ...makeControlAccount(),
+      accountingEntityId: generateUUID(),
+    };
 
-    await expect(
-      service.createTradePayableSubAccount(
-        {
-          name: 'Supplier Invoice',
-          createdBy: createdBy,
-          accountingEntity,
-          isControlAccount: false,
-          controlAccountCode: LIABILITY_LEDGER_CODES.PAYABLES.HEADER,
-          meta: { counterpartyId: generateUUID(), invoiceId: generateUUID() },
-        },
-        repoOptions
-      )
-    ).rejects.toMatchObject({
-      errorKey:
-        'ledger_error_asset_account_control_account_not_found_unexpected',
-    });
+    expect(() =>
+      service.createTradePayableSubAccount({
+        controlAccount: suppliedControlAccount,
+        name: 'Supplier Invoice',
+        createdBy: createdBy,
+        accountingEntity,
+        isControlAccount: false,
+
+        meta: { counterpartyId: generateUUID(), invoiceId: generateUUID() },
+      })
+    ).toThrow(
+      expect.objectContaining({
+        errorKey: 'ledger_error_asset_account_control_account_invalid',
+      })
+    );
   });
 
-  it('creates a null-currency trade payable under a null-currency trade control', async () => {
+  it('creates a null-currency trade payable under a null-currency trade control', () => {
     const controlAccount = makeControlAccount(
       ELiabilityAccountBehavior.TradePayable,
       { currency: null }
     );
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-    ledgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
 
-    const [account] = await service.createTradePayableSubAccount(
-      {
-        name: 'Nested Trade Payable',
-        createdBy: createdBy,
-        accountingEntity,
-        isControlAccount: false,
-        controlAccountCode: controlAccount.code,
-        meta: { counterpartyId: generateUUID(), invoiceId: generateUUID() },
-      },
-      repoOptions
-    );
+    const [account] = service.createTradePayableSubAccount({
+      controlAccount,
+      name: 'Nested Trade Payable',
+      createdBy: createdBy,
+      accountingEntity,
+      isControlAccount: false,
+
+      meta: { counterpartyId: generateUUID(), invoiceId: generateUUID() },
+    });
 
     expect(account.controlAccountId).toBe(controlAccount.id);
     expect(account.currency).toBeNull();
@@ -272,28 +259,28 @@ describe('payablesAccountService', () => {
     { isControlAccount: false },
     { behavior: ELiabilityAccountBehavior.TradePayable },
     { currency: null },
-  ])('rejects an invalid statutory control account: %o', async (change) => {
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce({
+  ])('rejects an invalid statutory control account: %o', (change) => {
+    const suppliedControlAccount = {
       ...makeControlAccount(),
       ...change,
-    });
+    };
 
-    await expect(
-      service.createStatutoryPayableSubAccount(
-        {
-          name: 'Tax Payable',
-          createdBy: createdBy,
-          accountingEntity,
-          currency: SYSTEM_CURRENCIES.USD,
-          isControlAccount: false,
-          controlAccountCode: LIABILITY_LEDGER_CODES.PAYABLES.HEADER,
-          meta: { taxAuthority: 'FIRS', taxType: 'VAT' },
-        },
-        repoOptions
-      )
-    ).rejects.toMatchObject({
-      errorKey: 'ledger_error_asset_account_control_account_invalid',
-    });
+    expect(() =>
+      service.createStatutoryPayableSubAccount({
+        controlAccount: suppliedControlAccount,
+        name: 'Tax Payable',
+        createdBy: createdBy,
+        accountingEntity,
+        currency: SYSTEM_CURRENCIES.USD,
+        isControlAccount: false,
+
+        meta: { taxAuthority: 'FIRS', taxType: 'VAT' },
+      })
+    ).toThrow(
+      expect.objectContaining({
+        errorKey: 'ledger_error_asset_account_control_account_invalid',
+      })
+    );
   });
 
   it.each([
@@ -301,27 +288,27 @@ describe('payablesAccountService', () => {
     { subType: ELiabilitySubType.Suspense },
     { isControlAccount: false },
     { behavior: ELiabilityAccountBehavior.TaxPayable },
-  ])('rejects an invalid trade control account: %o', async (change) => {
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce({
+  ])('rejects an invalid trade control account: %o', (change) => {
+    const suppliedControlAccount = {
       ...makeControlAccount(),
       ...change,
-    });
+    };
 
-    await expect(
-      service.createTradePayableSubAccount(
-        {
-          name: 'Supplier Invoice',
-          createdBy: createdBy,
-          accountingEntity,
-          isControlAccount: false,
-          controlAccountCode: LIABILITY_LEDGER_CODES.PAYABLES.HEADER,
-          meta: { counterpartyId: generateUUID(), invoiceId: generateUUID() },
-        },
-        repoOptions
-      )
-    ).rejects.toMatchObject({
-      errorKey: 'ledger_error_asset_account_control_account_invalid',
-    });
+    expect(() =>
+      service.createTradePayableSubAccount({
+        controlAccount: suppliedControlAccount,
+        name: 'Supplier Invoice',
+        createdBy: createdBy,
+        accountingEntity,
+        isControlAccount: false,
+
+        meta: { counterpartyId: generateUUID(), invoiceId: generateUUID() },
+      })
+    ).toThrow(
+      expect.objectContaining({
+        errorKey: 'ledger_error_asset_account_control_account_invalid',
+      })
+    );
   });
 
   it('returns an immutable service', () => {

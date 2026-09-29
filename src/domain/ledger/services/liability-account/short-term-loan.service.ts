@@ -6,14 +6,13 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import shortTermLoanControlAccountValidation from '@domain/ledger/services/validations/short-term-loan-control-account.validation';
 import { TShortTermDebtLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import {
   ELiabilityAccountBehavior,
@@ -83,29 +82,14 @@ function makeCreateHeader(
  *
  * @returns Audited IShortTermDebtAccount
  */
-function makeCreateSubAccount(
-  deps: IDependencies
-): IShortTermLoanAccountService['createSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Liability &&
-        controlAccount.subType === ELiabilitySubType.ShortTermDebt &&
-        controlAccount.isControlAccount &&
-        (controlAccount.behavior ===
-          ELiabilityAccountBehavior.DefaultShortTermDebt ||
-          controlAccount.behavior === ELiabilityAccountBehavior.ShortTermLoan)
-      );
-    };
+function makeCreateSubAccount(): IShortTermLoanAccountService['createSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TShortTermDebtLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    shortTermLoanControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -114,12 +98,12 @@ function makeCreateSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TShortTermDebtLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TShortTermDebtLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TShortTermDebtLedgerCode,
         code
       );
 
@@ -144,30 +128,14 @@ function makeCreateSubAccount(
   };
 }
 
-function makeCreateCreditCardSubAccount(
-  deps: IDependencies
-): IShortTermLoanAccountService['createCreditCardSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Liability &&
-        controlAccount.subType === ELiabilitySubType.ShortTermDebt &&
-        controlAccount.isControlAccount &&
-        (controlAccount.behavior ===
-          ELiabilityAccountBehavior.DefaultShortTermDebt ||
-          controlAccount.behavior === ELiabilityAccountBehavior.CreditCard) &&
-        controlAccount.currency !== null
-      );
-    };
+function makeCreateCreditCardSubAccount(): IShortTermLoanAccountService['createCreditCardSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TShortTermDebtLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    shortTermLoanControlAccountValidation.validateCreditCardSubAccount(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -176,12 +144,12 @@ function makeCreateCreditCardSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TShortTermDebtLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TShortTermDebtLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TShortTermDebtLedgerCode,
         code
       );
 
@@ -209,8 +177,8 @@ function makeCreateCreditCardSubAccount(
 export default function makeShortTermLoanService(deps: IDependencies) {
   const service: IShortTermLoanAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(deps),
-    createCreditCardSubAccount: makeCreateCreditCardSubAccount(deps),
+    createSubAccount: makeCreateSubAccount(),
+    createCreditCardSubAccount: makeCreateCreditCardSubAccount(),
   };
 
   return Object.freeze(service);

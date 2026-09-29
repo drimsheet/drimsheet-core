@@ -4,7 +4,6 @@ import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 
-import { TEmploymentIncomeLedgerCode } from './ledger-code.types';
 import { ILedgerAccount } from './ledger.types';
 import { IEmploymentIncomeAccount } from './revenue-account.types';
 
@@ -25,7 +24,7 @@ interface ISubAccountPayload {
   createdBy: TEntityId;
   accountingEntityId: TEntityId;
   isControlAccount: boolean;
-  controlAccountCode: TEmploymentIncomeLedgerCode;
+  controlAccount: ILedgerAccount;
 }
 
 export interface IEmploymentIncomeAccountService {
@@ -34,8 +33,5 @@ export interface IEmploymentIncomeAccountService {
     repoOptions: IRepoOptions
   ): Promise<TReturnType>;
 
-  createSubAccount(
-    payload: ISubAccountPayload,
-    repoOptions: IRepoOptions
-  ): Promise<TReturnType>;
+  createSubAccount(payload: ISubAccountPayload): TReturnType;
 }

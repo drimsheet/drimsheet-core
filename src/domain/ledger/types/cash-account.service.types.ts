@@ -9,7 +9,6 @@ import {
   IBankDetails,
   ICashAndCashEquivalentAccount,
 } from './asset-account.types';
-import { TCashLedgerCode } from './ledger-code.types';
 import { ILedgerAccount } from './ledger.types';
 
 interface IMakeHeaderPayload {
@@ -24,7 +23,7 @@ interface IMakePettyCashPayload {
   isControlAccount: boolean;
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
-  controlAccountCode: TCashLedgerCode;
+  controlAccount: ILedgerAccount;
 }
 
 interface IMakeBankPayload {
@@ -33,7 +32,7 @@ interface IMakeBankPayload {
   isControlAccount: boolean;
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
-  controlAccountCode: TCashLedgerCode;
+  controlAccount: ILedgerAccount;
   bankDetails: IBankDetails;
 }
 
@@ -49,13 +48,7 @@ export default interface ICashAccountService {
     repoOptions: IReadRepoOptions
   ): Promise<TReturnType>;
 
-  createPettyCashSubAccount(
-    payload: IMakePettyCashPayload,
-    repoOptions: IReadRepoOptions
-  ): Promise<TReturnType>;
+  createPettyCashSubAccount(payload: IMakePettyCashPayload): TReturnType;
 
-  createBankSubAccount(
-    payload: IMakeBankPayload,
-    repoOptions: IReadRepoOptions
-  ): Promise<TReturnType>;
+  createBankSubAccount(payload: IMakeBankPayload): TReturnType;
 }

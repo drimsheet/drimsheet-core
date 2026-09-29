@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import cashControlAccountValidation from '@domain/ledger/services/validations/cash-control-account.validation';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -18,7 +18,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import bankDetailsValue from '@domain/ledger/values/bank-details.vo';
 import currencyEntity from '@domain/money/entities/currency.entity';
@@ -79,34 +78,19 @@ function makeCreateHeader(
 
 /**
  *
- * Creates a new petty cash account
+ * Validates the supplied parent and creates a petty-cash account in memory.
  *
- * @param deps IDependencies
  * @returns Audited ICashAndCashEquivalentAccount
  *
  */
-function makeCreatePettyCashSubAccount(
-  deps: IDependencies
-): ICashAccountService['createPettyCashSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Asset &&
-        controlAccount.subType === EAssetSubType.CashAndCashEquivalent &&
-        controlAccount.isControlAccount &&
-        (controlAccount.behavior === EAssetAccountBehavior.PettyCash ||
-          controlAccount.behavior === EAssetAccountBehavior.DefaultCash)
-      );
-    };
-
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TCashLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntity.id,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+function makeCreatePettyCashSubAccount(): ICashAccountService['createPettyCashSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
+    cashControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntity.id,
+      EAssetAccountBehavior.PettyCash
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -115,11 +99,11 @@ function makeCreatePettyCashSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TCashLedgerCode
     );
 
     const materializedPath = getLedgerAccountMaterializedPath<TCashLedgerCode>(
-      factoryContext.parentMaterializedPath,
+      controlAccount.materializedPath as TCashLedgerCode,
       code
     );
 
@@ -146,34 +130,19 @@ function makeCreatePettyCashSubAccount(
 
 /**
  *
- * Creates a new petty cash account
+ * Validates the supplied parent and creates a bank account in memory.
  *
- * @param deps IDependencies
  * @returns Audited ICashAndCashEquivalentAccount
  *
  */
-function makeCreateBankSubAccount(
-  deps: IDependencies
-): ICashAccountService['createBankSubAccount'] {
-  const validator = (controlAccount: ILedgerAccount) => {
-    return (
-      controlAccount.type === ELedgerType.Asset &&
-      controlAccount.subType === EAssetSubType.CashAndCashEquivalent &&
-      (controlAccount.behavior === EAssetAccountBehavior.DefaultCash ||
-        controlAccount.behavior === EAssetAccountBehavior.Bank) &&
-      controlAccount.isControlAccount
+function makeCreateBankSubAccount(): ICashAccountService['createBankSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
+    cashControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntity.id,
+      EAssetAccountBehavior.Bank
     );
-  };
-
-  return async (payload, repoOptions) => {
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TCashLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntity.id,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -182,11 +151,11 @@ function makeCreateBankSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TCashLedgerCode
     );
 
     const materializedPath = getLedgerAccountMaterializedPath<TCashLedgerCode>(
-      factoryContext.parentMaterializedPath,
+      controlAccount.materializedPath as TCashLedgerCode,
       code
     );
 
@@ -222,8 +191,8 @@ export default function makeCashAccountService(
 ): ICashAccountService {
   const service: ICashAccountService = {
     createHeader: makeCreateHeader(deps),
-    createPettyCashSubAccount: makeCreatePettyCashSubAccount(deps),
-    createBankSubAccount: makeCreateBankSubAccount(deps),
+    createPettyCashSubAccount: makeCreatePettyCashSubAccount(),
+    createBankSubAccount: makeCreateBankSubAccount(),
   };
 
   return Object.freeze(service);

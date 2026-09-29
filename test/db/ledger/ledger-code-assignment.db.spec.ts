@@ -10,7 +10,10 @@ import generateUUID from '@shared/utils/uuid-generator';
 import historyValue from '@shared/values/history/history.vo';
 
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
+import { IBankDetails } from '@domain/ledger/types/asset-account.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import bankDetailsValue from '@domain/ledger/values/bank-details.vo';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import { IAssignedLedgerAccount } from '@app/ledger/contracts/ledger-account-persistence.service.contract';
@@ -20,6 +23,8 @@ import makeLedgerCodeAssignmentAppService from '@app/ledger/services/ledger-code
 import { ledgerAccountsInCore } from '@infra/config/drizzle/schema';
 import { postgres } from '@infra/config/postgres.config';
 import vars from '@infra/config/vars.config';
+import accountingEntityRepo from '@infra/persistence/repos/accounting/accounting-entity.repo.impl';
+import bankAccountRepo from '@infra/persistence/repos/ledger/bank-account.repo.impl';
 import ledgerAccountBalanceRepo from '@infra/persistence/repos/ledger/ledger-account-balance.repo.impl';
 import ledgerAccountRepo from '@infra/persistence/repos/ledger/ledger-account.repo.impl';
 import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
@@ -73,6 +78,10 @@ describe('ledger code assignment with real PostgreSQL', () => {
 
   afterEach(async () => {
     for (const fixture of seeded) {
+      await observer.query(
+        'delete from core.bank_details where accounting_entity_id = $1',
+        [fixture.entityId]
+      );
       await observer.query(
         'delete from audit.ledger_account_history where accounting_entity_id = $1',
         [fixture.entityId]
@@ -153,14 +162,18 @@ describe('ledger code assignment with real PostgreSQL', () => {
     return header;
   }
 
-  async function seedParent(header: ILedgerAccount, code: string) {
+  async function seedParent(
+    header: ILedgerAccount,
+    code: string,
+    behavior: 'petty_cash' | 'bank' = 'petty_cash'
+  ) {
     const [parent] = ledgerAccountEntity.make({
       ...header,
       name: `Parent ${code}`,
       code,
       materializedPath: `${header.code}.${code}`,
       controlAccountId: header.id,
-      behavior: 'petty_cash',
+      behavior,
     });
     await postgres
       .insert(ledgerAccountsInCore)
@@ -195,11 +208,57 @@ describe('ledger code assignment with real PostgreSQL', () => {
     };
   }
 
-  function persistCreation(
-    input: ReturnType<typeof creationPayload>,
+  async function prepareCash(
+    parent: ILedgerAccount,
+    kind: 'bank' | 'petty_cash'
+  ) {
+    const options = { correlationId: 'domain-preparation' };
+    const accountingEntity = await accountingEntityRepo.findById(
+      parent.accountingEntityId,
+      options
+    );
+    if (!accountingEntity) throw new Error('Missing accounting entity fixture');
+    const cashService = makeCashAccountService({ ledgerAccountRepo });
+    const payload = {
+      name: `Concurrent ${kind}`,
+      currency: SYSTEM_CURRENCIES.NGN,
+      isControlAccount: false,
+      createdBy: parent.createdBy,
+      accountingEntity,
+      controlAccount: parent,
+    };
+    const bankDetails =
+      kind === 'bank'
+        ? bankDetailsValue.make({
+            countryCode: 'NG',
+            bankName: `Allocation bank ${generateUUID()}`,
+            accountName: 'Allocation test',
+            accountNumber: '0123456789',
+          })
+        : null;
+    const created = bankDetails
+      ? cashService.createBankSubAccount({ ...payload, bankDetails })
+      : cashService.createPettyCashSubAccount(payload);
+    const prepared = ledgerAccountEntity.updateOpeningBalanceDate(
+      created[0],
+      new Date('2026-01-01T00:00:00Z')
+    );
+    return {
+      account: prepared[0],
+      allocationHeaderCode: '100000',
+      actorId: parent.createdBy,
+      audits: [created[2], prepared[2]],
+      bankDetails,
+    };
+  }
+
+  async function persistCreation(
+    input: ReturnType<typeof creationPayload> & {
+      bankDetails?: IBankDetails | null;
+    },
     options: IReadRepoOptions
   ) {
-    return service.createWithAssignedCode(
+    const assigned = await service.createWithAssignedCode(
       {
         account: input.account,
         allocationHeaderCode: input.allocationHeaderCode,
@@ -213,6 +272,16 @@ describe('ledger code assignment with real PostgreSQL', () => {
         ),
       }
     );
+    if (input.bankDetails) {
+      await bankAccountRepo.create(
+        assigned.account.id,
+        assigned.account.accountingEntityId,
+        input.bankDetails,
+        input.actorId,
+        options
+      );
+    }
+    return assigned;
   }
 
   async function waitForBlock(waiterPid: number, holderPid: number) {
@@ -261,23 +330,53 @@ describe('ledger code assignment with real PostgreSQL', () => {
     expect(finalHistory.diff.before).toEqual(previousHistory.diff.after);
     expect(assigned.events[assigned.events.length - 1].data).toEqual(account);
     expect(assigned.events).toHaveLength(1);
+    if (account.behavior === 'bank') {
+      expect(
+        await bankAccountRepo.findByLedgerAccountId(account.id, {
+          correlationId: 'assert-bank',
+        })
+      ).toEqual(account.meta);
+      const bankRows = await observer.query(
+        'select ledger_account_id, accounting_entity_id from core.bank_details where ledger_account_id = $1',
+        [account.id]
+      );
+      expect(bankRows.rows).toEqual([
+        {
+          ledger_account_id: account.id,
+          accounting_entity_id: account.accountingEntityId,
+        },
+      ]);
+    }
   }
 
-  it.each([false, true])(
-    'serializes concurrent creation until outer commit (different parents: %s)',
-    async (differentParents) => {
+  it.each([
+    [false, 'petty_cash', 'petty_cash'],
+    [true, 'petty_cash', 'petty_cash'],
+    [false, 'bank', 'bank'],
+    [true, 'bank', 'bank'],
+    [false, 'bank', 'petty_cash'],
+    [true, 'bank', 'petty_cash'],
+    [false, 'petty_cash', 'bank'],
+    [true, 'petty_cash', 'bank'],
+  ] as const)(
+    'serializes creation until outer commit (different parents: %s, %s then %s)',
+    async (differentParents, firstKind, secondKind) => {
       const header = await seedHeader();
       const parentA = differentParents
-        ? await seedParent(header, '100001')
+        ? await seedParent(header, '100001', firstKind)
         : header;
       const parentB = differentParents
-        ? await seedParent(header, '100002')
+        ? await seedParent(header, '100002', secondKind)
         : header;
+      const inputA = await prepareCash(parentA, firstKind);
+      const inputB = await prepareCash(parentB, secondKind);
+      if (!differentParents)
+        expect(inputA.account.code).toBe(inputB.account.code);
       const ready = barrier<number>();
       const release = barrier<void>();
       const started = barrier<number>();
       const first = postgres.transaction(async (tx) => {
-        const result = await persistCreation(creationPayload(parentA, true), {
+        const result = await persistCreation(inputA, {
           correlationId: 'first',
           tx: tx as ITransactionContext,
         });
@@ -302,7 +401,7 @@ describe('ledger code assignment with real PostgreSQL', () => {
             (await tx.execute(sql`select pg_backend_pid() as pid`)).rows[0].pid
           )
         );
-        return persistCreation(creationPayload(parentB), {
+        return persistCreation(inputB, {
           correlationId: 'second',
           tx: tx as ITransactionContext,
         });
@@ -332,76 +431,99 @@ describe('ledger code assignment with real PostgreSQL', () => {
     }
   );
 
-  it('rolls back account, histories and balance, then releases allocation to the waiter', async () => {
-    const header = await seedHeader();
-    const input = creationPayload(header, true);
-    const ready = barrier<number>();
-    const release = barrier<void>();
-    const started = barrier<number>();
-    const rollback = new Error('simulated later workflow failure');
-    const first = postgres
-      .transaction(async (tx) => {
-        await persistCreation(input, {
-          correlationId: 'rollback',
-          tx: tx as ITransactionContext,
-        });
-        ready.resolve(
+  it.each(['petty_cash', 'bank'] as const)(
+    'rolls back %s creation and releases allocation to the waiter after workflow failure',
+    async (kind) => {
+      const header = await seedHeader();
+      const input = await prepareCash(header, kind);
+      const ready = barrier<number>();
+      const release = barrier<void>();
+      const started = barrier<number>();
+      const rollback = new Error('simulated later workflow failure');
+      const first = postgres
+        .transaction(async (tx) => {
+          await persistCreation(input, {
+            correlationId: 'rollback',
+            tx: tx as ITransactionContext,
+          });
+          ready.resolve(
+            Number(
+              (await tx.execute(sql`select pg_backend_pid() as pid`)).rows[0]
+                .pid
+            )
+          );
+          await release.promise;
+          if (input.bankDetails) {
+            // A second insert violates bank uniqueness after all account writes.
+            await bankAccountRepo.create(
+              input.account.id,
+              input.account.accountingEntityId,
+              input.bankDetails,
+              input.actorId,
+              { correlationId: 'bank-failure', tx: tx as ITransactionContext }
+            );
+            throw new Error('Expected the duplicate bank insert to fail');
+          }
+          throw rollback;
+        })
+        .catch((error: unknown) => error);
+      const holderPid = await Promise.race([
+        ready.promise,
+        first.then((error) => {
+          throw error;
+        }),
+      ]);
+      const second = postgres.transaction(async (tx) => {
+        started.resolve(
           Number(
             (await tx.execute(sql`select pg_backend_pid() as pid`)).rows[0].pid
           )
         );
-        await release.promise;
-        throw rollback;
-      })
-      .catch((error: unknown) => error);
-    const holderPid = await Promise.race([
-      ready.promise,
-      first.then((error) => {
-        throw error;
-      }),
-    ]);
-    const second = postgres.transaction(async (tx) => {
-      started.resolve(
-        Number(
-          (await tx.execute(sql`select pg_backend_pid() as pid`)).rows[0].pid
-        )
-      );
-      return persistCreation(creationPayload(header), {
-        correlationId: 'waiter',
-        tx: tx as ITransactionContext,
+        return persistCreation(creationPayload(header), {
+          correlationId: 'waiter',
+          tx: tx as ITransactionContext,
+        });
       });
-    });
-    const settled = Promise.allSettled([first, second]);
-    try {
-      const waiterPid = await Promise.race([
-        started.promise,
-        second.then(() => {
-          throw new Error('Second transaction ended before its PID was read');
-        }),
-      ]);
-      await waitForBlock(waiterPid, holderPid);
-    } finally {
-      release.resolve();
-      await settled;
+      const settled = Promise.allSettled([first, second]);
+      try {
+        const waiterPid = await Promise.race([
+          started.promise,
+          second.then(() => {
+            throw new Error('Second transaction ended before its PID was read');
+          }),
+        ]);
+        await waitForBlock(waiterPid, holderPid);
+      } finally {
+        release.resolve();
+        await settled;
+      }
+      const failure = await first;
+      if (kind === 'bank') {
+        expect(failure).toBeInstanceOf(Error);
+        // Drizzle preserves PostgreSQL's unique-violation code in its cause.
+        expect(failure).toMatchObject({ cause: { code: '23505' } });
+      } else {
+        expect(failure).toBe(rollback);
+      }
+      const assigned = await second;
+      expect(assigned.account.code).toBe('100001');
+      for (const table of [
+        'core.bank_details',
+        'core.ledger_accounts',
+        'core.ledger_account_balances',
+        'audit.ledger_account_history',
+      ]) {
+        const idColumn =
+          table === 'core.ledger_accounts' ? 'id' : 'ledger_account_id';
+        const rows = await observer.query(
+          `select count(*)::int as count from ${table} where ${idColumn} = $1`,
+          [input.account.id]
+        );
+        expect(rows.rows[0].count).toBe(0);
+      }
+      await assertStored(assigned);
     }
-    expect(await first).toBe(rollback);
-    const assigned = await second;
-    expect(assigned.account.code).toBe('100001');
-    for (const table of [
-      'core.ledger_accounts',
-      'core.ledger_account_balances',
-      'audit.ledger_account_history',
-    ]) {
-      const idColumn =
-        table === 'core.ledger_accounts' ? 'id' : 'ledger_account_id';
-      const rows = await observer.query(
-        `select count(*)::int as count from ${table} where ${idColumn} = $1`,
-        [input.account.id]
-      );
-      expect(rows.rows[0].count).toBe(0);
-    }
-    await assertStored(assigned);
-  });
+  );
 
   it('does not block an unrelated accounting entity and supports a local persistence transaction', async () => {
     const a = await seedHeader();

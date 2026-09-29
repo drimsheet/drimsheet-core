@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import grantsControlAccountValidation from '@domain/ledger/services/validations/grants-control-account.validation';
 import { IGrantsAccountService } from '@domain/ledger/types/grants.service.types';
 import { TGrantsLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
@@ -14,7 +14,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import {
   ERevenueAccountBehavior,
@@ -69,27 +68,14 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(
-  deps: IDependencies
-): IGrantsAccountService['createSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Revenue &&
-        controlAccount.subType === ERevenueSubType.Grants &&
-        controlAccount.isControlAccount &&
-        controlAccount.behavior === ERevenueAccountBehavior.Grants
-      );
-    };
+function makeCreateSubAccount(): IGrantsAccountService['createSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TGrantsLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    grantsControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -98,12 +84,12 @@ function makeCreateSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TGrantsLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TGrantsLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TGrantsLedgerCode,
         code
       );
 
@@ -131,7 +117,7 @@ function makeCreateSubAccount(
 export default function makeGrantsAccountService(deps: IDependencies) {
   const service: IGrantsAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(deps),
+    createSubAccount: makeCreateSubAccount(),
   };
 
   return Object.freeze(service);

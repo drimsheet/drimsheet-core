@@ -14,6 +14,9 @@ PostgreSQL's blocking-PID graph to verify waiting, commit and rollback. It creat
 uniquely identified fixtures and removes only those fixtures. It does not create
 or reset the database, and it is excluded from the ordinary mocked Jest suite.
 
-The account-ID reference in journal/FX preparation remains unchanged. This suite
-covers the participating petty-cash allocation path; unchanged bank creation
-does not yet follow its locking protocol.
+The suite prepares bank and petty-cash accounts through the cash domain service
+and persists real bank records in the allocation transaction. It covers bank/bank,
+bank/petty-cash (in both orders), different immediate parents, unrelated accounting
+entities, and rollback after a bank-record uniqueness failure. Account, balance,
+audit snapshots, and bank linkage are checked after commit; failed writes must
+leave no records or reserved code. Journal/FX preparation remains unchanged.

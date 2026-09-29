@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import gainOnSaleControlAccountValidation from '@domain/ledger/services/validations/gain-on-sale-control-account.validation';
 import { IGainOnAssetSaleAccountService } from '@domain/ledger/types/gain-on-sale.service.types';
 import { TGainOnAssetSaleLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
@@ -14,7 +14,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import {
   ERevenueAccountBehavior,
@@ -69,27 +68,14 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(
-  deps: IDependencies
-): IGainOnAssetSaleAccountService['createSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Revenue &&
-        controlAccount.subType === ERevenueSubType.GainOnAssetSale &&
-        controlAccount.isControlAccount &&
-        controlAccount.behavior === ERevenueAccountBehavior.GainOnAssetSale
-      );
-    };
+function makeCreateSubAccount(): IGainOnAssetSaleAccountService['createSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TGainOnAssetSaleLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    gainOnSaleControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -98,12 +84,12 @@ function makeCreateSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TGainOnAssetSaleLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TGainOnAssetSaleLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TGainOnAssetSaleLedgerCode,
         code
       );
 
@@ -131,7 +117,7 @@ function makeCreateSubAccount(
 export default function makeGainOnAssetSaleAccountService(deps: IDependencies) {
   const service: IGainOnAssetSaleAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(deps),
+    createSubAccount: makeCreateSubAccount(),
   };
 
   return Object.freeze(service);

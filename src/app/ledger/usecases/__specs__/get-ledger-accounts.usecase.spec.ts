@@ -54,25 +54,20 @@ describe('makeGetLedgerAccountsUsecase', () => {
       },
       { correlationId }
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(cashHeader);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
-    [ledgerAccount] = await cashAccountService.createBankSubAccount(
-      {
-        name: 'Operations Bank Account',
-        isControlAccount: false,
-        controlAccountCode: cashHeader.code,
-        currency: usdCurrency,
-        createdBy: userId,
-        accountingEntity,
-        bankDetails: {
-          countryCode: 'US',
-          bankName: 'Test Bank',
-          accountNumber: '1234567890',
-          accountName: 'Main Account',
-        },
+    [ledgerAccount] = cashAccountService.createBankSubAccount({
+      name: 'Operations Bank Account',
+      isControlAccount: false,
+      controlAccount: cashHeader,
+      currency: usdCurrency,
+      createdBy: userId,
+      accountingEntity,
+      bankDetails: {
+        countryCode: 'US',
+        bankName: 'Test Bank',
+        accountNumber: '1234567890',
+        accountName: 'Main Account',
       },
-      { correlationId }
-    );
+    });
     controlAccount = cashHeader;
   });
 

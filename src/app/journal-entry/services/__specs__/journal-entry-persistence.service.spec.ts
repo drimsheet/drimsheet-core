@@ -88,19 +88,14 @@ describe('journalEntryPersistenceService', () => {
       mockOptions
     );
 
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
-    const [cashAccount] = await cashAccountService.createPettyCashSubAccount(
-      {
-        name: 'Main Petty Cash',
-        currency: SYSTEM_CURRENCIES.NGN,
-        isControlAccount: false,
-        controlAccountCode: controlAccount.code,
-        accountingEntity,
-        createdBy: user.actorId,
-      },
-      mockOptions
-    );
+    const [cashAccount] = cashAccountService.createPettyCashSubAccount({
+      name: 'Main Petty Cash',
+      currency: SYSTEM_CURRENCIES.NGN,
+      isControlAccount: false,
+      controlAccount,
+      accountingEntity,
+      createdBy: user.actorId,
+    });
 
     const [equityAccount] =
       await equityAccountService.createOpeningBalanceAccount(

@@ -87,19 +87,14 @@ describe('createOpeningBalanceUseCase', () => {
       },
       { correlationId }
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
-    [mockAssetAccount] = await cashAccountService.createPettyCashSubAccount(
-      {
-        name: 'Cash',
-        currency: SYSTEM_CURRENCIES.NGN,
-        isControlAccount: false,
-        controlAccountCode: controlAccount.code,
-        accountingEntity: mockAccountingEntity,
-        createdBy: mockUser.id,
-      },
-      { correlationId }
-    );
+    [mockAssetAccount] = cashAccountService.createPettyCashSubAccount({
+      name: 'Cash',
+      currency: SYSTEM_CURRENCIES.NGN,
+      isControlAccount: false,
+      controlAccount,
+      accountingEntity: mockAccountingEntity,
+      createdBy: mockUser.id,
+    });
     [mockEquityAccount] =
       await equityAccountService.createOpeningBalanceAccount(
         {

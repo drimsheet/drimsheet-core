@@ -129,6 +129,7 @@ export const ledgerAccountPersistenceService =
 
 export const postingAccountBootstrapService =
   makePostingAccountBootstrapService({
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountPersistenceService,
     receivablesAccountService,
     payablesAccountService,

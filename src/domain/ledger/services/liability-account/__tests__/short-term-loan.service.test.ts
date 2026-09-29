@@ -80,7 +80,6 @@ describe('shortTermLoanAccountService', () => {
     accountingEntityId: accountingEntity.id,
     currency: SYSTEM_CURRENCIES.USD,
     isControlAccount: false,
-    controlAccountCode: LIABILITY_LEDGER_CODES.SHORT_TERM_DEBT.HEADER,
   };
 
   const creditCardPayload = {
@@ -89,7 +88,6 @@ describe('shortTermLoanAccountService', () => {
     accountingEntityId: accountingEntity.id,
     currency: SYSTEM_CURRENCIES.USD,
     isControlAccount: false,
-    controlAccountCode: LIABILITY_LEDGER_CODES.SHORT_TERM_DEBT.HEADER,
     meta: {
       cardIssuer: '  Visa  ',
       lastFourDigits: '4242',
@@ -104,6 +102,7 @@ describe('shortTermLoanAccountService', () => {
   });
 
   afterEach(() => {
+    expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     jest.useRealTimers();
   });
 
@@ -174,24 +173,18 @@ describe('shortTermLoanAccountService', () => {
       ELiabilityAccountBehavior.ShortTermLoan,
     ])(
       'creates a short-term loan under a %s control account',
-      async (controlAccountBehavior) => {
+      (controlAccountBehavior) => {
         const controlAccount = makeControlAccount(controlAccountBehavior);
-        mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-        mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce({
-          id: generateUUID(),
-          code: '200099',
-          materializedPath: `${controlAccount.materializedPath}.200099`,
-        });
 
-        const [account, events, audit] = await service.createSubAccount(
-          shortTermLoanPayload,
-          repoOptions
-        );
+        const [account, events, audit] = service.createSubAccount({
+          ...shortTermLoanPayload,
+          controlAccount,
+        });
 
         expect(account).toMatchObject({
           name: shortTermLoanPayload.name,
-          code: '200100',
-          materializedPath: `${controlAccount.materializedPath}.200100`,
+          code: '200001',
+          materializedPath: `${controlAccount.materializedPath}.200001`,
           accountingEntityId: accountingEntity.id,
           type: ELedgerType.Liability,
           subType: ELiabilitySubType.ShortTermDebt,
@@ -208,39 +201,44 @@ describe('shortTermLoanAccountService', () => {
       }
     );
 
-    it('allocates the first sub-account code when no later account exists', async () => {
-      const controlAccount = makeControlAccount();
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-      mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
+    it('derives the candidate and full path from a nested control account', () => {
+      const header = makeControlAccount();
+      const controlAccount = {
+        ...header,
+        id: generateUUID(),
+        controlAccountId: header.id,
+        code: header.code.slice(0, 3) + '037',
+        materializedPath:
+          header.materializedPath + '.' + header.code.slice(0, 3) + '037',
+      };
 
-      const [account] = await service.createSubAccount(
-        shortTermLoanPayload,
-        repoOptions
-      );
+      const [account] = service.createSubAccount({
+        ...shortTermLoanPayload,
+        controlAccount,
+      });
 
-      expect(account.code).toBe('200001');
+      expect(account.code).toBe('200038');
       expect(account.materializedPath).toBe(
-        `${controlAccount.materializedPath}.200001`
+        `${controlAccount.materializedPath}.200038`
       );
     });
 
-    it('creates a null-currency loan under a null-currency control account', async () => {
+    it('creates a null-currency loan under a null-currency control account', () => {
       const controlAccount = makeControlAccount(
         ELiabilityAccountBehavior.ShortTermLoan,
         { currency: null }
       );
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-      mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
 
-      const [account] = await service.createSubAccount(
-        { ...shortTermLoanPayload, currency: null },
-        repoOptions
-      );
+      const [account] = service.createSubAccount({
+        controlAccount,
+        ...shortTermLoanPayload,
+        currency: null,
+      });
 
       expect(account.currency).toBeNull();
     });
 
-    it('rejects a fixed-currency loan under a null-currency control account', async () => {
+    it('rejects a fixed-currency loan under a null-currency control account', () => {
       const controlAccount = makeControlAccount(
         ELiabilityAccountBehavior.ShortTermLoan,
         {
@@ -248,61 +246,70 @@ describe('shortTermLoanAccountService', () => {
           currency: null,
         }
       );
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
 
-      await expect(
-        service.createSubAccount(shortTermLoanPayload, repoOptions)
-      ).rejects.toMatchObject({
-        errorKey:
-          'ledger_error_ledger_account_control_account_currency_mismatch_invalid',
-        cause: {
-          controlAccountId: controlAccount.id,
-          controlAccountCode: controlAccount.code,
-          controlAccountCurrencyCode: null,
-          subAccountCurrencyCode: SYSTEM_CURRENCIES.USD.code,
-        },
-      });
-      expect(mockLedgerAccountRepo.findLatestBySubType).toHaveBeenCalledTimes(
-        1
+      expect(() =>
+        service.createSubAccount({
+          ...shortTermLoanPayload,
+          controlAccount,
+        })
+      ).toThrow(
+        expect.objectContaining({
+          errorKey:
+            'ledger_error_ledger_account_control_account_currency_mismatch_invalid',
+          cause: {
+            controlAccountId: controlAccount.id,
+            controlAccountCode: controlAccount.code,
+            controlAccountCurrencyCode: null,
+            subAccountCurrencyCode: SYSTEM_CURRENCIES.USD.code,
+          },
+        })
       );
+      expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     });
 
-    it('rejects a different fixed currency under a nested control account', async () => {
+    it('rejects a different fixed currency under a nested control account', () => {
       const controlAccount = makeControlAccount(
         ELiabilityAccountBehavior.ShortTermLoan,
         { controlAccountId: generateUUID() }
       );
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
 
-      await expect(
-        service.createSubAccount(
-          { ...shortTermLoanPayload, currency: SYSTEM_CURRENCIES.EUR },
-          repoOptions
-        )
-      ).rejects.toMatchObject({
-        errorKey:
-          'ledger_error_ledger_account_control_account_currency_mismatch_invalid',
-        cause: {
-          controlAccountId: controlAccount.id,
-          controlAccountCode: controlAccount.code,
-          controlAccountCurrencyCode: SYSTEM_CURRENCIES.USD.code,
-          subAccountCurrencyCode: SYSTEM_CURRENCIES.EUR.code,
-        },
-      });
-      expect(mockLedgerAccountRepo.findLatestBySubType).toHaveBeenCalledTimes(
-        1
+      expect(() =>
+        service.createSubAccount({
+          controlAccount,
+          ...shortTermLoanPayload,
+          currency: SYSTEM_CURRENCIES.EUR,
+        })
+      ).toThrow(
+        expect.objectContaining({
+          errorKey:
+            'ledger_error_ledger_account_control_account_currency_mismatch_invalid',
+          cause: {
+            controlAccountId: controlAccount.id,
+            controlAccountCode: controlAccount.code,
+            controlAccountCurrencyCode: SYSTEM_CURRENCIES.USD.code,
+            subAccountCurrencyCode: SYSTEM_CURRENCIES.EUR.code,
+          },
+        })
       );
+      expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     });
 
-    it('rejects a missing control account', async () => {
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
+    it('rejects a control account from another accounting entity', () => {
+      const suppliedControlAccount = {
+        ...makeControlAccount(),
+        accountingEntityId: generateUUID(),
+      };
 
-      await expect(
-        service.createSubAccount(shortTermLoanPayload, repoOptions)
-      ).rejects.toMatchObject({
-        errorKey:
-          'ledger_error_asset_account_control_account_not_found_unexpected',
-      });
+      expect(() =>
+        service.createSubAccount({
+          ...shortTermLoanPayload,
+          controlAccount: suppliedControlAccount,
+        })
+      ).toThrow(
+        expect.objectContaining({
+          errorKey: 'ledger_error_asset_account_control_account_invalid',
+        })
+      );
     });
 
     const invalidControlAccountCases: Array<{
@@ -323,19 +330,22 @@ describe('shortTermLoanAccountService', () => {
 
     it.each(invalidControlAccountCases)(
       'rejects a control account with an invalid $label',
-      async ({ overrides }) => {
-        mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(
-          makeControlAccount(
-            ELiabilityAccountBehavior.DefaultShortTermDebt,
-            overrides
-          )
+      ({ overrides }) => {
+        const suppliedControlAccount = makeControlAccount(
+          ELiabilityAccountBehavior.DefaultShortTermDebt,
+          overrides
         );
 
-        await expect(
-          service.createSubAccount(shortTermLoanPayload, repoOptions)
-        ).rejects.toMatchObject({
-          errorKey: 'ledger_error_asset_account_control_account_invalid',
-        });
+        expect(() =>
+          service.createSubAccount({
+            ...shortTermLoanPayload,
+            controlAccount: suppliedControlAccount,
+          })
+        ).toThrow(
+          expect.objectContaining({
+            errorKey: 'ledger_error_asset_account_control_account_invalid',
+          })
+        );
         expect(
           mockLedgerAccountRepo.findLatestBySubType
         ).not.toHaveBeenCalled();
@@ -349,16 +359,13 @@ describe('shortTermLoanAccountService', () => {
       ELiabilityAccountBehavior.CreditCard,
     ])(
       'creates a credit card under a %s control account',
-      async (controlAccountBehavior) => {
+      (controlAccountBehavior) => {
         const controlAccount = makeControlAccount(controlAccountBehavior);
-        mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-        mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
 
-        const [account, events, audit] =
-          await service.createCreditCardSubAccount(
-            creditCardPayload,
-            repoOptions
-          );
+        const [account, events, audit] = service.createCreditCardSubAccount({
+          ...creditCardPayload,
+          controlAccount,
+        });
 
         expect(account).toMatchObject({
           name: creditCardPayload.name,
@@ -378,15 +385,22 @@ describe('shortTermLoanAccountService', () => {
       }
     );
 
-    it('rejects a missing credit-card control account', async () => {
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
+    it('rejects a credit-card control account from another accounting entity', () => {
+      const suppliedControlAccount = {
+        ...makeControlAccount(),
+        accountingEntityId: generateUUID(),
+      };
 
-      await expect(
-        service.createCreditCardSubAccount(creditCardPayload, repoOptions)
-      ).rejects.toMatchObject({
-        errorKey:
-          'ledger_error_asset_account_control_account_not_found_unexpected',
-      });
+      expect(() =>
+        service.createCreditCardSubAccount({
+          ...creditCardPayload,
+          controlAccount: suppliedControlAccount,
+        })
+      ).toThrow(
+        expect.objectContaining({
+          errorKey: 'ledger_error_asset_account_control_account_invalid',
+        })
+      );
     });
 
     const invalidControlAccountCases: Array<{
@@ -408,19 +422,22 @@ describe('shortTermLoanAccountService', () => {
 
     it.each(invalidControlAccountCases)(
       'rejects a credit-card control account with an invalid $label',
-      async ({ overrides }) => {
-        mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(
-          makeControlAccount(
-            ELiabilityAccountBehavior.DefaultShortTermDebt,
-            overrides
-          )
+      ({ overrides }) => {
+        const suppliedControlAccount = makeControlAccount(
+          ELiabilityAccountBehavior.DefaultShortTermDebt,
+          overrides
         );
 
-        await expect(
-          service.createCreditCardSubAccount(creditCardPayload, repoOptions)
-        ).rejects.toMatchObject({
-          errorKey: 'ledger_error_asset_account_control_account_invalid',
-        });
+        expect(() =>
+          service.createCreditCardSubAccount({
+            ...creditCardPayload,
+            controlAccount: suppliedControlAccount,
+          })
+        ).toThrow(
+          expect.objectContaining({
+            errorKey: 'ledger_error_asset_account_control_account_invalid',
+          })
+        );
         expect(
           mockLedgerAccountRepo.findLatestBySubType
         ).not.toHaveBeenCalled();

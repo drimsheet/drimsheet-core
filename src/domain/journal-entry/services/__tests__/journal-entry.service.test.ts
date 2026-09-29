@@ -165,19 +165,14 @@ describe('journalEntryService', () => {
       },
       repoOptions
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(servicesHeader);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
     const [sourceAccountWithoutOpeningDate] =
-      await servicesAccountService.createSubAccount(
-        {
-          name: 'Service Revenue',
-          accountingEntityId: accountingEntity.id,
-          isControlAccount: false,
-          controlAccountCode: servicesHeader.code,
-          createdBy: user.actorId,
-        },
-        repoOptions
-      );
+      servicesAccountService.createSubAccount({
+        name: 'Service Revenue',
+        accountingEntityId: accountingEntity.id,
+        isControlAccount: false,
+        controlAccount: servicesHeader,
+        createdBy: user.actorId,
+      });
     mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
     const [payablesHeader] = await payablesAccountService.createHeader(
       {
@@ -187,24 +182,19 @@ describe('journalEntryService', () => {
       },
       repoOptions
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(payablesHeader);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
     const [vatPayableAccountWithoutOpeningDate] =
-      await payablesAccountService.createStatutoryPayableSubAccount(
-        {
-          name: 'VAT Payable',
-          createdBy: user.actorId,
-          accountingEntity,
-          currency: SYSTEM_CURRENCIES.NGN,
-          isControlAccount: false,
-          controlAccountCode: payablesHeader.code,
-          meta: {
-            taxAuthority: 'Federal Inland Revenue Service',
-            taxType: 'vat',
-          },
+      payablesAccountService.createStatutoryPayableSubAccount({
+        name: 'VAT Payable',
+        createdBy: user.actorId,
+        accountingEntity,
+        currency: SYSTEM_CURRENCIES.NGN,
+        isControlAccount: false,
+        controlAccount: payablesHeader,
+        meta: {
+          taxAuthority: 'Federal Inland Revenue Service',
+          taxType: 'vat',
         },
-        repoOptions
-      );
+      });
     mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
     const [cashHeader] = await cashAccountService.createHeader(
       {
@@ -214,20 +204,15 @@ describe('journalEntryService', () => {
       },
       repoOptions
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(cashHeader);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
     const [destinationAccountWithoutOpeningDate] =
-      await cashAccountService.createPettyCashSubAccount(
-        {
-          name: 'Cash on Hand',
-          currency: SYSTEM_CURRENCIES.NGN,
-          isControlAccount: false,
-          controlAccountCode: cashHeader.code,
-          accountingEntity,
-          createdBy: user.actorId,
-        },
-        repoOptions
-      );
+      cashAccountService.createPettyCashSubAccount({
+        name: 'Cash on Hand',
+        currency: SYSTEM_CURRENCIES.NGN,
+        isControlAccount: false,
+        controlAccount: cashHeader,
+        accountingEntity,
+        createdBy: user.actorId,
+      });
     const [sourceAccount] = ledgerAccountEntity.updateOpeningBalanceDate(
       sourceAccountWithoutOpeningDate,
       effectiveDate
@@ -750,19 +735,14 @@ describe('journalEntryService', () => {
       },
       repoOptions
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(otherCashHeader);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
-    const [account] = await cashAccountService.createPettyCashSubAccount(
-      {
-        name: 'Other Entity Cash',
-        currency: SYSTEM_CURRENCIES.NGN,
-        isControlAccount: false,
-        controlAccountCode: otherCashHeader.code,
-        accountingEntity: otherAccountingEntity,
-        createdBy: user.actorId,
-      },
-      repoOptions
-    );
+    const [account] = cashAccountService.createPettyCashSubAccount({
+      name: 'Other Entity Cash',
+      currency: SYSTEM_CURRENCIES.NGN,
+      isControlAccount: false,
+      controlAccount: otherCashHeader,
+      accountingEntity: otherAccountingEntity,
+      createdBy: user.actorId,
+    });
     payload.destinationLine = {
       ...payload.destinationLine,
       account,
@@ -1578,20 +1558,14 @@ describe('journalEntryService', () => {
         },
         repoOptions
       );
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-      mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
-      const [postingAccount] =
-        await cashAccountService.createPettyCashSubAccount(
-          {
-            name: 'Main Petty Cash',
-            currency: postingCurrency,
-            isControlAccount: false,
-            controlAccountCode: controlAccount.code,
-            accountingEntity,
-            createdBy: user.actorId,
-          },
-          repoOptions
-        );
+      const [postingAccount] = cashAccountService.createPettyCashSubAccount({
+        name: 'Main Petty Cash',
+        currency: postingCurrency,
+        isControlAccount: false,
+        controlAccount,
+        accountingEntity,
+        createdBy: user.actorId,
+      });
       const [equityAccount] =
         await equityAccountService.createOpeningBalanceAccount(
           {

@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import taxExpenseControlAccountValidation from '@domain/ledger/services/validations/tax-expense-control-account.validation';
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
@@ -17,7 +17,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import { ITaxExpenseAccountService } from '@domain/ledger/types/tax-expense.service.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
@@ -67,25 +66,14 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(
-  deps: IDependencies
-): ITaxExpenseAccountService['createSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (account: ILedgerAccount) =>
-      account.type === ELedgerType.Expense &&
-      account.subType === EExpenseSubType.IncomeTaxExpense &&
-      account.isControlAccount &&
-      (account.behavior === EExpenseAccountBehavior.TaxExpense ||
-        account.behavior === EExpenseAccountBehavior.Default);
+function makeCreateSubAccount(): ITaxExpenseAccountService['createSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TIncomeTaxLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    taxExpenseControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -94,11 +82,11 @@ function makeCreateSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TIncomeTaxLedgerCode
     );
     const materializedPath =
       getLedgerAccountMaterializedPath<TIncomeTaxLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TIncomeTaxLedgerCode,
         code
       );
 
@@ -126,7 +114,7 @@ function makeCreateSubAccount(
 export default function makeTaxExpenseAccountService(deps: IDependencies) {
   const service: ITaxExpenseAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(deps),
+    createSubAccount: makeCreateSubAccount(),
   };
   return Object.freeze(service);
 }

@@ -4,7 +4,6 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
-import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -38,19 +37,14 @@ describe('mapLedgerAccountToDto', () => {
       },
       { correlationId: 'test-correlation-id' }
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
-    [mockAccount] = await cashAccountService.createPettyCashSubAccount(
-      {
-        name: 'Petty Cash',
-        currency: SYSTEM_CURRENCIES.NGN,
-        isControlAccount: false,
-        createdBy: mockUser,
-        accountingEntity,
-        controlAccountCode: ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
-      },
-      { correlationId: 'test-correlation-id' }
-    );
+    [mockAccount] = cashAccountService.createPettyCashSubAccount({
+      name: 'Petty Cash',
+      currency: SYSTEM_CURRENCIES.NGN,
+      isControlAccount: false,
+      createdBy: mockUser,
+      accountingEntity,
+      controlAccount,
+    });
   });
 
   it('returns DTO with zero balances when journalEntry is null', () => {

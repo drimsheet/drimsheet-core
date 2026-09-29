@@ -93,6 +93,7 @@ function makeAuditedAccount(
 }
 
 const dependencies = {
+  ledgerAccountRepo: mockLedgerAccountRepo,
   ledgerAccountPersistenceService: mockLedgerAccountPersistenceService,
   receivablesAccountService: mockReceivablesAccountService,
   payablesAccountService: mockPayablesAccountService,
@@ -117,59 +118,62 @@ describe('postingAccountBootstrapService', () => {
   const auditedAccounts = expectedAccountNames.map(makeAuditedAccount);
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockReceivablesAccountService.createTradeReceivableSubAccount.mockResolvedValue(
+    jest.resetAllMocks();
+    mockLedgerAccountRepo.findByCode.mockImplementation(
+      async (code) => ({ code }) as ILedgerAccount
+    );
+    mockReceivablesAccountService.createTradeReceivableSubAccount.mockReturnValue(
       auditedAccounts[0] as never
     );
     mockReceivablesAccountService.createStatutoryReceivableSubAccount
-      .mockResolvedValueOnce(auditedAccounts[1] as never)
-      .mockResolvedValueOnce(auditedAccounts[2] as never);
-    mockPayablesAccountService.createTradePayableSubAccount.mockResolvedValue(
+      .mockReturnValueOnce(auditedAccounts[1] as never)
+      .mockReturnValueOnce(auditedAccounts[2] as never);
+    mockPayablesAccountService.createTradePayableSubAccount.mockReturnValue(
       auditedAccounts[3] as never
     );
     mockPayablesAccountService.createStatutoryPayableSubAccount
-      .mockResolvedValueOnce(auditedAccounts[4] as never)
-      .mockResolvedValueOnce(auditedAccounts[5] as never);
-    mockServicesAccountService.createSubAccount.mockResolvedValue(
+      .mockReturnValueOnce(auditedAccounts[4] as never)
+      .mockReturnValueOnce(auditedAccounts[5] as never);
+    mockServicesAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[6] as never
     );
-    mockEmploymentIncomeAccountService.createSubAccount.mockResolvedValue(
+    mockEmploymentIncomeAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[7] as never
     );
-    mockGainOnAssetSaleAccountService.createSubAccount.mockResolvedValue(
+    mockGainOnAssetSaleAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[8] as never
     );
-    mockUnrealizedGainAccountService.createSubAccount.mockResolvedValue(
+    mockUnrealizedGainAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[9] as never
     );
-    mockGrantsAccountService.createSubAccount.mockResolvedValue(
+    mockGrantsAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[10] as never
     );
-    mockGiftsAccountService.createSubAccount.mockResolvedValue(
+    mockGiftsAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[11] as never
     );
-    mockDirectCostsAccountService.createSubAccount.mockResolvedValue(
+    mockDirectCostsAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[12] as never
     );
-    mockRentAndUtilitiesAccountService.createSubAccount.mockResolvedValue(
+    mockRentAndUtilitiesAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[13] as never
     );
-    mockBankChargeAccountService.createSubAccount.mockResolvedValue(
+    mockBankChargeAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[14] as never
     );
-    mockFinanceCostAccountService.createSubAccount.mockResolvedValue(
+    mockFinanceCostAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[15] as never
     );
-    mockInterestAccountService.createSubAccount.mockResolvedValue(
+    mockInterestAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[16] as never
     );
-    mockTaxExpenseAccountService.createSubAccount.mockResolvedValue(
+    mockTaxExpenseAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[17] as never
     );
-    mockUnrealizedLossAccountService.createSubAccount.mockResolvedValue(
+    mockUnrealizedLossAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[18] as never
     );
-    mockAssetDisposalLossAccountService.createSubAccount.mockResolvedValue(
+    mockAssetDisposalLossAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[19] as never
     );
     mockLedgerAccountPersistenceService.create.mockResolvedValue();
@@ -250,29 +254,33 @@ describe('postingAccountBootstrapService', () => {
       mockReceivablesAccountService.createTradeReceivableSubAccount
     ).toHaveBeenCalledWith(
       expect.objectContaining({
-        controlAccountCode: ASSET_LEDGER_CODES.RECEIVABLES.HEADER,
-      }),
-      repoOptions
+        controlAccount: expect.objectContaining({
+          code: ASSET_LEDGER_CODES.RECEIVABLES.HEADER,
+        }),
+      })
     );
     expect(
       mockPayablesAccountService.createTradePayableSubAccount
     ).toHaveBeenCalledWith(
       expect.objectContaining({
-        controlAccountCode: LIABILITY_LEDGER_CODES.PAYABLES.HEADER,
-      }),
-      repoOptions
+        controlAccount: expect.objectContaining({
+          code: LIABILITY_LEDGER_CODES.PAYABLES.HEADER,
+        }),
+      })
     );
     expect(mockServicesAccountService.createSubAccount).toHaveBeenCalledWith(
       expect.objectContaining({
-        controlAccountCode: REVENUE_LEDGER_CODES.SERVICES.HEADER,
-      }),
-      repoOptions
+        controlAccount: expect.objectContaining({
+          code: REVENUE_LEDGER_CODES.SERVICES.HEADER,
+        }),
+      })
     );
     expect(mockDirectCostsAccountService.createSubAccount).toHaveBeenCalledWith(
       expect.objectContaining({
-        controlAccountCode: EXPENSE_LEDGER_CODES.DIRECT_COSTS.HEADER,
-      }),
-      repoOptions
+        controlAccount: expect.objectContaining({
+          code: EXPENSE_LEDGER_CODES.DIRECT_COSTS.HEADER,
+        }),
+      })
     );
   });
 
@@ -296,9 +304,9 @@ describe('postingAccountBootstrapService', () => {
 
   it('propagates domain failures without continuing', async () => {
     const domainFailure = new Error('allocation failed');
-    mockServicesAccountService.createSubAccount.mockRejectedValueOnce(
-      domainFailure
-    );
+    mockServicesAccountService.createSubAccount.mockImplementationOnce(() => {
+      throw domainFailure;
+    });
 
     await expect(
       service.bootstrap(
@@ -312,7 +320,7 @@ describe('postingAccountBootstrapService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('rejects through the domain service when the required header is not persisted', async () => {
+  it('rejects before domain creation when the required header is not persisted', async () => {
     mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
     const realReceivablesService = makeReceivablesAccountService({
       ledgerAccountRepo: mockLedgerAccountRepo,

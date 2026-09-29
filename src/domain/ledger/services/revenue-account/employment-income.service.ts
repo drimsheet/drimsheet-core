@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import employmentIncomeControlAccountValidation from '@domain/ledger/services/validations/employment-income-control-account.validation';
 import { IEmploymentIncomeAccountService } from '@domain/ledger/types/employment-income.service.types';
 import { TEmploymentIncomeLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
@@ -14,7 +14,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import {
   ERevenueAccountBehavior,
@@ -69,27 +68,14 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(
-  deps: IDependencies
-): IEmploymentIncomeAccountService['createSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Revenue &&
-        controlAccount.subType === ERevenueSubType.EmploymentIncome &&
-        controlAccount.isControlAccount &&
-        controlAccount.behavior === ERevenueAccountBehavior.EmploymentIncome
-      );
-    };
+function makeCreateSubAccount(): IEmploymentIncomeAccountService['createSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TEmploymentIncomeLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    employmentIncomeControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -98,12 +84,12 @@ function makeCreateSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TEmploymentIncomeLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TEmploymentIncomeLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TEmploymentIncomeLedgerCode,
         code
       );
 
@@ -133,7 +119,7 @@ export default function makeEmploymentIncomeAccountService(
 ) {
   const service: IEmploymentIncomeAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(deps),
+    createSubAccount: makeCreateSubAccount(),
   };
 
   return Object.freeze(service);

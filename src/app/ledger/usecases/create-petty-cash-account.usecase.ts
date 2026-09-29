@@ -27,7 +27,7 @@ import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-
 import { IPettyCashAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { pettyCashCreationReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
-import finalizeWithoutOpeningBalanceWithAssignedCode from '@app/ledger/usecases/helpers/finalize-without-opening-balance-with-assigned-code.helper';
+import finalizeWithoutOpeningBalanceHelper from '@app/ledger/usecases/helpers/finalize-without-opening-balance.helper';
 import getControlAccountHelper from '@app/ledger/usecases/helpers/get-control-account.helper';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import openingBalanceExchangeRateGetter from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
@@ -88,21 +88,17 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
       repoOptions,
     });
 
-    const auditedAccount =
-      await deps.cashAccountService.createPettyCashSubAccount(
-        {
-          name: payload.name,
-          currency: currencyEntity.getByCode(payload.currencyCode),
-          isControlAccount: payload.isControlAccount,
-          createdBy: actor.id,
-          accountingEntity,
-          controlAccountCode: controlAccount.code,
-        },
-        repoOptions
-      );
+    const auditedAccount = deps.cashAccountService.createPettyCashSubAccount({
+      name: payload.name,
+      currency: currencyEntity.getByCode(payload.currencyCode),
+      isControlAccount: payload.isControlAccount,
+      createdBy: actor.id,
+      accountingEntity,
+      controlAccount,
+    });
 
     if (!payload.openingBalance) {
-      return finalizeWithoutOpeningBalanceWithAssignedCode(deps, {
+      return finalizeWithoutOpeningBalanceHelper(deps, {
         auditedAccount,
         accountingEntity,
         allocationHeaderCode: ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
