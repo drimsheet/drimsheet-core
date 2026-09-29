@@ -1904,6 +1904,93 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IRecommendedBootstrapAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      key: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      type: { dataType: 'string', required: true },
+      subType: { dataType: 'string', required: true },
+      behavior: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountCode: { dataType: 'string' },
+      controlAccountKey: { dataType: 'string' },
+      meta: { dataType: 'enum', enums: [null] },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IRecommendedBootstrapAccountHeaderDto: {
+    dataType: 'refObject',
+    properties: {
+      key: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      type: { dataType: 'string', required: true },
+      subType: { dataType: 'string', required: true },
+      behavior: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountCode: { dataType: 'string' },
+      controlAccountKey: { dataType: 'string' },
+      meta: { dataType: 'enum', enums: [null] },
+      sub: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IRecommendedBootstrapAccountDto',
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IRecommendedBootstrapDto: {
+    dataType: 'refObject',
+    properties: {
+      receivables: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IRecommendedBootstrapAccountHeaderDto',
+        },
+        required: true,
+      },
+      payables: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IRecommendedBootstrapAccountHeaderDto',
+        },
+        required: true,
+      },
+      revenue: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IRecommendedBootstrapAccountHeaderDto',
+        },
+        required: true,
+      },
+      expense: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IRecommendedBootstrapAccountHeaderDto',
+        },
+        required: true,
+      },
+      suspense: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IRecommendedBootstrapAccountHeaderDto',
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IBankDetailsCreationReq: {
     dataType: 'refObject',
     properties: {
@@ -3787,6 +3874,48 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'logout',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_getRecommendedBootstrap: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.get(
+    '/api/v1/accounts/recommended-bootstrap',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.getRecommendedBootstrap
+    ),
+
+    async function AccountsController_getRecommendedBootstrap(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_getRecommendedBootstrap,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'getRecommendedBootstrap',
           controller,
           response,
           next,

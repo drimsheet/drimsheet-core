@@ -2503,6 +2503,142 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IRecommendedBootstrapAccountDto": {
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "subType": {
+            "type": "string"
+          },
+          "behavior": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountCode": {
+            "type": "string"
+          },
+          "controlAccountKey": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "number",
+            "enum": [null],
+            "nullable": true
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "type",
+          "subType",
+          "behavior",
+          "isControlAccount"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IRecommendedBootstrapAccountHeaderDto": {
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "subType": {
+            "type": "string"
+          },
+          "behavior": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountCode": {
+            "type": "string"
+          },
+          "controlAccountKey": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "number",
+            "enum": [null],
+            "nullable": true
+          },
+          "sub": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "type",
+          "subType",
+          "behavior",
+          "isControlAccount",
+          "sub"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IRecommendedBootstrapDto": {
+        "properties": {
+          "receivables": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+            },
+            "type": "array"
+          },
+          "payables": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+            },
+            "type": "array"
+          },
+          "revenue": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+            },
+            "type": "array"
+          },
+          "expense": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+            },
+            "type": "array"
+          },
+          "suspense": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "receivables",
+          "payables",
+          "revenue",
+          "expense",
+          "suspense"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IBankDetailsCreationReq": {
         "properties": {
           "bankName": {
@@ -5475,6 +5611,57 @@
         },
         "description": "Logout user",
         "tags": ["Auth"],
+        "security": [],
+        "parameters": []
+      }
+    },
+    "/accounts/recommended-bootstrap": {
+      "get": {
+        "operationId": "getRecommendedBootstrap",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IRecommendedBootstrapDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get recommended posting account setup, grouped with nested sub accounts.",
+        "tags": ["Accounts"],
         "security": [],
         "parameters": []
       }

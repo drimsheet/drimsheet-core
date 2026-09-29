@@ -6,6 +6,7 @@ import makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
 import makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
 import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
+import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
 
 import {
@@ -56,6 +57,11 @@ import appContext from '@infra/runtime/app-context';
 export const getBanksUseCase = makeTracedUseCase(
   'ledger.getBanksUseCase',
   makeGetBanksUseCase()
+);
+
+export const getRecommendedBootstrapUseCase = makeTracedUseCase(
+  'ledger.getRecommendedBootstrapUseCase',
+  makeGetRecommendedBootstrapUsecase()
 );
 
 export const getLedgerAccountsUseCase = makeTracedUseCase(
