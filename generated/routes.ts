@@ -366,6 +366,10 @@ const models: TsoaRoute.Models = {
       income_tax_expense: { dataType: 'string' },
       unrealized_loss: { dataType: 'string' },
       loss_on_asset_disposal: { dataType: 'string' },
+      trade_receivables: { dataType: 'string' },
+      statutory_receivables: { dataType: 'string' },
+      trade_payables: { dataType: 'string' },
+      statutory_payables: { dataType: 'string' },
     },
     additionalProperties: false,
   },
@@ -1914,32 +1918,7 @@ const models: TsoaRoute.Models = {
       behavior: { dataType: 'string', required: true },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountCode: { dataType: 'string' },
-      controlAccountKey: { dataType: 'string' },
       meta: { dataType: 'enum', enums: [null] },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IRecommendedBootstrapAccountHeaderDto: {
-    dataType: 'refObject',
-    properties: {
-      key: { dataType: 'string', required: true },
-      name: { dataType: 'string', required: true },
-      type: { dataType: 'string', required: true },
-      subType: { dataType: 'string', required: true },
-      behavior: { dataType: 'string', required: true },
-      isControlAccount: { dataType: 'boolean', required: true },
-      controlAccountCode: { dataType: 'string' },
-      controlAccountKey: { dataType: 'string' },
-      meta: { dataType: 'enum', enums: [null] },
-      sub: {
-        dataType: 'array',
-        array: {
-          dataType: 'refObject',
-          ref: 'IRecommendedBootstrapAccountDto',
-        },
-        required: true,
-      },
     },
     additionalProperties: false,
   },
@@ -1951,7 +1930,7 @@ const models: TsoaRoute.Models = {
         dataType: 'array',
         array: {
           dataType: 'refObject',
-          ref: 'IRecommendedBootstrapAccountHeaderDto',
+          ref: 'IRecommendedBootstrapAccountDto',
         },
         required: true,
       },
@@ -1959,7 +1938,7 @@ const models: TsoaRoute.Models = {
         dataType: 'array',
         array: {
           dataType: 'refObject',
-          ref: 'IRecommendedBootstrapAccountHeaderDto',
+          ref: 'IRecommendedBootstrapAccountDto',
         },
         required: true,
       },
@@ -1967,7 +1946,7 @@ const models: TsoaRoute.Models = {
         dataType: 'array',
         array: {
           dataType: 'refObject',
-          ref: 'IRecommendedBootstrapAccountHeaderDto',
+          ref: 'IRecommendedBootstrapAccountDto',
         },
         required: true,
       },
@@ -1975,7 +1954,7 @@ const models: TsoaRoute.Models = {
         dataType: 'array',
         array: {
           dataType: 'refObject',
-          ref: 'IRecommendedBootstrapAccountHeaderDto',
+          ref: 'IRecommendedBootstrapAccountDto',
         },
         required: true,
       },
@@ -1983,7 +1962,7 @@ const models: TsoaRoute.Models = {
         dataType: 'array',
         array: {
           dataType: 'refObject',
-          ref: 'IRecommendedBootstrapAccountHeaderDto',
+          ref: 'IRecommendedBootstrapAccountDto',
         },
         required: true,
       },

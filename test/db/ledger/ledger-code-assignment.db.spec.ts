@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 
+import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import {
   IReadRepoOptions,
   ITransactionContext,
@@ -15,14 +16,19 @@ import { IBankDetails } from '@domain/ledger/types/asset-account.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import bankDetailsValue from '@domain/ledger/values/bank-details.vo';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import actorEntity from '@domain/user/entities/actor.entity';
 
+import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAssignedLedgerAccount } from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import makeLedgerAccountPersistenceService from '@app/ledger/services/ledger-account-persistence.service';
 import makeLedgerCodeAssignmentAppService from '@app/ledger/services/ledger-code-assignment.service';
+import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
+import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
 
 import { ledgerAccountsInCore } from '@infra/config/drizzle/schema';
 import { postgres } from '@infra/config/postgres.config';
 import vars from '@infra/config/vars.config';
+import * as ledgerServices from '@infra/ioc/services/ledger';
 import accountingEntityRepo from '@infra/persistence/repos/accounting/accounting-entity.repo.impl';
 import bankAccountRepo from '@infra/persistence/repos/ledger/bank-account.repo.impl';
 import ledgerAccountBalanceRepo from '@infra/persistence/repos/ledger/ledger-account-balance.repo.impl';
@@ -113,7 +119,7 @@ describe('ledger code assignment with real PostgreSQL', () => {
     await postgres.$client.end();
   });
 
-  async function seedHeader() {
+  async function seedEntity() {
     const fixture = {
       entityId: generateUUID(),
       actorId: generateUUID(),
@@ -138,6 +144,11 @@ describe('ledger code assignment with real PostgreSQL', () => {
       "insert into core.accounting_entities (id, created_by, type, name, owner_id, functional_currency_code, jurisdiction_code) values ($1, $2, 'individual', 'Allocation test', $3, 'NGN', 'NG')",
       [fixture.entityId, fixture.actorId, fixture.userId]
     );
+    return fixture;
+  }
+
+  async function seedHeader() {
+    const fixture = await seedEntity();
     const [header] = ledgerAccountEntity.make({
       name: 'Cash header',
       code: '100000',
@@ -348,6 +359,145 @@ describe('ledger code assignment with real PostgreSQL', () => {
       ]);
     }
   }
+
+  async function prepareHeaderSetup(failLastControl = false) {
+    const fixture = await seedEntity();
+    const accountingEntity = await accountingEntityRepo.findById(
+      fixture.entityId,
+      { correlationId: 'setup-fixture' }
+    );
+    if (!accountingEntity) throw new Error('Missing accounting entity fixture');
+    const [actor] = actorEntity.makeUser({
+      email: 'setup@example.test',
+      displayName: 'Setup test',
+    });
+    mockAppContext.get.mockReturnValue({
+      actor: { ...actor, id: fixture.actorId },
+      accountingEntity,
+      correlationId: 'atomic-setup',
+    });
+    mockEventBus.publish.mockReset();
+    mockEventBus.publish.mockResolvedValue();
+    const setup = makeSetupHeaderAccountsUsecase({
+      ...ledgerServices,
+      appContext: mockAppContext,
+      eventBus: mockEventBus,
+      repoService,
+      ledgerAccountPersistenceService: {
+        createWithoutAssigningCode: service.createWithoutAssigningCode,
+        createAndAssignCode: async (payload, currencyCode, options) => {
+          const assigned = await service.createAndAssignCode(
+            payload,
+            currencyCode,
+            options
+          );
+          // Fail after the last control's account, audit, and balance were inserted.
+          const shouldFail =
+            failLastControl && assigned.account.behavior === 'tax_payable';
+          if (shouldFail) throw new Error('late control setup failure');
+          return assigned;
+        },
+      },
+    });
+    return { fixture, setup };
+  }
+
+  it('commits all 24 setup accounts, balances, and histories with final control codes', async () => {
+    const { fixture, setup } = await prepareHeaderSetup();
+    const response = await setup();
+    expect(response).toHaveLength(24);
+    expect(response.slice(20).map((account) => account.code)).toEqual([
+      '102001',
+      '102002',
+      '201001',
+      '201002',
+    ]);
+    const accounts = await observer.query<{
+      id: string;
+      code: string;
+      materialized_path: string;
+      control_account_id: string | null;
+      version: number;
+    }>(
+      'select id, code, materialized_path, control_account_id, version from core.ledger_accounts where accounting_entity_id = $1',
+      [fixture.entityId]
+    );
+    expect(accounts.rows).toHaveLength(24);
+    const balances = await observer.query<{
+      ledger_account_id: string;
+      account_materialized_path: string;
+    }>(
+      'select ledger_account_id, account_materialized_path from core.ledger_account_balances where accounting_entity_id = $1',
+      [fixture.entityId]
+    );
+    expect(balances.rows).toHaveLength(24);
+    const histories = await observer.query<{
+      ledger_account_id: string;
+      diff: { before: ILedgerAccount | null; after: ILedgerAccount };
+    }>(
+      "select ledger_account_id, diff from audit.ledger_account_history where accounting_entity_id = $1 order by (diff->'after'->>'version')::int",
+      [fixture.entityId]
+    );
+    expect(histories.rows).toHaveLength(28);
+    for (const account of response) {
+      expect(accounts.rows.find((row) => row.id === account.id)).toMatchObject({
+        code: account.code,
+        materialized_path: account.materializedPath,
+      });
+      expect(
+        balances.rows.find((row) => row.ledger_account_id === account.id)
+      ).toMatchObject({ account_materialized_path: account.materializedPath });
+    }
+    for (const account of response.slice(20)) {
+      const parentCode =
+        account.subType === 'receivables' ? '102000' : '201000';
+      const parent = accounts.rows.find((row) => row.code === parentCode);
+      expect(accounts.rows.find((row) => row.id === account.id)).toMatchObject({
+        control_account_id: parent?.id,
+        materialized_path: `${parentCode}.${account.code}`,
+        version: 2,
+      });
+      const history = histories.rows.filter(
+        (row) => row.ledger_account_id === account.id
+      );
+      expect(history).toHaveLength(2);
+      expect(history[1].diff.before).toEqual(history[0].diff.after);
+      expect(history[1].diff.after).toMatchObject({
+        code: account.code,
+        materializedPath: account.materializedPath,
+        version: 2,
+      });
+    }
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+    const recommendations = makeGetRecommendedBootstrapUsecase()();
+    expect(recommendations.receivables[0].controlAccountCode).toBe(
+      response[21].code
+    );
+    expect(recommendations.payables[0].controlAccountCode).toBe(
+      response[23].code
+    );
+    await expect(setup()).rejects.toMatchObject({
+      errorKey: 'ledger_error_header_account_already_exists_conflict',
+    });
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('rolls back every setup account, balance, and audit after a late control failure', async () => {
+    const { fixture, setup } = await prepareHeaderSetup(true);
+    await expect(setup()).rejects.toThrow('late control setup failure');
+    for (const table of [
+      'core.ledger_accounts',
+      'core.ledger_account_balances',
+      'audit.ledger_account_history',
+    ]) {
+      const rows = await observer.query(
+        `select count(*)::int as count from ${table} where accounting_entity_id = $1`,
+        [fixture.entityId]
+      );
+      expect(rows.rows[0].count).toBe(0);
+    }
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
 
   it.each([
     [false, 'petty_cash', 'petty_cash'],

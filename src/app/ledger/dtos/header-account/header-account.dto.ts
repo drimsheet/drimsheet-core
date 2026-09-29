@@ -19,4 +19,8 @@ export interface IHeaderAccountNameAliasesReq {
   income_tax_expense?: string;
   unrealized_loss?: string;
   loss_on_asset_disposal?: string;
+  trade_receivables?: string;
+  statutory_receivables?: string;
+  trade_payables?: string;
+  statutory_payables?: string;
 }

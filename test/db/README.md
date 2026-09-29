@@ -20,3 +20,8 @@ bank/petty-cash (in both orders), different immediate parents, unrelated account
 entities, and rollback after a bank-record uniqueness failure. Account, balance,
 audit snapshots, and bank linkage are checked after commit; failed writes must
 leave no records or reserved code. Journal/FX preparation remains unchanged.
+
+Header setup coverage also verifies all twenty-four header/equity/control accounts,
+initial balances, and creation/assignment histories commit together. A failure
+after the final statutory payable insert must roll back the entire setup and
+publish no events. These cases use the same disposable database safeguards.

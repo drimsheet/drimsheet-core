@@ -30,9 +30,12 @@ import { IShortTermLoanAccountService } from '@domain/ledger/types/short-term-lo
 import { ITaxExpenseAccountService } from '@domain/ledger/types/tax-expense.service.types';
 import { IUnrealizedGainAccountService } from '@domain/ledger/types/unrealized-gain.service.types';
 import { IUnrealizedLossAccountService } from '@domain/ledger/types/unrealized-loss.service.types';
+import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceService, {
+  IAssignedLedgerAccount,
+} from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
 import { headerAccountNameAliasesReqValidation } from '@app/ledger/dtos/header-account/header-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
@@ -77,27 +80,37 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
     const repoOptions = { correlationId };
     const headerPayload = { accountingEntity, createdBy: actor.id };
 
+    const auditedCashHeader = await deps.cashAccountService.createHeader(
+      getCreationInput(aliases, 'cash_and_cash_equivalent', headerPayload),
+      repoOptions
+    );
+    const auditedReceivablesHeader =
+      await deps.receivablesAccountService.createHeader(
+        getCreationInput(aliases, 'receivables', headerPayload),
+        repoOptions
+      );
+    const auditedShortTermDebtHeader =
+      await deps.shortTermLoanAccountService.createHeader(
+        getCreationInput(aliases, 'short_term_debt', headerPayload),
+        repoOptions
+      );
+    const auditedPayablesHeader =
+      await deps.payablesAccountService.createHeader(
+        getCreationInput(aliases, 'payable', headerPayload),
+        repoOptions
+      );
+    const [receivablesHeader] = auditedReceivablesHeader;
+    const [payablesHeader] = auditedPayablesHeader;
+
     const auditedAccounts: TAuditedEntity<
       ILedgerAccount,
       ILedgerAccount,
       ILedgerAccount
     >[] = [
-      await deps.cashAccountService.createHeader(
-        getCreationInput(aliases, 'cash_and_cash_equivalent', headerPayload),
-        repoOptions
-      ),
-      await deps.receivablesAccountService.createHeader(
-        getCreationInput(aliases, 'receivables', headerPayload),
-        repoOptions
-      ),
-      await deps.shortTermLoanAccountService.createHeader(
-        getCreationInput(aliases, 'short_term_debt', headerPayload),
-        repoOptions
-      ),
-      await deps.payablesAccountService.createHeader(
-        getCreationInput(aliases, 'payable', headerPayload),
-        repoOptions
-      ),
+      auditedCashHeader,
+      auditedReceivablesHeader,
+      auditedShortTermDebtHeader,
+      auditedPayablesHeader,
       await deps.equityAccountService.createRetainedEarningsAccount(
         getCreationInput(aliases, 'retained_earnings', headerPayload),
         repoOptions
@@ -177,7 +190,77 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
       })
     );
 
-    const transactionFn: TRepoTransactionFn = async (tx) => {
+    const functionalCurrency = currencyEntity.getByCode(
+      accountingEntity.functionalCurrencyCode
+    );
+
+    // Setup receivables control accounts
+    const auditedTradeReceivableSubAccount =
+      deps.receivablesAccountService.createTradeReceivableSubAccount({
+        ...getCreationInput(aliases, 'trade_receivables', headerPayload),
+        controlAccount: receivablesHeader,
+        currency: functionalCurrency,
+        isControlAccount: true,
+      });
+
+    const auditedStatutoryReceivablesSubAccount =
+      deps.receivablesAccountService.createStatutoryReceivableSubAccount({
+        ...getCreationInput(aliases, 'statutory_receivables', headerPayload),
+        controlAccount: receivablesHeader,
+        currency: functionalCurrency,
+        isControlAccount: true,
+      });
+
+    // Setup payables control accounts
+    const auditedTradePayableSubAccount =
+      deps.payablesAccountService.createTradePayableSubAccount({
+        ...getCreationInput(aliases, 'trade_payables', headerPayload),
+        controlAccount: payablesHeader,
+        isControlAccount: true,
+        meta: null,
+      });
+
+    const auditedStatutoryPayablesSubAccount =
+      deps.payablesAccountService.createStatutoryPayableSubAccount({
+        ...getCreationInput(aliases, 'statutory_payables', headerPayload),
+        controlAccount: payablesHeader,
+        currency: functionalCurrency,
+        isControlAccount: true,
+        meta: null,
+      });
+
+    const auditedControls = [
+      {
+        allocationHeaderCode: receivablesHeader.code,
+        auditedAccount: auditedTradeReceivableSubAccount,
+      },
+      {
+        allocationHeaderCode: receivablesHeader.code,
+        auditedAccount: auditedStatutoryReceivablesSubAccount,
+      },
+      {
+        allocationHeaderCode: payablesHeader.code,
+        auditedAccount: auditedTradePayableSubAccount,
+      },
+      {
+        allocationHeaderCode: payablesHeader.code,
+        auditedAccount: auditedStatutoryPayablesSubAccount,
+      },
+    ];
+
+    const preparedControls = auditedControls.map((entry) => {
+      const [account, events, audit] = entry.auditedAccount;
+      return {
+        account,
+        events,
+        allocationHeaderCode: entry.allocationHeaderCode,
+        history: historyValue.make(audit, actor.id, correlationId),
+      };
+    });
+
+    const transactionFn: TRepoTransactionFn<IAssignedLedgerAccount[]> = async (
+      tx
+    ) => {
       const writeRepoOptions = { ...repoOptions, tx };
       for (const entry of preparedAccounts) {
         await deps.ledgerAccountPersistenceService.createWithoutAssigningCode(
@@ -186,21 +269,54 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
           { ...writeRepoOptions, history: [entry.history] }
         );
       }
+
+      // Allocation locks must see the persisted roots and each preceding sibling.
+      const assignedControls: IAssignedLedgerAccount[] = [];
+      for (const entry of preparedControls) {
+        const assigned =
+          await deps.ledgerAccountPersistenceService.createAndAssignCode(
+            {
+              account: entry.account,
+              allocationHeaderCode: entry.allocationHeaderCode,
+              actorId: actor.id,
+            },
+            accountingEntity.functionalCurrencyCode,
+            { ...writeRepoOptions, history: [entry.history] }
+          );
+        assignedControls.push({
+          account: assigned.account,
+          events: [...entry.events, ...assigned.events],
+        });
+      }
+      return assignedControls;
     };
 
-    await deps.repoService.runInTransaction(transactionFn);
+    const assignedControls =
+      await deps.repoService.runInTransaction(transactionFn);
 
-    const events = preparedAccounts.flatMap((entry) => entry.events);
+    const events = [
+      ...preparedAccounts.flatMap((entry) => entry.events),
+      ...assignedControls.flatMap((entry) => entry.events),
+    ];
     await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
-    return preparedAccounts.map((entry) => entry.dto);
+    return [
+      ...preparedAccounts.map((entry) => entry.dto),
+      ...assignedControls.map((entry) =>
+        ledgerAccountToDtoMapperHelper(
+          entry.account,
+          null,
+          accountingEntity.functionalCurrencyCode
+        )
+      ),
+    ];
   };
 }
 
 /** Builds the domain creation input using an alias or the default English name. */
 function getCreationInput(
   aliases: IHeaderAccountNameAliasesReq,
-  subType: keyof IHeaderAccountNameAliasesReq,
+  aliasKey: keyof IHeaderAccountNameAliasesReq,
   headerPayload: { accountingEntity: IAccountingEntity; createdBy: TEntityId }
 ) {
   const defaultNames: Record<keyof IHeaderAccountNameAliasesReq, string> = {
@@ -224,7 +340,14 @@ function getCreationInput(
     income_tax_expense: 'Tax Expense',
     unrealized_loss: 'Unrealized Loss',
     loss_on_asset_disposal: 'Asset Disposal Loss',
+    trade_receivables: 'Trade Receivables',
+    statutory_receivables: 'Statutory Receivables',
+    trade_payables: 'Trade Payables',
+    statutory_payables: 'Statutory Payables',
   };
 
-  return { ...headerPayload, name: aliases[subType] ?? defaultNames[subType] };
+  return {
+    ...headerPayload,
+    name: aliases[aliasKey] ?? defaultNames[aliasKey],
+  };
 }

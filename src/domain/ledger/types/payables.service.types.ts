@@ -31,7 +31,7 @@ interface IStatutoryPayload {
   currency: ICurrency;
   isControlAccount: boolean;
   controlAccount: ILedgerAccount;
-  meta: IStatutoryPayableAccountMeta;
+  meta: IStatutoryPayableAccountMeta | null;
 }
 
 interface ITradePayload {
@@ -40,7 +40,7 @@ interface ITradePayload {
   accountingEntity: IAccountingEntity;
   isControlAccount: boolean;
   controlAccount: ILedgerAccount;
-  meta: ITradePayableAccountMeta;
+  meta: ITradePayableAccountMeta | null;
 }
 
 export interface IPayablesAccountService {

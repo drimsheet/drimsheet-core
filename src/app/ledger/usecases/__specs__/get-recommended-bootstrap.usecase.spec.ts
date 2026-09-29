@@ -3,13 +3,12 @@ import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recomme
 describe('getRecommendedBootstrapUseCase', () => {
   const getRecommendations = makeGetRecommendedBootstrapUsecase();
 
-  it('returns the catalog synchronously with statutory accounts nested under their parents', () => {
+  it('recommends only optional posting accounts beneath the established controls', () => {
     const response = getRecommendations();
-
     expect(Object.values(response).map((group) => group.length)).toEqual([
-      2, 2, 6, 8, 2,
+      1, 1, 6, 8, 2,
     ]);
-    expect(response.receivables[1].sub).toStrictEqual([
+    expect(response.receivables).toStrictEqual([
       {
         key: 'statutory-receivables-default',
         name: 'Statutory Receivables (Default)',
@@ -17,11 +16,10 @@ describe('getRecommendedBootstrapUseCase', () => {
         subType: 'receivables',
         behavior: 'statutory_receivable',
         isControlAccount: false,
-        controlAccountKey: 'statutory-receivables',
+        controlAccountCode: '102002',
       },
     ]);
-    expect(response.receivables[1].key).toBe('statutory-receivables');
-    expect(response.payables[1].sub).toStrictEqual([
+    expect(response.payables).toStrictEqual([
       {
         key: 'statutory-payables-default',
         name: 'Statutory Payables (Default)',
@@ -29,11 +27,10 @@ describe('getRecommendedBootstrapUseCase', () => {
         subType: 'payable',
         behavior: 'tax_payable',
         isControlAccount: false,
-        controlAccountKey: 'statutory-payables',
+        controlAccountCode: '201002',
         meta: null,
       },
     ]);
-    expect(response.payables[1].key).toBe('statutory-payables');
     expect(response.revenue[0]).toStrictEqual({
       key: 'services-default',
       name: 'Services (Default)',
@@ -42,27 +39,34 @@ describe('getRecommendedBootstrapUseCase', () => {
       behavior: 'services',
       isControlAccount: false,
       controlAccountCode: '401000',
-      sub: [],
     });
-    expect(response.receivables[0].sub).toEqual([]);
-    expect(response.receivables[0]).not.toHaveProperty('meta');
-    expect(response.payables[0].meta).toBeNull();
+    const recommendations = Object.values(response).flat();
+    expect(recommendations).toHaveLength(18);
+    expect(recommendations.every((account) => !account.isControlAccount)).toBe(
+      true
+    );
+    for (const account of recommendations) {
+      expect(account).not.toHaveProperty('controlAccountKey');
+      expect([
+        'trade-receivables',
+        'statutory-receivables',
+        'trade-payables',
+        'statutory-payables',
+      ]).not.toContain(account.key);
+    }
     expect(response.suspense.map((account) => account.type)).toEqual([
       'asset',
       'liability',
     ]);
   });
 
-  it('includes sub arrays on every header and uses base account DTOs for children', () => {
+  it('returns flat account definitions within each group', () => {
     const response = getRecommendations();
 
     for (const group of Object.values(response)) {
-      for (const header of group) {
-        expect(Array.isArray(header.sub)).toBe(true);
-        for (const child of header.sub) {
-          expect(child).not.toHaveProperty('sub');
-          expect(child.controlAccountKey).toBe(header.key);
-        }
+      for (const account of group) {
+        expect(account).not.toHaveProperty('sub');
+        expect(account).not.toHaveProperty('controlAccountKey');
       }
     }
   });

@@ -311,6 +311,46 @@ describe('payablesAccountService', () => {
     );
   });
 
+  it('creates trade and statutory control accounts with null metadata', () => {
+    const controlAccount = makeControlAccount();
+    const payload = {
+      controlAccount,
+      createdBy,
+      accountingEntity,
+      isControlAccount: true,
+      meta: null,
+    };
+    const [trade, tradeEvents, tradeAudit] =
+      service.createTradePayableSubAccount({
+        ...payload,
+        name: 'Trade Payables',
+      });
+    const [statutory, statutoryEvents, statutoryAudit] =
+      service.createStatutoryPayableSubAccount({
+        ...payload,
+        name: 'Statutory Payables',
+        currency: SYSTEM_CURRENCIES.USD,
+      });
+    expect(trade).toMatchObject({
+      isControlAccount: true,
+      controlAccountId: controlAccount.id,
+      meta: null,
+      currency: null,
+    });
+    expect(statutory).toMatchObject({
+      isControlAccount: true,
+      controlAccountId: controlAccount.id,
+      meta: null,
+      currency: SYSTEM_CURRENCIES.USD,
+    });
+    expect(tradeEvents[0].data).toEqual(trade);
+    expect(statutoryEvents[0].data).toEqual(statutory);
+    expect(tradeAudit.entityId).toBe(trade.id);
+    expect(statutoryAudit.entityId).toBe(statutory.id);
+    expect(Object.isFrozen(trade)).toBe(true);
+    expect(Object.isFrozen(statutory)).toBe(true);
+  });
+
   it('returns an immutable service', () => {
     expect(Object.isFrozen(service)).toBe(true);
   });

@@ -1,78 +1,37 @@
+import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
+import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
+
 import {
-  IRecommendedBootstrapAccountHeaderDto,
+  IRecommendedBootstrapAccountDto,
   IRecommendedBootstrapDto,
 } from '@app/ledger/dtos/recommended-bootstrap/recommended-bootstrap.dto';
 
-const receivables: IRecommendedBootstrapAccountHeaderDto[] = [
+const receivables: IRecommendedBootstrapAccountDto[] = [
   {
-    key: 'trade-receivables',
-    name: 'Trade Receivables',
-    type: 'asset',
-    subType: 'receivables',
-    behavior: 'trade_receivable',
-    isControlAccount: true,
-    controlAccountCode: '102000',
-    sub: [],
-  },
-  {
-    key: 'statutory-receivables',
-    name: 'Statutory Receivables',
+    key: 'statutory-receivables-default',
+    name: 'Statutory Receivables (Default)',
     type: 'asset',
     subType: 'receivables',
     behavior: 'statutory_receivable',
-    isControlAccount: true,
-    controlAccountCode: '102000',
-    sub: [
-      {
-        key: 'statutory-receivables-default',
-        name: 'Statutory Receivables (Default)',
-        type: 'asset',
-        subType: 'receivables',
-        behavior: 'statutory_receivable',
-        isControlAccount: false,
-        controlAccountKey: 'statutory-receivables',
-      },
-    ],
+    isControlAccount: false,
+    controlAccountCode: ASSET_LEDGER_CODES.RECEIVABLES.STATUTORY,
   },
 ];
 
-const payables: IRecommendedBootstrapAccountHeaderDto[] = [
+const payables: IRecommendedBootstrapAccountDto[] = [
   {
-    key: 'trade-payables',
-    name: 'Trade Payables',
-    type: 'liability',
-    subType: 'payable',
-    behavior: 'trade_payable',
-    isControlAccount: true,
-    controlAccountCode: '201000',
-    meta: null,
-    sub: [],
-  },
-  {
-    key: 'statutory-payables',
-    name: 'Statutory Payables',
+    key: 'statutory-payables-default',
+    name: 'Statutory Payables (Default)',
     type: 'liability',
     subType: 'payable',
     behavior: 'tax_payable',
-    isControlAccount: true,
-    controlAccountCode: '201000',
+    isControlAccount: false,
+    controlAccountCode: LIABILITY_LEDGER_CODES.PAYABLES.STATUTORY,
     meta: null,
-    sub: [
-      {
-        key: 'statutory-payables-default',
-        name: 'Statutory Payables (Default)',
-        type: 'liability',
-        subType: 'payable',
-        behavior: 'tax_payable',
-        isControlAccount: false,
-        controlAccountKey: 'statutory-payables',
-        meta: null,
-      },
-    ],
   },
 ];
 
-const revenue: IRecommendedBootstrapAccountHeaderDto[] = [
+const revenue: IRecommendedBootstrapAccountDto[] = [
   {
     key: 'services-default',
     name: 'Services (Default)',
@@ -81,7 +40,6 @@ const revenue: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'services',
     isControlAccount: false,
     controlAccountCode: '401000',
-    sub: [],
   },
   {
     key: 'employment-income-default',
@@ -91,7 +49,6 @@ const revenue: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'employment_income',
     isControlAccount: false,
     controlAccountCode: '403000',
-    sub: [],
   },
   {
     key: 'gain-on-sale-of-assets-default',
@@ -101,7 +58,6 @@ const revenue: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'gain_on_asset_sale',
     isControlAccount: false,
     controlAccountCode: '405000',
-    sub: [],
   },
   {
     key: 'unrealized-gains-default',
@@ -111,7 +67,6 @@ const revenue: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'unrealized_gains',
     isControlAccount: false,
     controlAccountCode: '406000',
-    sub: [],
   },
   {
     key: 'grants-default',
@@ -121,7 +76,6 @@ const revenue: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'grants',
     isControlAccount: false,
     controlAccountCode: '407000',
-    sub: [],
   },
   {
     key: 'gifts-default',
@@ -131,11 +85,10 @@ const revenue: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'gifts',
     isControlAccount: false,
     controlAccountCode: '408000',
-    sub: [],
   },
 ];
 
-const expense: IRecommendedBootstrapAccountHeaderDto[] = [
+const expense: IRecommendedBootstrapAccountDto[] = [
   {
     key: 'direct-costs-default',
     name: 'Direct Costs (Default)',
@@ -144,7 +97,6 @@ const expense: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'default_direct_cost',
     isControlAccount: false,
     controlAccountCode: '500000',
-    sub: [],
   },
   {
     key: 'rent-and-utilities-default',
@@ -154,7 +106,6 @@ const expense: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'rent_and_utilities',
     isControlAccount: false,
     controlAccountCode: '502000',
-    sub: [],
   },
   {
     key: 'bank-charge-default',
@@ -164,7 +115,6 @@ const expense: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'bank_charge',
     isControlAccount: false,
     controlAccountCode: '507000',
-    sub: [],
   },
   {
     key: 'finance-cost-default',
@@ -174,7 +124,6 @@ const expense: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'finance_cost',
     isControlAccount: false,
     controlAccountCode: '508000',
-    sub: [],
   },
   {
     key: 'interest-default',
@@ -184,7 +133,6 @@ const expense: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'interest',
     isControlAccount: false,
     controlAccountCode: '509000',
-    sub: [],
   },
   {
     key: 'tax-expense-default',
@@ -194,7 +142,6 @@ const expense: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'tax_expense',
     isControlAccount: false,
     controlAccountCode: '510000',
-    sub: [],
   },
   {
     key: 'unrealized-loss-default',
@@ -204,7 +151,6 @@ const expense: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'unrealized_loss',
     isControlAccount: false,
     controlAccountCode: '511000',
-    sub: [],
   },
   {
     key: 'asset-disposal-loss-default',
@@ -214,11 +160,10 @@ const expense: IRecommendedBootstrapAccountHeaderDto[] = [
     behavior: 'asset_disposal_loss',
     isControlAccount: false,
     controlAccountCode: '512000',
-    sub: [],
   },
 ];
 
-const suspense: IRecommendedBootstrapAccountHeaderDto[] = [
+const suspense: IRecommendedBootstrapAccountDto[] = [
   {
     key: 'asset-suspense-account',
     name: 'Asset Suspense Account',
@@ -226,7 +171,6 @@ const suspense: IRecommendedBootstrapAccountHeaderDto[] = [
     subType: 'suspense',
     behavior: 'default',
     isControlAccount: false,
-    sub: [],
   },
   {
     key: 'liability-suspense-account',
@@ -235,7 +179,6 @@ const suspense: IRecommendedBootstrapAccountHeaderDto[] = [
     subType: 'suspense',
     behavior: 'default',
     isControlAccount: false,
-    sub: [],
   },
 ];
 

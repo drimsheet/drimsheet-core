@@ -6,6 +6,7 @@ import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
 import { TEntityId } from '@shared/types/uuid';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
@@ -117,6 +118,19 @@ describe('POST /ledger/header-accounts/setup', () => {
     mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
     mockRepoService.runInTransaction.mockImplementation(async (fn) => fn({}));
     mockLedgerAccountPersistenceService.createWithoutAssigningCode.mockResolvedValue();
+    const assignedCounts = new Map<string, number>();
+    mockLedgerAccountPersistenceService.createAndAssignCode.mockImplementation(
+      async (payload) => {
+        const next =
+          (assignedCounts.get(payload.allocationHeaderCode) ?? 0) + 1;
+        assignedCounts.set(payload.allocationHeaderCode, next);
+        const [account, events] = ledgerAccountEntity.updateCode(
+          payload.account,
+          String(Number(payload.allocationHeaderCode) + next)
+        );
+        return { account, events };
+      }
+    );
     mockEventBus.publish.mockResolvedValue();
     mockSetup.mockImplementation(setup);
     app = createApplication();
@@ -138,11 +152,18 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.type).toBe('application/json');
         expect(response.headers['x-content-type-options']).toBe('nosniff');
         expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
+        expect(response.body).toHaveLength(24);
+        const controlSubTypes: Record<string, string> = {
+          trade_receivables: 'receivables',
+          statutory_receivables: 'receivables',
+          trade_payables: 'payable',
+          statutory_payables: 'payable',
+        };
         expect(response.body).toEqual(
           Object.keys(headerAccountNameAliasesReqValidation.shape).map(
-            (subType) =>
+            (aliasKey) =>
               expect.objectContaining({
-                subType,
+                subType: controlSubTypes[aliasKey] ?? aliasKey,
                 accountingEntityId,
                 createdBy: actor.id,
                 balance: { amount: 0, currencyCode: 'NGN', isMinorUnit: true },
@@ -174,6 +195,14 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(
           mockLedgerAccountPersistenceService.createWithoutAssigningCode
         ).toHaveBeenCalledTimes(20);
+        expect(
+          mockLedgerAccountPersistenceService.createAndAssignCode
+        ).toHaveBeenCalledTimes(4);
+        expect(
+          (response.body as ILedgerAccountDto[])
+            .slice(20)
+            .map((account) => account.code)
+        ).toEqual(['102001', '102002', '201001', '201002']);
         expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
       }
     );
@@ -190,7 +219,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         (response.body as ILedgerAccountDto[]).map((account) => account.name)
       ).toEqual(
         (defaults.body as ILedgerAccountDto[]).map((account) =>
-          account.subType === 'receivables'
+          account.code === '102000'
             ? 'Créances'
             : account.subType === 'retained_earnings'
               ? '利益剰余金'
@@ -199,7 +228,7 @@ describe('POST /ledger/header-accounts/setup', () => {
       );
     });
 
-    it('accepts all twenty translated aliases', async () => {
+    it('accepts all twenty-four translated aliases', async () => {
       const aliases = Object.fromEntries(
         Object.keys(headerAccountNameAliasesReqValidation.shape).map(
           (subType) => [subType, `Traduit ${subType}`]
@@ -278,6 +307,8 @@ describe('POST /ledger/header-accounts/setup', () => {
       [],
       { receivables: null },
       { receivables: 42 },
+      { trade_payables: null },
+      { statutory_receivables: 42 },
     ])(
       'rejects invalid transport input %j before orchestration',
       async (body) => {
@@ -324,6 +355,25 @@ describe('POST /ledger/header-accounts/setup', () => {
       expect(
         mockLedgerAccountPersistenceService.createWithoutAssigningCode
       ).not.toHaveBeenCalled();
+    });
+
+    it('sanitizes a late control assignment failure without publishing', async () => {
+      mockLedgerAccountPersistenceService.createAndAssignCode
+        .mockImplementationOnce(async ({ account }) => ({
+          account,
+          events: [],
+        }))
+        .mockRejectedValueOnce(new Error('allocation failed'));
+      const response = await makeRequest().send({});
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        name: 'InternalServerError',
+        errorKey: 'app_error_unexpected',
+      });
+      expect(
+        mockLedgerAccountPersistenceService.createWithoutAssigningCode
+      ).toHaveBeenCalledTimes(20);
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
 
     it('sanitizes write failures without publishing events', async () => {

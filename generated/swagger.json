@@ -434,6 +434,18 @@
           },
           "loss_on_asset_disposal": {
             "type": "string"
+          },
+          "trade_receivables": {
+            "type": "string"
+          },
+          "statutory_receivables": {
+            "type": "string"
+          },
+          "trade_payables": {
+            "type": "string"
+          },
+          "statutory_payables": {
+            "type": "string"
           }
         },
         "type": "object",
@@ -2526,9 +2538,6 @@
           "controlAccountCode": {
             "type": "string"
           },
-          "controlAccountKey": {
-            "type": "string"
-          },
           "meta": {
             "type": "number",
             "enum": [null],
@@ -2546,85 +2555,35 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IRecommendedBootstrapAccountHeaderDto": {
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "subType": {
-            "type": "string"
-          },
-          "behavior": {
-            "type": "string"
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountCode": {
-            "type": "string"
-          },
-          "controlAccountKey": {
-            "type": "string"
-          },
-          "meta": {
-            "type": "number",
-            "enum": [null],
-            "nullable": true
-          },
-          "sub": {
-            "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "key",
-          "name",
-          "type",
-          "subType",
-          "behavior",
-          "isControlAccount",
-          "sub"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IRecommendedBootstrapDto": {
         "properties": {
           "receivables": {
             "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
             },
             "type": "array"
           },
           "payables": {
             "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
             },
             "type": "array"
           },
           "revenue": {
             "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
             },
             "type": "array"
           },
           "expense": {
             "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
             },
             "type": "array"
           },
           "suspense": {
             "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountHeaderDto"
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
             },
             "type": "array"
           }
@@ -3300,7 +3259,7 @@
             }
           }
         },
-        "description": "Set up all header and equity accounts, with optional translated names.",
+        "description": "Set up all 24 header, equity, and standard receivable/payable control accounts atomically, with optional translated names.",
         "tags": ["Ledger"],
         "security": [],
         "parameters": [],

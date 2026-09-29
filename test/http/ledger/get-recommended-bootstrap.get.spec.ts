@@ -93,12 +93,21 @@ describe('GET /accounts/recommended-bootstrap', () => {
         'suspense',
       ]);
       expect(Object.values(body).map((group) => group.length)).toEqual([
-        2, 2, 6, 8, 2,
+        1, 1, 6, 8, 2,
       ]);
+      expect(body.receivables[0]).toMatchObject({
+        isControlAccount: false,
+        controlAccountCode: '102002',
+      });
+      expect(body.payables[0]).toMatchObject({
+        isControlAccount: false,
+        controlAccountCode: '201002',
+      });
       expect(body).toStrictEqual(makeGetRecommendedBootstrapUsecase()());
       for (const group of Object.values(body)) {
-        for (const header of group) {
-          expect(Array.isArray(header.sub)).toBe(true);
+        for (const account of group) {
+          expect(account).not.toHaveProperty('sub');
+          expect(account).not.toHaveProperty('controlAccountKey');
         }
       }
       expect(mockGetRecommendations).toHaveBeenCalledWith();
