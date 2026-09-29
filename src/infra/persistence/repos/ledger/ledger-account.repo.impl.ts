@@ -31,6 +31,29 @@ import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-
 import ledgerAccountHistoryRepo from './ledger-account-history.repo.impl';
 
 const ledgerAccountRepoImpl: ILedgerAccountRepo = {
+  findByCodeForUpdate: async (code, accountingEntityId, options) => {
+    if (!options.tx) throw new repoError.TransactionRequired();
+
+    const [lockedAccount] = await getDbQuery(options)
+      .select({ id: ledgerAccountsInCore.id })
+      .from(ledgerAccountsInCore)
+      .where(
+        and(
+          eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId),
+          eq(ledgerAccountsInCore.code, code)
+        )
+      )
+      .for('update');
+
+    if (!lockedAccount) return null;
+
+    return ledgerAccountRepoImpl.findById(
+      lockedAccount.id as Parameters<ILedgerAccountRepo['findById']>[0],
+      accountingEntityId,
+      options
+    );
+  },
+
   create: async (payload, options) => {
     await getDbQuery(options).transaction(async (tx) => {
       const accountsArray = Array.isArray(payload) ? payload : [payload];

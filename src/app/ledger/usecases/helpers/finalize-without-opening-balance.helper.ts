@@ -41,6 +41,10 @@ interface IPayload {
  * Persists a newly created ledger account without an opening-balance journal,
  * publishes its creation events after commit, and returns its zero-balance DTO.
  * Related account records, when supplied, are persisted in the same transaction.
+ * @deprecated Migrate callers to finalizeWithoutOpeningBalanceWithAssignedCode
+ * as code assignment expands beyond petty cash.
+ * TODO: Remove after bank creation migrates, preserving its related-record writes
+ * in the same transaction.
  */
 export default async function finalizeWithoutOpeningBalance(
   deps: IDependencies,

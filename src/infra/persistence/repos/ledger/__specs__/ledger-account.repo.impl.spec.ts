@@ -1,5 +1,6 @@
 import { eq, inArray, isNull, or } from 'drizzle-orm';
 
+import { ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import repoError from '@shared/values/errors/repo.error';
@@ -410,6 +411,63 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
       })
     ).resolves.toEqual([]);
 
+    expect(getDbQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('ledgerAccountRepo.findByCodeForUpdate', () => {
+  const entityId = 'b2222222-2222-4222-8222-222222222222' as TEntityId;
+  const headerId = 'c3333333-3333-4333-8333-333333333333' as TEntityId;
+  const tx: ITransactionContext = {};
+  const options = { correlationId: 'locked-read', tx };
+
+  beforeEach(() => jest.clearAllMocks());
+  afterEach(() => jest.restoreAllMocks());
+
+  function lockedQuery(rows: Array<{ id: TEntityId }>) {
+    const lock = jest.fn().mockResolvedValue(rows);
+    const where = jest.fn().mockReturnValue({ for: lock });
+    const from = jest.fn().mockReturnValue({ where });
+    const select = jest.fn().mockReturnValue({ from });
+    jest
+      .mocked(getDbQuery)
+      .mockReturnValue({ select } as unknown as ReturnType<typeof getDbQuery>);
+    return { lock, where };
+  }
+
+  it('locks only the scoped account row before retrieving its domain representation', async () => {
+    const { lock } = lockedQuery([{ id: headerId }]);
+    const account = { id: headerId } as ILedgerAccount;
+    const find = jest
+      .spyOn(ledgerAccountRepo, 'findById')
+      .mockResolvedValueOnce(account);
+    await expect(
+      ledgerAccountRepo.findByCodeForUpdate('100000', entityId, options)
+    ).resolves.toBe(account);
+    expect(lock).toHaveBeenCalledWith('update');
+    expect(eq).toHaveBeenCalledWith(
+      ledgerAccountsInCore.accountingEntityId,
+      entityId
+    );
+    expect(eq).toHaveBeenCalledWith(ledgerAccountsInCore.code, '100000');
+    expect(find).toHaveBeenCalledWith(headerId, entityId, options);
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+  });
+
+  it('returns null when no row can be locked', async () => {
+    lockedQuery([]);
+    await expect(
+      ledgerAccountRepo.findByCodeForUpdate('100000', entityId, options)
+    ).resolves.toBeNull();
+  });
+
+  it('rejects a missing transaction before querying', async () => {
+    await expect(
+      // @ts-expect-error Exercise an untyped caller that omits the required transaction.
+      ledgerAccountRepo.findByCodeForUpdate('100000', entityId, {
+        correlationId: 'spec',
+      })
+    ).rejects.toBeInstanceOf(repoError.TransactionRequired);
     expect(getDbQuery).not.toHaveBeenCalled();
   });
 });

@@ -25,6 +25,9 @@ Use the folder that owns the behavior.
 
 ## Rules
 
+- Never import or use third-party libraries directly inside `src/domain`,
+  including its tests. Use native language/runtime features or existing
+  repository-owned domain/shared utilities.
 - Domain must not know HTTP, Express, TSOA, Redis, Drizzle, env vars, cookies, queues, or logging.
 - Controllers and middlewares orchestrate only. Business or app decisions go to domain/app.
 - Use cases orchestrate domain/app behavior. Extract non-trivial rules to domain services, entities, values, or app policies.

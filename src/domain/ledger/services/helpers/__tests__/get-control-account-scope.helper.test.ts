@@ -14,6 +14,7 @@ import { ELedgerType, ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { ELiabilitySubType } from '@domain/ledger/types/liability-account.types';
 
 const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  findByCodeForUpdate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),

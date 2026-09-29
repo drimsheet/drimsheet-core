@@ -8,6 +8,7 @@ import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-n
 import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountValidation from '@domain/ledger/entities/validations/ledger-account.validation';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { ELedgerAccountEvent } from '@domain/ledger/events/ledger-account.events';
 import { ELedgerAccountAuditAction } from '@domain/ledger/types/ledger-account-audit.types';
 import {
@@ -18,6 +19,28 @@ import {
   ENormalBalance,
   ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
+import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+
+function makeCashAccount() {
+  return ledgerAccountEntity.make({
+    code: '100001',
+    materializedPath: '100000.100001',
+    accountingEntityId: 'b2222222-2222-4222-8222-222222222222' as TEntityId,
+    createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+    controlAccountId: 'c3333333-3333-4333-8333-333333333333' as TEntityId,
+    name: 'Petty cash',
+    type: ELedgerType.Asset,
+    subType: 'cash_and_cash_equivalent',
+    behavior: 'petty_cash',
+    normalBalance: ENormalBalance.Debit,
+    isControlAccount: false,
+    currency: SYSTEM_CURRENCIES.NGN,
+    status: ELedgerAccountStatus.Active,
+    contraAccountRule: EContraAccountRule.ContraPermitted,
+    adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
+    meta: null,
+  });
+}
 
 describe('Ledger Account Shared Entity', () => {
   const validUUID1 = generateUUID();
@@ -514,5 +537,112 @@ describe('Ledger Account Shared Entity', () => {
         )
       ).toThrow();
     });
+  });
+});
+
+describe('ledgerAccountEntity.updateCode', () => {
+  it('returns an immutable code/path update with an event and before/after audit', () => {
+    const [account] = makeCashAccount();
+    const original = structuredClone(account);
+    const now = new Date('2026-09-29T12:00:00Z');
+    jest.useFakeTimers().setSystemTime(now);
+    try {
+      const [updated, events, audit] = ledgerAccountEntity.updateCode(
+        account,
+        '100009'
+      );
+
+      expect(updated).toEqual({
+        ...account,
+        code: '100009',
+        materializedPath: '100000.100009',
+        version: account.version + 1,
+        updatedAt: now,
+      });
+      expect(account).toEqual(original);
+      expect(Object.isFrozen(updated)).toBe(true);
+      expect(Object.isFrozen(updated.currency)).toBe(true);
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: ELedgerAccountEvent.Updated,
+        data: updated,
+      });
+      expect(audit).toEqual({
+        entityId: account.id,
+        entityVersion: updated.version,
+        action: ELedgerAccountAuditAction.Updated,
+        diff: { before: account, after: updated },
+        occurredAt: now,
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it.each(['100001', '100000.100001', '100000.100005.100001'])(
+    'replaces only the final path segment of %s',
+    (materializedPath) => {
+      const [createdAccount] = makeCashAccount();
+      const [account] = ledgerAccountEntity.make({
+        ...createdAccount,
+        materializedPath,
+      });
+      const [updated] = ledgerAccountEntity.updateCode(account, '100009');
+      expect(updated.materializedPath).toBe(
+        materializedPath.replace(/100001$/, '100009')
+      );
+    }
+  );
+
+  it('preserves an existing opening balance date as an ordinary account field', () => {
+    const [createdAccount] = makeCashAccount();
+    const [account] = ledgerAccountEntity.updateOpeningBalanceDate(
+      createdAccount,
+      new Date('2026-01-01T00:00:00Z')
+    );
+    const [updated] = ledgerAccountEntity.updateCode(account, '100009');
+    expect(updated.openingBalanceDate).toEqual(account.openingBalanceDate);
+    expect(updated.version).toBe(account.version + 1);
+  });
+
+  it.each(['100bad', '600001', '10001'])('rejects invalid code %s', (code) => {
+    const [createdAccount] = makeCashAccount();
+    expect(() => ledgerAccountEntity.updateCode(createdAccount, code)).toThrow(
+      ledgerAccountError.InvalidCode
+    );
+  });
+});
+
+describe('ledgerAccountEntity.assignNextCode', () => {
+  it('derives the next code from the latest account and preserves the created account parent path', () => {
+    const [createdAccount] = makeCashAccount();
+    const [account] = ledgerAccountEntity.make({
+      ...createdAccount,
+      materializedPath: '100000.100005.100001',
+    });
+    const [updated, events, audit] = ledgerAccountEntity.assignNextCode(
+      account,
+      { code: '100019' }
+    );
+    expect(updated).toMatchObject({
+      id: account.id,
+      code: '100020',
+      materializedPath: '100000.100005.100020',
+      version: account.version + 1,
+    });
+    expect(account.code).toBe('100001');
+    expect(events[0].data).toEqual(updated);
+    expect(audit.diff).toEqual({ before: account, after: updated });
+  });
+
+  it.each([
+    ['100999', ledgerAccountError.MaximumLimitReached],
+    ['102001', ledgerAccountError.InvalidPredecessorCode],
+    ['100bad', ledgerAccountError.InvalidCode],
+  ])('rejects an unavailable or invalid latest code %s', (code, error) => {
+    const [createdAccount] = makeCashAccount();
+    expect(() =>
+      ledgerAccountEntity.assignNextCode(createdAccount, { code })
+    ).toThrow(error);
   });
 });

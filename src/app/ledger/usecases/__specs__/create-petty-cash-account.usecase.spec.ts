@@ -13,6 +13,7 @@ import {
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -182,6 +183,9 @@ describe('createPettyCashSubAccountUseCase', () => {
       mockOpeningBalanceAudit,
     ]);
     mockFxLotAppService.acquire.mockResolvedValue(null);
+    mockLedgerAccountPersistenceService.createWithAssignedCode
+      .mockReset()
+      .mockImplementation(async ({ account }) => ({ account, events: [] }));
   });
 
   const getUseCase = () =>
@@ -246,7 +250,9 @@ describe('createPettyCashSubAccountUseCase', () => {
       { correlationId }
     );
 
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithAssignedCode
+    ).toHaveBeenCalled();
     expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledWith(
       mockOpeningBalanceJournalEntry,
       expect.objectContaining({
@@ -316,7 +322,9 @@ describe('createPettyCashSubAccountUseCase', () => {
     expect(
       mockAssetAccountService.createPettyCashSubAccount
     ).not.toHaveBeenCalled();
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithAssignedCode
+    ).not.toHaveBeenCalled();
   });
 
   it('rejects a missing default control account before creation', async () => {
@@ -329,7 +337,9 @@ describe('createPettyCashSubAccountUseCase', () => {
     expect(
       mockAssetAccountService.createPettyCashSubAccount
     ).not.toHaveBeenCalled();
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithAssignedCode
+    ).not.toHaveBeenCalled();
   });
 
   it('should successfully create a petty cash sub-account without opening balance', async () => {
@@ -352,7 +362,9 @@ describe('createPettyCashSubAccountUseCase', () => {
     });
 
     expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithAssignedCode
+    ).toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalled();
     expect(
       mockAccountingPeriodService.validatePostingPeriod
@@ -387,7 +399,9 @@ describe('createPettyCashSubAccountUseCase', () => {
     expect(
       mockAssetAccountService.createPettyCashSubAccount
     ).not.toHaveBeenCalled();
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithAssignedCode
+    ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -602,5 +616,108 @@ describe('createPettyCashSubAccountUseCase', () => {
       fxRecords,
       expect.objectContaining({ correlationId })
     );
+  });
+
+  it.each([false, true])(
+    'returns and publishes the final assigned account (opening: %s)',
+    async (withOpening) => {
+      mockLedgerAccountPersistenceService.createWithAssignedCode.mockImplementationOnce(
+        async ({ account }) => {
+          const [updated, events] = ledgerAccountEntity.updateCode(
+            account,
+            '100123'
+          );
+          return { account: updated, events };
+        }
+      );
+      const result = await getUseCase()({
+        ...validPayload,
+        openingBalance: withOpening ? validOpeningBalance : null,
+      });
+      expect(result).toMatchObject({
+        id: mockPettyCashAccount.id,
+        code: '100123',
+        materializedPath: '100000.100123',
+      });
+      expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+      const [assignmentPayload, currencyCode, options] =
+        mockLedgerAccountPersistenceService.createWithAssignedCode.mock
+          .calls[0];
+      expect(assignmentPayload).toMatchObject({
+        allocationHeaderCode: '100000',
+        actorId: actor.id,
+        account: expect.objectContaining({ id: mockPettyCashAccount.id }),
+      });
+      expect(currencyCode).toBe('NGN');
+      expect(options).toMatchObject(
+        withOpening ? { correlationId, tx: 'mock-tx' } : { correlationId }
+      );
+      expect(options.history).toHaveLength(withOpening ? 2 : 1);
+      expect(options.history[0]).toMatchObject({
+        entityId: mockPettyCashAccount.id,
+        actorId: actor.id,
+        correlationId,
+        diff: {
+          before: null,
+          after: {
+            id: mockPettyCashAccount.id,
+            code: mockPettyCashAccount.code,
+            version: 1,
+          },
+        },
+      });
+      if (withOpening) {
+        expect(options.history[1].diff.after.openingBalanceDate).toBe(
+          validOpeningBalance.date.toISOString()
+        );
+      } else {
+        expect(options.tx).toBeUndefined();
+      }
+      expect(Boolean(assignmentPayload.account.openingBalanceDate)).toBe(
+        withOpening
+      );
+      const published = mockEventBus.publish.mock.calls[0][0];
+      if (!Array.isArray(published)) throw new Error('Expected an event batch');
+      expect(published[0].data).toEqual(mockPettyCashAccount);
+      if (withOpening) {
+        expect(published[1].data).toMatchObject({
+          code: mockPettyCashAccount.code,
+          openingBalanceDate: validOpeningBalance.date,
+          version: 2,
+        });
+      }
+      expect(published.slice(withOpening ? 2 : 1, withOpening ? 3 : 2)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: expect.objectContaining({
+              code: '100123',
+              materializedPath: '100000.100123',
+            }),
+          }),
+        ])
+      );
+    }
+  );
+
+  it('suppresses post-commit effects if the journal fails after account persistence', async () => {
+    const failure = new Error('journal insert failed');
+    mockJournalEntryPersistenceService.create.mockRejectedValueOnce(failure);
+    await expect(getUseCase()(validPayload)).rejects.toBe(failure);
+    expect(
+      mockLedgerAccountPersistenceService.createWithAssignedCode
+    ).toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('suppresses events if standalone account persistence fails', async () => {
+    const failure = new Error('account insert failed');
+    mockLedgerAccountPersistenceService.createWithAssignedCode.mockRejectedValueOnce(
+      failure
+    );
+    await expect(
+      getUseCase()({ ...validPayload, openingBalance: null })
+    ).rejects.toBe(failure);
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 });

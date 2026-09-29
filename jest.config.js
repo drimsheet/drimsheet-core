@@ -1,6 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/test'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/test/db/'],
   moduleNameMapper: {
     '^@domain/(.*)$': '<rootDir>/src/domain/$1',
     '^@app/(.*)$': '<rootDir>/src/app/$1',
