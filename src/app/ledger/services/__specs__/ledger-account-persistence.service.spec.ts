@@ -88,9 +88,13 @@ describe('ledgerAccountPersistenceService', () => {
     };
   });
 
-  describe('create', () => {
+  describe('createWithoutAssigningCode', () => {
     it('should successfully create account and balance within a transaction', async () => {
-      await service.create(account, SYSTEM_CURRENCIES.NGN.code, repoOptions);
+      await service.createWithoutAssigningCode(
+        account,
+        SYSTEM_CURRENCIES.NGN.code,
+        repoOptions
+      );
 
       expect(mockRepoService.runInTransaction).toHaveBeenCalled();
 
@@ -128,7 +132,7 @@ describe('ledgerAccountPersistenceService', () => {
         currency: null,
       };
 
-      await service.create(
+      await service.createWithoutAssigningCode(
         nullCurrencyAccount,
         SYSTEM_CURRENCIES.NGN.code,
         repoOptions
@@ -149,7 +153,7 @@ describe('ledgerAccountPersistenceService', () => {
   });
 });
 
-describe('ledgerAccountPersistenceService.createWithAssignedCode', () => {
+describe('ledgerAccountPersistenceService.createAndAssignCode', () => {
   const service = makeLedgerAccountPersistenceService({
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
@@ -204,7 +208,7 @@ describe('ledgerAccountPersistenceService.createWithAssignedCode', () => {
     'persists assigned values in the reused/local transaction (supplied: %s)',
     async (supplied) => {
       const options = supplied ? { ...repoOptions(), tx } : repoOptions();
-      const assigned = await service.createWithAssignedCode(
+      const assigned = await service.createAndAssignCode(
         payload(),
         'NGN',
         options
@@ -263,7 +267,7 @@ describe('ledgerAccountPersistenceService.createWithAssignedCode', () => {
       assignment[1],
       assignment[2],
     ]);
-    await service.createWithAssignedCode(payload(), 'NGN', repoOptions());
+    await service.createAndAssignCode(payload(), 'NGN', repoOptions());
     expect(mockLedgerAccountBalanceRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: expect.objectContaining({ currency: SYSTEM_CURRENCIES.NGN }),
@@ -276,7 +280,7 @@ describe('ledgerAccountPersistenceService.createWithAssignedCode', () => {
     const failure = new Error('assignment failed');
     mockLedgerCodeAssignmentAppService.assign.mockRejectedValueOnce(failure);
     await expect(
-      service.createWithAssignedCode(payload(), 'NGN', repoOptions())
+      service.createAndAssignCode(payload(), 'NGN', repoOptions())
     ).rejects.toBe(failure);
     expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceRepo.create).not.toHaveBeenCalled();
@@ -286,12 +290,12 @@ describe('ledgerAccountPersistenceService.createWithAssignedCode', () => {
     const failure = new Error('insert failed');
     mockLedgerAccountRepo.create.mockRejectedValueOnce(failure);
     await expect(
-      service.createWithAssignedCode(payload(), 'NGN', repoOptions())
+      service.createAndAssignCode(payload(), 'NGN', repoOptions())
     ).rejects.toBe(failure);
     expect(mockLedgerAccountBalanceRepo.create).not.toHaveBeenCalled();
     mockLedgerAccountBalanceRepo.create.mockRejectedValueOnce(failure);
     await expect(
-      service.createWithAssignedCode(payload(), 'NGN', repoOptions())
+      service.createAndAssignCode(payload(), 'NGN', repoOptions())
     ).rejects.toBe(failure);
   });
 });

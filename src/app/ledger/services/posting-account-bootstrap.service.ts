@@ -109,7 +109,7 @@ export default function makePostingAccountBootstrapService(
         repoOptions.correlationId
       );
 
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceService.createWithoutAssigningCode(
         account,
         accountingEntity.functionalCurrencyCode,
         { ...repoOptions, history: [history] }

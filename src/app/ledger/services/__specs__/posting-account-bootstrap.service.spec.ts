@@ -176,7 +176,7 @@ describe('postingAccountBootstrapService', () => {
     mockAssetDisposalLossAccountService.createSubAccount.mockReturnValue(
       auditedAccounts[19] as never
     );
-    mockLedgerAccountPersistenceService.create.mockResolvedValue();
+    mockLedgerAccountPersistenceService.createWithoutAssigningCode.mockResolvedValue();
   });
 
   it('owns and bootstraps the complete posting catalog in dependency order', async () => {
@@ -192,16 +192,16 @@ describe('postingAccountBootstrapService', () => {
     expect(result.events.map(({ type }) => type)).toEqual(
       expectedAccountNames.map((name) => `${name}-created`)
     );
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(
-      expectedAccountNames.length
-    );
     expect(
-      mockLedgerAccountPersistenceService.create.mock.calls.map(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).toHaveBeenCalledTimes(expectedAccountNames.length);
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode.mock.calls.map(
         ([account]) => account.name
       )
     ).toEqual(expectedAccountNames);
     expect(
-      mockLedgerAccountPersistenceService.create.mock.calls.every(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode.mock.calls.every(
         ([, currencyCode, options]) =>
           currencyCode === accountingEntity.functionalCurrencyCode &&
           options.correlationId === repoOptions.correlationId &&
@@ -218,25 +218,29 @@ describe('postingAccountBootstrapService', () => {
     );
 
     expect(
-      mockLedgerAccountPersistenceService.create.mock.invocationCallOrder[0]
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode.mock
+        .invocationCallOrder[0]
     ).toBeLessThan(
       mockReceivablesAccountService.createStatutoryReceivableSubAccount.mock
         .invocationCallOrder[0]
     );
     expect(
-      mockLedgerAccountPersistenceService.create.mock.invocationCallOrder[1]
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode.mock
+        .invocationCallOrder[1]
     ).toBeLessThan(
       mockReceivablesAccountService.createStatutoryReceivableSubAccount.mock
         .invocationCallOrder[1]
     );
     expect(
-      mockLedgerAccountPersistenceService.create.mock.invocationCallOrder[3]
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode.mock
+        .invocationCallOrder[3]
     ).toBeLessThan(
       mockPayablesAccountService.createStatutoryPayableSubAccount.mock
         .invocationCallOrder[0]
     );
     expect(
-      mockLedgerAccountPersistenceService.create.mock.invocationCallOrder[4]
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode.mock
+        .invocationCallOrder[4]
     ).toBeLessThan(
       mockPayablesAccountService.createStatutoryPayableSubAccount.mock
         .invocationCallOrder[1]
@@ -286,7 +290,7 @@ describe('postingAccountBootstrapService', () => {
 
   it('stops immediately when persistence fails', async () => {
     const persistenceFailure = new Error('posting persistence failed');
-    mockLedgerAccountPersistenceService.create.mockRejectedValueOnce(
+    mockLedgerAccountPersistenceService.createWithoutAssigningCode.mockRejectedValueOnce(
       persistenceFailure
     );
 
@@ -343,6 +347,8 @@ describe('postingAccountBootstrapService', () => {
         controlAccountLedgerCode: ASSET_LEDGER_CODES.RECEIVABLES.HEADER,
       },
     });
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).not.toHaveBeenCalled();
   });
 });

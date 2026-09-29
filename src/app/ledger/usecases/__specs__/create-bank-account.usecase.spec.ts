@@ -195,7 +195,7 @@ describe('makeCreateBankAccountUseCase', () => {
     ]);
     mockFxLotAppService.acquire.mockResolvedValue(null);
     mockBankAccountRepo.create.mockReset().mockResolvedValue();
-    mockLedgerAccountPersistenceService.createWithAssignedCode
+    mockLedgerAccountPersistenceService.createAndAssignCode
       .mockReset()
       .mockImplementation(async ({ account }) => {
         const [assigned, events] = ledgerAccountEntity.updateCode(
@@ -217,9 +217,11 @@ describe('makeCreateBankAccountUseCase', () => {
     expect(result.materializedPath).toBe(
       `${mockControlAccount.materializedPath}.100042`
     );
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).not.toHaveBeenCalled();
     const [assignmentPayload, , assignmentOptions] =
-      mockLedgerAccountPersistenceService.createWithAssignedCode.mock.calls[0];
+      mockLedgerAccountPersistenceService.createAndAssignCode.mock.calls[0];
     expect(assignmentPayload).toEqual({
       account: mockAccount,
       allocationHeaderCode: '100000',
@@ -257,7 +259,7 @@ describe('makeCreateBankAccountUseCase', () => {
       })
     );
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).toHaveBeenCalled();
     expect(mockBankAccountRepo.create).toHaveBeenCalledWith(
       mockAccount.id,
@@ -316,7 +318,7 @@ describe('makeCreateBankAccountUseCase', () => {
 
     expect(mockAssetAccountService.createBankSubAccount).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).not.toHaveBeenCalled();
     expect(mockBankAccountRepo.create).not.toHaveBeenCalled();
   });
@@ -331,7 +333,7 @@ describe('makeCreateBankAccountUseCase', () => {
 
     expect(mockAssetAccountService.createBankSubAccount).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).not.toHaveBeenCalled();
     expect(mockBankAccountRepo.create).not.toHaveBeenCalled();
   });
@@ -352,8 +354,7 @@ describe('makeCreateBankAccountUseCase', () => {
     expect(result.id).toBe(mockAccount.id);
     expect(result.code).toBe('100042');
     const writeOptions =
-      mockLedgerAccountPersistenceService.createWithAssignedCode.mock
-        .calls[0][2];
+      mockLedgerAccountPersistenceService.createAndAssignCode.mock.calls[0][2];
     expect(writeOptions.history).toHaveLength(2);
     expect(mockBankAccountRepo.create.mock.calls[0][4].tx).toBe(
       writeOptions.tx
@@ -373,7 +374,7 @@ describe('makeCreateBankAccountUseCase', () => {
     );
     expect(mockJournalEntryService.createOpeningBalance).toHaveBeenCalled();
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).toHaveBeenCalled();
     expect(mockBankAccountRepo.create).toHaveBeenCalled();
     expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
@@ -650,7 +651,7 @@ describe('makeCreateBankAccountUseCase', () => {
         failure
       );
       expect(
-        mockLedgerAccountPersistenceService.createWithAssignedCode
+        mockLedgerAccountPersistenceService.createAndAssignCode
       ).toHaveBeenCalledTimes(1);
       expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
       expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
@@ -689,7 +690,7 @@ describe('makeCreateBankAccountUseCase', () => {
     const failure = new ledgerAccountError.MaximumLimitReached({
       predecessorCode: '100999',
     });
-    mockLedgerAccountPersistenceService.createWithAssignedCode.mockRejectedValueOnce(
+    mockLedgerAccountPersistenceService.createAndAssignCode.mockRejectedValueOnce(
       failure
     );
     await expect(makeCreateBankAccountUseCase(deps)(validReq)).rejects.toBe(

@@ -22,14 +22,12 @@ interface IDependencies {
 }
 
 /**
- * Creates a ledger account and its initial balance in the persistence layer.
+ * Creates a ledger account and its initial balance, preserving the supplied code.
  * Ensures both records are created within the same transaction.
- * @deprecated Migrate callers to createWithAssignedCode as allocation expands
- * beyond petty cash. Header/bootstrap creation still requires predefined codes.
  */
-function makeCreate(
+function makeCreateWithoutAssigningCode(
   deps: IDependencies
-): ILedgerAccountPersistenceService['create'] {
+): ILedgerAccountPersistenceService['createWithoutAssigningCode'] {
   return async (account, functionalCurrencyCode, repoOptions) => {
     const functionalCurrency = currencyEntity.getByCode(functionalCurrencyCode);
 
@@ -57,13 +55,10 @@ function makeCreate(
  * Finalizes a new account under its allocation lock and atomically stores its
  * account, histories and initial balance. Reuses the outer workflow transaction
  * when supplied; its returned account is publishable only after that commit.
- * TODO: Once allocation is rolled out beyond petty cash, replace makeCreate
- * with this operation and consolidate the public API under create. Preserve
- * a path for header/bootstrap accounts with predefined codes.
  */
-function makeCreateWithAssignedCode(
+function makeCreateAndAssignCode(
   deps: IDependencies
-): ILedgerAccountPersistenceService['createWithAssignedCode'] {
+): ILedgerAccountPersistenceService['createAndAssignCode'] {
   return async (payload, functionalCurrencyCode, repoOptions) => {
     const functionalCurrency = currencyEntity.getByCode(functionalCurrencyCode);
     const transactionFn: TRepoTransactionFn<IAssignedLedgerAccount> = async (
@@ -110,8 +105,8 @@ export default function makeLedgerAccountPersistenceService(
   deps: IDependencies
 ) {
   const service: ILedgerAccountPersistenceService = Object.freeze({
-    create: makeCreate(deps),
-    createWithAssignedCode: makeCreateWithAssignedCode(deps),
+    createWithoutAssigningCode: makeCreateWithoutAssigningCode(deps),
+    createAndAssignCode: makeCreateAndAssignCode(deps),
   });
 
   return service;

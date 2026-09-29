@@ -177,7 +177,7 @@ describe('createPettyCashSubAccountUseCase', () => {
       mockOpeningBalanceAudit,
     ]);
     mockFxLotAppService.acquire.mockResolvedValue(null);
-    mockLedgerAccountPersistenceService.createWithAssignedCode
+    mockLedgerAccountPersistenceService.createAndAssignCode
       .mockReset()
       .mockImplementation(async ({ account }) => ({ account, events: [] }));
   });
@@ -245,7 +245,7 @@ describe('createPettyCashSubAccountUseCase', () => {
     );
 
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).toHaveBeenCalled();
     expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledWith(
       mockOpeningBalanceJournalEntry,
@@ -321,7 +321,7 @@ describe('createPettyCashSubAccountUseCase', () => {
       mockAssetAccountService.createPettyCashSubAccount
     ).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).not.toHaveBeenCalled();
   });
 
@@ -336,7 +336,7 @@ describe('createPettyCashSubAccountUseCase', () => {
       mockAssetAccountService.createPettyCashSubAccount
     ).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).not.toHaveBeenCalled();
   });
 
@@ -361,7 +361,7 @@ describe('createPettyCashSubAccountUseCase', () => {
 
     expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalled();
     expect(
@@ -398,7 +398,7 @@ describe('createPettyCashSubAccountUseCase', () => {
       mockAssetAccountService.createPettyCashSubAccount
     ).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -614,7 +614,7 @@ describe('createPettyCashSubAccountUseCase', () => {
   it.each([false, true])(
     'returns and publishes the final assigned account (opening: %s)',
     async (withOpening) => {
-      mockLedgerAccountPersistenceService.createWithAssignedCode.mockImplementationOnce(
+      mockLedgerAccountPersistenceService.createAndAssignCode.mockImplementationOnce(
         async ({ account }) => {
           const [updated, events] = ledgerAccountEntity.updateCode(
             account,
@@ -632,10 +632,11 @@ describe('createPettyCashSubAccountUseCase', () => {
         code: '100123',
         materializedPath: '100000.100123',
       });
-      expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountPersistenceService.createWithoutAssigningCode
+      ).not.toHaveBeenCalled();
       const [assignmentPayload, currencyCode, options] =
-        mockLedgerAccountPersistenceService.createWithAssignedCode.mock
-          .calls[0];
+        mockLedgerAccountPersistenceService.createAndAssignCode.mock.calls[0];
       expect(assignmentPayload).toMatchObject({
         allocationHeaderCode: '100000',
         actorId: actor.id,
@@ -693,7 +694,7 @@ describe('createPettyCashSubAccountUseCase', () => {
     mockJournalEntryPersistenceService.create.mockRejectedValueOnce(failure);
     await expect(getUseCase()(validPayload)).rejects.toBe(failure);
     expect(
-      mockLedgerAccountPersistenceService.createWithAssignedCode
+      mockLedgerAccountPersistenceService.createAndAssignCode
     ).toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -701,7 +702,7 @@ describe('createPettyCashSubAccountUseCase', () => {
 
   it('suppresses events if standalone account persistence fails', async () => {
     const failure = new Error('account insert failed');
-    mockLedgerAccountPersistenceService.createWithAssignedCode.mockRejectedValueOnce(
+    mockLedgerAccountPersistenceService.createAndAssignCode.mockRejectedValueOnce(
       failure
     );
     await expect(

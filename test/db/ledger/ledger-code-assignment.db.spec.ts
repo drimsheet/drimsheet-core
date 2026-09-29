@@ -258,7 +258,7 @@ describe('ledger code assignment with real PostgreSQL', () => {
     },
     options: IReadRepoOptions
   ) {
-    const assigned = await service.createWithAssignedCode(
+    const assigned = await service.createAndAssignCode(
       {
         account: input.account,
         allocationHeaderCode: input.allocationHeaderCode,

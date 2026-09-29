@@ -116,7 +116,7 @@ describe('POST /ledger/header-accounts/setup', () => {
     );
     mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
     mockRepoService.runInTransaction.mockImplementation(async (fn) => fn({}));
-    mockLedgerAccountPersistenceService.create.mockResolvedValue();
+    mockLedgerAccountPersistenceService.createWithoutAssigningCode.mockResolvedValue();
     mockEventBus.publish.mockResolvedValue();
     mockSetup.mockImplementation(setup);
     app = createApplication();
@@ -172,7 +172,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         );
         expect(mockSetup).toHaveBeenCalledWith(body);
         expect(
-          mockLedgerAccountPersistenceService.create
+          mockLedgerAccountPersistenceService.createWithoutAssigningCode
         ).toHaveBeenCalledTimes(20);
         expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
       }
@@ -264,7 +264,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.status).toBe(409);
         expect(response.body.errorKey).toBe(errorKey);
         expect(
-          mockLedgerAccountPersistenceService.create
+          mockLedgerAccountPersistenceService.createWithoutAssigningCode
         ).not.toHaveBeenCalled();
         expect(mockEventBus.publish).not.toHaveBeenCalled();
       }
@@ -286,7 +286,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.body.errorKey).toBe('app_error_validation_error');
         expect(mockSetup).not.toHaveBeenCalled();
         expect(
-          mockLedgerAccountPersistenceService.create
+          mockLedgerAccountPersistenceService.createWithoutAssigningCode
         ).not.toHaveBeenCalled();
       }
     );
@@ -299,7 +299,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.body.errorKey).toBe('app_error_validation_error');
         expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
         expect(
-          mockLedgerAccountPersistenceService.create
+          mockLedgerAccountPersistenceService.createWithoutAssigningCode
         ).not.toHaveBeenCalled();
       }
     );
@@ -321,11 +321,13 @@ describe('POST /ledger/header-accounts/setup', () => {
         .send('null');
       expect(response.status).toBe(500);
       expect(mockSetup).not.toHaveBeenCalled();
-      expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountPersistenceService.createWithoutAssigningCode
+      ).not.toHaveBeenCalled();
     });
 
     it('sanitizes write failures without publishing events', async () => {
-      mockLedgerAccountPersistenceService.create.mockRejectedValueOnce(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode.mockRejectedValueOnce(
         new Error('database password leaked')
       );
       const response = await makeRequest().send({});

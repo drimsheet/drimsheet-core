@@ -177,7 +177,7 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
       };
 
       const assignedAccount =
-        await deps.ledgerAccountPersistenceService.createWithAssignedCode(
+        await deps.ledgerAccountPersistenceService.createAndAssignCode(
           accountPersistencePayload,
           accountingEntity.functionalCurrencyCode,
           accountPersistenceRepoOptions

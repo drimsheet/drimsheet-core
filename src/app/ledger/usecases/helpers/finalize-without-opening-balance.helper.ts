@@ -60,7 +60,7 @@ export default async function finalizeWithoutOpeningBalanceHelper(
     const writeRepoOptions = { ...payload.repoOptions, tx };
 
     const assignedAccount =
-      await deps.ledgerAccountPersistenceService.createWithAssignedCode(
+      await deps.ledgerAccountPersistenceService.createAndAssignCode(
         {
           account,
           allocationHeaderCode: payload.allocationHeaderCode,

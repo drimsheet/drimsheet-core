@@ -201,7 +201,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
       const writeRepoOptions = { ...repoOptions, tx };
 
       const assignedAccount =
-        await deps.ledgerAccountPersistenceService.createWithAssignedCode(
+        await deps.ledgerAccountPersistenceService.createAndAssignCode(
           {
             account: updatedAccount,
             allocationHeaderCode:

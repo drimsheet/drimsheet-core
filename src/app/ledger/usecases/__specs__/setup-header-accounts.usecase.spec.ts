@@ -173,7 +173,7 @@ describe('setupHeaderAccountsUsecase', () => {
     });
     mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
     mockRepoService.runInTransaction.mockImplementation(async (fn) => fn(tx));
-    mockLedgerAccountPersistenceService.create.mockResolvedValue();
+    mockLedgerAccountPersistenceService.createWithoutAssigningCode.mockResolvedValue();
     mockEventBus.publish.mockResolvedValue();
     mockAssetAccountService.createHeader.mockImplementation(
       makeCashAccountService({ ledgerAccountRepo: mockLedgerAccountRepo })
@@ -359,7 +359,9 @@ describe('setupHeaderAccountsUsecase', () => {
     await expect(usecase()).rejects.toBe(error);
     expect(mockShortTermLoanAccountService.createHeader).not.toHaveBeenCalled();
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -375,7 +377,9 @@ describe('setupHeaderAccountsUsecase', () => {
   ])('preserves an existing equity conflict', async (method, error) => {
     method.mockRejectedValueOnce(error);
     await expect(usecase()).rejects.toBe(error);
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -393,10 +397,11 @@ describe('setupHeaderAccountsUsecase', () => {
     });
     const result = await usecase();
     expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(
-      20
-    );
-    for (const entry of mockLedgerAccountPersistenceService.create.mock.calls) {
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).toHaveBeenCalledTimes(20);
+    for (const entry of mockLedgerAccountPersistenceService
+      .createWithoutAssigningCode.mock.calls) {
       expect(entry[1]).toBe('NGN');
       expect(entry[2]).toEqual({
         correlationId,
@@ -435,11 +440,13 @@ describe('setupHeaderAccountsUsecase', () => {
 
   it('propagates write failure and stops subsequent writes without publishing', async () => {
     const error = new Error('write failed');
-    mockLedgerAccountPersistenceService.create
+    mockLedgerAccountPersistenceService.createWithoutAssigningCode
       .mockResolvedValueOnce()
       .mockRejectedValueOnce(error);
     await expect(usecase()).rejects.toBe(error);
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(2);
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).toHaveBeenCalledTimes(2);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -457,9 +464,9 @@ describe('setupHeaderAccountsUsecase', () => {
     const error = new Error('publication failed');
     mockEventBus.publish.mockRejectedValueOnce(error);
     await expect(usecase()).rejects.toBe(error);
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(
-      20
-    );
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).toHaveBeenCalledTimes(20);
     expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
   });
 });

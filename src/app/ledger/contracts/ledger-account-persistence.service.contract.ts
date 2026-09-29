@@ -14,17 +14,17 @@ export interface IAssignedLedgerAccount {
 
 export default interface ILedgerAccountPersistenceService {
   /** Assigns and persists within the supplied transaction, or a local transaction. */
-  createWithAssignedCode(
+  createAndAssignCode(
     payload: ILedgerCodeAssignmentPayload & { actorId: TEntityId },
     functionalCurrencyCode: string,
     repoOptions: IWriteRepoOptions<ILedgerAccountHistory[]>
   ): Promise<IAssignedLedgerAccount>;
 
   /**
-   * @deprecated Use createWithAssignedCode as callers migrate beyond petty cash.
-   * Header/bootstrap creation still requires predefined codes.
+   * Persists the account and initial balance atomically, preserving its code.
+   * Supports header/bootstrap accounts with predefined codes.
    */
-  create(
+  createWithoutAssigningCode(
     account: ILedgerAccount,
     functionalCurrencyCode: string,
     repoOptions: IWriteRepoOptions<ILedgerAccountHistory[]>

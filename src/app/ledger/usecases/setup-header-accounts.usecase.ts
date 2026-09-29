@@ -180,7 +180,7 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeRepoOptions = { ...repoOptions, tx };
       for (const entry of preparedAccounts) {
-        await deps.ledgerAccountPersistenceService.create(
+        await deps.ledgerAccountPersistenceService.createWithoutAssigningCode(
           entry.account,
           accountingEntity.functionalCurrencyCode,
           { ...writeRepoOptions, history: [entry.history] }
