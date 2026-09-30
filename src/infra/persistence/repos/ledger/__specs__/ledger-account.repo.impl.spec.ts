@@ -5,6 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import repoError from '@shared/values/errors/repo.error';
 
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { ELedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
 import { EAssetSubType } from '@domain/ledger/types/asset-account.types';
 import { ELedgerType, ILedgerAccount } from '@domain/ledger/types/ledger.types';
@@ -469,5 +470,100 @@ describe('ledgerAccountRepo.findByCodeForUpdate', () => {
       })
     ).rejects.toBeInstanceOf(repoError.TransactionRequired);
     expect(getDbQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('ledgerAccountRepo suspense duplicate translation', () => {
+  const conflict = {
+    code: '23505',
+    constraint: 'ledger_accounts_suspense_entity_type_currency_uk',
+  };
+  beforeEach(() => jest.resetAllMocks());
+
+  it.each([conflict, { cause: conflict }, { cause: { cause: conflict } }])(
+    'maps the named suspense violation %o',
+    async (error) => {
+      jest.mocked(getDbQuery).mockReturnValue({
+        transaction: jest.fn().mockRejectedValue(error),
+      } as unknown as ReturnType<typeof getDbQuery>);
+      await expect(
+        ledgerAccountRepo.create([], {
+          correlationId: 'duplicate',
+          history: [],
+        })
+      ).rejects.toBeInstanceOf(ledgerAccountError.SuspenseAccountAlreadyExists);
+    }
+  );
+  it.each([
+    null,
+    'failure',
+    {},
+    { code: '23505' },
+    {
+      code: '23505',
+      constraint: 'ledger_accounts_code_accounting_entity_id_uk',
+    },
+    {
+      code: '23505',
+      constraint: 'ledger_accounts_path_accounting_entity_id_uk',
+    },
+    {
+      code: '23514',
+      constraint: 'ledger_accounts_suspense_currency_required_ck',
+    },
+    { cause: new Error('database unavailable') },
+  ])('preserves an unrelated failure %o', async (error) => {
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn().mockRejectedValue(error),
+    } as unknown as ReturnType<typeof getDbQuery>);
+    await expect(
+      ledgerAccountRepo.create([], {
+        correlationId: 'other-error',
+        history: [],
+      })
+    ).rejects.toBe(error);
+  });
+});
+
+describe('ledgerAccountRepo atomic creation', () => {
+  const account = { id: generateUUID(), version: 1 } as ILedgerAccount;
+  const mapped = { id: String(account.id) } as ReturnType<
+    typeof ledgerAccountMapper.toRepo
+  >;
+  const options = { correlationId: 'create', history: [] };
+  beforeEach(() => jest.resetAllMocks());
+
+  function mockCreation() {
+    const values = jest.fn().mockResolvedValue(undefined);
+    const tx = { insert: jest.fn().mockReturnValue({ values }) };
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn(async (fn) => fn(tx as never)),
+    } as unknown as ReturnType<typeof getDbQuery>);
+    jest.mocked(ledgerAccountMapper.toRepo).mockReturnValue(mapped);
+    return { values, tx };
+  }
+
+  it.each([false, true])(
+    'writes accounts and histories within one transaction (array: %s)',
+    async (array) => {
+      const { values, tx } = mockCreation();
+      await ledgerAccountRepo.create(array ? [account] : account, options);
+      expect(values).toHaveBeenCalledWith([mapped]);
+      expect(tx.insert).toHaveBeenCalledWith(ledgerAccountsInCore);
+      expect(ledgerAccountHistoryRepo.save).toHaveBeenCalledWith([], {
+        ...options,
+        tx,
+      });
+    }
+  );
+
+  it('does not swallow a history failure after insertion', async () => {
+    const { values } = mockCreation();
+    const failure = new Error('history insert failed');
+    jest.mocked(ledgerAccountHistoryRepo.save).mockRejectedValueOnce(failure);
+    await expect(ledgerAccountRepo.create(account, options)).rejects.toBe(
+      failure
+    );
+    expect(values).toHaveBeenCalledTimes(1);
   });
 });

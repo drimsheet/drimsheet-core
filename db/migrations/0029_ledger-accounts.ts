@@ -165,6 +165,27 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       check: 'version > 0',
     }
   );
+
+  const suspensePredicate =
+    "sub_type = 'suspense' AND type IN ('asset', 'liability')";
+
+  pgm.addConstraint(
+    ledgerAccountsTable,
+    'ledger_accounts_suspense_currency_required_ck',
+    {
+      check: `NOT (${suspensePredicate}) OR currency_code IS NOT NULL`,
+    }
+  );
+
+  pgm.createIndex(
+    ledgerAccountsTable,
+    ['accounting_entity_id', 'type', 'currency_code'],
+    {
+      name: 'ledger_accounts_suspense_entity_type_currency_uk',
+      unique: true,
+      where: suspensePredicate,
+    }
+  );
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {

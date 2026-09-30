@@ -22,7 +22,7 @@ export default interface ILedgerAccountPersistenceService {
 
   /**
    * Persists the account and initial balance atomically, preserving its code.
-   * Supports header/bootstrap accounts with predefined codes.
+   * Supports header and suspense accounts with domain-assigned codes.
    */
   createWithoutAssigningCode(
     account: ILedgerAccount,

@@ -18,7 +18,21 @@ Suspense accounts are temporary balance sheet accounts that are used to hold jou
 > [!IMPORTANT]
 > By the end of the reporting period, all suspense accounts should be cleared to a zero balance.
 
-In Drimsheet, we use one liability/asset suspense account per accounting entity, per operating currency. That is, if the accounting entity has multiple operating currencies, it will have multiple liability/asset suspense accounts.
+Drimsheet permits one asset suspense account and one liability suspense account
+per accounting entity and currency. The uniqueness key is
+`(accountingEntityId, type, currency.code)` for subtype `suspense`. Archived and
+soft-deleted accounts retain their slot; this creation API does not replace them.
+
+`POST /accounts/suspense` accepts a name, asset/liability type, and currency code,
+creating one account per request. Duplicates return a conflict. The domain service
+checks for duplicates and the database enforces the same key with a scoped unique
+index and a non-null suspense currency constraint.
+
+The use case locks the accounting entity row before duplicate and latest-code
+reads, then persists the account, creation history, and zero balance in the same
+transaction. The lock spans all suspense currencies/types of that entity and is
+released at commit or rollback. This works for the first account without creating
+an artificial suspense header. Creation events are published after commit.
 
 ## Asset Suspense Accounts (199xxx)
 
@@ -27,7 +41,7 @@ In the Asset ledger, a suspense account typically carries a debit balance. It re
 - Uncategorized credit-side journal activity during bank reconciliation
 - Uncleared/unidentified outgoing payments
 
-**Service method**: [`createAssetSuspense`](../services/suspense-account.service.ts)
+**Service method**: [`createAssetSuspense`](../services/suspense-account/suspense-account.service.ts)
 
 ## Liability Suspense Accounts (299xxx)
 
@@ -36,11 +50,13 @@ In the Liability ledger, a suspense account typically carries a credit balance. 
 - Uncategorized debit-side journal activity during bank reconciliation
 - Uncleared/unidentified incoming payments
 
-**Service method**: [`createLiabilitySuspense`](../services/suspense-account.service.ts)
+**Service method**: [`createLiabilitySuspense`](../services/suspense-account/suspense-account.service.ts)
 
 ## Shared Architecture
 
-Both asset and liability suspense accounts share a common base interface defined in [`suspense-account.types.ts`](../shared/types/suspense-account.types.ts):
+Asset and liability suspense accounts are defined in
+[`asset-account.types.ts`](../types/asset-account.types.ts) and
+[`liability-account.types.ts`](../types/liability-account.types.ts):
 
 | Property             | Value                     |
 | -------------------- | ------------------------- |
@@ -53,3 +69,8 @@ Both asset and liability suspense accounts share a common base interface defined
 | `meta`               | `null`                    |
 
 Asset and liability suspense accounts are distinguished by their ledger code prefix: asset suspense starts with `1` (`199xxx`) while liability suspense starts with `2` (`299xxx`).
+
+Both variants are root posting accounts: their materialized path equals their
+code. Asset codes begin at `199000`, liability codes at `299000`; each type's
+sequence advances across currencies. The ordinary header-based allocator is not
+used. Account creation remains independent of the recommendation endpoint.

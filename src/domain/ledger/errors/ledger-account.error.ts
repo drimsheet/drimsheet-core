@@ -3,6 +3,8 @@ import errorUtils from '@shared/utils/error';
 import DomainError from '@shared/values/errors/domain.error';
 
 const EErrorKeys = {
+  SuspenseAccountAlreadyExists:
+    'ledger_error_suspense_account_already_exists_conflict',
   InvalidCreatedBy: 'ledger_error_created_by_invalid',
   InvalidId: 'ledger_error_id_invalid',
   InvalidAction: 'ledger_error_action_invalid',

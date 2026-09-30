@@ -31,6 +31,7 @@ export const mockAccountingEntityHistoryRepo: jest.Mocked<IAccountingEntityHisto
 export const mockAccountingEntityRepo: jest.Mocked<IAccountingEntityRepo> = {
   create: jest.fn(),
   findById: jest.fn(),
+  findByIdForUpdate: jest.fn(),
   findByIdAndUserId: jest.fn(),
   findByUserId: jest.fn(),
 };

@@ -2821,6 +2821,23 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ICreateSuspenseAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["asset", "liability"]
+          },
+          "currencyCode": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "type", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "UAccountingEntityType": {
         "type": "string",
         "enum": ["individual", "sole_trader", "private_company"]
@@ -6436,6 +6453,107 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ICreateStatutoryPayableAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/suspense": {
+      "post": {
+        "operationId": "createSuspenseAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create one asset or liability suspense account for the selected currency.",
+        "tags": ["Accounts"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateSuspenseAccountDto"
               }
             }
           }

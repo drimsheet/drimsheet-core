@@ -5,6 +5,7 @@ import makeCreatePettyCashAccountUseCase from '@app/ledger/usecases/create-petty
 import makeCreateRevenueAccountUsecase from '@app/ledger/usecases/create-revenue-account.usecase';
 import makeCreateStatutoryPayableAccountUsecase from '@app/ledger/usecases/create-statutory-payable-account.usecase';
 import makeCreateStatutoryReceivableAccountUsecase from '@app/ledger/usecases/create-statutory-receivable-account.usecase';
+import makeCreateSuspenseAccountUsecase from '@app/ledger/usecases/create-suspense-account.usecase';
 import makeCreateTradePayableAccountUsecase from '@app/ledger/usecases/create-trade-payable-account.usecase';
 import makeCreateTradeReceivableAccountUsecase from '@app/ledger/usecases/create-trade-receivable-account.usecase';
 import makeGetAccountTransactionsUseCase from '@app/ledger/usecases/get-account-transactions.usecase';
@@ -47,6 +48,7 @@ import {
   rentAndUtilitiesAccountService,
   servicesAccountService,
   shortTermLoanAccountService,
+  suspenseAccountService,
   taxExpenseAccountService,
   unrealizedGainAccountService,
   unrealizedLossAccountService,
@@ -56,6 +58,7 @@ import { repoService } from '@infra/ioc/services/repo';
 import messaging from '@infra/messaging';
 import observability from '@infra/observability';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
+import accountingRepos from '@infra/persistence/repos/accounting';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import outboxRepo from '@infra/persistence/repos/outbox';
 import appContext from '@infra/runtime/app-context';
@@ -269,5 +272,17 @@ export const createStatutoryPayableAccountUseCase = makeTracedUseCase(
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountPersistenceService,
     payablesAccountService,
+  })
+);
+
+export const createSuspenseAccountUseCase = makeTracedUseCase(
+  'ledger.createSuspenseAccountUseCase',
+  makeCreateSuspenseAccountUsecase({
+    appContext,
+    eventBus: messaging.eventBus,
+    repoService,
+    accountingEntityRepo: accountingRepos.accountingEntity,
+    suspenseAccountService,
+    ledgerAccountPersistenceService,
   })
 );

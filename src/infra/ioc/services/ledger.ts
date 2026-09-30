@@ -24,7 +24,6 @@ import makeLedgerAccountBalanceEnrichmentService from '@app/ledger/services/ledg
 import makeLedgerAccountPersistenceService from '@app/ledger/services/ledger-account-persistence.service';
 import makeLedgerBalancePropagationPreparationService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
 import makeLedgerCodeAssignmentAppService from '@app/ledger/services/ledger-code-assignment.service';
-import makeSuspenseAccountBootstrapService from '@app/ledger/services/suspense-account-bootstrap.service';
 
 import observability from '@infra/observability';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
@@ -125,9 +124,6 @@ export const ledgerAccountPersistenceService =
     ledgerCodeAssignmentAppService,
     repoService,
   });
-
-export const suspenseAccountBootstrapService =
-  makeSuspenseAccountBootstrapService({ suspenseAccountService });
 
 const ledgerAccountBalanceAdjustmentService =
   ledgerAccountBalanceAdjustmentDomainService;

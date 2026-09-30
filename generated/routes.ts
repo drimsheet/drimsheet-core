@@ -2130,6 +2130,23 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICreateSuspenseAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      type: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'enum', enums: ['asset'] },
+          { dataType: 'enum', enums: ['liability'] },
+        ],
+        required: true,
+      },
+      currencyCode: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UAccountingEntityType: {
     dataType: 'refAlias',
     type: {
@@ -4369,6 +4386,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'createStatutoryPayableAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createSuspenseAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateSuspenseAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/suspense',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createSuspenseAccount
+    ),
+
+    async function AccountsController_createSuspenseAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createSuspenseAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createSuspenseAccount',
           controller,
           response,
           next,

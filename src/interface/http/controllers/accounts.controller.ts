@@ -26,6 +26,7 @@ import {
 } from '@app/ledger/dtos/receivable-account/receivable-account.dto';
 import { IRecommendedBootstrapDto } from '@app/ledger/dtos/recommended-bootstrap/recommended-bootstrap.dto';
 import { ICreateRevenueAccountDto } from '@app/ledger/dtos/revenue-account/revenue-account.dto';
+import { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/suspense-account.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
@@ -34,6 +35,7 @@ import {
   createRevenueAccountUseCase,
   createStatutoryPayableAccountUseCase,
   createStatutoryReceivableAccountUseCase,
+  createSuspenseAccountUseCase,
   createTradePayableAccountUseCase,
   createTradeReceivableAccountUseCase,
   getRecommendedBootstrapUseCase,
@@ -216,5 +218,28 @@ export class AccountsController extends Controller {
   ): Promise<ILedgerAccountDto> {
     this.setStatus(201);
     return createStatutoryPayableAccountUseCase(body);
+  }
+
+  /** Create one asset or liability suspense account for the selected currency. */
+  @Post('/suspense')
+  @OperationId('createSuspenseAccount')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createSuspenseAccount(
+    @Body() body: ICreateSuspenseAccountDto
+  ): Promise<ILedgerAccountDto> {
+    this.setStatus(201);
+    return createSuspenseAccountUseCase(body);
   }
 }
