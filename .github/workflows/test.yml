@@ -32,12 +32,15 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Type Check Source and Tests
+        run: npm run test:types
+
       - name: Create tmp directory for potential mock setups
         run: mkdir -p tmp
 
       - name: Run Domain and Shared Tests with Coverage
         run: >-
-          npm test -- src/domain src/shared
+          npx jest src/domain src/shared
           --coverage
           --coverageDirectory="coverage/domain-shared"
           --coverageReporters="json"
@@ -45,15 +48,15 @@ jobs:
 
       - name: Run Application Tests with Coverage
         run: >-
-          npm test -- src/app
+          npx jest src/app
           --coverage
           --coverageDirectory="coverage/app"
           --coverageReporters="json"
           --maxWorkers=2
 
-      - name: Run Infrastructure and Interface Tests with Coverage
+      - name: Run Infrastructure, Interface, and Test Setup Tests with Coverage
         run: >-
-          npm test -- src/infra src/interface
+          npx jest src/infra src/interface test/setup
           --coverage
           --coverageDirectory="coverage/infra-interface"
           --coverageReporters="json"
@@ -61,7 +64,7 @@ jobs:
 
       - name: Run HTTP Tests with Coverage
         run: >-
-          npm test -- test/http
+          npx jest test/http
           --coverage
           --coverageDirectory="coverage/http"
           --coverageReporters="json"

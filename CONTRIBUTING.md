@@ -153,6 +153,16 @@ We enforce a specific commit message format to generate clean changelogs and tra
 
 ## Testing
 
+`npm test` type-checks source and tests once, then runs Jest with at most two
+workers. Jest uses `tsconfig.jest.json` for per-file transpilation; semantic type
+checking uses `tsconfig.test.json` through `npm run test:types`. When invoking
+Jest directly, run the type check separately, as CI does before its coverage
+jobs.
+
+The Jest setup shuts down real rate-limit memory stores after each suite so
+their recurring timers cannot retain completed test environments. Tests still
+exercise the real rate-limit implementation.
+
 Our project follows these guidelines for testing:
 
 - **Test Proximity**: Test files should be kept near their test subjects.
