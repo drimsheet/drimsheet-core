@@ -174,6 +174,19 @@ describe('POST /journal-entries/{id}/rectify', () => {
     );
   });
 
+  describe('400 Response', () => {
+    it('returns the draft-counterparty posting error during rectification', async () => {
+      mockRectifyJournalEntryUseCase.mockRejectedValueOnce(
+        new journalEntryError.DraftCounterpartyNotAllowed()
+      );
+      const response = await makeRequest();
+      expect(response.status).toBe(400);
+      expect(response.body.errorKey).toBe(
+        'journal_entry_error_draft_counterparty_not_allowed_invalid'
+      );
+    });
+  });
+
   it('maps a stale version conflict to 409', async () => {
     mockRectifyJournalEntryUseCase.mockRejectedValueOnce(
       new appError.Conflict()

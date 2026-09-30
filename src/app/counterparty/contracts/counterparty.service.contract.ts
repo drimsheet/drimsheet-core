@@ -3,6 +3,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import {
   TAuditedCounterparty,
+  UCounterpartyStatus,
   UCounterpartyType,
 } from '@domain/counterparty/types/counterparty.types';
 
@@ -22,6 +23,7 @@ export default interface ICounterpartyAppService {
     payload: ICounterpartyFindOrCreatePayload,
     accountingEntityId: TEntityId,
     createdBy: TEntityId,
+    newRecordStatus: UCounterpartyStatus,
     repoOptions: IReadRepoOptions
   ): Promise<ICounterpartyFindOrCreateRes>;
 
@@ -29,6 +31,7 @@ export default interface ICounterpartyAppService {
     payload: ICounterpartyFindOrCreatePayload[],
     accountingEntityId: TEntityId,
     createdBy: TEntityId,
+    newRecordStatus: UCounterpartyStatus,
     repoOptions: IReadRepoOptions
   ): Promise<Map<string, ICounterpartyFindOrCreateRes>>;
 

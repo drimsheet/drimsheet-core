@@ -9,6 +9,7 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
+import { ECounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
 import {
   ICreateTransferEntryPayload,
   IJournalEntryService,
@@ -87,6 +88,9 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
         chargeCounterpartiesPayload,
         accountingEntity.id,
         actor.id,
+        payload.postedAt === null
+          ? ECounterpartyStatus.Draft
+          : ECounterpartyStatus.Active,
         repoOptions
       );
 

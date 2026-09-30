@@ -11,6 +11,7 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
+import { ECounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
 import {
   ICreatePaymentEntryPayload,
   IJournalEntryService,
@@ -109,6 +110,9 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
         allCounterpartiesPayload,
         accountingEntity.id,
         actor.id,
+        payload.postedAt === null
+          ? ECounterpartyStatus.Draft
+          : ECounterpartyStatus.Active,
         repoOptions
       );
 
@@ -194,13 +198,18 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
     const dbTransactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { correlationId, tx };
 
-      for (const counterpartyWithHistory of newCounterparties.records) {
-        const [counterparty, history] = counterpartyWithHistory;
-        await deps.counterpartyRepo.create(counterparty, {
-          ...writeOptions,
-          history,
-        });
+      const counterpartiesToSave = [];
+
+      for (const [counterparty, history] of newCounterparties.records) {
+        counterpartiesToSave.push(
+          deps.counterpartyRepo.create(counterparty, {
+            ...writeOptions,
+            history,
+          })
+        );
       }
+
+      await Promise.all(counterpartiesToSave);
 
       await deps.journalEntryPersistenceService.create(
         journalEntry,

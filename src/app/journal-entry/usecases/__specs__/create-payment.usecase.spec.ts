@@ -367,6 +367,7 @@ describe('makeCreatePaymentUsecase', () => {
       ],
       accountingEntity.id,
       'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      'active',
       repoOptions
     );
     expect(mockFileManagementService.claimUploads).toHaveBeenCalledWith({
@@ -467,6 +468,9 @@ describe('makeCreatePaymentUsecase', () => {
     expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
     expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
+      'draft'
+    );
   });
 
   it('passes unresolved counterparties to the domain as null', async () => {

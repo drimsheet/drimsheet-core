@@ -25,6 +25,24 @@ describe('Counterparty Entity', () => {
   });
 
   describe('make', () => {
+    it('creates an immutable draft with only name and type business fields', () => {
+      const [counterparty, events, audit] = counterpartyEntity.make({
+        createdBy: generateUUID(),
+        accountingEntityId,
+        name: 'Draft supplier',
+        type: ECounterpartyType.Organization,
+        status: ECounterpartyStatus.Draft,
+      });
+      expect(counterparty).toMatchObject({
+        status: 'draft',
+        roles: [],
+        meta: {},
+      });
+      expect(Object.isFrozen(counterparty)).toBe(true);
+      expect(events[0].data).toEqual(counterparty);
+      expect(audit.diff.after).toEqual(counterparty);
+    });
+
     it('should create a valid counterparty with empty roles array', () => {
       const payload: IMakeCounterpartyPayload = {
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,

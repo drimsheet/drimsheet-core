@@ -118,7 +118,11 @@ const journalEntry = {
       id: lineId,
       entryId,
       account: { id: accountId, name: 'Cash' },
-      counterparty: { id: counterpartyId, name: 'Acme Ltd' },
+      counterparty: {
+        status: 'active' as const,
+        id: counterpartyId,
+        name: 'Acme Ltd',
+      },
       sequenceOrder: 1,
       amount: { amount: 50_00, currencyCode: 'NGN', isMinorUnit: true },
       exchangeRate: null,
@@ -162,6 +166,23 @@ describe('GET /journal-entries/{id}', () => {
       .set('x-accounting-entity-id', accountingEntityId);
 
   describe('200 Response', () => {
+    it('exposes draft counterparty status on draft entry details', async () => {
+      mockGetJournalEntry.mockResolvedValueOnce({
+        ...journalEntry,
+        status: 'draft',
+        postedAt: null,
+        lines: journalEntry.lines.map((line) => ({
+          ...line,
+          counterparty: line.counterparty
+            ? { ...line.counterparty, status: 'draft' as const }
+            : null,
+        })),
+      });
+      const response = await makeRequest();
+      expect(response.status).toBe(200);
+      expect(response.body.lines[0].counterparty.status).toBe('draft');
+    });
+
     it('returns the requested enriched journal entry', async () => {
       const response = await makeRequest();
 

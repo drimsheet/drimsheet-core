@@ -2,6 +2,7 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 
+import { ECounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
 import {
   EJournalEntryRectificationMode,
   IJournalEntryRectificationResult,
@@ -147,6 +148,9 @@ async function preparePayment(
     ],
     accountingEntity.id,
     preparation.actor,
+    getHeader(preparation).postedAt === null
+      ? ECounterpartyStatus.Draft
+      : ECounterpartyStatus.Active,
     repoOptions
   );
   const sourceCounterparty =
@@ -232,6 +236,9 @@ async function prepareReceipt(
     ],
     accountingEntity.id,
     preparation.actor,
+    getHeader(preparation).postedAt === null
+      ? ECounterpartyStatus.Draft
+      : ECounterpartyStatus.Active,
     repoOptions
   );
   const receiptPayload: ICreateReceiptEntryPayload = {
@@ -317,6 +324,9 @@ async function prepareTransfer(
     ),
     accountingEntity.id,
     preparation.actor,
+    getHeader(preparation).postedAt === null
+      ? ECounterpartyStatus.Draft
+      : ECounterpartyStatus.Active,
     repoOptions
   );
   const transferPayload: ICreateTransferEntryPayload = {

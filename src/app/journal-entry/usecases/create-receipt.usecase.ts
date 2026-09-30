@@ -10,6 +10,7 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
+import { ECounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
 import {
   ICreateReceiptEntryPayload,
   IJournalEntryService,
@@ -98,6 +99,9 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
         allCounterpartiesPayload,
         accountingEntity.id,
         actor.id,
+        payload.postedAt === null
+          ? ECounterpartyStatus.Draft
+          : ECounterpartyStatus.Active,
         repoOptions
       );
 

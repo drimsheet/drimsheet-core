@@ -597,6 +597,76 @@ describe('journalEntryService', () => {
     jest.useRealTimers();
   });
 
+  it.each(['payment', 'receipt', 'transfer'] as const)(
+    'permits draft counterparties only before posting a %s',
+    async (kind) => {
+      const fixture =
+        kind === 'receipt'
+          ? await makeReceiptFixture()
+          : kind === 'payment'
+            ? makePaymentFixture()
+            : makeTransferFixture();
+      const [draft] = counterpartyEntity.make({
+        accountingEntityId: fixture.payload.header.accountingEntityId,
+        createdBy: fixture.payload.header.createdBy,
+        name: 'Draft counterparty',
+        type: 'organization',
+        status: 'draft',
+      });
+      if (kind === 'receipt') {
+        const payload = fixture.payload as ICreateReceiptEntryPayload;
+        payload.sourceLines[0].counterparty = draft;
+        await expect(
+          service.createReceipt(payload, repoOptions)
+        ).resolves.toBeDefined();
+        payload.header.postedAt = effectiveDate;
+        await expect(
+          service.createReceipt(payload, repoOptions)
+        ).rejects.toThrow(journalEntryError.DraftCounterpartyNotAllowed);
+      } else if (kind === 'payment') {
+        const payload = fixture.payload as ICreatePaymentEntryPayload;
+        payload.destinationLines[0].counterparty = draft;
+        await expect(
+          service.createPayment(payload, repoOptions)
+        ).resolves.toBeDefined();
+        payload.header.postedAt = effectiveDate;
+        await expect(
+          service.createPayment(payload, repoOptions)
+        ).rejects.toThrow(journalEntryError.DraftCounterpartyNotAllowed);
+      } else {
+        const { payload, bankChargeAccount } = makeTransferFixture();
+        const [chargeCounterparty] = counterpartyEntity.make({
+          accountingEntityId: payload.header.accountingEntityId,
+          createdBy: payload.header.createdBy,
+          name: 'Draft bank',
+          type: 'organization',
+          status: 'draft',
+        });
+        payload.destinationLines[0].amount = moneyValue.make(
+          9500n,
+          SYSTEM_CURRENCIES.NGN,
+          true
+        );
+        payload.destinationLines.push({
+          account: bankChargeAccount,
+          counterparty: chargeCounterparty,
+          amount: moneyValue.make(500n, SYSTEM_CURRENCIES.NGN, true),
+          sequenceOrder: 3,
+          exchangeRate: null,
+          description: 'Bank charge',
+          meta: null,
+        });
+        await expect(
+          service.createTransfer(payload, repoOptions)
+        ).resolves.toBeDefined();
+        payload.header.postedAt = effectiveDate;
+        await expect(
+          service.createTransfer(payload, repoOptions)
+        ).rejects.toThrow(journalEntryError.DraftCounterpartyNotAllowed);
+      }
+    }
+  );
+
   it('creates a draft receipt with mapped lines, events, and audits', async () => {
     const {
       payload,

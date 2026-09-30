@@ -790,6 +790,19 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UCounterpartyStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['active'] },
+        { dataType: 'enum', enums: ['archived'] },
+        { dataType: 'enum', enums: ['draft'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IJournalLineListDto: {
     dataType: 'refObject',
     properties: {
@@ -809,6 +822,7 @@ const models: TsoaRoute.Models = {
           {
             dataType: 'nestedObjectLiteral',
             nestedProperties: {
+              status: { ref: 'UCounterpartyStatus', required: true },
               name: { dataType: 'string', required: true },
               id: { dataType: 'string', required: true },
             },
@@ -1647,18 +1661,6 @@ const models: TsoaRoute.Models = {
       asOf: { dataType: 'datetime' },
     },
     additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UCounterpartyStatus: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['active'] },
-        { dataType: 'enum', enums: ['archived'] },
-      ],
-      validators: {},
-    },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UCounterpartyRole: {

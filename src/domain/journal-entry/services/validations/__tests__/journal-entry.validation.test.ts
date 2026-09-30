@@ -1,6 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
+import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
@@ -105,6 +106,70 @@ describe('journalEntryServiceValidation', () => {
   }
 
   describe('validateCounterparties', () => {
+    it.each(['source', 'destination'] as const)(
+      'rejects posting with a draft %s counterparty',
+      (side) => {
+        const [draft] = counterpartyEntity.make({
+          createdBy: generateUUID(),
+          accountingEntityId,
+          name: 'Draft supplier',
+          type: 'organization',
+          status: 'draft',
+        });
+        const [active] = counterpartyEntity.make({
+          createdBy: generateUUID(),
+          accountingEntityId,
+          name: 'Active supplier',
+          type: 'individual',
+        });
+        const payload = makePayload(
+          side === 'source' ? [active, draft] : [active],
+          side === 'destination' ? draft : active
+        );
+        const lines = [...payload.sourceLines, payload.destinationLine];
+        expect(() =>
+          journalEntryServiceValidation.validateCounterparties(
+            payload.header,
+            lines
+          )
+        ).not.toThrow();
+        payload.header.postedAt = payload.header.effectiveDate;
+        expect(() =>
+          journalEntryServiceValidation.validateCounterparties(
+            payload.header,
+            lines
+          )
+        ).toThrow(journalEntryError.DraftCounterpartyNotAllowed);
+        try {
+          journalEntryServiceValidation.validateCounterparties(
+            payload.header,
+            lines
+          );
+        } catch (error) {
+          expect(error).toMatchObject({
+            cause: { counterparties: [{ id: draft.id, name: draft.name }] },
+          });
+        }
+      }
+    );
+
+    it('allows posting with active or absent counterparties', () => {
+      const [active] = counterpartyEntity.make({
+        createdBy: generateUUID(),
+        accountingEntityId,
+        name: 'Active supplier',
+        type: 'individual',
+      });
+      const payload = makePayload([active, null], null);
+      payload.header.postedAt = payload.header.effectiveDate;
+      expect(() =>
+        journalEntryServiceValidation.validateCounterparties(payload.header, [
+          ...payload.sourceLines,
+          payload.destinationLine,
+        ])
+      ).not.toThrow();
+    });
+
     it('succeeds when all counterparties belong to the accounting entity', () => {
       const counterparty = {
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,

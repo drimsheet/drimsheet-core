@@ -34,7 +34,7 @@ const counterpartyStatusValidation = z.enum(
   invalidStatusKey
 );
 
-const counterpartyTypeValidation = z.enum(
+export const counterpartyTypeValidation = z.enum(
   Object.values(ECounterpartyType) as [
     UCounterpartyType,
     ...UCounterpartyType[],

@@ -145,60 +145,139 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     });
   });
 
-  it('prepares a payment with retained requested line identities', async () => {
-    const [originalEntry] = makeEntry(EJournalEntrySourceType.Payment);
-    const candidate = makeEntry(EJournalEntrySourceType.Payment);
-    const requestedEntry: IPaymentJournalEntryRectificationReq = {
-      sourceType: EJournalEntrySourceType.Payment,
-      expectedVersion: originalEntry.version,
-      attachments: [],
-      effectiveDate,
-      postedAt: effectiveDate,
-      memo: 'Payment',
-      sourceLine: {
-        id: originalEntry.lines[0].id,
+  it.each([
+    [null, null, 'draft'],
+    [null, effectiveDate, 'active'],
+    [effectiveDate, null, 'active'],
+    [effectiveDate, effectiveDate, 'active'],
+  ] as const)(
+    'prepares payment counterparties for effective posting state %s / %s',
+    async (originalPostedAt, requestedPostedAt, creationStatus) => {
+      const [originalEntry] = makeEntry(
+        EJournalEntrySourceType.Payment,
+        100,
+        originalPostedAt
+      );
+      const candidate = makeEntry(
+        EJournalEntrySourceType.Payment,
+        100,
+        originalPostedAt ?? requestedPostedAt
+      );
+      const requestedEntry: IPaymentJournalEntryRectificationReq = {
+        sourceType: EJournalEntrySourceType.Payment,
+        expectedVersion: originalEntry.version,
+        attachments: [],
+        effectiveDate,
+        postedAt: requestedPostedAt,
+        memo: 'Payment',
+        sourceLine: {
+          id: originalEntry.lines[0].id,
+          accountId: sourceAccount.id,
+          counterparty,
+          amount: amountDto,
+          exchangeRate: null,
+          description: 'Source',
+          sequenceOrder: 1,
+        },
+        destinationLines: [
+          {
+            id: originalEntry.lines[1].id,
+            accountId: destinationAccount.id,
+            counterparty,
+            amount: amountDto,
+            exchangeRate: null,
+            description: 'Destination',
+            sequenceOrder: 2,
+          },
+        ],
+      };
+      mockJournalEntryService.createPayment.mockResolvedValue(candidate);
+
+      const result = await service.prepare(
+        {
+          originalEntry,
+          requestedEntry,
+          accountingEntity,
+
+          actor,
+        },
+        repoOptions
+      );
+
+      expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
+        creationStatus
+      );
+      expect(mockJournalEntryService.createPayment).toHaveBeenCalledTimes(1);
+      expect(
+        result.rectification.currentJournalEntry.lines.map((line) => line.id)
+      ).toEqual(originalEntry.lines.map((line) => line.id));
+      expect(result).toMatchObject({
+        fxReversal: null,
+        fxDisposition: null,
+        fxAcquisition: null,
+      });
+    }
+  );
+
+  it.each(['receipt', 'transfer'] as const)(
+    'prepares new draft counterparties when editing a draft %s',
+    async (sourceType) => {
+      const candidate = makeEntry(sourceType, 100, null);
+      const originalEntry = candidate[0];
+      const base = {
+        expectedVersion: 1,
+        attachments: [],
+        effectiveDate,
+        postedAt: null,
+        memo: 'Draft edit',
+      };
+      const sourceLine = {
         accountId: sourceAccount.id,
         counterparty,
         amount: amountDto,
         exchangeRate: null,
-        description: 'Source',
+        description: null,
         sequenceOrder: 1,
-      },
-      destinationLines: [
-        {
-          id: originalEntry.lines[1].id,
-          accountId: destinationAccount.id,
-          counterparty,
-          amount: amountDto,
-          exchangeRate: null,
-          description: 'Destination',
-          sequenceOrder: 2,
-        },
-      ],
-    };
-    mockJournalEntryService.createPayment.mockResolvedValue(candidate);
-
-    const result = await service.prepare(
-      {
-        originalEntry,
-        requestedEntry,
-        accountingEntity,
-
-        actor,
-      },
-      repoOptions
-    );
-
-    expect(mockJournalEntryService.createPayment).toHaveBeenCalledTimes(1);
-    expect(
-      result.rectification.currentJournalEntry.lines.map((line) => line.id)
-    ).toEqual(originalEntry.lines.map((line) => line.id));
-    expect(result).toMatchObject({
-      fxReversal: null,
-      fxDisposition: null,
-      fxAcquisition: null,
-    });
-  });
+      };
+      const destinationLine = {
+        ...sourceLine,
+        accountId: destinationAccount.id,
+        sequenceOrder: 2,
+      };
+      const requestedEntry:
+        | IReceiptJournalEntryRectificationReq
+        | ITransferJournalEntryRectificationReq =
+        sourceType === 'receipt'
+          ? { ...base, sourceType, sourceLines: [sourceLine], destinationLine }
+          : {
+              ...base,
+              sourceType,
+              sourceLine,
+              destinationLine,
+              chargeLines: [
+                {
+                  ...sourceLine,
+                  accountId: chargeAccount.id,
+                  sequenceOrder: 3,
+                },
+              ],
+            };
+      mockJournalEntryService.createReceipt.mockResolvedValue(candidate);
+      mockJournalEntryService.createTransfer.mockResolvedValue({
+        journalEntry: candidate,
+        destinationAssetAccount: destinationAccount,
+      });
+      await service.prepare(
+        { originalEntry, requestedEntry, accountingEntity, actor },
+        repoOptions
+      );
+      expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
+        'draft'
+      );
+      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    }
+  );
 
   it('prepares a receipt through the receipt domain capability', async () => {
     const [originalEntry] = makeEntry(EJournalEntrySourceType.Receipt);

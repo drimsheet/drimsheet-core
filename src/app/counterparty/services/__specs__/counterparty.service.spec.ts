@@ -4,6 +4,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
 import {
+  ECounterpartyStatus,
   ECounterpartyType,
   ICounterparty,
 } from '@domain/counterparty/types/counterparty.types';
@@ -29,6 +30,59 @@ describe('makeCounterpartyAppService', () => {
   });
 
   describe('findOrCreate', () => {
+    it.each(['individual', 'organization'] as const)(
+      'prepares a draft %s without metadata or writes',
+      async (type) => {
+        const result = await service.findOrCreate(
+          { name: 'Draft supplier', type },
+          accountingEntityId,
+          generateUUID(),
+          ECounterpartyStatus.Draft,
+          repoOptions
+        );
+        expect(result.data[0]).toMatchObject({
+          name: 'Draft supplier',
+          type,
+          status: 'draft',
+          roles: [],
+          meta: {},
+        });
+        expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
+      }
+    );
+
+    it('rejects missing type for draft creation', async () => {
+      await expect(
+        service.findOrCreate(
+          { name: 'Draft supplier' },
+          accountingEntityId,
+          generateUUID(),
+          ECounterpartyStatus.Draft,
+          repoOptions
+        )
+      ).rejects.toThrow(counterpartyError.InvalidType);
+    });
+
+    it('preserves the stored draft status when selected by ID for an active creation context', async () => {
+      const [draft] = domainService.create({
+        name: 'Draft supplier',
+        type: 'individual',
+        status: 'draft',
+        accountingEntityId,
+        createdBy: generateUUID(),
+      });
+      mockCounterpartyRepo.findById.mockResolvedValueOnce(draft);
+      const result = await service.findOrCreate(
+        { id: draft.id, name: draft.name },
+        accountingEntityId,
+        generateUUID(),
+        ECounterpartyStatus.Active,
+        repoOptions
+      );
+      expect(result.new).toBe(false);
+      expect(result.data[0]).toBe(draft);
+    });
+
     describe('when payload contains id', () => {
       it('should return existing counterparty if found', async () => {
         const id = generateUUID();
@@ -51,6 +105,7 @@ describe('makeCounterpartyAppService', () => {
           { id, name: 'Jane Doe' },
           accountingEntityId,
           'a1111111-1111-4111-8111-111111111111' as TEntityId,
+          ECounterpartyStatus.Active,
           repoOptions
         );
 
@@ -74,6 +129,7 @@ describe('makeCounterpartyAppService', () => {
             { id, name: 'Jane Doe' },
             accountingEntityId,
             'a1111111-1111-4111-8111-111111111111' as TEntityId,
+            ECounterpartyStatus.Active,
             repoOptions
           )
         ).rejects.toThrow(counterpartyError.InvalidCounterpartyId);
@@ -92,6 +148,7 @@ describe('makeCounterpartyAppService', () => {
           { name: 'John Smith', type: ECounterpartyType.Organization },
           accountingEntityId,
           'a1111111-1111-4111-8111-111111111111' as TEntityId,
+          ECounterpartyStatus.Active,
           repoOptions
         );
 
@@ -107,6 +164,7 @@ describe('makeCounterpartyAppService', () => {
           { name: 'John Smith' },
           accountingEntityId,
           'a1111111-1111-4111-8111-111111111111' as TEntityId,
+          ECounterpartyStatus.Active,
           repoOptions
         );
 
@@ -118,11 +176,64 @@ describe('makeCounterpartyAppService', () => {
   });
 
   describe('findOrCreateMany', () => {
+    it('accepts and deduplicates existing draft IDs without requiring their type again', async () => {
+      const [draft] = domainService.create({
+        name: 'Draft supplier',
+        type: 'organization',
+        status: 'draft',
+        accountingEntityId,
+        createdBy: generateUUID(),
+      });
+      mockCounterpartyRepo.findById.mockResolvedValueOnce(draft);
+      const input = { id: draft.id, name: draft.name };
+      const result = await service.findOrCreateMany(
+        [input, input],
+        accountingEntityId,
+        generateUUID(),
+        ECounterpartyStatus.Draft,
+        repoOptions
+      );
+      expect(result.size).toBe(1);
+      expect(mockCounterpartyRepo.findById).toHaveBeenCalledTimes(1);
+      expect(service.getFoundOrCreated(input, result)?.data[0]).toBe(draft);
+      expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('deduplicates explicit draft inputs and retains organization type', async () => {
+      const input = { name: 'Supplier', type: ECounterpartyType.Organization };
+      const result = await service.findOrCreateMany(
+        [input, { ...input, name: ' Supplier ' }],
+        accountingEntityId,
+        generateUUID(),
+        ECounterpartyStatus.Draft,
+        repoOptions
+      );
+      expect(result.size).toBe(1);
+      expect(service.getFoundOrCreated(input, result)?.data[0]).toMatchObject({
+        status: 'draft',
+        type: 'organization',
+      });
+    });
+
+    it('rejects a missing draft type even when a prior explicit individual has the same key', async () => {
+      await expect(
+        service.findOrCreateMany(
+          [{ name: 'Supplier', type: 'individual' }, { name: 'Supplier' }],
+          accountingEntityId,
+          generateUUID(),
+          ECounterpartyStatus.Draft,
+          repoOptions
+        )
+      ).rejects.toThrow(counterpartyError.InvalidType);
+      expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
+    });
+
     it('should deduplicate names using their normalized form', async () => {
       const result = await service.findOrCreateMany(
         [{ name: 'Jane Doe' }, { name: '  Jane Doe  ' }],
         accountingEntityId,
         'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        ECounterpartyStatus.Active,
         repoOptions
       );
 

@@ -116,7 +116,11 @@ const journalEntry = {
       id: lineId,
       entryId,
       account: { id: accountId, name: 'Cash' },
-      counterparty: { id: counterpartyId, name: 'Acme Ltd' },
+      counterparty: {
+        status: 'active' as const,
+        id: counterpartyId,
+        name: 'Acme Ltd',
+      },
       sequenceOrder: 1,
       amount: { amount: 50_00, currencyCode: 'NGN', isMinorUnit: true },
       exchangeRate: null,

@@ -35,7 +35,7 @@ export interface IFindAllJournalEntriesOptions extends Omit<
 
 export interface IJournalLineDetails extends IJournalLine {
   account: Pick<ILedgerAccount, 'id' | 'name'>;
-  counterparty: Pick<ICounterparty, 'id' | 'name'> | null;
+  counterparty: Pick<ICounterparty, 'id' | 'name' | 'status'> | null;
 }
 
 export interface IJournalEntryDetails extends Omit<IJournalEntry, 'lines'> {

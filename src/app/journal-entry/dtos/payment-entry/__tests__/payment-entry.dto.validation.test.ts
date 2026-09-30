@@ -1,5 +1,10 @@
+import counterpartyError from '@domain/counterparty/errors/counterparty.error';
+
 import fileAppError from '@app/file/errors/file.error';
+import { journalEntryRectificationReqValidation } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto.validation';
+import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
 import { paymentEntryReqValidation } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto.validation';
+import { receiptEntryReqValidation } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto.validation';
 
 const sourceLine = {
   accountId: '1b4c1064-a09e-4e4f-b6a3-23945cc87f75',
@@ -34,6 +39,54 @@ function makePayload() {
 }
 
 describe('Payment Entry DTO Validation', () => {
+  it.each(['individual', 'organization', 'invalid'])(
+    'validates inline counterparty type %s across journal request schemas',
+    (type) => {
+      const line = { ...sourceLine, counterparty: { name: 'Supplier', type } };
+      const base = {
+        effectiveDate: new Date('2026-08-30'),
+        postedAt: null,
+        memo: null,
+      };
+      const results = [
+        journalLineReqValidation.safeParse(line),
+        paymentEntryReqValidation.safeParse({
+          ...base,
+          sourceLine: line,
+          destinationLines: [line],
+        }),
+        receiptEntryReqValidation.safeParse({
+          ...base,
+          sourceLines: [line],
+          destinationLine: line,
+        }),
+        journalEntryRectificationReqValidation.safeParse({
+          ...base,
+          sourceType: 'payment',
+          expectedVersion: 1,
+          attachments: [],
+          sourceLine: line,
+          destinationLines: [line],
+        }),
+        journalEntryRectificationReqValidation.safeParse({
+          ...base,
+          sourceType: 'receipt',
+          expectedVersion: 1,
+          attachments: [],
+          sourceLines: [line],
+          destinationLine: line,
+        }),
+      ];
+      for (const result of results) {
+        expect(result.success).toBe(type !== 'invalid');
+        if (!result.success)
+          expect(result.error.issues[0].message).toBe(
+            new counterpartyError.InvalidType().errorKey
+          );
+      }
+    }
+  );
+
   it('validates a payment request', () => {
     expect(paymentEntryReqValidation.safeParse(makePayload()).success).toBe(
       true

@@ -17,7 +17,10 @@ import journalLineMapper, { IJournalLineModel } from './journal-line.mapper';
 
 interface IJournalLineDetailsModel extends IJournalLineModel {
   ledgerAccountsInCore: Pick<ILedgerAccountModel, 'id' | 'name'>;
-  counterpartiesInCore: Pick<ICounterpartyModel, 'id' | 'name'> | null;
+  counterpartiesInCore: Pick<
+    ICounterpartyModel,
+    'id' | 'name' | 'status'
+  > | null;
 }
 
 interface IJournalEntryDetailsModel extends IJournalEntryModel {
@@ -52,6 +55,7 @@ function toLineDetails(payload: IJournalLineDetailsModel): IJournalLineDetails {
       ? {
           id: payload.counterpartiesInCore.id as TEntityId,
           name: payload.counterpartiesInCore.name,
+          status: payload.counterpartiesInCore.status,
         }
       : null,
   };

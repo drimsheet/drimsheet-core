@@ -180,7 +180,11 @@ describe('Journal Entry DTO Mapper', () => {
             accountId,
             counterpartyId,
             account: { id: accountId, name: 'Cash' },
-            counterparty: { id: counterpartyId, name: 'Acme Ltd' },
+            counterparty: {
+              status: 'active' as const,
+              id: counterpartyId,
+              name: 'Acme Ltd',
+            },
             sequenceOrder: 1,
             amount,
             exchangeRate: null,
@@ -237,7 +241,11 @@ describe('Journal Entry DTO Mapper', () => {
             id: 'line-id-1',
             entryId,
             account: { id: accountId, name: 'Cash' },
-            counterparty: { id: counterpartyId, name: 'Acme Ltd' },
+            counterparty: {
+              status: 'active' as const,
+              id: counterpartyId,
+              name: 'Acme Ltd',
+            },
             sequenceOrder: 1,
             amount: {
               amount: 10_000,

@@ -2,7 +2,10 @@ import { TEntityId } from '@shared/types/uuid';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 
-import { UCounterpartyType } from '@domain/counterparty/types/counterparty.types';
+import {
+  UCounterpartyStatus,
+  UCounterpartyType,
+} from '@domain/counterparty/types/counterparty.types';
 import {
   UJournalEntrySourceType,
   UJournalEntryStatus,
@@ -84,6 +87,7 @@ interface IJournalLineListDto {
   counterparty: {
     id: string;
     name: string;
+    status: UCounterpartyStatus;
   } | null;
   sequenceOrder: number;
   amount: IMoneyDto;

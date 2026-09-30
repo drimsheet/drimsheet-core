@@ -1,6 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 import { IEntityDelta } from '@shared/values/history/types/history.types';
 
+import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import ICounterpartyService from '@domain/counterparty/types/counterparty.service.types';
@@ -29,10 +30,17 @@ function getKey(input: ICounterpartyFindOrCreatePayload) {
   return JSON.stringify(obj);
 }
 
+/** Retrieves an existing record or prepares audited creation without writing. */
 function makeFindOrCreate(
   deps: IDependencies
 ): ICounterpartyAppService['findOrCreate'] {
-  return async (payload, accountingEntityId, createdBy, repoOptions) => {
+  return async (
+    payload,
+    accountingEntityId,
+    createdBy,
+    newRecordStatus,
+    repoOptions
+  ) => {
     if (payload.id) {
       const counterparty = await deps.counterpartyRepo.findById(
         payload.id as TEntityId,
@@ -52,11 +60,14 @@ function makeFindOrCreate(
       };
     }
 
+    counterpartyEntity.validateDraftCreationType(newRecordStatus, payload.type);
+
     const counterparty = deps.counterpartyService.create({
       name: payload.name,
       accountingEntityId,
       createdBy,
       type: payload.type ?? ECounterpartyType.Individual,
+      status: newRecordStatus,
     });
 
     return {
@@ -66,14 +77,30 @@ function makeFindOrCreate(
   };
 }
 
+/** Prepares a deduplicated batch; invalid input rejects the entire preparation. */
 function makeFindOrCreateMany(
   deps: IDependencies
 ): ICounterpartyAppService['findOrCreateMany'] {
-  return async (payload, accountingEntityId, createdBy, repoOptions) => {
+  return async (
+    payload,
+    accountingEntityId,
+    createdBy,
+    newRecordStatus,
+    repoOptions
+  ) => {
     const findOrCreate = makeFindOrCreate(deps);
     const counterparties: Map<string, ICounterpartyFindOrCreateRes> = new Map();
 
     for (const input of payload) {
+      // Validate before deduplication so an omitted draft type cannot reuse a
+      // previous explicit individual and bypass the required field.
+      if (!input.id) {
+        counterpartyEntity.validateDraftCreationType(
+          newRecordStatus,
+          input.type
+        );
+      }
+
       const key = getKey(input);
 
       if (counterparties.has(key)) continue;
@@ -82,6 +109,7 @@ function makeFindOrCreateMany(
         input,
         accountingEntityId,
         createdBy,
+        newRecordStatus,
         repoOptions
       );
 

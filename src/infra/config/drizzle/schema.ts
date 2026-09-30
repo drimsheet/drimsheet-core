@@ -45,6 +45,7 @@ export const contraAccountRuleInCore = core.enum('contra_account_rule', [
 export const counterPartyStatusInCore = core.enum('counter_party_status', [
   'active',
   'archived',
+  'draft',
 ]);
 export const counterPartyTypeInCore = core.enum('counter_party_type', [
   'individual',

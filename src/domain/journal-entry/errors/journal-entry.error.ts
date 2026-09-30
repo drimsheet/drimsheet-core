@@ -31,6 +31,9 @@ const EErrorKeys = {
   InvalidEffectiveDate: 'journal_entry_error_effective_date_invalid',
   InvalidOpeningBalanceDate: 'journal_entry_error_opening_balance_date_invalid',
   InvalidVoidedAt: 'journal_entry_error_voided_at_invalid',
+  // Client message: Complete and activate the counterparty before posting.
+  DraftCounterpartyNotAllowed:
+    'journal_entry_error_draft_counterparty_not_allowed_invalid',
   InvalidCounterpartyId: 'journal_entry_error_counterparty_id_invalid',
   InvalidMemo: 'journal_entry_error_memo_invalid',
   ControlAccountOpeningBalanceNotAllowed:

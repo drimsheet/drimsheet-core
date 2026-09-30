@@ -36,7 +36,7 @@ const journalEntryQueryRepo: IJournalEntryQueryRepo = {
               columns: { id: true, name: true },
             },
             counterpartiesInCore: {
-              columns: { id: true, name: true },
+              columns: { id: true, name: true, status: true },
             },
           },
         },
@@ -117,7 +117,7 @@ const journalEntryQueryRepo: IJournalEntryQueryRepo = {
               columns: { id: true, name: true },
             },
             counterpartiesInCore: {
-              columns: { id: true, name: true },
+              columns: { id: true, name: true, status: true },
             },
           },
         },
