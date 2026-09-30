@@ -19,6 +19,7 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  findByCodeForUpdate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),
@@ -64,6 +65,7 @@ describe('receivablesAccountService', () => {
   });
 
   afterEach(() => {
+    expect(ledgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     jest.useRealTimers();
   });
 
@@ -122,31 +124,22 @@ describe('receivablesAccountService', () => {
     });
   });
 
-  it('creates a trade receivable under a valid control account', async () => {
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce(receivablesHeader);
-    ledgerAccountRepo.findLatestBySubType.mockResolvedValueOnce({
-      id: generateUUID(),
-      code: '102004',
-      materializedPath: '102000.102004',
-    });
+  it('creates a trade receivable under a valid control account', () => {
+    const suppliedControlAccount = receivablesHeader;
 
-    const [account, events, audit] =
-      await service.createTradeReceivableSubAccount(
-        {
-          name: 'Trade Receivables',
-          createdBy: userId,
-          accountingEntity,
-          currency: SYSTEM_CURRENCIES.USD,
-          isControlAccount: true,
-          controlAccountCode: ASSET_LEDGER_CODES.RECEIVABLES.HEADER,
-        },
-        repoOptions
-      );
+    const [account, events, audit] = service.createTradeReceivableSubAccount({
+      controlAccount: suppliedControlAccount,
+      name: 'Trade Receivables',
+      createdBy: userId,
+      accountingEntity,
+      currency: SYSTEM_CURRENCIES.USD,
+      isControlAccount: true,
+    });
 
     expect(account).toMatchObject({
       name: 'Trade Receivables',
-      code: '102005',
-      materializedPath: '102000.102005',
+      code: '102001',
+      materializedPath: '102000.102001',
       behavior: EAssetAccountBehavior.TradeReceivable,
       controlAccountId: receivablesHeader.id,
       currency: SYSTEM_CURRENCIES.USD,
@@ -157,24 +150,20 @@ describe('receivablesAccountService', () => {
     expect(audit.entityId).toBe(account.id);
   });
 
-  it('creates a statutory receivable under a valid control account', async () => {
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce({
+  it('creates a statutory receivable under a valid control account', () => {
+    const suppliedControlAccount = {
       ...receivablesHeader,
       behavior: EAssetAccountBehavior.StatutoryReceivable,
-    });
-    ledgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
+    };
 
-    const [account] = await service.createStatutoryReceivableSubAccount(
-      {
-        name: 'Statutory Receivables',
-        createdBy: userId,
-        accountingEntity,
-        currency: SYSTEM_CURRENCIES.USD,
-        isControlAccount: true,
-        controlAccountCode: ASSET_LEDGER_CODES.RECEIVABLES.HEADER,
-      },
-      repoOptions
-    );
+    const [account] = service.createStatutoryReceivableSubAccount({
+      controlAccount: suppliedControlAccount,
+      name: 'Statutory Receivables',
+      createdBy: userId,
+      accountingEntity,
+      currency: SYSTEM_CURRENCIES.USD,
+      isControlAccount: true,
+    });
 
     expect(account).toMatchObject({
       code: ASSET_LEDGER_CODES.RECEIVABLES.TRADE,
@@ -187,25 +176,26 @@ describe('receivablesAccountService', () => {
     });
   });
 
-  it('rejects a missing receivables control account', async () => {
-    ledgerAccountRepo.findByCode.mockResolvedValueOnce(null);
+  it('rejects a receivables control account from another accounting entity', () => {
+    const suppliedControlAccount = {
+      ...receivablesHeader,
+      accountingEntityId: generateUUID(),
+    };
 
-    await expect(
-      service.createTradeReceivableSubAccount(
-        {
-          name: 'Trade Receivables',
-          createdBy: userId,
-          accountingEntity,
-          currency: SYSTEM_CURRENCIES.USD,
-          isControlAccount: false,
-          controlAccountCode: ASSET_LEDGER_CODES.RECEIVABLES.HEADER,
-        },
-        repoOptions
-      )
-    ).rejects.toMatchObject({
-      errorKey:
-        'ledger_error_asset_account_control_account_not_found_unexpected',
-    });
+    expect(() =>
+      service.createTradeReceivableSubAccount({
+        controlAccount: suppliedControlAccount,
+        name: 'Trade Receivables',
+        createdBy: userId,
+        accountingEntity,
+        currency: SYSTEM_CURRENCIES.USD,
+        isControlAccount: false,
+      })
+    ).toThrow(
+      expect.objectContaining({
+        errorKey: 'ledger_error_asset_account_control_account_invalid',
+      })
+    );
     expect(ledgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
   });
 
@@ -214,32 +204,28 @@ describe('receivablesAccountService', () => {
     { subType: EAssetSubType.CashAndCashEquivalent },
     { isControlAccount: false },
     { behavior: EAssetAccountBehavior.StatutoryReceivable },
-  ])(
-    'rejects an invalid trade receivables control account: %o',
-    async (change) => {
-      ledgerAccountRepo.findByCode.mockResolvedValueOnce({
-        ...receivablesHeader,
-        ...change,
-      });
+  ])('rejects an invalid trade receivables control account: %o', (change) => {
+    const suppliedControlAccount = {
+      ...receivablesHeader,
+      ...change,
+    };
 
-      await expect(
-        service.createTradeReceivableSubAccount(
-          {
-            name: 'Trade Receivables',
-            createdBy: userId,
-            accountingEntity,
-            currency: SYSTEM_CURRENCIES.USD,
-            isControlAccount: false,
-            controlAccountCode: ASSET_LEDGER_CODES.RECEIVABLES.HEADER,
-          },
-          repoOptions
-        )
-      ).rejects.toMatchObject({
+    expect(() =>
+      service.createTradeReceivableSubAccount({
+        controlAccount: suppliedControlAccount,
+        name: 'Trade Receivables',
+        createdBy: userId,
+        accountingEntity,
+        currency: SYSTEM_CURRENCIES.USD,
+        isControlAccount: false,
+      })
+    ).toThrow(
+      expect.objectContaining({
         errorKey: 'ledger_error_asset_account_control_account_invalid',
-      });
-      expect(ledgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
-    }
-  );
+      })
+    );
+    expect(ledgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
+  });
 
   it.each([
     { type: ELedgerType.Liability },
@@ -248,27 +234,26 @@ describe('receivablesAccountService', () => {
     { behavior: EAssetAccountBehavior.TradeReceivable },
   ])(
     'rejects an invalid statutory receivables control account: %o',
-    async (change) => {
-      ledgerAccountRepo.findByCode.mockResolvedValueOnce({
+    (change) => {
+      const suppliedControlAccount = {
         ...receivablesHeader,
         ...change,
-      });
+      };
 
-      await expect(
-        service.createStatutoryReceivableSubAccount(
-          {
-            name: 'Statutory Receivables',
-            createdBy: userId,
-            accountingEntity,
-            currency: SYSTEM_CURRENCIES.USD,
-            isControlAccount: false,
-            controlAccountCode: ASSET_LEDGER_CODES.RECEIVABLES.HEADER,
-          },
-          repoOptions
-        )
-      ).rejects.toMatchObject({
-        errorKey: 'ledger_error_asset_account_control_account_invalid',
-      });
+      expect(() =>
+        service.createStatutoryReceivableSubAccount({
+          controlAccount: suppliedControlAccount,
+          name: 'Statutory Receivables',
+          createdBy: userId,
+          accountingEntity,
+          currency: SYSTEM_CURRENCIES.USD,
+          isControlAccount: false,
+        })
+      ).toThrow(
+        expect.objectContaining({
+          errorKey: 'ledger_error_asset_account_control_account_invalid',
+        })
+      );
       expect(ledgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     }
   );

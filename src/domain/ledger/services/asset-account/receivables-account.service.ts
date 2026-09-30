@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import receivablesControlAccountValidation from '@domain/ledger/services/validations/receivables-control-account.validation';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -17,7 +17,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import { IReceivablesAccountService } from '@domain/ledger/types/receivables-account.service.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
@@ -32,7 +31,6 @@ const LEDGER_CODE = ASSET_LEDGER_CODES.RECEIVABLES;
  *
  * Creates a statutory receivable header account
  *
- * @param deps IDependencies
  * @returns Audited IReceivablesAccount
  *
  */
@@ -81,32 +79,17 @@ function makeCreateHeader(
  *
  * Creates a statutory receivable sub account account
  *
- * @param deps IDependencies
  * @returns Audited IReceivablesAccount
  *
  */
-function makeCreateStatutoryReceivableSubAccount(
-  deps: IDependencies
-): IReceivablesAccountService['createStatutoryReceivableSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Asset &&
-        controlAccount.subType === EAssetSubType.Receivables &&
-        controlAccount.isControlAccount &&
-        (controlAccount.behavior === EAssetAccountBehavior.DefaultReceivables ||
-          controlAccount.behavior === EAssetAccountBehavior.StatutoryReceivable)
-      );
-    };
+function makeCreateStatutoryReceivableSubAccount(): IReceivablesAccountService['createStatutoryReceivableSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TReceivablesLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntity.id,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    receivablesControlAccountValidation.validateStatutoryReceivableSubAccount(
+      controlAccount,
+      payload.accountingEntity.id
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -115,12 +98,12 @@ function makeCreateStatutoryReceivableSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TReceivablesLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TReceivablesLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TReceivablesLedgerCode,
         code
       );
 
@@ -149,32 +132,17 @@ function makeCreateStatutoryReceivableSubAccount(
  *
  * Creates a trade receivable sub account account
  *
- * @param deps IDependencies
  * @returns Audited IReceivablesAccount
  *
  */
-function makeCreateTradeReceivableSubAccount(
-  deps: IDependencies
-): IReceivablesAccountService['createTradeReceivableSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Asset &&
-        controlAccount.subType === EAssetSubType.Receivables &&
-        controlAccount.isControlAccount &&
-        (controlAccount.behavior === EAssetAccountBehavior.DefaultReceivables ||
-          controlAccount.behavior === EAssetAccountBehavior.TradeReceivable)
-      );
-    };
+function makeCreateTradeReceivableSubAccount(): IReceivablesAccountService['createTradeReceivableSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TReceivablesLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntity.id,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    receivablesControlAccountValidation.validateTradeReceivableSubAccount(
+      controlAccount,
+      payload.accountingEntity.id
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -183,12 +151,12 @@ function makeCreateTradeReceivableSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TReceivablesLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TReceivablesLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TReceivablesLedgerCode,
         code
       );
 
@@ -218,9 +186,9 @@ export default function makeReceivablesAccountService(deps: IDependencies) {
     createHeader: makeCreateHeader(deps),
 
     createStatutoryReceivableSubAccount:
-      makeCreateStatutoryReceivableSubAccount(deps),
+      makeCreateStatutoryReceivableSubAccount(),
 
-    createTradeReceivableSubAccount: makeCreateTradeReceivableSubAccount(deps),
+    createTradeReceivableSubAccount: makeCreateTradeReceivableSubAccount(),
   };
 
   return Object.freeze(service);

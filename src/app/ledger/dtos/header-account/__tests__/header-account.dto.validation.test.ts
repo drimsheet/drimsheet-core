@@ -21,6 +21,27 @@ describe('headerAccountNameAliasesReqValidation', () => {
     }
   );
 
+  it.each([
+    'trade_receivables',
+    'statutory_receivables',
+    'trade_payables',
+    'statutory_payables',
+  ])(
+    'validates the structural control alias %s with the existing field error',
+    (key) => {
+      expect(schema.safeParse({ [key]: 'Translated control' }).success).toBe(
+        true
+      );
+      const result = schema.safeParse({ [key]: ' ' });
+      expect(result.success).toBe(false);
+      if (result.success) throw new Error('Expected invalid alias');
+      expect(result.error.issues[0]).toMatchObject({
+        path: [key],
+        message: invalidNameKey,
+      });
+    }
+  );
+
   it.each(['', '   ', ' A ', 'A'.repeat(101), null, 12, false, [], {}])(
     'rejects invalid aliases with the field error key: %j',
     (value) => {

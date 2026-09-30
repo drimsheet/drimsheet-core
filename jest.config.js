@@ -1,6 +1,9 @@
 module.exports = {
   testEnvironment: 'node',
+  maxWorkers: 2,
+  setupFilesAfterEnv: ['<rootDir>/test/setup/rate-limit-stores.ts'],
   roots: ['<rootDir>/src', '<rootDir>/test'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/test/db/'],
   moduleNameMapper: {
     '^@domain/(.*)$': '<rootDir>/src/domain/$1',
     '^@app/(.*)$': '<rootDir>/src/app/$1',
@@ -12,7 +15,7 @@ module.exports = {
     '^.+\\.[tj]sx?$': [
       'ts-jest',
       {
-        tsconfig: 'tsconfig.test.json',
+        tsconfig: 'tsconfig.jest.json',
       },
     ],
   },

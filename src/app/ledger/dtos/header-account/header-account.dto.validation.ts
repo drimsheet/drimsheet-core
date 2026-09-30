@@ -32,6 +32,10 @@ export const headerAccountNameAliasesReqValidation = z.strictObject(
     income_tax_expense: nameAlias,
     unrealized_loss: nameAlias,
     loss_on_asset_disposal: nameAlias,
+    trade_receivables: nameAlias,
+    statutory_receivables: nameAlias,
+    trade_payables: nameAlias,
+    statutory_payables: nameAlias,
   },
   { error: invalidNameKey }
 );

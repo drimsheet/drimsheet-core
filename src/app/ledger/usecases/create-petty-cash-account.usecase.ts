@@ -20,12 +20,14 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceService, {
+  IAssignedLedgerAccount,
+} from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { IPettyCashAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { pettyCashCreationReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
-import finalizeWithoutOpeningBalance from '@app/ledger/usecases/helpers/finalize-without-opening-balance.helper';
+import finalizeWithoutOpeningBalanceHelper from '@app/ledger/usecases/helpers/finalize-without-opening-balance.helper';
 import getControlAccountHelper from '@app/ledger/usecases/helpers/get-control-account.helper';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import openingBalanceExchangeRateGetter from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
@@ -86,23 +88,20 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
       repoOptions,
     });
 
-    const auditedAccount =
-      await deps.cashAccountService.createPettyCashSubAccount(
-        {
-          name: payload.name,
-          currency: currencyEntity.getByCode(payload.currencyCode),
-          isControlAccount: payload.isControlAccount,
-          createdBy: actor.id,
-          accountingEntity,
-          controlAccountCode: controlAccount.code,
-        },
-        repoOptions
-      );
+    const auditedAccount = deps.cashAccountService.createPettyCashSubAccount({
+      name: payload.name,
+      currency: currencyEntity.getByCode(payload.currencyCode),
+      isControlAccount: payload.isControlAccount,
+      createdBy: actor.id,
+      accountingEntity,
+      controlAccount,
+    });
 
     if (!payload.openingBalance) {
-      return await finalizeWithoutOpeningBalance(deps, {
+      return finalizeWithoutOpeningBalanceHelper(deps, {
         auditedAccount,
         accountingEntity,
+        allocationHeaderCode: ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
         actor: actor.id,
         repoOptions,
       });
@@ -126,11 +125,11 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
         repoOptions
       );
 
-    const [updatedAccount, updatedAccountEvents, updatedAccountAudit] =
-      ledgerAccountEntity.updateOpeningBalanceDate(
-        auditedAccount[0],
-        payload.openingBalance.date
-      );
+    const openingBalanceUpdate = ledgerAccountEntity.updateOpeningBalanceDate(
+      auditedAccount[0],
+      payload.openingBalance.date
+    );
+    const [updatedAccount] = openingBalanceUpdate;
 
     // Make histories
     const initialAccountHistory = historyValue.make(
@@ -139,11 +138,10 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
       correlationId
     );
     const updatedAccountHistory = historyValue.make(
-      updatedAccountAudit,
+      openingBalanceUpdate[2],
       actor.id,
       correlationId
     );
-    const accountHistory = [initialAccountHistory, updatedAccountHistory];
     const journalHeaderHistory = historyValue.make(
       journalAudit.header,
       actor.id,
@@ -162,14 +160,28 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
     );
 
     // Persist entities
-    const dbTransactionFn: TRepoTransactionFn = async (tx) => {
+    const dbTransactionFn: TRepoTransactionFn<IAssignedLedgerAccount> = async (
+      tx
+    ) => {
       const writeRepoOptions = { ...repoOptions, tx };
 
-      await deps.ledgerAccountPersistenceService.create(
-        updatedAccount,
-        accountingEntity.functionalCurrencyCode,
-        { ...writeRepoOptions, history: accountHistory }
-      );
+      const accountPersistencePayload = {
+        account: updatedAccount,
+        allocationHeaderCode: ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
+        actorId: actor.id,
+      };
+
+      const accountPersistenceRepoOptions = {
+        ...writeRepoOptions,
+        history: [initialAccountHistory, updatedAccountHistory],
+      };
+
+      const assignedAccount =
+        await deps.ledgerAccountPersistenceService.createAndAssignCode(
+          accountPersistencePayload,
+          accountingEntity.functionalCurrencyCode,
+          accountPersistenceRepoOptions
+        );
 
       await deps.journalEntryPersistenceService.create(
         journalEntry,
@@ -191,9 +203,12 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
           writeRepoOptions
         );
       }
+
+      return assignedAccount;
     };
 
-    await deps.repoService.runInTransaction(dbTransactionFn);
+    const assignedAccount =
+      await deps.repoService.runInTransaction(dbTransactionFn);
 
     if (shouldUpdateBalance) {
       await deps.ledgerBalanceAdjustmentQueue.add({
@@ -205,7 +220,8 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
     // Assemble events
     const allEvents: IEvent<unknown>[] = [
       ...auditedAccount[1],
-      ...updatedAccountEvents,
+      ...openingBalanceUpdate[1],
+      ...assignedAccount.events,
       ...journalEvents,
       ...(fxResult?.events ?? []),
     ];
@@ -213,7 +229,7 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
     await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
 
     return ledgerAccountToDtoMapperHelper(
-      updatedAccount,
+      assignedAccount.account,
       journalEntry,
       accountingEntity.functionalCurrencyCode
     );

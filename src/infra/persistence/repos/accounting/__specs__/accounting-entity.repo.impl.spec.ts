@@ -1,11 +1,15 @@
+import { eq } from 'drizzle-orm';
+
 import { IWriteRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import repoError from '@shared/values/errors/repo.error';
 
 import {
   IAccountingEntity,
   IAccountingEntityHistory,
 } from '@domain/accounting/types/accounting-entity.types';
 
+import { accountingEntitiesInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import accountingEntityHistoryRepo from '@infra/persistence/repos/accounting/accounting-entity-history.repo.impl';
 import accountingEntityRepo from '@infra/persistence/repos/accounting/accounting-entity.repo.impl';
@@ -193,5 +197,48 @@ describe('AccountingEntityRepoImpl', () => {
         )
       ).rejects.toBe(databaseError);
     });
+  });
+});
+
+describe('accountingEntityRepo.findByIdForUpdate', () => {
+  const id = '123e4567-e89b-42d3-a456-426614174001' as TEntityId;
+  const options = { correlationId: 'lock', tx: {} };
+  beforeEach(() => jest.resetAllMocks());
+
+  it.each([true, false])(
+    'locks by ID and maps only an existing row (exists: %s)',
+    async (exists) => {
+      const row = { id };
+      const domain = { id } as IAccountingEntity;
+      const lock = jest.fn().mockResolvedValue(exists ? [row] : []);
+      const where = jest.fn().mockReturnValue({ for: lock });
+      const query = {
+        select: jest
+          .fn()
+          .mockReturnValue({ from: jest.fn().mockReturnValue({ where }) }),
+      };
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      jest.mocked(accountingEntityMapper.toDomain).mockReturnValue(domain);
+      expect(await accountingEntityRepo.findByIdForUpdate(id, options)).toBe(
+        exists ? domain : null
+      );
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(where).toHaveBeenCalledWith(eq(accountingEntitiesInCore.id, id));
+      expect(lock).toHaveBeenCalledWith('update');
+      if (exists)
+        expect(accountingEntityMapper.toDomain).toHaveBeenCalledWith(row);
+      else expect(accountingEntityMapper.toDomain).not.toHaveBeenCalled();
+    }
+  );
+
+  it('requires a supplied transaction before querying', async () => {
+    await expect(
+      accountingEntityRepo.findByIdForUpdate(id, {
+        correlationId: 'missing-transaction',
+      } as Parameters<typeof accountingEntityRepo.findByIdForUpdate>[1])
+    ).rejects.toBeInstanceOf(repoError.TransactionRequired);
+    expect(getDbQuery).not.toHaveBeenCalled();
   });
 });

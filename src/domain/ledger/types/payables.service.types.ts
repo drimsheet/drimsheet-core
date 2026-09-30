@@ -1,11 +1,10 @@
-import { IReadRepoOptions, IRepoOptions } from '@shared/types/repo.types';
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { ICurrency } from '@domain/money/types/currency.types';
 
-import { TPayablesLedgerCode } from './ledger-code.types';
 import { ILedgerAccount } from './ledger.types';
 import {
   IPayableAccount,
@@ -31,8 +30,8 @@ interface IStatutoryPayload {
   accountingEntity: IAccountingEntity;
   currency: ICurrency;
   isControlAccount: boolean;
-  controlAccountCode: TPayablesLedgerCode;
-  meta: IStatutoryPayableAccountMeta;
+  controlAccount: ILedgerAccount;
+  meta: IStatutoryPayableAccountMeta | null;
 }
 
 interface ITradePayload {
@@ -40,8 +39,8 @@ interface ITradePayload {
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
   isControlAccount: boolean;
-  controlAccountCode: TPayablesLedgerCode;
-  meta: ITradePayableAccountMeta;
+  controlAccount: ILedgerAccount;
+  meta: ITradePayableAccountMeta | null;
 }
 
 export interface IPayablesAccountService {
@@ -50,13 +49,7 @@ export interface IPayablesAccountService {
     repoOptions: IReadRepoOptions
   ): Promise<TReturnType>;
 
-  createStatutoryPayableSubAccount(
-    payload: IStatutoryPayload,
-    repoOptions: IRepoOptions
-  ): Promise<TReturnType>;
+  createStatutoryPayableSubAccount(payload: IStatutoryPayload): TReturnType;
 
-  createTradePayableSubAccount(
-    payload: ITradePayload,
-    repoOptions: IRepoOptions
-  ): Promise<TReturnType>;
+  createTradePayableSubAccount(payload: ITradePayload): TReturnType;
 }

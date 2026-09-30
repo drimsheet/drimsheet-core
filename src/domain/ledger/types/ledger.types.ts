@@ -1,4 +1,5 @@
 import { TEntityId } from '@shared/types/uuid';
+import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { ICurrency } from '@domain/money/types/currency.types';
 
@@ -92,3 +93,9 @@ export interface ILedgerAccount {
   updatedAt: Date;
   deletedAt: Date | null;
 }
+
+export type TAuditedLedgerAccount = TAuditedEntity<
+  ILedgerAccount,
+  ILedgerAccount,
+  ILedgerAccount
+>;

@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import rentAndUtilitiesControlAccountValidation from '@domain/ledger/services/validations/rent-and-utilities-control-account.validation';
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
@@ -17,7 +17,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import { IRentAndUtilitiesAccountService } from '@domain/ledger/types/rent-and-utilities.service.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
@@ -66,24 +65,13 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(
-  deps: IDependencies
-): IRentAndUtilitiesAccountService['createSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (account: ILedgerAccount) =>
-      account.type === ELedgerType.Expense &&
-      account.subType === EExpenseSubType.RentAndUtilities &&
-      account.isControlAccount &&
-      (account.behavior === EExpenseAccountBehavior.RentAndUtilities ||
-        account.behavior === EExpenseAccountBehavior.Default);
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TRentUtilitiesLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+function makeCreateSubAccount(): IRentAndUtilitiesAccountService['createSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
+    rentAndUtilitiesControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -92,11 +80,11 @@ function makeCreateSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TRentUtilitiesLedgerCode
     );
     const materializedPath =
       getLedgerAccountMaterializedPath<TRentUtilitiesLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TRentUtilitiesLedgerCode,
         code
       );
     return ledgerAccountEntity.make({
@@ -125,7 +113,7 @@ export default function makeRentAndUtilitiesAccountService(
 ) {
   const service: IRentAndUtilitiesAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(deps),
+    createSubAccount: makeCreateSubAccount(),
   };
   return Object.freeze(service);
 }

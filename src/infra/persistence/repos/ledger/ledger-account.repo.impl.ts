@@ -16,6 +16,7 @@ import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
 import repoError from '@shared/values/errors/repo.error';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo, {
   ELedgerAccountSortBy,
 } from '@domain/ledger/repos/ledger-account.repo';
@@ -30,18 +31,62 @@ import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-
 
 import ledgerAccountHistoryRepo from './ledger-account-history.repo.impl';
 
-const ledgerAccountRepoImpl: ILedgerAccountRepo = {
-  create: async (payload, options) => {
-    await getDbQuery(options).transaction(async (tx) => {
-      const accountsArray = Array.isArray(payload) ? payload : [payload];
-      const valuesArray = accountsArray.map(ledgerAccountMapper.toRepo);
+/** Recognizes only the suspense uniqueness index, including Drizzle cause wrappers. */
+function isSuspenseDuplicate(error: unknown): boolean {
+  const isObject = typeof error === 'object' && error !== null;
+  if (!isObject) return false;
 
-      await tx.insert(ledgerAccountsInCore).values(valuesArray);
-      await ledgerAccountHistoryRepo.save(
-        options.history,
-        passOnRepoTransaction(options, tx)
-      );
-    });
+  const isDuplicate =
+    'code' in error &&
+    error.code === '23505' &&
+    'constraint' in error &&
+    error.constraint === 'ledger_accounts_suspense_entity_type_currency_uk';
+  if (isDuplicate) return true;
+  return 'cause' in error && isSuspenseDuplicate(error.cause);
+}
+
+const ledgerAccountRepoImpl: ILedgerAccountRepo = {
+  findByCodeForUpdate: async (code, accountingEntityId, options) => {
+    if (!options.tx) throw new repoError.TransactionRequired();
+
+    const [lockedAccount] = await getDbQuery(options)
+      .select({ id: ledgerAccountsInCore.id })
+      .from(ledgerAccountsInCore)
+      .where(
+        and(
+          eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId),
+          eq(ledgerAccountsInCore.code, code)
+        )
+      )
+      .for('update');
+
+    if (!lockedAccount) return null;
+
+    return ledgerAccountRepoImpl.findById(
+      lockedAccount.id as Parameters<ILedgerAccountRepo['findById']>[0],
+      accountingEntityId,
+      options
+    );
+  },
+
+  create: async (payload, options) => {
+    try {
+      await getDbQuery(options).transaction(async (tx) => {
+        const accountsArray = Array.isArray(payload) ? payload : [payload];
+        const valuesArray = accountsArray.map(ledgerAccountMapper.toRepo);
+
+        await tx.insert(ledgerAccountsInCore).values(valuesArray);
+        await ledgerAccountHistoryRepo.save(
+          options.history,
+          passOnRepoTransaction(options, tx)
+        );
+      });
+    } catch (error) {
+      if (isSuspenseDuplicate(error)) {
+        throw new ledgerAccountError.SuspenseAccountAlreadyExists();
+      }
+      throw error;
+    }
   },
 
   update: async (account, options) => {

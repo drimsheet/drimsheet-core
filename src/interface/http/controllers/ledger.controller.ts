@@ -35,7 +35,7 @@ import {
 @Route('ledger')
 @Tags('Ledger')
 export class LedgerController extends Controller {
-  /** Set up all header and equity accounts, with optional translated names. */
+  /** Set up all 24 header, equity, and standard receivable/payable control accounts atomically, with optional translated names. */
   @Post('/header-accounts/setup')
   @OperationId('setupHeaderAccounts')
   @SuccessResponse('201')

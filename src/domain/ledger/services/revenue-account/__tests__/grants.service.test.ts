@@ -22,6 +22,7 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  findByCodeForUpdate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),
@@ -78,7 +79,6 @@ describe('grantsAccountService', () => {
     createdBy: createdBy,
     accountingEntityId: accountingEntity.id,
     isControlAccount: false,
-    controlAccountCode: REVENUE_LEDGER_CODES.GRANTS.HEADER,
   };
 
   beforeEach(() => {
@@ -88,6 +88,7 @@ describe('grantsAccountService', () => {
   });
 
   afterEach(() => {
+    expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     jest.useRealTimers();
   });
 
@@ -151,29 +152,19 @@ describe('grantsAccountService', () => {
     });
   });
 
-  it('creates a sub-account under a grants control account', async () => {
+  it('creates a sub-account under a grants control account', () => {
     const controlAccount = makeControlAccount();
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce({
-      id: generateUUID(),
-      code: '407099',
-      materializedPath: `${controlAccount.materializedPath}.407099`,
+
+    const [account, events, audit] = service.createSubAccount({
+      ...subAccountPayload,
+      controlAccount,
     });
 
-    const [account, events, audit] = await service.createSubAccount(
-      subAccountPayload,
-      repoOptions
-    );
-
-    expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
-      subAccountPayload.controlAccountCode,
-      accountingEntity.id,
-      repoOptions
-    );
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
     expect(account).toMatchObject({
       name: subAccountPayload.name,
-      code: '407100',
-      materializedPath: `${controlAccount.materializedPath}.407100`,
+      code: '407001',
+      materializedPath: `${controlAccount.materializedPath}.407001`,
       accountingEntityId: accountingEntity.id,
       normalBalance: ENormalBalance.Credit,
       type: ELedgerType.Revenue,
@@ -193,31 +184,45 @@ describe('grantsAccountService', () => {
     expect(audit.entityId).toBe(account.id);
   });
 
-  it('allocates the first sub-account code when no later account exists', async () => {
-    const controlAccount = makeControlAccount();
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(controlAccount);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
+  it('derives the candidate and full path from a nested control account', () => {
+    const header = makeControlAccount();
+    const controlAccount = {
+      ...header,
+      id: generateUUID(),
+      controlAccountId: header.id,
+      currency: null,
+      code: header.code.slice(0, 3) + '037',
+      materializedPath:
+        header.materializedPath + '.' + header.code.slice(0, 3) + '037',
+    };
 
-    const [account] = await service.createSubAccount(
-      subAccountPayload,
-      repoOptions
-    );
+    const [account] = service.createSubAccount({
+      ...subAccountPayload,
+      controlAccount,
+    });
 
-    expect(account.code).toBe('407001');
+    expect(account.code).toBe('407038');
     expect(account.materializedPath).toBe(
-      `${controlAccount.materializedPath}.407001`
+      `${controlAccount.materializedPath}.407038`
     );
   });
 
-  it('rejects a missing control account', async () => {
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
+  it('rejects a control account from another accounting entity', () => {
+    const suppliedControlAccount = {
+      ...makeControlAccount(),
+      accountingEntityId: generateUUID(),
+    };
 
-    await expect(
-      service.createSubAccount(subAccountPayload, repoOptions)
-    ).rejects.toMatchObject({
-      errorKey:
-        'ledger_error_asset_account_control_account_not_found_unexpected',
-    });
+    expect(() =>
+      service.createSubAccount({
+        ...subAccountPayload,
+        controlAccount: suppliedControlAccount,
+      })
+    ).toThrow(
+      expect.objectContaining({
+        errorKey: 'ledger_error_asset_account_control_account_invalid',
+      })
+    );
     expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
   });
 
@@ -232,19 +237,22 @@ describe('grantsAccountService', () => {
       label: 'behavior',
       overrides: { behavior: ERevenueAccountBehavior.Services },
     },
-  ])(
-    'rejects a control account with an invalid $label',
-    async ({ overrides }) => {
-      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(
-        makeControlAccount(ERevenueAccountBehavior.Grants, overrides)
-      );
+  ])('rejects a control account with an invalid $label', ({ overrides }) => {
+    const suppliedControlAccount = makeControlAccount(
+      ERevenueAccountBehavior.Grants,
+      overrides
+    );
 
-      await expect(
-        service.createSubAccount(subAccountPayload, repoOptions)
-      ).rejects.toMatchObject({
+    expect(() =>
+      service.createSubAccount({
+        ...subAccountPayload,
+        controlAccount: suppliedControlAccount,
+      })
+    ).toThrow(
+      expect.objectContaining({
         errorKey: 'ledger_error_asset_account_control_account_invalid',
-      });
-      expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
-    }
-  );
+      })
+    );
+    expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
+  });
 });

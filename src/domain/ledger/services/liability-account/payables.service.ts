@@ -6,14 +6,13 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import payablesControlAccountValidation from '@domain/ledger/services/validations/payables-control-account.validation';
 import { TPayablesLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import {
   ELiabilityAccountBehavior,
@@ -84,29 +83,14 @@ function makeCreateHeader(
  * @returns Audited IPayableAccount
  *
  */
-function makeCreateStatutoryPayableSubAccount(
-  deps: IDependencies
-): IPayablesAccountService['createStatutoryPayableSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Liability &&
-        controlAccount.subType === ELiabilitySubType.Payable &&
-        controlAccount.isControlAccount &&
-        (controlAccount.behavior === ELiabilityAccountBehavior.DefaultPayable ||
-          controlAccount.behavior === ELiabilityAccountBehavior.TaxPayable) &&
-        controlAccount.currency !== null
-      );
-    };
+function makeCreateStatutoryPayableSubAccount(): IPayablesAccountService['createStatutoryPayableSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TPayablesLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntity.id,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    payablesControlAccountValidation.validateStatutoryPayableSubAccount(
+      controlAccount,
+      payload.accountingEntity.id
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -115,12 +99,12 @@ function makeCreateStatutoryPayableSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TPayablesLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TPayablesLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TPayablesLedgerCode,
         code
       );
 
@@ -153,28 +137,14 @@ function makeCreateStatutoryPayableSubAccount(
  *
  */
 
-function makeCreateTradePayableAccount(
-  deps: IDependencies
-): IPayablesAccountService['createTradePayableSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Liability &&
-        controlAccount.subType === ELiabilitySubType.Payable &&
-        controlAccount.isControlAccount &&
-        (controlAccount.behavior === ELiabilityAccountBehavior.DefaultPayable ||
-          controlAccount.behavior === ELiabilityAccountBehavior.TradePayable)
-      );
-    };
+function makeCreateTradePayableAccount(): IPayablesAccountService['createTradePayableSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TPayablesLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntity.id,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    payablesControlAccountValidation.validateTradePayableSubAccount(
+      controlAccount,
+      payload.accountingEntity.id
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -183,12 +153,12 @@ function makeCreateTradePayableAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TPayablesLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TPayablesLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TPayablesLedgerCode,
         code
       );
 
@@ -216,9 +186,8 @@ function makeCreateTradePayableAccount(
 export default function makePayablesAccountService(deps: IDependencies) {
   const service: IPayablesAccountService = {
     createHeader: makeCreateHeader(deps),
-    createStatutoryPayableSubAccount:
-      makeCreateStatutoryPayableSubAccount(deps),
-    createTradePayableSubAccount: makeCreateTradePayableAccount(deps),
+    createStatutoryPayableSubAccount: makeCreateStatutoryPayableSubAccount(),
+    createTradePayableSubAccount: makeCreateTradePayableAccount(),
   };
 
   return Object.freeze(service);

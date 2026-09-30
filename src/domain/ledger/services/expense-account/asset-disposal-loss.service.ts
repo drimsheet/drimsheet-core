@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import assetDisposalLossControlAccountValidation from '@domain/ledger/services/validations/asset-disposal-loss-control-account.validation';
 import { IAssetDisposalLossAccountService } from '@domain/ledger/types/asset-disposal-loss.service.types';
 import {
   EExpenseAccountBehavior,
@@ -18,7 +18,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
@@ -83,29 +82,14 @@ function makeCreateHeader(
  * @returns Audited IAssetDisposalLossAccount
  *
  */
-function makeCreateSubAccount(
-  deps: IDependencies
-): IAssetDisposalLossAccountService['createSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (controlAccount: ILedgerAccount) => {
-      return (
-        controlAccount.type === ELedgerType.Expense &&
-        controlAccount.subType === EExpenseSubType.LossOnAssetDisposal &&
-        controlAccount.isControlAccount &&
-        (controlAccount.behavior ===
-          EExpenseAccountBehavior.AssetDisposalLoss ||
-          controlAccount.behavior === EExpenseAccountBehavior.Default)
-      );
-    };
+function makeCreateSubAccount(): IAssetDisposalLossAccountService['createSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TAssetDisposalLossLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    assetDisposalLossControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -114,12 +98,12 @@ function makeCreateSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TAssetDisposalLossLedgerCode
     );
 
     const materializedPath =
       getLedgerAccountMaterializedPath<TAssetDisposalLossLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TAssetDisposalLossLedgerCode,
         code
       );
 
@@ -147,7 +131,7 @@ function makeCreateSubAccount(
 export default function makeAssetDisposalService(deps: IDependencies) {
   const service: IAssetDisposalLossAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(deps),
+    createSubAccount: makeCreateSubAccount(),
   };
 
   return Object.freeze(service);

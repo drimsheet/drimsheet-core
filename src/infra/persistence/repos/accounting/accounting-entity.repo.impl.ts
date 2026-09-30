@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import repoError from '@shared/values/errors/repo.error';
 
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 
@@ -11,6 +12,18 @@ import accountingEntityMapper from '@infra/persistence/repos/accounting/mappers/
 import accountingEntityHistoryRepo from './accounting-entity-history.repo.impl';
 
 const accountingEntityRepo: IAccountingEntityRepo = {
+  findByIdForUpdate: async (id, options) => {
+    if (!options.tx) throw new repoError.TransactionRequired();
+
+    const [entity] = await getDbQuery(options)
+      .select()
+      .from(accountingEntitiesInCore)
+      .where(eq(accountingEntitiesInCore.id, id))
+      .for('update');
+
+    return entity ? accountingEntityMapper.toDomain(entity) : null;
+  },
+
   create: async (domain, options) => {
     await getDbQuery(options).transaction(async (tx) => {
       await tx

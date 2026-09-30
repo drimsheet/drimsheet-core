@@ -3,6 +3,7 @@ import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.co
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import {
   EAssetAccountBehavior,
@@ -28,10 +29,29 @@ interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
 }
 
+/** Prepares a unique asset suspense account; callers serialize allocation through commit. */
 function makeCreateAssetSuspense(
   deps: IDependencies
 ): ISuspenseAccountService['createAssetSuspense'] {
   return async (payload, repoOptions) => {
+    const accounts = await deps.ledgerAccountRepo.findBySubType(
+      payload.accountingEntityId,
+      ELedgerType.Asset,
+      EAssetSubType.Suspense,
+      repoOptions
+    );
+    const duplicate = accounts.find(
+      (account) => account.currency?.code === payload.currency.code
+    );
+    if (duplicate) {
+      throw new ledgerAccountError.SuspenseAccountAlreadyExists({
+        accountingEntityId: payload.accountingEntityId,
+        type: ELedgerType.Asset,
+        currencyCode: payload.currency.code,
+        accountId: duplicate.id,
+      });
+    }
+
     const latest = await deps.ledgerAccountRepo.findLatestBySubType(
       payload.accountingEntityId,
       ELedgerType.Asset,
@@ -68,10 +88,29 @@ function makeCreateAssetSuspense(
   };
 }
 
+/** Prepares a unique liability suspense account; callers serialize allocation through commit. */
 function makeCreateLiabilitySuspense(
   deps: IDependencies
 ): ISuspenseAccountService['createLiabilitySuspense'] {
   return async (payload, repoOptions) => {
+    const accounts = await deps.ledgerAccountRepo.findBySubType(
+      payload.accountingEntityId,
+      ELedgerType.Liability,
+      ELiabilitySubType.Suspense,
+      repoOptions
+    );
+    const duplicate = accounts.find(
+      (account) => account.currency?.code === payload.currency.code
+    );
+    if (duplicate) {
+      throw new ledgerAccountError.SuspenseAccountAlreadyExists({
+        accountingEntityId: payload.accountingEntityId,
+        type: ELedgerType.Liability,
+        currencyCode: payload.currency.code,
+        accountId: duplicate.id,
+      });
+    }
+
     const latest = await deps.ledgerAccountRepo.findLatestBySubType(
       payload.accountingEntityId,
       ELedgerType.Liability,

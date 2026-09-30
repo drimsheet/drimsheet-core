@@ -23,12 +23,14 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceService, {
+  IAssignedLedgerAccount,
+} from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { IBankAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { bankAccountCreationReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
-import finalizeWithoutOpeningBalance from '@app/ledger/usecases/helpers/finalize-without-opening-balance.helper';
+import finalizeWithoutOpeningBalanceHelper from '@app/ledger/usecases/helpers/finalize-without-opening-balance.helper';
 import getControlAccountHelper from '@app/ledger/usecases/helpers/get-control-account.helper';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import openingBalanceExchangeRateGetter from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
@@ -114,18 +116,17 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
       isControlAccount: false,
       createdBy: actor.id,
       accountingEntity,
-      controlAccountCode: controlAccount.code,
+      controlAccount,
       bankDetails,
     };
 
-    const auditedAccount = await deps.cashAccountService.createBankSubAccount(
-      creationPayload,
-      repoOptions
-    );
+    const auditedAccount =
+      deps.cashAccountService.createBankSubAccount(creationPayload);
 
     if (!payload.openingBalance) {
-      return await finalizeWithoutOpeningBalance(deps, {
+      return await finalizeWithoutOpeningBalanceHelper(deps, {
         auditedAccount,
+        allocationHeaderCode: ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
         accountingEntity,
         actor: actor.id,
         repoOptions,
@@ -194,17 +195,25 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
     );
 
     // Persist entities
-    const dbTransactionFn: TRepoTransactionFn = async (tx) => {
+    const dbTransactionFn: TRepoTransactionFn<IAssignedLedgerAccount> = async (
+      tx
+    ) => {
       const writeRepoOptions = { ...repoOptions, tx };
 
-      await deps.ledgerAccountPersistenceService.create(
-        updatedAccount,
-        accountingEntity.functionalCurrencyCode,
-        { ...writeRepoOptions, history: accountHistory }
-      );
+      const assignedAccount =
+        await deps.ledgerAccountPersistenceService.createAndAssignCode(
+          {
+            account: updatedAccount,
+            allocationHeaderCode:
+              ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
+            actorId: actor.id,
+          },
+          accountingEntity.functionalCurrencyCode,
+          { ...writeRepoOptions, history: accountHistory }
+        );
 
       await deps.bankAccountRepo.create(
-        updatedAccount.id,
+        assignedAccount.account.id,
         accountingEntity.id,
         bankDetails,
         actor.id,
@@ -231,9 +240,11 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
           writeRepoOptions
         );
       }
+      return assignedAccount;
     };
 
-    await deps.repoService.runInTransaction(dbTransactionFn);
+    const assignedAccount =
+      await deps.repoService.runInTransaction(dbTransactionFn);
 
     if (shouldUpdateBalance) {
       await deps.ledgerBalanceAdjustmentQueue.add({
@@ -246,6 +257,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
     const allEvents: IEvent<unknown>[] = [
       ...auditedAccount[1],
       ...updatedAccountEvents,
+      ...assignedAccount.events,
       ...journalEvents,
       ...(fxResult?.events ?? []),
     ];
@@ -253,7 +265,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
     await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
 
     return ledgerAccountToDtoMapperHelper(
-      updatedAccount,
+      assignedAccount.account,
       journalEntry,
       accountingEntity.functionalCurrencyCode
     );

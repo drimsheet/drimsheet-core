@@ -6,7 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
-import getControlAccountScope from '@domain/ledger/services/helpers/get-control-account-scope.helper';
+import interestControlAccountValidation from '@domain/ledger/services/validations/interest-control-account.validation';
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
@@ -18,7 +18,6 @@ import {
   EContraAccountRule,
   ELedgerAccountStatus,
   ELedgerType,
-  ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
@@ -67,25 +66,14 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(
-  deps: IDependencies
-): IInterestAccountService['createSubAccount'] {
-  return async (payload, repoOptions) => {
-    const validator = (account: ILedgerAccount) =>
-      account.type === ELedgerType.Expense &&
-      account.subType === EExpenseSubType.Interest &&
-      account.isControlAccount &&
-      (account.behavior === EExpenseAccountBehavior.Interest ||
-        account.behavior === EExpenseAccountBehavior.Default);
+function makeCreateSubAccount(): IInterestAccountService['createSubAccount'] {
+  return (payload) => {
+    const { controlAccount } = payload;
 
-    const { controlAccount, factoryContext } =
-      await getControlAccountScope<TInterestLedgerCode>({
-        ledgerAccountRepo: deps.ledgerAccountRepo,
-        accountingEntityId: payload.accountingEntityId,
-        controlAccountCode: payload.controlAccountCode,
-        repoOptions,
-        validator,
-      });
+    interestControlAccountValidation.validate(
+      controlAccount,
+      payload.accountingEntityId
+    );
 
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
@@ -94,11 +82,11 @@ function makeCreateSubAccount(
 
     const code = getNextSubledgerAccountCode(
       LEDGER_CODE.PREFIX,
-      factoryContext.precedingCode
+      controlAccount.code as TInterestLedgerCode
     );
     const materializedPath =
       getLedgerAccountMaterializedPath<TInterestLedgerCode>(
-        factoryContext.parentMaterializedPath,
+        controlAccount.materializedPath as TInterestLedgerCode,
         code
       );
 
@@ -126,7 +114,7 @@ function makeCreateSubAccount(
 export default function makeInterestAccountService(deps: IDependencies) {
   const service: IInterestAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(deps),
+    createSubAccount: makeCreateSubAccount(),
   };
   return Object.freeze(service);
 }

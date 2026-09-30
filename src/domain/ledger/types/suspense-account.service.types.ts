@@ -15,6 +15,11 @@ interface IMakePayload {
   currency: ICurrency;
 }
 
+/**
+ * Prepares one account per entity/type/currency, including archived/deleted rows.
+ * Writers must hold the entity row lock through persistence and pass that
+ * transaction to the reads; a duplicate precheck alone does not serialize codes.
+ */
 export interface ISuspenseAccountService {
   createAssetSuspense(
     payload: IMakePayload,

@@ -4,7 +4,6 @@ import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 
-import { TGiftsLedgerCode } from './ledger-code.types';
 import { ILedgerAccount } from './ledger.types';
 import { IGiftsAccount } from './revenue-account.types';
 
@@ -21,7 +20,7 @@ interface ISubAccountPayload {
   createdBy: TEntityId;
   accountingEntityId: TEntityId;
   isControlAccount: boolean;
-  controlAccountCode: TGiftsLedgerCode;
+  controlAccount: ILedgerAccount;
 }
 
 export interface IGiftsAccountService {
@@ -30,8 +29,5 @@ export interface IGiftsAccountService {
     repoOptions: IRepoOptions
   ): Promise<TReturnType>;
 
-  createSubAccount(
-    payload: ISubAccountPayload,
-    repoOptions: IRepoOptions
-  ): Promise<TReturnType>;
+  createSubAccount(payload: ISubAccountPayload): TReturnType;
 }

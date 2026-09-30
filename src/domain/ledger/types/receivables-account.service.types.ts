@@ -6,7 +6,6 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 import { ICurrency } from '@domain/money/types/currency.types';
 
 import { IReceivablesAccount } from './asset-account.types';
-import { TReceivablesLedgerCode } from './ledger-code.types';
 import { ILedgerAccount } from './ledger.types';
 
 type TReturnType = TAuditedEntity<
@@ -27,9 +26,7 @@ interface ICreateReceivableSubAccountPayload {
   accountingEntity: IAccountingEntity;
   currency: ICurrency;
   isControlAccount: boolean;
-  controlAccountCode: TReceivablesLedgerCode;
-  controlAccount?: ILedgerAccount;
-  precedingCode?: TReceivablesLedgerCode;
+  controlAccount: ILedgerAccount;
 }
 
 export interface IReceivablesAccountService {
@@ -39,12 +36,10 @@ export interface IReceivablesAccountService {
   ): Promise<TReturnType>;
 
   createStatutoryReceivableSubAccount(
-    payload: ICreateReceivableSubAccountPayload,
-    repoOptions: IReadRepoOptions
-  ): Promise<TReturnType>;
+    payload: ICreateReceivableSubAccountPayload
+  ): TReturnType;
 
   createTradeReceivableSubAccount(
-    payload: ICreateReceivableSubAccountPayload,
-    repoOptions: IReadRepoOptions
-  ): Promise<TReturnType>;
+    payload: ICreateReceivableSubAccountPayload
+  ): TReturnType;
 }

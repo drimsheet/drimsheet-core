@@ -128,18 +128,13 @@ describe('makeCreateReceiptUsecase', () => {
       },
       { correlationId }
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(servicesHeader);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
-    [sourceAccount] = await servicesAccountService.createSubAccount(
-      {
-        name: 'Services Revenue',
-        accountingEntityId: accountingEntity.id,
-        isControlAccount: false,
-        controlAccountCode: servicesHeader.code,
-        createdBy: actor.id,
-      },
-      { correlationId }
-    );
+    [sourceAccount] = servicesAccountService.createSubAccount({
+      name: 'Services Revenue',
+      accountingEntityId: accountingEntity.id,
+      isControlAccount: false,
+      controlAccount: servicesHeader,
+      createdBy: actor.id,
+    });
     mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
     [destinationAccount] = await cashAccountService.createHeader(
       {

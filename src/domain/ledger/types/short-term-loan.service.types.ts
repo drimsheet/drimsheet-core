@@ -1,11 +1,10 @@
-import { IReadRepoOptions, IRepoOptions } from '@shared/types/repo.types';
+import { IRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { ICurrency } from '@domain/money/types/currency.types';
 
-import { TShortTermDebtLedgerCode } from './ledger-code.types';
 import { ILedgerAccount } from './ledger.types';
 import {
   ICreditCardAccount,
@@ -44,7 +43,7 @@ interface ICreateCreditCardPayload {
   accountingEntityId: TEntityId;
   currency: ICurrency;
   isControlAccount: boolean;
-  controlAccountCode: TShortTermDebtLedgerCode;
+  controlAccount: ILedgerAccount;
   meta: ICreditCardAccountMeta;
 }
 
@@ -54,7 +53,7 @@ interface ICreateSubAccountPayload {
   accountingEntityId: TEntityId;
   currency: ICurrency | null;
   isControlAccount: boolean;
-  controlAccountCode: TShortTermDebtLedgerCode;
+  controlAccount: ILedgerAccount;
 }
 
 export interface IShortTermLoanAccountService {
@@ -63,13 +62,9 @@ export interface IShortTermLoanAccountService {
     repoOptions: IRepoOptions
   ): Promise<TReturnType>;
 
-  createSubAccount(
-    payload: ICreateSubAccountPayload,
-    repoOptions: IRepoOptions
-  ): Promise<TShortTermLoanReturnType>;
+  createSubAccount(payload: ICreateSubAccountPayload): TShortTermLoanReturnType;
 
   createCreditCardSubAccount(
-    payload: ICreateCreditCardPayload,
-    repoOptions: IReadRepoOptions
-  ): Promise<TCreditCardReturnType>;
+    payload: ICreateCreditCardPayload
+  ): TCreditCardReturnType;
 }

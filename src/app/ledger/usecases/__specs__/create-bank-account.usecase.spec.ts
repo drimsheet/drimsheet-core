@@ -13,6 +13,7 @@ import {
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import { IBankDetails } from '@domain/ledger/types/asset-account.types';
@@ -108,21 +109,16 @@ describe('makeCreateBankAccountUseCase', () => {
       { correlationId: 'test-correlation-id' }
     );
     controlAccountId = mockControlAccount.id;
-    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(mockControlAccount);
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
     [mockAccount, mockEvents, mockAudit] =
-      await cashAccountService.createBankSubAccount(
-        {
-          name: validReq.name,
-          currency: currencyEntity.getByCode('NGN'),
-          isControlAccount: false,
-          createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-          controlAccountCode: mockControlAccount.code,
-          accountingEntity,
-          bankDetails,
-        },
-        { correlationId: 'test-correlation-id' }
-      );
+      cashAccountService.createBankSubAccount({
+        name: validReq.name,
+        currency: currencyEntity.getByCode('NGN'),
+        isControlAccount: false,
+        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        controlAccount: mockControlAccount,
+        accountingEntity,
+        bankDetails,
+      });
     [
       mockOpeningBalanceJournalEntry,
       mockOpeningBalanceEvents,
@@ -187,10 +183,10 @@ describe('makeCreateBankAccountUseCase', () => {
     );
     mockBankAccountRepo.findOne.mockResolvedValue(null);
     mockLedgerAccountRepo.findByCode.mockResolvedValue(mockControlAccount);
-    mockAssetAccountService.createBankSubAccount.mockResolvedValue([
+    mockAssetAccountService.createBankSubAccount.mockReturnValue([
       mockAccount,
-      [],
-      mockAudit as any,
+      mockEvents,
+      mockAudit,
     ]);
     mockJournalEntryService.createOpeningBalance.mockResolvedValue([
       mockOpeningBalanceJournalEntry,
@@ -198,6 +194,16 @@ describe('makeCreateBankAccountUseCase', () => {
       mockOpeningBalanceAudit,
     ]);
     mockFxLotAppService.acquire.mockResolvedValue(null);
+    mockBankAccountRepo.create.mockReset().mockResolvedValue();
+    mockLedgerAccountPersistenceService.createAndAssignCode
+      .mockReset()
+      .mockImplementation(async ({ account }) => {
+        const [assigned, events] = ledgerAccountEntity.updateCode(
+          account,
+          '100042'
+        );
+        return { account: assigned, events };
+      });
   });
 
   it('creates a bank account without opening balance successfully', async () => {
@@ -207,12 +213,41 @@ describe('makeCreateBankAccountUseCase', () => {
     expect(result.id).toBe(mockAccount.id);
     expect(result.name).toBe(validReq.name);
     expect(result.behavior).toBe('bank');
+    expect(result.code).toBe('100042');
+    expect(result.materializedPath).toBe(
+      `${mockControlAccount.materializedPath}.100042`
+    );
+    expect(
+      mockLedgerAccountPersistenceService.createWithoutAssigningCode
+    ).not.toHaveBeenCalled();
+    const [assignmentPayload, , assignmentOptions] =
+      mockLedgerAccountPersistenceService.createAndAssignCode.mock.calls[0];
+    expect(assignmentPayload).toEqual({
+      account: mockAccount,
+      allocationHeaderCode: '100000',
+      actorId: actor.id,
+    });
+    expect(assignmentOptions.history[0].diff.after).toMatchObject({
+      code: mockAccount.code,
+    });
+    expect(mockBankAccountRepo.create.mock.calls[0][4].tx).toBe(
+      assignmentOptions.tx
+    );
+    expect(mockEventBus.publish.mock.calls[0][0]).toEqual([
+      ...mockEvents.map((event) =>
+        expect.objectContaining({ type: event.type, data: event.data })
+      ),
+      expect.objectContaining({
+        data: expect.objectContaining({ code: '100042', version: 2 }),
+      }),
+    ]);
 
     expect(mockBankAccountRepo.findOne).toHaveBeenCalledWith(
       bankDetails.bankName,
       bankDetails.accountNumber,
       expect.anything()
     );
+    expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledTimes(1);
     expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
       ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
       accountingEntityId,
@@ -220,11 +255,12 @@ describe('makeCreateBankAccountUseCase', () => {
     );
     expect(mockAssetAccountService.createBankSubAccount).toHaveBeenCalledWith(
       expect.objectContaining({
-        controlAccountCode: mockControlAccount.code,
-      }),
-      { correlationId: 'test-correlation-id' }
+        controlAccount: mockControlAccount,
+      })
     );
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createAndAssignCode
+    ).toHaveBeenCalled();
     expect(mockBankAccountRepo.create).toHaveBeenCalledWith(
       mockAccount.id,
       accountingEntityId,
@@ -237,7 +273,7 @@ describe('makeCreateBankAccountUseCase', () => {
     expect(mockEventBus.publish).toHaveBeenCalled();
   });
 
-  it('resolves a supplied control account ID and forwards its code', async () => {
+  it('resolves a supplied control account ID and forwards the resolved account', async () => {
     const selectedControlAccount = {
       ...mockControlAccount,
       code: '100500',
@@ -257,12 +293,16 @@ describe('makeCreateBankAccountUseCase', () => {
       accountingEntityId,
       { correlationId: 'test-correlation-id' }
     );
+    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(1);
+    expect(
+      mockAssetAccountService.createBankSubAccount.mock.calls[0][0]
+        .controlAccount
+    ).toBe(selectedControlAccount);
     expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
     expect(mockAssetAccountService.createBankSubAccount).toHaveBeenCalledWith(
       expect.objectContaining({
-        controlAccountCode: selectedControlAccount.code,
-      }),
-      { correlationId: 'test-correlation-id' }
+        controlAccount: selectedControlAccount,
+      })
     );
   });
 
@@ -277,7 +317,9 @@ describe('makeCreateBankAccountUseCase', () => {
     ).rejects.toBeInstanceOf(ledgerAppError.AccountNotFound);
 
     expect(mockAssetAccountService.createBankSubAccount).not.toHaveBeenCalled();
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createAndAssignCode
+    ).not.toHaveBeenCalled();
     expect(mockBankAccountRepo.create).not.toHaveBeenCalled();
   });
 
@@ -290,7 +332,9 @@ describe('makeCreateBankAccountUseCase', () => {
     );
 
     expect(mockAssetAccountService.createBankSubAccount).not.toHaveBeenCalled();
-    expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createAndAssignCode
+    ).not.toHaveBeenCalled();
     expect(mockBankAccountRepo.create).not.toHaveBeenCalled();
   });
 
@@ -308,11 +352,30 @@ describe('makeCreateBankAccountUseCase', () => {
     const result = await useCase(reqWithOpeningBalance);
 
     expect(result.id).toBe(mockAccount.id);
+    expect(result.code).toBe('100042');
+    const writeOptions =
+      mockLedgerAccountPersistenceService.createAndAssignCode.mock.calls[0][2];
+    expect(writeOptions.history).toHaveLength(2);
+    expect(mockBankAccountRepo.create.mock.calls[0][4].tx).toBe(
+      writeOptions.tx
+    );
+    expect(mockJournalEntryPersistenceService.create.mock.calls[0][3].tx).toBe(
+      writeOptions.tx
+    );
+    expect(mockEventBus.publish.mock.calls[0][0]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({ code: '100042', version: 3 }),
+        }),
+      ])
+    );
     expect(result.openingBalanceDate).toEqual(
       reqWithOpeningBalance.openingBalance?.date
     );
     expect(mockJournalEntryService.createOpeningBalance).toHaveBeenCalled();
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalled();
+    expect(
+      mockLedgerAccountPersistenceService.createAndAssignCode
+    ).toHaveBeenCalled();
     expect(mockBankAccountRepo.create).toHaveBeenCalled();
     expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
     expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledWith(
@@ -386,29 +449,25 @@ describe('makeCreateBankAccountUseCase', () => {
       },
     };
 
-    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValueOnce(null);
-    const [foreignMockAccount] = await cashAccountService.createBankSubAccount(
-      {
-        name: foreignReq.name,
-        currency: currencyEntity.getByCode('USD'),
-        isControlAccount: false,
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        controlAccountCode: mockControlAccount.code,
-        accountingEntity,
-        bankDetails: bankDetailsValue.make({
-          countryCode: 'NG',
-          bankName: foreignReq.bankAccount.bankName,
-          accountName: foreignReq.bankAccount.accountName,
-          accountNumber: foreignReq.bankAccount.accountNumber,
-        }),
-      },
-      { correlationId: 'test-correlation-id' }
-    );
+    const [foreignMockAccount] = cashAccountService.createBankSubAccount({
+      name: foreignReq.name,
+      currency: currencyEntity.getByCode('USD'),
+      isControlAccount: false,
+      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      controlAccount: mockControlAccount,
+      accountingEntity,
+      bankDetails: bankDetailsValue.make({
+        countryCode: 'NG',
+        bankName: foreignReq.bankAccount.bankName,
+        accountName: foreignReq.bankAccount.accountName,
+        accountNumber: foreignReq.bankAccount.accountNumber,
+      }),
+    });
 
-    mockAssetAccountService.createBankSubAccount.mockResolvedValueOnce([
+    mockAssetAccountService.createBankSubAccount.mockReturnValueOnce([
       foreignMockAccount,
       [],
-      mockAudit as any,
+      mockAudit,
     ]);
 
     const [
@@ -569,6 +628,75 @@ describe('makeCreateBankAccountUseCase', () => {
 
     expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+  it.each([false, true])(
+    'suppresses post-commit work when bank details fail (opening balance: %s)',
+    async (withOpeningBalance) => {
+      const failure = new ledgerAccountError.DuplicateBankAccount({
+        details: bankDetails,
+      });
+      mockBankAccountRepo.create.mockRejectedValueOnce(failure);
+      const payload: IBankAccountCreationReq = {
+        ...validReq,
+        openingBalance: withOpeningBalance
+          ? {
+              amount: { amount: 10000, currencyCode: 'NGN', isMinorUnit: true },
+              exchangeRate: null,
+              date: new Date('2026-03-01T00:00:00.000Z'),
+            }
+          : null,
+      };
+      await expect(makeCreateBankAccountUseCase(deps)(payload)).rejects.toBe(
+        failure
+      );
+      expect(
+        mockLedgerAccountPersistenceService.createAndAssignCode
+      ).toHaveBeenCalledTimes(1);
+      expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('waits for the outer commit before publishing no-opening-balance events', async () => {
+    let commit!: () => void;
+    let prepared!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      prepared = resolve;
+    });
+    const committed = new Promise<void>((resolve) => {
+      commit = resolve;
+    });
+    mockRepoService.runInTransaction.mockImplementationOnce(async (fn) => {
+      const result = await fn({});
+      prepared();
+      await committed;
+      return result;
+    });
+    const creation = makeCreateBankAccountUseCase(deps)(validReq);
+    await ready;
+    expect(mockBankAccountRepo.create).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    commit();
+    await creation;
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not insert bank details when assignment fails', async () => {
+    const failure = new ledgerAccountError.MaximumLimitReached({
+      predecessorCode: '100999',
+    });
+    mockLedgerAccountPersistenceService.createAndAssignCode.mockRejectedValueOnce(
+      failure
+    );
+    await expect(makeCreateBankAccountUseCase(deps)(validReq)).rejects.toBe(
+      failure
+    );
+    expect(mockBankAccountRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 });

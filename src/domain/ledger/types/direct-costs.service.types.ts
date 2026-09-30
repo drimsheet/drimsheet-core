@@ -5,7 +5,6 @@ import { TAuditedEntity } from '@shared/values/events/types/event.types';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 
 import { IDirectCostsAccount } from './expense-account.types';
-import { TDirectCostsLedgerCode } from './ledger-code.types';
 import { ILedgerAccount } from './ledger.types';
 
 type TReturnType = TAuditedEntity<
@@ -26,7 +25,7 @@ interface ISubAccountPayload {
   accountingEntityId: TEntityId;
   behavior: IDirectCostsAccount['behavior'];
   isControlAccount: boolean;
-  controlAccountCode: TDirectCostsLedgerCode;
+  controlAccount: ILedgerAccount;
 }
 
 export interface IDirectCostsAccountService {
@@ -34,8 +33,5 @@ export interface IDirectCostsAccountService {
     payload: IHeaderPayload,
     repoOptions: IRepoOptions
   ): Promise<TReturnType>;
-  createSubAccount(
-    payload: ISubAccountPayload,
-    repoOptions: IRepoOptions
-  ): Promise<TReturnType>;
+  createSubAccount(payload: ISubAccountPayload): TReturnType;
 }

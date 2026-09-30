@@ -6,6 +6,7 @@ import DomainError from './domain.error';
 type TErrorPrefix = TErrorKey<'repo_error'>;
 
 const EErrorKeys = {
+  TransactionRequired: 'repo_error_transaction_required_unexpected',
   VersionNotFound: 'repo_error_version_conflict',
   VersionRequired: 'repo_error_version_required_unexpected',
   VersionMismatch: 'repo_error_version_mismatch_unexpected',

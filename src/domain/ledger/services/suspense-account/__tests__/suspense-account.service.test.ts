@@ -4,6 +4,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeSuspenseAccountService from '@domain/ledger/services/suspense-account/suspense-account.service';
 import {
@@ -25,6 +26,7 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  findByCodeForUpdate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),
@@ -53,7 +55,9 @@ describe('suspenseAccountService', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-04-01T00:00:00.000Z'));
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    ledgerAccountRepo.findBySubType.mockResolvedValue([]);
+    ledgerAccountRepo.findLatestBySubType.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -173,5 +177,113 @@ describe('suspenseAccountService', () => {
 
   it('returns an immutable service', () => {
     expect(Object.isFrozen(service)).toBe(true);
+  });
+
+  describe.each([
+    ['asset', 'createAssetSuspense', '199000', '199999'],
+    ['liability', 'createLiabilitySuspense', '299000', '299999'],
+  ] as const)('%s uniqueness', (type, method, initial, last) => {
+    it.each(['active', 'archived', 'deleted'] as const)(
+      'rejects a matching nonlatest currency even when renamed or %s',
+      async (state) => {
+        const [existing] = await service[method](
+          { ...payload, name: 'Original' },
+          repoOptions
+        );
+        const [otherCurrency] = await service[method](
+          {
+            ...payload,
+            name: 'Other currency',
+            currency: SYSTEM_CURRENCIES.NGN,
+          },
+          repoOptions
+        );
+        ledgerAccountRepo.findBySubType.mockResolvedValue([
+          {
+            ...existing,
+            name: 'Renamed',
+            status: state === 'archived' ? 'archived' : 'active',
+            deletedAt: state === 'deleted' ? new Date() : null,
+          },
+          otherCurrency,
+        ]);
+        ledgerAccountRepo.findLatestBySubType.mockClear();
+        await expect(
+          service[method]({ ...payload, name: 'New name' }, repoOptions)
+        ).rejects.toBeInstanceOf(
+          ledgerAccountError.SuspenseAccountAlreadyExists
+        );
+        expect(ledgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
+        expect(ledgerAccountRepo.create).not.toHaveBeenCalled();
+      }
+    );
+
+    it('reads only this entity/type and propagates the transaction to both reads', async () => {
+      const options = { ...repoOptions, tx: {} };
+      const [otherCurrency] = await service[method](
+        {
+          ...payload,
+          name: 'Other currency',
+          currency: SYSTEM_CURRENCIES.NGN,
+        },
+        repoOptions
+      );
+      ledgerAccountRepo.findBySubType.mockResolvedValue([otherCurrency]);
+      ledgerAccountRepo.findLatestBySubType.mockResolvedValue(otherCurrency);
+      const [created] = await service[method](
+        { ...payload, name: 'USD account' },
+        options
+      );
+      expect(ledgerAccountRepo.findBySubType).toHaveBeenLastCalledWith(
+        accountingEntityId,
+        type,
+        'suspense',
+        options
+      );
+      expect(ledgerAccountRepo.findLatestBySubType).toHaveBeenLastCalledWith(
+        accountingEntityId,
+        type,
+        'suspense',
+        options
+      );
+      expect(created.code).toBe(String(Number(initial) + 1));
+      expect(created.currency?.code).toBe('USD');
+      expect(created.materializedPath).toBe(created.code);
+    });
+
+    it('does not mistake a legacy null currency for a matching currency', async () => {
+      const [existing] = await service[method](
+        { ...payload, name: 'Existing' },
+        repoOptions
+      );
+      ledgerAccountRepo.findBySubType.mockResolvedValue([
+        { ...existing, currency: null },
+      ]);
+      ledgerAccountRepo.findLatestBySubType.mockResolvedValue(existing);
+      await expect(
+        service[method]({ ...payload, name: 'USD account' }, repoOptions)
+      ).resolves.toBeDefined();
+    });
+
+    it('preserves code exhaustion without writes', async () => {
+      ledgerAccountRepo.findLatestBySubType.mockResolvedValue({
+        id: generateUUID(),
+        code: last,
+        materializedPath: last,
+      });
+      await expect(
+        service[method]({ ...payload, name: 'Exhausted' }, repoOptions)
+      ).rejects.toBeInstanceOf(ledgerAccountError.MaximumLimitReached);
+      expect(ledgerAccountRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('propagates repository failures without writes', async () => {
+      const failure = new Error('read failed');
+      ledgerAccountRepo.findBySubType.mockRejectedValueOnce(failure);
+      await expect(
+        service[method]({ ...payload, name: 'Suspense' }, repoOptions)
+      ).rejects.toBe(failure);
+      expect(ledgerAccountRepo.create).not.toHaveBeenCalled();
+    });
   });
 });
