@@ -1999,6 +1999,137 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  TSupportedRevenueAccountBehavior: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['services'] },
+        { dataType: 'enum', enums: ['employment_income'] },
+        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
+        { dataType: 'enum', enums: ['unrealized_gains'] },
+        { dataType: 'enum', enums: ['grants'] },
+        { dataType: 'enum', enums: ['gifts'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICreateRevenueAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountId: { dataType: 'string' },
+      behavior: { ref: 'TSupportedRevenueAccountBehavior', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  TSupportedExpenseAccountBehavior: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['default_direct_cost'] },
+        { dataType: 'enum', enums: ['cogs'] },
+        { dataType: 'enum', enums: ['cost_of_services'] },
+        { dataType: 'enum', enums: ['cost_of_revenue'] },
+        { dataType: 'enum', enums: ['rent_and_utilities'] },
+        { dataType: 'enum', enums: ['bank_charge'] },
+        { dataType: 'enum', enums: ['finance_cost'] },
+        { dataType: 'enum', enums: ['interest'] },
+        { dataType: 'enum', enums: ['tax_expense'] },
+        { dataType: 'enum', enums: ['unrealized_loss'] },
+        { dataType: 'enum', enums: ['asset_disposal_loss'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICreateExpenseAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountId: { dataType: 'string' },
+      behavior: { ref: 'TSupportedExpenseAccountBehavior', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICreateTradeReceivableAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountId: { dataType: 'string' },
+      currencyCode: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICreateStatutoryReceivableAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountId: { dataType: 'string' },
+      currencyCode: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICreateTradePayableAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountId: { dataType: 'string' },
+      meta: {
+        dataType: 'union',
+        subSchemas: [
+          {
+            dataType: 'nestedObjectLiteral',
+            nestedProperties: {
+              invoiceId: { dataType: 'string', required: true },
+              counterpartyId: { dataType: 'string', required: true },
+            },
+          },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IStatutoryPayableAccountMeta: {
+    dataType: 'refObject',
+    properties: {
+      taxAuthority: { dataType: 'string', required: true },
+      taxType: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICreateStatutoryPayableAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountId: { dataType: 'string' },
+      currencyCode: { dataType: 'string', required: true },
+      meta: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IStatutoryPayableAccountMeta' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UAccountingEntityType: {
     dataType: 'refAlias',
     type: {
@@ -3944,6 +4075,300 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'createBankAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createRevenueAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateRevenueAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/revenues',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createRevenueAccount
+    ),
+
+    async function AccountsController_createRevenueAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createRevenueAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createRevenueAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createExpenseAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateExpenseAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/expenses',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createExpenseAccount
+    ),
+
+    async function AccountsController_createExpenseAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createExpenseAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createExpenseAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createTradeReceivableAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateTradeReceivableAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/asset/receivables/trade',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createTradeReceivableAccount
+    ),
+
+    async function AccountsController_createTradeReceivableAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createTradeReceivableAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createTradeReceivableAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createStatutoryReceivableAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateStatutoryReceivableAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/asset/receivables/statutory',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createStatutoryReceivableAccount
+    ),
+
+    async function AccountsController_createStatutoryReceivableAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createStatutoryReceivableAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createStatutoryReceivableAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createTradePayableAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateTradePayableAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/liability/payables/trade',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createTradePayableAccount
+    ),
+
+    async function AccountsController_createTradePayableAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createTradePayableAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createTradePayableAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createStatutoryPayableAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateStatutoryPayableAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/liability/payables/statutory',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createStatutoryPayableAccount
+    ),
+
+    async function AccountsController_createStatutoryPayableAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createStatutoryPayableAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createStatutoryPayableAccount',
           controller,
           response,
           next,

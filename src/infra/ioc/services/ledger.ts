@@ -24,7 +24,6 @@ import makeLedgerAccountBalanceEnrichmentService from '@app/ledger/services/ledg
 import makeLedgerAccountPersistenceService from '@app/ledger/services/ledger-account-persistence.service';
 import makeLedgerBalancePropagationPreparationService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
 import makeLedgerCodeAssignmentAppService from '@app/ledger/services/ledger-code-assignment.service';
-import makePostingAccountBootstrapService from '@app/ledger/services/posting-account-bootstrap.service';
 import makeSuspenseAccountBootstrapService from '@app/ledger/services/suspense-account-bootstrap.service';
 
 import observability from '@infra/observability';
@@ -125,28 +124,6 @@ export const ledgerAccountPersistenceService =
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerCodeAssignmentAppService,
     repoService,
-  });
-
-export const postingAccountBootstrapService =
-  makePostingAccountBootstrapService({
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    ledgerAccountPersistenceService,
-    receivablesAccountService,
-    payablesAccountService,
-    servicesAccountService,
-    employmentIncomeAccountService,
-    gainOnAssetSaleAccountService,
-    unrealizedGainAccountService,
-    grantsAccountService,
-    giftsAccountService,
-    directCostsAccountService,
-    rentAndUtilitiesAccountService,
-    bankChargeAccountService,
-    financeCostAccountService,
-    interestAccountService,
-    taxExpenseAccountService,
-    unrealizedLossAccountService,
-    assetDisposalLossAccountService,
   });
 
 export const suspenseAccountBootstrapService =

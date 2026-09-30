@@ -2641,6 +2641,186 @@
         "type": "object",
         "additionalProperties": false
       },
+      "TSupportedRevenueAccountBehavior": {
+        "type": "string",
+        "enum": [
+          "services",
+          "employment_income",
+          "gain_on_asset_sale",
+          "unrealized_gains",
+          "grants",
+          "gifts"
+        ]
+      },
+      "ICreateRevenueAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "behavior": {
+            "$ref": "#/components/schemas/TSupportedRevenueAccountBehavior"
+          }
+        },
+        "required": ["name", "isControlAccount", "behavior"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "TSupportedExpenseAccountBehavior": {
+        "type": "string",
+        "enum": [
+          "default_direct_cost",
+          "cogs",
+          "cost_of_services",
+          "cost_of_revenue",
+          "rent_and_utilities",
+          "bank_charge",
+          "finance_cost",
+          "interest",
+          "tax_expense",
+          "unrealized_loss",
+          "asset_disposal_loss"
+        ]
+      },
+      "ICreateExpenseAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "behavior": {
+            "$ref": "#/components/schemas/TSupportedExpenseAccountBehavior"
+          }
+        },
+        "required": ["name", "isControlAccount", "behavior"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateTradeReceivableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "isControlAccount", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateStatutoryReceivableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "isControlAccount", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateTradePayableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "meta": {
+            "properties": {
+              "invoiceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "counterpartyId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": ["invoiceId", "counterpartyId"],
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": ["name", "isControlAccount"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IStatutoryPayableAccountMeta": {
+        "properties": {
+          "taxAuthority": {
+            "type": "string"
+          },
+          "taxType": {
+            "type": "string"
+          }
+        },
+        "required": ["taxAuthority", "taxType"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateStatutoryPayableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "meta": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IStatutoryPayableAccountMeta"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": ["name", "isControlAccount", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "UAccountingEntityType": {
         "type": "string",
         "enum": ["individual", "sole_trader", "private_company"]
@@ -5710,6 +5890,552 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IBankAccountCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/revenues": {
+      "post": {
+        "operationId": "createRevenueAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create one revenue account with an initial zero balance.",
+        "tags": ["Revenue Accounts", "Accounts"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateRevenueAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/expenses": {
+      "post": {
+        "operationId": "createExpenseAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create one expense account with an initial zero balance.",
+        "tags": ["Expense Accounts", "Accounts"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateExpenseAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/asset/receivables/trade": {
+      "post": {
+        "operationId": "createTradeReceivableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create one trade receivable account with an initial zero balance.",
+        "tags": ["Asset Accounts", "Accounts"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateTradeReceivableAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/asset/receivables/statutory": {
+      "post": {
+        "operationId": "createStatutoryReceivableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create one statutory receivable account with an initial zero balance.",
+        "tags": ["Asset Accounts", "Accounts"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateStatutoryReceivableAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/liability/payables/trade": {
+      "post": {
+        "operationId": "createTradePayableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create one trade payable account with an initial zero balance.",
+        "tags": ["Liability Accounts", "Accounts"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateTradePayableAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/liability/payables/statutory": {
+      "post": {
+        "operationId": "createStatutoryPayableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create one statutory payable account with an initial zero balance.",
+        "tags": ["Liability Accounts", "Accounts"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateStatutoryPayableAccountDto"
               }
             }
           }

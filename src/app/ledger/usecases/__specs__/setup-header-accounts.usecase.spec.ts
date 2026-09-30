@@ -64,6 +64,12 @@ import {
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
 import makeLedgerAccountPersistenceService from '@app/ledger/services/ledger-account-persistence.service';
 import makeLedgerCodeAssignmentAppService from '@app/ledger/services/ledger-code-assignment.service';
+import makeCreateExpenseAccountUsecase from '@app/ledger/usecases/create-expense-account.usecase';
+import makeCreateRevenueAccountUsecase from '@app/ledger/usecases/create-revenue-account.usecase';
+import makeCreateStatutoryPayableAccountUsecase from '@app/ledger/usecases/create-statutory-payable-account.usecase';
+import makeCreateStatutoryReceivableAccountUsecase from '@app/ledger/usecases/create-statutory-receivable-account.usecase';
+import makeCreateTradePayableAccountUsecase from '@app/ledger/usecases/create-trade-payable-account.usecase';
+import makeCreateTradeReceivableAccountUsecase from '@app/ledger/usecases/create-trade-receivable-account.usecase';
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
 
@@ -833,5 +839,191 @@ describe('setupHeaderAccountsUsecase', () => {
     );
     expect(storedAccounts).toHaveLength(24);
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+    mockServicesAccountService.createSubAccount.mockImplementation(
+      makeServicesAccountService({ ledgerAccountRepo: mockLedgerAccountRepo })
+        .createSubAccount
+    );
+    mockEmploymentIncomeAccountService.createSubAccount.mockImplementation(
+      makeEmploymentIncomeAccountService({
+        ledgerAccountRepo: mockLedgerAccountRepo,
+      }).createSubAccount
+    );
+    mockGainOnAssetSaleAccountService.createSubAccount.mockImplementation(
+      makeGainOnAssetSaleAccountService({
+        ledgerAccountRepo: mockLedgerAccountRepo,
+      }).createSubAccount
+    );
+    mockUnrealizedGainAccountService.createSubAccount.mockImplementation(
+      makeUnrealizedGainAccountService({
+        ledgerAccountRepo: mockLedgerAccountRepo,
+      }).createSubAccount
+    );
+    mockGrantsAccountService.createSubAccount.mockImplementation(
+      makeGrantsAccountService({ ledgerAccountRepo: mockLedgerAccountRepo })
+        .createSubAccount
+    );
+    mockGiftsAccountService.createSubAccount.mockImplementation(
+      makeGiftsAccountService({ ledgerAccountRepo: mockLedgerAccountRepo })
+        .createSubAccount
+    );
+    mockDirectCostsAccountService.createSubAccount.mockImplementation(
+      makeDirectCostsAccountService({
+        ledgerAccountRepo: mockLedgerAccountRepo,
+      }).createSubAccount
+    );
+    mockRentAndUtilitiesAccountService.createSubAccount.mockImplementation(
+      makeRentAndUtilitiesAccountService({
+        ledgerAccountRepo: mockLedgerAccountRepo,
+      }).createSubAccount
+    );
+    mockBankChargeAccountService.createSubAccount.mockImplementation(
+      makeBankChargeAccountService({ ledgerAccountRepo: mockLedgerAccountRepo })
+        .createSubAccount
+    );
+    mockFinanceCostAccountService.createSubAccount.mockImplementation(
+      makeFinanceCostAccountService({
+        ledgerAccountRepo: mockLedgerAccountRepo,
+      }).createSubAccount
+    );
+    mockInterestAccountService.createSubAccount.mockImplementation(
+      makeInterestAccountService({ ledgerAccountRepo: mockLedgerAccountRepo })
+        .createSubAccount
+    );
+    mockTaxExpenseAccountService.createSubAccount.mockImplementation(
+      makeTaxExpenseAccountService({ ledgerAccountRepo: mockLedgerAccountRepo })
+        .createSubAccount
+    );
+    mockUnrealizedLossAccountService.createSubAccount.mockImplementation(
+      makeUnrealizedLossAccountService({
+        ledgerAccountRepo: mockLedgerAccountRepo,
+      }).createSubAccount
+    );
+    mockAssetDisposalLossAccountService.createSubAccount.mockImplementation(
+      makeAssetDisposalService({ ledgerAccountRepo: mockLedgerAccountRepo })
+        .createSubAccount
+    );
+    const postingDependencies = {
+      ...dependencies,
+      ledgerAccountRepo: mockLedgerAccountRepo,
+      ledgerAccountPersistenceService: persistence,
+    };
+    const createRevenue = makeCreateRevenueAccountUsecase(postingDependencies);
+    const createExpense = makeCreateExpenseAccountUsecase(postingDependencies);
+    const createTradeReceivable =
+      makeCreateTradeReceivableAccountUsecase(postingDependencies);
+    const createStatutoryReceivable =
+      makeCreateStatutoryReceivableAccountUsecase(postingDependencies);
+    const createTradePayable =
+      makeCreateTradePayableAccountUsecase(postingDependencies);
+    const createStatutoryPayable =
+      makeCreateStatutoryPayableAccountUsecase(postingDependencies);
+    const postingRequests = [
+      ...recommendations.revenue.map((definition) => ({
+        definition,
+        create: () =>
+          createRevenue({
+            name: definition.name,
+            isControlAccount: false,
+            behavior: definition.behavior as Parameters<
+              typeof createRevenue
+            >[0]['behavior'],
+          }),
+      })),
+      ...recommendations.expense.map((definition) => ({
+        definition,
+        create: () =>
+          createExpense({
+            name: definition.name,
+            isControlAccount: false,
+            behavior: definition.behavior as Parameters<
+              typeof createExpense
+            >[0]['behavior'],
+          }),
+      })),
+      ...recommendations.receivables.map((definition) => ({
+        definition,
+        create: () =>
+          createStatutoryReceivable({
+            name: definition.name,
+            isControlAccount: false,
+            currencyCode: 'NGN',
+          }),
+      })),
+      ...recommendations.payables.map((definition) => ({
+        definition,
+        create: () =>
+          createStatutoryPayable({
+            name: definition.name,
+            isControlAccount: false,
+            currencyCode: 'NGN',
+          }),
+      })),
+      {
+        definition: {
+          name: 'Custom trade receivable',
+          behavior: 'trade_receivable',
+          subType: 'receivables',
+          controlAccountCode: '102001',
+        },
+        create: () =>
+          createTradeReceivable({
+            name: 'Custom trade receivable',
+            isControlAccount: false,
+            currencyCode: 'NGN',
+          }),
+      },
+      {
+        definition: {
+          name: 'Custom trade payable',
+          behavior: 'trade_payable',
+          subType: 'payable',
+          controlAccountCode: '201001',
+        },
+        create: () =>
+          createTradePayable({
+            name: 'Custom trade payable',
+            isControlAccount: false,
+          }),
+      },
+    ];
+    for (const request of postingRequests) {
+      committed = false;
+      mockEventBus.publish.mockClear();
+      const created = await request.create();
+      const parent = storedAccounts.find(
+        (account) => account.code === request.definition.controlAccountCode
+      );
+      expect(parent).toBeDefined();
+      expect(created).toMatchObject({
+        name: request.definition.name,
+        behavior: request.definition.behavior,
+        subType: request.definition.subType,
+        controlAccountId: parent?.id,
+        balance: { amount: 0, currencyCode: 'NGN' },
+        functionalBalance: { amount: 0, currencyCode: 'NGN' },
+      });
+      const stored = storedAccounts.find(
+        (account) => account.id === created.id
+      );
+      const isMonetary =
+        created.type === 'asset' || created.behavior === 'tax_payable';
+      expect(stored?.currency?.code ?? null).toBe(isMonetary ? 'NGN' : null);
+      expect(stored?.code).toBe(created.code);
+      expect(
+        storedBalances.find((balance) => balance.ledgerAccountId === created.id)
+      ).toMatchObject({ accountMaterializedPath: created.materializedPath });
+      const histories = storedHistories.filter(
+        (history) => history.entityId === created.id
+      );
+      expect(histories).toHaveLength(2);
+      expect(histories[1].diff.after).toEqual(
+        JSON.parse(JSON.stringify(stored))
+      );
+      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+      expect(mockEventBus.publish.mock.calls[0][0]).toHaveLength(2);
+    }
+    expect(storedAccounts).toHaveLength(42);
+    expect(storedBalances).toHaveLength(42);
+    expect(storedHistories).toHaveLength(64);
   });
 });
