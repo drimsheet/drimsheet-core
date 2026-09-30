@@ -139,6 +139,34 @@ describe('POST /counterparties', () => {
       .send(payload);
 
   describe('201 Response', () => {
+    it('creates a draft with only name and type business fields', async () => {
+      mockCreateCounterparty.mockImplementationOnce(
+        makeCreateCounterpartyUsecase({
+          appContext,
+          counterpartyService: makeCounterpartyService(),
+          counterpartyRepo: mockCounterpartyRepo,
+          eventBus: mockEventBus,
+        })
+      );
+      const response = await makeRequest({
+        name: 'Draft supplier',
+        type: 'organization',
+        status: 'draft',
+      });
+      expect(response.status).toBe(201);
+      expect(response.body).toMatchObject({
+        name: 'Draft supplier',
+        type: 'organization',
+        status: 'draft',
+        roles: [],
+        meta: {},
+      });
+      expect(mockCounterpartyRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'draft' }),
+        expect.any(Object)
+      );
+    });
+
     it('attributes the persisted counterparty and history to the HTTP context actor', async () => {
       mockCreateCounterparty.mockImplementationOnce(
         makeCreateCounterpartyUsecase({

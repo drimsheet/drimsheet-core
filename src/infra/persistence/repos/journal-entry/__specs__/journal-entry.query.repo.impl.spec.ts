@@ -140,7 +140,7 @@ describe('journalEntryQueryRepo', () => {
               columns: { id: true, name: true },
             },
             counterpartiesInCore: {
-              columns: { id: true, name: true },
+              columns: { id: true, name: true, status: true },
             },
           },
         },
@@ -244,7 +244,7 @@ describe('journalEntryQueryRepo', () => {
               columns: { id: true, name: true },
             },
             counterpartiesInCore: {
-              columns: { id: true, name: true },
+              columns: { id: true, name: true, status: true },
             },
           },
         },

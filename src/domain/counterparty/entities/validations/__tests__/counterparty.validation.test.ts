@@ -69,6 +69,38 @@ describe('counterpartyValidation', () => {
     });
   });
 
+  describe('validateDraftCreationType', () => {
+    it('rejects an omitted type for draft creation', () => {
+      expect(() =>
+        counterpartyValidation.validateDraftCreationType(
+          ECounterpartyStatus.Draft,
+          undefined
+        )
+      ).toThrow(counterpartyError.InvalidType);
+    });
+
+    it.each([ECounterpartyType.Individual, ECounterpartyType.Organization])(
+      'accepts explicit draft type %s',
+      (type) => {
+        expect(() =>
+          counterpartyValidation.validateDraftCreationType(
+            ECounterpartyStatus.Draft,
+            type
+          )
+        ).not.toThrow();
+      }
+    );
+
+    it.each([ECounterpartyStatus.Active, ECounterpartyStatus.Archived])(
+      'does not apply the draft requirement to %s creation',
+      (status) => {
+        expect(() =>
+          counterpartyValidation.validateDraftCreationType(status, undefined)
+        ).not.toThrow();
+      }
+    );
+  });
+
   describe('validateStatus', () => {
     it('should pass for valid status', () => {
       expect(

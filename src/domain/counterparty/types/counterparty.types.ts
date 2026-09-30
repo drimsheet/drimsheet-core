@@ -4,6 +4,7 @@ import { IAddress } from '@shared/values/contact-details/types/address.types';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 export const ECounterpartyStatus = {
+  Draft: 'draft',
   Active: 'active',
   Archived: 'archived',
 } as const;

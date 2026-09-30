@@ -1,6 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 
+import { ECounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalEntryRuleValidator from '@domain/journal-entry/rules/entry-rule.validator';
 import transferEntryRule, {
@@ -128,6 +129,20 @@ function validateCounterparties(
   if (invalidCounterparties.length) {
     throw new journalEntryError.InvalidCounterpartyId({
       invalidCounterparties,
+    });
+  }
+
+  if (header.postedAt === null) return;
+
+  const draftCounterparties = Array.from(allCounterparties).filter(
+    (counterparty) => counterparty.status === ECounterpartyStatus.Draft
+  );
+  if (draftCounterparties.length) {
+    throw new journalEntryError.DraftCounterpartyNotAllowed({
+      counterparties: draftCounterparties.map((counterparty) => ({
+        id: counterparty.id,
+        name: counterparty.name,
+      })),
     });
   }
 }

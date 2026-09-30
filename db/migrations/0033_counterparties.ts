@@ -11,8 +11,8 @@ import toSchemaString from '../utils/to-schema-string';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
-  pgm.createType(counterpartyStatus, ['active', 'archived']);
+export function up(pgm: MigrationBuilder) {
+  pgm.createType(counterpartyStatus, ['active', 'archived', 'draft']);
   pgm.createType(counterpartyType, ['individual', 'organization']);
 
   pgm.createTable(counterpartiesTable, {
@@ -88,7 +88,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   });
 }
 
-export async function down(pgm: MigrationBuilder): Promise<void> {
+export function down(pgm: MigrationBuilder) {
   pgm.dropTable(counterpartiesTable);
   pgm.dropType(counterpartyType);
   pgm.dropType(counterpartyStatus);

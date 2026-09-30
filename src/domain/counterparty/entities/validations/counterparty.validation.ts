@@ -39,6 +39,16 @@ function validateType(type: UCounterpartyType): UCounterpartyType {
   return type;
 }
 
+/** Rejects draft creation when the caller has not supplied a type. */
+function validateDraftCreationType(
+  status: UCounterpartyStatus,
+  type: UCounterpartyType | undefined
+): void {
+  const isMissingDraftType =
+    status === ECounterpartyStatus.Draft && type === undefined;
+  if (isMissingDraftType) throw new counterpartyError.InvalidType();
+}
+
 function validateStatus(status: UCounterpartyStatus): UCounterpartyStatus {
   stringUtils.validateIsInEnum(
     status,
@@ -95,6 +105,7 @@ const counterpartyValidation = Object.freeze({
   validateAccountingEntityId,
   validateName,
   validateType,
+  validateDraftCreationType,
   validateStatus,
   validateRole,
   validateCounterparty,

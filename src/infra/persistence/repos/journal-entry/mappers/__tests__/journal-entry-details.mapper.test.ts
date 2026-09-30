@@ -70,6 +70,7 @@ describe('Journal Entry Details Mapper', () => {
           updatedAt,
           ledgerAccountsInCore: { id: accountId, name: 'Cash' },
           counterpartiesInCore: {
+            status: 'active',
             id: counterpartyId,
             name: 'Acme Ltd',
           },
@@ -101,7 +102,11 @@ describe('Journal Entry Details Mapper', () => {
           accountId,
           counterpartyId,
           account: { id: accountId, name: 'Cash' },
-          counterparty: { id: counterpartyId, name: 'Acme Ltd' },
+          counterparty: {
+            status: 'active' as const,
+            id: counterpartyId,
+            name: 'Acme Ltd',
+          },
           amount: {
             amount: 50_00n,
             currency: expect.objectContaining({ code: 'NGN' }),
@@ -130,5 +135,12 @@ describe('Journal Entry Details Mapper', () => {
         },
       ],
     });
+  });
+  it('maps the current draft counterparty status without changing the journal status', () => {
+    const model = makeModel();
+    model.journalLinesInCores[0].counterpartiesInCore!.status = 'draft';
+    const entry = journalEntryDetailsMapper.toDetails(model);
+    expect(entry.lines[0].counterparty?.status).toBe('draft');
+    expect(entry.status).toBe(model.status);
   });
 });

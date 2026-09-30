@@ -215,6 +215,7 @@
   "journal_entry_error_counterparty_id_not_allowed_invalid",
   "journal_entry_error_created_by_invalid",
   "journal_entry_error_deletion_not_permitted_invalid",
+  "journal_entry_error_draft_counterparty_not_allowed_invalid",
   "journal_entry_error_duplicate_sequence_orders_invalid",
   "journal_entry_error_effective_date_invalid",
   "journal_entry_error_empty_journal_lines_invalid",

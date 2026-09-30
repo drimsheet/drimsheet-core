@@ -433,6 +433,7 @@ describe('makeCreateTransferUsecase', () => {
       [payload.chargeLines[0].counterparty],
       accountingEntity.id,
       'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      'active',
       { correlationId, idempotencyKey }
     );
     expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
@@ -582,6 +583,9 @@ describe('makeCreateTransferUsecase', () => {
       mockFxLotCostBasisService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+    expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
+      'draft'
+    );
   });
 
   it('maps source and destination exchange rates', async () => {

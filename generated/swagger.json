@@ -1000,6 +1000,10 @@
         "type": "object",
         "additionalProperties": false
       },
+      "UCounterpartyStatus": {
+        "type": "string",
+        "enum": ["active", "archived", "draft"]
+      },
       "IJournalLineListDto": {
         "properties": {
           "id": {
@@ -1022,6 +1026,9 @@
           },
           "counterparty": {
             "properties": {
+              "status": {
+                "$ref": "#/components/schemas/UCounterpartyStatus"
+              },
               "name": {
                 "type": "string"
               },
@@ -1029,7 +1036,7 @@
                 "type": "string"
               }
             },
-            "required": ["name", "id"],
+            "required": ["status", "name", "id"],
             "type": "object",
             "nullable": true
           },
@@ -2167,10 +2174,6 @@
         "required": ["currencyPair"],
         "type": "object",
         "additionalProperties": false
-      },
-      "UCounterpartyStatus": {
-        "type": "string",
-        "enum": ["active", "archived"]
       },
       "UCounterpartyRole": {
         "type": "string",

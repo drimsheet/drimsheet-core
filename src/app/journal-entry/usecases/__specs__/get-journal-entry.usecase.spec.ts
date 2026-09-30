@@ -60,7 +60,11 @@ describe('makeGetJournalEntryUsecase', () => {
         ...journalEntry.lines[0],
         counterpartyId,
         account: { id: accountId, name: 'Cash' },
-        counterparty: { id: counterpartyId, name: 'Acme Ltd' },
+        counterparty: {
+          status: 'active' as const,
+          id: counterpartyId,
+          name: 'Acme Ltd',
+        },
       },
       {
         ...journalEntry.lines[1],

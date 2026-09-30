@@ -87,6 +87,7 @@ const journalEntryDtoMapper = {
           ? {
               id: line.counterparty.id,
               name: line.counterparty.name,
+              status: line.counterparty.status,
             }
           : null,
         sequenceOrder: line.sequenceOrder,

@@ -322,6 +322,7 @@ describe('makeCreateReceiptUsecase', () => {
       ]),
       accountingEntity.id,
       'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      'active',
       repoOptions
     );
 
@@ -804,6 +805,9 @@ describe('makeCreateReceiptUsecase', () => {
     expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
     expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
+      'draft'
+    );
   });
 
   it('rejects on validation failure and prevents side-effects', async () => {

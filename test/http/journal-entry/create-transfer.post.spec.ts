@@ -5,6 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { IUser } from '@domain/user/types/user.types';
 
 import authError from '@app/auth/errors/auth.error';
@@ -234,6 +235,17 @@ describe('POST /journal-entries/transfer', () => {
   });
 
   describe('400 Response', () => {
+    it('returns the dedicated draft-counterparty posting error', async () => {
+      mockCreateTransferUseCase.mockRejectedValueOnce(
+        new journalEntryError.DraftCounterpartyNotAllowed()
+      );
+      const response = await makeRequest();
+      expect(response.status).toBe(400);
+      expect(response.body.errorKey).toBe(
+        'journal_entry_error_draft_counterparty_not_allowed_invalid'
+      );
+    });
+
     it('rejects an invalid accounting entity ID format', async () => {
       const response = await request(app)
         .post(ENDPOINT)

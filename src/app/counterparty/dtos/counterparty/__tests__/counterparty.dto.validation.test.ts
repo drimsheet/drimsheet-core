@@ -19,12 +19,30 @@ describe('Counterparty DTO validation', () => {
   };
 
   describe('counterpartyCreateReqValidation', () => {
-    it.each(['active', 'archived'])('accepts creation status %s', (status) => {
+    it.each([
+      { name: undefined },
+      { name: ' ' },
+      { type: undefined },
+      { type: 'vendor' },
+    ])('rejects incomplete draft input %j', (fields) => {
       expect(
-        counterpartyCreateReqValidation.safeParse({ ...validPayload, status })
-          .success
-      ).toBe(true);
+        counterpartyCreateReqValidation.safeParse({
+          ...validPayload,
+          status: 'draft',
+          ...fields,
+        }).success
+      ).toBe(false);
     });
+
+    it.each(['draft', 'active', 'archived'])(
+      'accepts creation status %s',
+      (status) => {
+        expect(
+          counterpartyCreateReqValidation.safeParse({ ...validPayload, status })
+            .success
+        ).toBe(true);
+      }
+    );
     it.each(['individual', 'organization'])(
       'accepts creation type %s',
       (type) => {

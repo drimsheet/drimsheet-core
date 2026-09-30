@@ -6,7 +6,10 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
 
-import { counterpartyNameValidation } from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
+import {
+  counterpartyNameValidation,
+  counterpartyTypeValidation,
+} from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
 import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
 
 const invalidEntryIdKey = new journalLineError.InvalidHeaderyEntryId().errorKey;
@@ -21,6 +24,7 @@ const counterpartyLineValidation = rectificationLineValidation.extend({
   counterparty: z.object({
     id: z.uuid(invalidCounterpartyIdKey).optional(),
     name: counterpartyNameValidation,
+    type: counterpartyTypeValidation.optional(),
   }),
 });
 
