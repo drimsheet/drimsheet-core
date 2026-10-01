@@ -3,6 +3,7 @@ import {
   IRepoService,
   TRepoTransactionFn,
 } from '@shared/contracts/repo.contract';
+import { ERepoLock } from '@shared/types/repo.types';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
@@ -57,9 +58,9 @@ export default function makeCreateSuspenseAccountUsecase(
       // Lock before invariant reads: first creation has no suspense row to lock.
       // Read-committed waiters must see the preceding account before choosing a code.
       const transactionOptions = { ...repoOptions, tx };
-      const lockedEntity = await deps.accountingEntityRepo.findByIdForUpdate(
+      const lockedEntity = await deps.accountingEntityRepo.findById(
         accountingEntity.id,
-        transactionOptions
+        { ...transactionOptions, lock: ERepoLock.Update }
       );
       if (!lockedEntity) throw new accountingAppError.ActiveEntityNotFound();
 

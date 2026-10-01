@@ -1,3 +1,5 @@
+import { ERepoLock } from '@shared/types/repo.types';
+
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -21,10 +23,10 @@ function makeAssign(
       throw new ledgerAppError.AssignmentTransactionRequired();
 
     const { account } = payload;
-    const header = await deps.ledgerAccountRepo.findByCodeForUpdate(
+    const header = await deps.ledgerAccountRepo.findByCode(
       payload.allocationHeaderCode,
       account.accountingEntityId,
-      repoOptions
+      { ...repoOptions, lock: ERepoLock.Update }
     );
     if (!header) {
       throw new ledgerAccountError.ControlAccountNotFound({

@@ -1,6 +1,6 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
+import { ERepoLock, ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 
@@ -717,21 +717,17 @@ describe('setupHeaderAccountsUsecase', () => {
       }
     );
     mockLedgerAccountRepo.findByCode.mockImplementation(
-      async (code, entityId) =>
-        storedAccounts.find(
-          (account) =>
-            account.code === code && account.accountingEntityId === entityId
-        ) ?? null
-    );
-    mockLedgerAccountRepo.findByCodeForUpdate.mockImplementation(
       async (code, entityId, options) => {
-        expect(options.tx).toBe(tx);
-        const header = storedAccounts.find(
+        const account = storedAccounts.find(
           (account) =>
             account.code === code && account.accountingEntityId === entityId
         );
-        expect(header).toBeDefined();
-        return header ?? null;
+        if (options.lock) {
+          expect(options.lock).toBe(ERepoLock.Update);
+          expect(options.tx).toBe(tx);
+          expect(account).toBeDefined();
+        }
+        return account ?? null;
       }
     );
     mockLedgerAccountRepo.findLatestBySubType.mockImplementation(

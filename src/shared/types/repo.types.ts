@@ -10,7 +10,19 @@ export interface IRepoOptions extends ICorrelationId {
   tx?: ITransactionContext;
 }
 
-export type IReadRepoOptions = IRepoOptions;
+export const ERepoLock = Object.freeze({
+  Update: 'update',
+  NoKeyUpdate: 'no key update',
+  Share: 'share',
+  KeyShare: 'key share',
+} as const);
+
+export type URepoLock = (typeof ERepoLock)[keyof typeof ERepoLock];
+
+export interface IReadRepoOptions extends IRepoOptions {
+  /** Lock mode for supported reads. Requires a caller-owned transaction. */
+  lock?: URepoLock;
+}
 
 export interface IPaginatedReadRepoOptions
   extends IReadRepoOptions, IPaginationParams {}

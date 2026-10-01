@@ -11,7 +11,7 @@ import bankAccountMapper from '@infra/persistence/repos/ledger/mappers/bank-acco
 
 const bankAccountRepoImpl: IBankAccountRepo = {
   findOne: async (bankName, accountNumber, options) => {
-    const [result] = await getDbQuery((options ?? {}) as IRepoOptions)
+    const baseQuery = getDbQuery((options ?? {}) as IRepoOptions)
       .select()
       .from(bankDetailsInCore)
       .where(
@@ -20,15 +20,19 @@ const bankAccountRepoImpl: IBankAccountRepo = {
           eq(bankDetailsInCore.accountNumber, accountNumber)
         )
       );
+    const query = options?.lock ? baseQuery.for(options.lock) : baseQuery;
+    const [result] = await query;
 
     return result ? bankAccountMapper.toDomain(result) : null;
   },
 
   findByLedgerAccountId: async (ledgerAccountId, options) => {
-    const [result] = await getDbQuery((options ?? {}) as IRepoOptions)
+    const baseQuery = getDbQuery((options ?? {}) as IRepoOptions)
       .select()
       .from(bankDetailsInCore)
       .where(eq(bankDetailsInCore.ledgerAccountId, ledgerAccountId));
+    const query = options?.lock ? baseQuery.for(options.lock) : baseQuery;
+    const [result] = await query;
 
     return result ? bankAccountMapper.toDomain(result) : null;
   },

@@ -1,4 +1,4 @@
-import { ITransactionContext } from '@shared/types/repo.types';
+import { ERepoLock, ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
@@ -56,7 +56,7 @@ describe('ledgerCodeAssignmentAppService', () => {
       isControlAccount: false,
       controlAccountId: header.id,
     });
-    mockLedgerAccountRepo.findByCodeForUpdate.mockResolvedValue(header);
+    mockLedgerAccountRepo.findByCode.mockResolvedValue(header);
     mockLedgerAccountRepo.findLatestBySubType.mockResolvedValue({
       id: header.id,
       code: '100008',
@@ -73,7 +73,7 @@ describe('ledgerCodeAssignmentAppService', () => {
           new Date('2026-01-01T00:00:00Z')
         );
       }
-      mockLedgerAccountRepo.findByCodeForUpdate.mockResolvedValue(header);
+      mockLedgerAccountRepo.findByCode.mockResolvedValue(header);
       const [account, events, audit] = await service.assign(
         payload(),
         repoOptions
@@ -94,10 +94,10 @@ describe('ledgerCodeAssignmentAppService', () => {
         },
       });
       expect(auditedAccount[0].code).toBe('100001');
-      expect(mockLedgerAccountRepo.findByCodeForUpdate).toHaveBeenCalledWith(
+      expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
         '100000',
         account.accountingEntityId,
-        repoOptions
+        { ...repoOptions, lock: ERepoLock.Update }
       );
       expect(mockLedgerAccountRepo.findLatestBySubType).toHaveBeenCalledWith(
         account.accountingEntityId,
@@ -112,7 +112,7 @@ describe('ledgerCodeAssignmentAppService', () => {
 
   it('waits for the header lock before reading the latest code', async () => {
     let releaseLock!: (account: typeof header) => void;
-    mockLedgerAccountRepo.findByCodeForUpdate.mockReturnValueOnce(
+    mockLedgerAccountRepo.findByCode.mockReturnValueOnce(
       new Promise((resolve) => {
         releaseLock = resolve;
       })
@@ -147,9 +147,7 @@ describe('ledgerCodeAssignmentAppService', () => {
     expect(
       (await service.assign(payload(), repoOptions))[0].materializedPath
     ).toBe('100000.100003.100009');
-    expect(mockLedgerAccountRepo.findByCodeForUpdate.mock.calls[0][0]).toBe(
-      '100000'
-    );
+    expect(mockLedgerAccountRepo.findByCode.mock.calls[0][0]).toBe('100000');
   });
 
   it('requires an existing transaction before any read', async () => {
@@ -157,11 +155,11 @@ describe('ledgerCodeAssignmentAppService', () => {
       // @ts-expect-error Exercise the runtime guard for an untyped caller.
       service.assign(payload(), { correlationId: 'spec' })
     ).rejects.toBeInstanceOf(ledgerAppError.AssignmentTransactionRequired);
-    expect(mockLedgerAccountRepo.findByCodeForUpdate).not.toHaveBeenCalled();
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
   });
 
   it('rejects a missing allocation header', async () => {
-    mockLedgerAccountRepo.findByCodeForUpdate.mockResolvedValueOnce(null);
+    mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
     await expect(service.assign(payload(), repoOptions)).rejects.toBeInstanceOf(
       ledgerAccountError.ControlAccountNotFound
     );
@@ -180,7 +178,7 @@ describe('ledgerCodeAssignmentAppService', () => {
     );
   });
 
-  it.each(['findByCodeForUpdate', 'findLatestBySubType'] as const)(
+  it.each(['findByCode', 'findLatestBySubType'] as const)(
     'propagates %s failures',
     async (method) => {
       const failure = new Error('database unavailable');
