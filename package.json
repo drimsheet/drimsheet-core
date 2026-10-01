@@ -8,6 +8,7 @@
   "scripts": {
     "pretest": "npm run test:types",
     "test": "jest",
+    "test:lint-rules": "node --test scripts/__specs__/eslint-rules.spec.mjs",
     "test:types": "tsc -p tsconfig.test.json --noEmit",
     "pretest:http:coverage": "npm run test:types",
     "test:http:coverage": "jest test/http --coverage --runInBand --collectCoverageFrom='src/interface/http/controllers/**/*.ts' --coverageThreshold='{\"src/interface/http/controllers/**/*.ts\":{\"branches\":100,\"functions\":100,\"lines\":100,\"statements\":100}}'",

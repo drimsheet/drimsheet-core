@@ -68,6 +68,91 @@ const layerImportPaths = {
   },
 };
 
+// Deliberately syntax-based: recognize createTransaction by name and require one
+// auditable ownership pattern rather than attempting general resource analysis.
+const requireTransactionDisposal = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description:
+        'Require manual transactions to be disposed in an adjacent try/finally.',
+    },
+    messages: {
+      declaration:
+        'Assign awaited createTransaction() to a single const identifier.',
+      cleanup:
+        'Immediately follow transaction creation with try/finally whose first finally statement awaits disposal of the same transaction.',
+    },
+    schema: [],
+  },
+  create(context) {
+    const sourceCode = context.sourceCode;
+    const callName = (callee) => {
+      if (callee.type === 'Identifier') return callee.name;
+      if (callee.type !== 'MemberExpression') return undefined;
+      return callee.computed ? callee.property.value : callee.property.name;
+    };
+
+    return {
+      CallExpression(node) {
+        if (callName(node.callee) !== 'createTransaction') return;
+
+        const awaited = node.parent;
+        const declarator = awaited.parent;
+        const declaration = declarator?.parent;
+        const isOwnedTransaction =
+          awaited.type === 'AwaitExpression' &&
+          declarator.type === 'VariableDeclarator' &&
+          declarator.init === awaited &&
+          declarator.id.type === 'Identifier' &&
+          declaration.type === 'VariableDeclaration' &&
+          declaration.kind === 'const' &&
+          declaration.declarations.length === 1;
+
+        if (!isOwnedTransaction) {
+          context.report({ node, messageId: 'declaration' });
+          return;
+        }
+
+        const statements = declaration.parent.body;
+        const next = Array.isArray(statements)
+          ? statements[statements.indexOf(declaration) + 1]
+          : undefined;
+        const cleanup =
+          next?.type === 'TryStatement' ? next.finalizer?.body[0] : undefined;
+        const disposal = cleanup?.expression?.argument;
+        const isAwaitedDisposal =
+          cleanup?.type === 'ExpressionStatement' &&
+          cleanup.expression.type === 'AwaitExpression' &&
+          disposal?.type === 'CallExpression' &&
+          !disposal.optional &&
+          disposal.callee.type === 'MemberExpression' &&
+          !disposal.callee.optional &&
+          disposal.callee.object.type === 'Identifier' &&
+          callName(disposal.callee) === 'dispose';
+
+        // A computed argument could throw before dispose is called. Allow only
+        // no argument or the caller's already-captured operation error.
+        const hasSafeArguments =
+          isAwaitedDisposal &&
+          (disposal.arguments.length === 0 ||
+            (disposal.arguments.length === 1 &&
+              disposal.arguments[0].type === 'Identifier'));
+        const variable = sourceCode.getDeclaredVariables(declarator)[0];
+        const disposesOwnedTransaction =
+          hasSafeArguments &&
+          variable.references.some(
+            (reference) => reference.identifier === disposal.callee.object
+          );
+
+        if (!disposesOwnedTransaction) {
+          context.report({ node, messageId: 'cleanup' });
+        }
+      },
+    };
+  },
+};
+
 export default [
   {
     ignores: ['coverage/**', 'dist/**', 'generated/**', 'node_modules/**'],
@@ -88,11 +173,13 @@ export default [
       local: {
         rules: {
           'layer-import-paths': layerImportPaths,
+          'require-transaction-disposal': requireTransactionDisposal,
         },
       },
     },
     rules: {
       'local/layer-import-paths': 'error',
+      'local/require-transaction-disposal': 'error',
     },
   },
   {

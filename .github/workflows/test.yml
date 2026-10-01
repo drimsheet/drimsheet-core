@@ -35,6 +35,11 @@ jobs:
       - name: Type Check Source and Tests
         run: npm run test:types
 
+      - name: Lint and Test ESLint Rules
+        run: |
+          npm run lint
+          npm run test:lint-rules
+
       - name: Create tmp directory for potential mock setups
         run: mkdir -p tmp
 

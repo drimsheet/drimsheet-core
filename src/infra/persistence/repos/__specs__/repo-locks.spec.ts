@@ -1,3 +1,4 @@
+/* eslint-disable local/require-transaction-disposal -- Creates each test transaction in beforeEach and disposes it in afterEach. */
 import { EventEmitter } from 'node:events';
 
 import { PoolClient, QueryConfig } from 'pg';

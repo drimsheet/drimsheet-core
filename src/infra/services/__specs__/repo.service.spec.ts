@@ -1,3 +1,4 @@
+/* eslint-disable local/require-transaction-disposal -- Tests acquisition failures and explicit commit/disposal behavior. */
 import { EventEmitter } from 'node:events';
 
 import { sql } from 'drizzle-orm';
