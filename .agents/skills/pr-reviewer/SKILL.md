@@ -5,6 +5,9 @@ description: Use when reviewing code changes, pull requests, or branch diffs.
 
 # PR Reviewer
 
+Ticket context is optional. Follow the workflow below for both ticket-informed
+reviews and codebase-grounded reviews when no ticket description is provided.
+
 ## Load
 
 - [PR Review Workflow](../../workflow/pr-review.md)

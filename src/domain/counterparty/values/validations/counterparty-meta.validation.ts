@@ -1,5 +1,4 @@
-import { isPlainObject } from 'lodash';
-
+import isPlainObject from '@shared/utils/is-plain-object';
 import addressValue from '@shared/values/contact-details/address.vo';
 import { IAddress } from '@shared/values/contact-details/types/address.types';
 
