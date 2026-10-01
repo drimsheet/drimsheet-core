@@ -4,6 +4,8 @@ import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 
 export const ECounterpartyEvents = {
   Created: 'domain:counterparty:created',
+  Updated: 'domain:counterparty:updated',
+  Activated: 'domain:counterparty:activated',
   RoleAdded: 'domain:counterparty:role-added',
 } as const;
 
@@ -23,6 +25,16 @@ function makeRoleAddedEvent(counterparty: ICounterparty) {
 
 const counterpartyEvents = Object.freeze({
   created: makeCreatedEvent,
+  updated: (counterparty: ICounterparty) =>
+    eventValue.make<ICounterparty>({
+      type: ECounterpartyEvents.Updated,
+      data: counterparty,
+    }),
+  activated: (counterparty: ICounterparty) =>
+    eventValue.make<ICounterparty>({
+      type: ECounterpartyEvents.Activated,
+      data: counterparty,
+    }),
   roleAdded: makeRoleAddedEvent,
 });
 

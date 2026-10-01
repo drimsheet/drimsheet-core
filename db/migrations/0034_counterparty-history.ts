@@ -5,7 +5,7 @@ import { counterpartyHistoryTable } from '../config/counterparties';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export function up(pgm: MigrationBuilder) {
   pgm.createTable(counterpartyHistoryTable, {
     id: {
       type: 'bigserial',
@@ -30,6 +30,8 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       references: actorsTable,
       onDelete: 'RESTRICT',
     },
+    entity_version: { type: 'integer', notNull: true },
+
     action: {
       type: 'varchar(50)',
       notNull: true,
@@ -96,6 +98,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 }
 
-export async function down(pgm: MigrationBuilder): Promise<void> {
+export function down(pgm: MigrationBuilder) {
   pgm.dropTable(counterpartyHistoryTable);
 }

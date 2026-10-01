@@ -49,6 +49,11 @@ export function up(pgm: MigrationBuilder) {
       notNull: true,
     },
 
+    version: {
+      type: 'integer',
+      notNull: true,
+    },
+
     meta: {
       type: 'jsonb',
       notNull: true,

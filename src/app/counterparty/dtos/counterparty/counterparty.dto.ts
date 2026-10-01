@@ -15,6 +15,17 @@ export interface ICounterpartyCreateReq {
   meta?: ICounterpartyCreateMetaReq;
 }
 
+export interface ICounterpartyUpdateReq {
+  /** Version returned by the last read; stale writes fail with HTTP 409. */
+  expectedVersion: number;
+  name?: string;
+  type?: UCounterpartyType;
+  /** Omit for ordinary edits; Active explicitly requests Draft activation. */
+  status?: 'active';
+  /** Complete role replacement when supplied; {} clears all roles. */
+  meta?: ICounterpartyCreateMetaReq;
+}
+
 interface ICounterpartyCreateMetaReq {
   employer?: { displayName?: string | null; address: IAddressDto };
   vendor?: { address?: IAddressDto | null };
@@ -28,6 +39,7 @@ interface ICounterpartyMetaDto {
 }
 
 export interface ICounterpartyDto {
+  version: number;
   createdBy: string;
   id: string;
   accountingEntityId: string;

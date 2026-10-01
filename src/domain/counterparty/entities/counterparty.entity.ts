@@ -1,4 +1,5 @@
 import deepFreeze from '@shared/utils/deep-freeze';
+import generateDiff from '@shared/utils/diff-generator';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
@@ -42,6 +43,7 @@ function make(payload: IMakeCounterpartyPayload): TAuditedCounterparty {
     type,
     roles: [],
     meta: {},
+    version: 1,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -88,6 +90,7 @@ function addRole(
     type: counterparty.type,
     roles: getCounterpartyRolesHelper(meta),
     meta,
+    version: counterparty.version + 1,
     createdAt: counterparty.createdAt,
     updatedAt: timestamp,
   });
@@ -103,9 +106,72 @@ function addRole(
   return [updatedCounterparty, [event], audit] as const;
 }
 
+/** Applies final validated details, retaining identity and auditing one transition. */
+function update(
+  counterparty: ICounterparty,
+  details: Partial<Pick<ICounterparty, 'name' | 'type' | 'status' | 'meta'>>
+): TAuditedCounterparty {
+  counterpartyValidation.validateCounterparty(counterparty);
+  counterpartyValidation.validateUpdateStatus(
+    counterparty.status,
+    details.status
+  );
+
+  const name = counterpartyValidation.validateName(
+    details.name ?? counterparty.name
+  );
+  const type = counterpartyValidation.validateType(
+    details.type ?? counterparty.type
+  );
+  const status = details.status ?? counterparty.status;
+  const meta = details.meta ?? counterparty.meta;
+  counterpartyMetaValidation.validate(meta);
+
+  const hasMetaChanges = generateDiff(meta, counterparty.meta).hasChanges;
+  const isUnchanged =
+    name === counterparty.name &&
+    type === counterparty.type &&
+    status === counterparty.status &&
+    !hasMetaChanges;
+
+  if (isUnchanged) {
+    throw new counterpartyError.InvalidUpdate();
+  }
+
+  const updatedCounterparty: ICounterparty = deepFreeze({
+    id: counterparty.id,
+    createdBy: counterparty.createdBy,
+    accountingEntityId: counterparty.accountingEntityId,
+    name,
+    type,
+    status,
+    roles: getCounterpartyRolesHelper(meta),
+    meta,
+    version: counterparty.version + 1,
+    createdAt: counterparty.createdAt,
+    updatedAt: new Date(),
+  });
+
+  const isActivation = details.status === ECounterpartyStatus.Active;
+  const event = isActivation
+    ? counterpartyEvents.activated(updatedCounterparty)
+    : counterpartyEvents.updated(updatedCounterparty);
+
+  const audit = counterpartyAuditValue.make({
+    before: counterparty,
+    after: updatedCounterparty,
+    action: isActivation
+      ? ECounterpartyEntityActions.Activated
+      : ECounterpartyEntityActions.Updated,
+  });
+
+  return [updatedCounterparty, [event], audit];
+}
+
 const counterpartyEntity = deepFreeze({
   make,
   addRole,
+  update,
   ...counterpartyValidation,
 });
 

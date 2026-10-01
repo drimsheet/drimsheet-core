@@ -1,3 +1,5 @@
+import { isPlainObject } from 'lodash';
+
 import addressValue from '@shared/values/contact-details/address.vo';
 import { IAddress } from '@shared/values/contact-details/types/address.types';
 
@@ -10,12 +12,8 @@ import {
 } from '@domain/counterparty/types/counterparty.types';
 
 function validateObject(value: unknown): Record<string, unknown> {
-  const isInvalidObject =
-    value === null || typeof value !== 'object' || Array.isArray(value);
+  const isInvalidObject = !isPlainObject(value);
   if (isInvalidObject) throw new counterpartyError.InvalidMeta({ value });
-  const prototype = Object.getPrototypeOf(value);
-  const isNonPlainObject = prototype !== Object.prototype && prototype !== null;
-  if (isNonPlainObject) throw new counterpartyError.InvalidMeta({ value });
   return value as Record<string, unknown>;
 }
 

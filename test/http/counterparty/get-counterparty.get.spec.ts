@@ -82,6 +82,7 @@ const counterparty: ICounterpartyDto = {
   type: 'organization',
   meta: { vendor: { address: null } },
   roles: ['vendor'],
+  version: 1,
   createdAt: new Date('2026-08-01T08:00:00.000Z'),
   updatedAt: new Date('2026-08-02T08:00:00.000Z'),
 };
@@ -123,6 +124,7 @@ describe('GET /counterparties/{id}', () => {
       expect(response.type).toBe('application/json');
       expect(response.body).toEqual({
         ...counterparty,
+        version: 1,
         createdAt: counterparty.createdAt.toISOString(),
         updatedAt: counterparty.updatedAt.toISOString(),
       });

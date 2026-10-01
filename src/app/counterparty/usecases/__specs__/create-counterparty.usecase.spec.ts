@@ -114,6 +114,7 @@ describe('makeCreateCounterpartyUsecase', () => {
       type: 'individual',
       meta: {},
       roles: [],
+      version: 1,
       createdAt: expect.any(Date),
       updatedAt: expect.any(Date),
     });

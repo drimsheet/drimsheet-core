@@ -53,6 +53,8 @@ describe('Counterparty Entity', () => {
 
       const [counterparty, events, audit] = counterpartyEntity.make(payload);
 
+      expect(counterparty.version).toBe(1);
+      expect(audit.entityVersion).toBe(1);
       expect(counterparty.accountingEntityId).toBe(accountingEntityId);
       expect(counterparty.name).toBe('Acme Corp');
       expect(counterparty.type).toBe(ECounterpartyType.Organization);
@@ -133,6 +135,9 @@ describe('Counterparty Entity', () => {
         { role: ECounterpartyRole.Vendor, meta: { address: null } }
       );
 
+      expect(initialCounterparty.version).toBe(1);
+      expect(updatedCounterparty.version).toBe(2);
+      expect(audit.entityVersion).toBe(2);
       expect(updatedCounterparty.roles).toEqual([ECounterpartyRole.Vendor]);
       expect(updatedCounterparty.updatedAt).toEqual(
         new Date('2026-07-31T13:00:00.000Z')
@@ -251,5 +256,116 @@ describe('Counterparty role metadata transitions', () => {
         roles: ['vendor', 'vendor'],
       })
     ).toThrow(counterpartyError.InvalidRole);
+  });
+});
+
+describe('counterparty entity updates', () => {
+  const make = () =>
+    counterpartyEntity.make({
+      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      accountingEntityId: 'a1111111-1111-4111-8111-111111111112' as TEntityId,
+      name: 'Draft',
+      type: 'individual',
+      status: 'draft',
+    })[0];
+
+  it('owns the activation transition and preserves creation identity', () => {
+    const before = make();
+    const [after, events, audit] = counterpartyEntity.update(before, {
+      status: 'active',
+    });
+    expect(after).toMatchObject({
+      id: before.id,
+      createdBy: before.createdBy,
+      createdAt: before.createdAt,
+      status: 'active',
+    });
+    expect(before.status).toBe('draft');
+    expect(before.version).toBe(1);
+    expect(after.version).toBe(2);
+    expect(audit.entityVersion).toBe(2);
+    expect(events[0].type).toBe('domain:counterparty:activated');
+    expect(audit.action).toBe('activated');
+    expect(() =>
+      counterpartyEntity.update(after, { status: 'active' })
+    ).toThrow(counterpartyError.AlreadyActive);
+  });
+
+  it.each([0, -1, 1.5, NaN, Infinity, undefined])(
+    'rejects invalid source version %p without mutation',
+    (version) => {
+      const before = { ...make(), version: version as number };
+      expect(() =>
+        counterpartyEntity.update(before, { status: 'active' })
+      ).toThrow(counterpartyError.InvalidVersion);
+      expect(() =>
+        counterpartyEntity.addRole(before, {
+          role: 'vendor',
+          meta: { address: null },
+        })
+      ).toThrow(counterpartyError.InvalidVersion);
+      expect(before.status).toBe('draft');
+      expect(before.version).toBe(version);
+    }
+  );
+
+  it('increments once for an edit containing both corrections and activation', () => {
+    const before = make();
+    const [active, , activationAudit] = counterpartyEntity.update(before, {
+      name: 'Completed',
+      type: 'organization',
+      status: 'active',
+      meta: { vendor: { address: null } },
+    });
+    expect(active.version).toBe(before.version + 1);
+    expect(activationAudit.entityVersion).toBe(active.version);
+    const [edited, , editAudit] = counterpartyEntity.update(active, {
+      name: 'Edited',
+    });
+    expect(edited.version).toBe(active.version + 1);
+    expect(editAudit.entityVersion).toBe(edited.version);
+    expect(active.name).toBe('Completed');
+  });
+
+  it('rejects invalid replacement metadata before deriving roles', () => {
+    expect(() =>
+      counterpartyEntity.update(make(), { meta: [] as never })
+    ).toThrow(counterpartyError.InvalidMeta);
+  });
+
+  it('rejects an invalid source even when the requested changes would repair it', () => {
+    const before = { ...make(), roles: ['vendor'] as const };
+
+    expect(() =>
+      counterpartyEntity.update(
+        { ...before, roles: [...before.roles] },
+        { meta: { vendor: { address: null } } }
+      )
+    ).toThrow(counterpartyError.InvalidRole);
+  });
+
+  it('rejects a missing source with the counterparty entity error', () => {
+    expect(() =>
+      counterpartyEntity.update(null as never, { status: 'active' })
+    ).toThrow(counterpartyError.InvalidCounterpartyEntity);
+  });
+
+  it('validates a changed type before constructing the next version', () => {
+    const before = make();
+
+    expect(() =>
+      counterpartyEntity.update(before, { type: 'invalid' as never })
+    ).toThrow(counterpartyError.InvalidType);
+
+    const [after] = counterpartyEntity.update(before, { type: 'organization' });
+    expect(after.type).toBe('organization');
+    expect(after.version).toBe(before.version + 1);
+    expect(before.type).toBe('individual');
+  });
+
+  it('rejects a no-change update before timestamping', () => {
+    expect(() => counterpartyEntity.update(make(), {})).toThrow(
+      counterpartyError.InvalidUpdate
+    );
   });
 });

@@ -36,6 +36,7 @@ describe('makeGetCounterpartyUsecase', () => {
       },
     },
     roles: ['vendor', 'contractor'],
+    version: 1,
     createdAt: new Date('2026-08-01T00:00:00.000Z'),
     updatedAt: new Date('2026-08-02T00:00:00.000Z'),
   };
@@ -98,6 +99,7 @@ describe('makeGetCounterpartyUsecase', () => {
         },
       },
       roles: ['vendor', 'contractor'],
+      version: 1,
       createdAt: counterparty.createdAt,
       updatedAt: counterparty.updatedAt,
     });

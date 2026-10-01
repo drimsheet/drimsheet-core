@@ -1305,6 +1305,7 @@ export const counterpartiesInCore = core.table(
     name: varchar({ length: 255 }).notNull(),
     status: counterPartyStatusInCore().notNull(),
     type: counterPartyTypeInCore().notNull(),
+    version: integer().default(1).notNull(),
     meta: jsonb().default({}).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
@@ -1355,6 +1356,7 @@ export const counterpartyHistoryInAudit = audit.table(
     accountingEntityId: uuid('accounting_entity_id').notNull(),
     actorId: uuid('actor_id').notNull(),
     onBehalfOf: uuid('on_behalf_of'),
+    entityVersion: integer('entity_version').notNull(),
     action: varchar({ length: 50 }).notNull(),
     diff: jsonb().notNull(),
     correlationId: varchar('correlation_id', { length: 255 }),

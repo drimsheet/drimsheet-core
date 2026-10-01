@@ -21,6 +21,7 @@ describe('CounterpartyHistoryRepoImpl', () => {
     type: 'organization',
     meta: {},
     roles: [],
+    version: 1,
     createdAt: now,
     updatedAt: now,
   };

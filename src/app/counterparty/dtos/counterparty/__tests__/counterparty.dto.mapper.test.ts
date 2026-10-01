@@ -17,6 +17,7 @@ describe('Counterparty DTO Mapper', () => {
         type: 'individual',
         meta: {},
         roles: [],
+        version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
         updatedAt: new Date('2026-08-01T08:00:00Z'),
       };
@@ -32,6 +33,7 @@ describe('Counterparty DTO Mapper', () => {
         type: 'individual',
         meta: {},
         roles: [],
+        version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
         updatedAt: new Date('2026-08-01T08:00:00Z'),
       });
@@ -47,6 +49,7 @@ describe('Counterparty DTO Mapper', () => {
         type: 'organization',
         meta: { vendor: { address: null } },
         roles: ['vendor'],
+        version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
         updatedAt: new Date('2026-08-01T08:00:00Z'),
       };

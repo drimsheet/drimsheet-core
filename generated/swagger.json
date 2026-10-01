@@ -2248,6 +2248,10 @@
       },
       "ICounterpartyDto": {
         "properties": {
+          "version": {
+            "type": "number",
+            "format": "double"
+          },
           "createdBy": {
             "type": "string"
           },
@@ -2285,6 +2289,7 @@
           }
         },
         "required": [
+          "version",
           "createdBy",
           "id",
           "accountingEntityId",
@@ -2337,6 +2342,34 @@
             "type": "object"
           }
         },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICounterpartyUpdateReq": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number",
+            "format": "double",
+            "description": "Version returned by the last read; stale writes fail with HTTP 409."
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/UCounterpartyType"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active"],
+            "nullable": false,
+            "description": "Omit for ordinary edits; Active explicitly requests Draft activation."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ICounterpartyCreateMetaReq",
+            "description": "Complete role replacement when supplied; {} clears all roles."
+          }
+        },
+        "required": ["expectedVersion"],
         "type": "object",
         "additionalProperties": false
       },
@@ -4923,6 +4956,194 @@
         ]
       }
     },
+    "/counterparties/{id}": {
+      "patch": {
+        "operationId": "updateCounterparty",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update details and optionally activate a Draft. Supplied metadata replaces all roles.",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICounterpartyUpdateReq"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getCounterparty",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get a counterparty by id",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/counterparties": {
       "post": {
         "operationId": "createCounterparty",
@@ -5156,86 +5377,6 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/UCounterpartySortBy"
-            }
-          }
-        ]
-      }
-    },
-    "/counterparties/{id}": {
-      "get": {
-        "operationId": "getCounterparty",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ICounterpartyDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Get a counterparty by id",
-        "tags": ["Counterparty"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
             }
           }
         ]

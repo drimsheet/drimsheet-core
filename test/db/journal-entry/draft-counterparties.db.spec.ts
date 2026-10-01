@@ -20,6 +20,7 @@ import {
 } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import makeCounterpartyAppService from '@app/counterparty/services/counterparty.service';
+import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
 import mockFileManagementService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
 import makeJournalEntryPersistenceService from '@app/journal-entry/services/journal-entry-persistence.service';
@@ -293,6 +294,85 @@ describe('draft counterparties with real PostgreSQL', () => {
         })
       ).data
     ).toHaveLength(0);
+  });
+
+  it('activation leaves stored drafts unchanged and allows later posting', async () => {
+    const { entityId, payload } = await setup();
+    const entry = await create()(payload);
+    const counterpartyId = entry.lines[0].counterpartyId!;
+    async function snapshot() {
+      const header = await observer.query(
+        'select * from core.journal_entries where id = $1',
+        [entry.id]
+      );
+      const lines = await observer.query(
+        'select * from core.journal_lines where entry_id = $1 order by id',
+        [entry.id]
+      );
+      const headersAudit = await observer.query(
+        'select * from audit.journal_entry_history where accounting_entity_id = $1 order by id',
+        [entityId]
+      );
+      const linesAudit = await observer.query(
+        'select * from audit.journal_line_history where accounting_entity_id = $1 order by id',
+        [entityId]
+      );
+      return {
+        header: header.rows,
+        lines: lines.rows,
+        headersAudit: headersAudit.rows,
+        linesAudit: linesAudit.rows,
+      };
+    }
+    const before = await snapshot();
+    mockEventBus.publish.mockClear();
+    mockFxLotAppService.dispose.mockClear();
+    mockOutboxService.createBalancePropagation.mockClear();
+    mockLedgerAccountBalanceAdjustmentQueue.add.mockClear();
+    const activate = makeUpdateCounterpartyUsecase({
+      appContext: mockAppContext,
+      counterpartyService: makeCounterpartyService(),
+      counterpartyRepo,
+      eventBus: mockEventBus,
+    });
+    const current = await counterpartyRepo.findById(
+      counterpartyId as TEntityId,
+      entityId,
+      repoOptions
+    );
+    if (!current) throw new Error('Missing draft counterparty');
+    await activate(counterpartyId, {
+      expectedVersion: current.version,
+      status: 'active',
+    });
+    expect(await snapshot()).toEqual(before);
+    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(
+      mockFxLotCostBasisService.persistence.persistDisposition
+    ).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).toHaveBeenCalledWith([
+      expect.objectContaining({ type: 'domain:counterparty:activated' }),
+    ]);
+    payload.sourceLine.counterparty = {
+      id: counterpartyId,
+      name: 'Draft supplier',
+    };
+    payload.destinationLines[0].counterparty = payload.sourceLine.counterparty;
+    payload.postedAt = payload.effectiveDate;
+    await rectify(entry.id, {
+      ...payload,
+      sourceType: 'payment',
+      expectedVersion: entry.version,
+      attachments: [],
+    });
+    expect(
+      await journalRepos.journalEntry.findById(
+        entry.id as TEntityId,
+        repoOptions
+      )
+    ).toMatchObject({ status: 'posted' });
   });
 
   it('rolls back counterparties, journal lines and their histories when the outer save fails', async () => {

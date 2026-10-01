@@ -1,6 +1,7 @@
 import makeCreateCounterpartyUsecase from '@app/counterparty/usecases/create-counterparty.usecase';
 import makeGetCounterpartiesUsecase from '@app/counterparty/usecases/get-counterparties.usecase';
 import makeGetCounterpartyUsecase from '@app/counterparty/usecases/get-counterparty.usecase';
+import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
 
 import { counterpartyService } from '@infra/ioc/services/counterparty';
 import messaging from '@infra/messaging';
@@ -31,5 +32,15 @@ export const getCounterpartyUseCase = makeTracedUseCase(
   makeGetCounterpartyUsecase({
     appContext,
     counterpartyRepo: counterpartyRepos.counterparty,
+  })
+);
+
+export const updateCounterpartyUseCase = makeTracedUseCase(
+  'counterparty.updateCounterpartyUseCase',
+  makeUpdateCounterpartyUsecase({
+    appContext,
+    counterpartyService,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    eventBus: messaging.eventBus,
   })
 );

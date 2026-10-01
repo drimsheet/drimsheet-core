@@ -16,6 +16,7 @@ describe('counterpartyHistoryMapper', () => {
     type: 'organization',
     meta: {},
     roles: [],
+    version: 1,
     createdAt: now,
     updatedAt: now,
   };
@@ -38,6 +39,7 @@ describe('counterpartyHistoryMapper', () => {
     const result = counterpartyHistoryMapper.toRepo(counterparty, history);
 
     expect(result).toEqual({
+      entityVersion: history.entityVersion,
       counterpartyId: counterparty.id,
       accountingEntityId: counterparty.accountingEntityId,
       actorId: '123e4567-e89b-12d3-a456-426614174003',

@@ -1730,6 +1730,7 @@ const models: TsoaRoute.Models = {
   ICounterpartyDto: {
     dataType: 'refObject',
     properties: {
+      version: { dataType: 'double', required: true },
       createdBy: { dataType: 'string', required: true },
       id: { dataType: 'string', required: true },
       accountingEntityId: { dataType: 'string', required: true },
@@ -1780,6 +1781,18 @@ const models: TsoaRoute.Models = {
         dataType: 'nestedObjectLiteral',
         nestedProperties: { address: { ref: 'IAddressDto', required: true } },
       },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICounterpartyUpdateReq: {
+    dataType: 'refObject',
+    properties: {
+      expectedVersion: { dataType: 'double', required: true },
+      name: { dataType: 'string' },
+      type: { ref: 'UCounterpartyType' },
+      status: { dataType: 'enum', enums: ['active'] },
+      meta: { ref: 'ICounterpartyCreateMetaReq' },
     },
     additionalProperties: false,
   },
@@ -3421,6 +3434,56 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getExchangeRates',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsCounterpartyController_updateCounterparty: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICounterpartyUpdateReq',
+    },
+  };
+  app.patch(
+    '/api/v1/counterparties/:id',
+    ...fetchMiddlewares<RequestHandler>(CounterpartyController),
+    ...fetchMiddlewares<RequestHandler>(
+      CounterpartyController.prototype.updateCounterparty
+    ),
+
+    async function CounterpartyController_updateCounterparty(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsCounterpartyController_updateCounterparty,
+          request,
+          response,
+        });
+
+        const controller = new CounterpartyController();
+
+        await templateService.apiHandler({
+          methodName: 'updateCounterparty',
           controller,
           response,
           next,

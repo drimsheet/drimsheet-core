@@ -170,3 +170,185 @@ describe('metadata-driven creation', () => {
     ).toThrow();
   });
 });
+
+describe('counterparty updates', () => {
+  const draft = () =>
+    service.create({
+      ...payload,
+      status: 'draft',
+      meta: { employer: { address }, vendor: { address } },
+    })[0];
+
+  it('activates with corrections and one complete immutable activation audit', () => {
+    const before = draft();
+    const snapshot = structuredClone(before);
+    const [after, events, audit] = service.update(before, {
+      name: ' Corrected ',
+      type: 'individual',
+      meta: { vendor: {} },
+      status: 'active',
+    });
+    expect(after).toMatchObject({
+      id: before.id,
+      createdBy: before.createdBy,
+      accountingEntityId: before.accountingEntityId,
+      createdAt: before.createdAt,
+      name: 'Corrected',
+      type: 'individual',
+      status: 'active',
+      roles: ['vendor'],
+      meta: { vendor: { address: null } },
+    });
+    expect(before).toEqual(snapshot);
+    expect(Object.isFrozen(after)).toBe(true);
+    expect(Object.isFrozen(after.meta.vendor)).toBe(true);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: 'domain:counterparty:activated',
+      data: after,
+    });
+    expect(audit).toMatchObject({
+      action: 'activated',
+      diff: { before, after },
+    });
+    expect(audit.diff.before?.roles).toContain('employer');
+    expect(audit.diff.after.roles).not.toContain('employer');
+  });
+
+  it.each(['draft', 'active'] as const)(
+    'edits %s without activating and preserves omitted roles',
+    (status) => {
+      const [before] = service.create({
+        ...payload,
+        status,
+        meta: { vendor: {} },
+      });
+      const [after, events, audit] = service.update(before, {
+        name: 'Changed',
+      });
+      expect(after.status).toBe(status);
+      expect(after.meta).toEqual(before.meta);
+      expect(after.roles).toEqual(before.roles);
+      expect(events[0].type).toBe('domain:counterparty:updated');
+      expect(audit.action).toBe('updated');
+    }
+  );
+
+  it('activates a minimal draft with no roles', () => {
+    const [before] = service.create({ ...payload, status: 'draft' });
+    expect(service.update(before, { status: 'active' })[0]).toMatchObject({
+      status: 'active',
+      roles: [],
+      meta: {},
+    });
+  });
+
+  it.each([0, 1, 2, 3, 4, 5, 6, 7])(
+    'replaces all roles for role mask %i, including clearing',
+    (mask) => {
+      const meta: NonNullable<Parameters<typeof service.update>[1]['meta']> =
+        {};
+      if (mask & 1) meta.employer = { address };
+      if (mask & 2) meta.vendor = {};
+      if (mask & 4) meta.contractor = { address };
+      const [after] = service.update(draft(), { meta });
+      expect(after.roles).toEqual(
+        (['employer', 'vendor', 'contractor'] as const).filter(
+          (_, index) => mask & (1 << index)
+        )
+      );
+      expect(Object.keys(after.meta)).toEqual(after.roles);
+      if (after.meta.employer)
+        expect(after.meta.employer.displayName).toBeNull();
+      if (after.meta.vendor) expect(after.meta.vendor.address).toBeNull();
+      if (after.meta.contractor)
+        expect(Object.isFrozen(after.meta.contractor.address)).toBe(true);
+    }
+  );
+
+  it.each([
+    {},
+    { name: ' Example ' },
+    { type: 'organization' as const },
+    { meta: { employer: { address }, vendor: { address } } },
+  ])('rejects an effective no-change update %j', (changes) => {
+    expect(() => service.update(draft(), changes)).toThrow(
+      'counterparty_error_update_invalid'
+    );
+  });
+
+  it.each(['active', 'archived'] as const)(
+    'rejects activation from %s',
+    (status) => {
+      const [before] = service.create({ ...payload, status });
+      expect(() => service.update(before, { status: 'active' })).toThrow(
+        status === 'active'
+          ? 'counterparty_error_already_active_conflict'
+          : 'counterparty_error_archived_conflict'
+      );
+    }
+  );
+
+  it('rejects ordinary updates to Archived', () => {
+    const [before] = service.create({ ...payload, status: 'archived' });
+    expect(() => service.update(before, { name: 'Changed' })).toThrow(
+      'counterparty_error_archived_conflict'
+    );
+  });
+
+  it.each([
+    { status: 'draft' },
+    { status: 'archived' },
+    { name: '' },
+    { type: null },
+    { meta: null },
+    { meta: { employer: {} } },
+    { meta: { vendor: null } },
+    { meta: { contractor: { address: { ...address, city: '' } } } },
+    { meta: { employer: { address, displayName: 'x'.repeat(256) } } },
+  ])('rejects invalid changes atomically %j', (changes) => {
+    const before = draft();
+    const snapshot = structuredClone(before);
+    expect(() => service.update(before, changes as never)).toThrow();
+    expect(before).toEqual(snapshot);
+  });
+
+  it.each(['employer', 'vendor', 'contractor'] as const)(
+    'maps shared address faults to %s field context',
+    (role) => {
+      try {
+        service.update(draft(), {
+          meta: { [role]: { address: { ...address, city: '' } } },
+        });
+        throw new Error('Expected invalid address');
+      } catch (error) {
+        expect(error).toMatchObject({
+          errorKey: 'counterparty_error_address_invalid',
+          cause: { field: `meta.${role}.address` },
+        });
+      }
+    }
+  );
+});
+
+describe('counterparty service version composition', () => {
+  it('keeps the final creation audit version aligned with all assigned roles', () => {
+    const [counterparty, events, audit] = makeCounterpartyService().create({
+      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      accountingEntityId: 'a1111111-1111-4111-8111-111111111112' as TEntityId,
+      name: 'Supplier',
+      type: 'organization',
+      status: 'draft',
+      meta: {
+        vendor: {},
+        employer: {
+          address: { line1: 'Road', city: 'Lagos', countryCode: 'NG' },
+        },
+      },
+    });
+    expect(counterparty.version).toBe(3);
+    expect(audit.entityVersion).toBe(counterparty.version);
+    expect(audit.diff.after?.version).toBe(counterparty.version);
+    expect(events.map((event) => event.data.version)).toEqual([1, 2, 3]);
+  });
+});

@@ -15,6 +15,11 @@ import {
 } from '@domain/counterparty/types/counterparty.types';
 import counterpartyMetaValidation from '@domain/counterparty/values/validations/counterparty-meta.validation';
 
+function validateVersion(version: number): void {
+  const isInvalidVersion = !Number.isInteger(version) || version < 1;
+  if (isInvalidVersion) throw new counterpartyError.InvalidVersion({ version });
+}
+
 function validateAccountingEntityId(accountingEntityId: TEntityId): void {
   stringUtils.validateUUID(
     accountingEntityId,
@@ -77,6 +82,11 @@ function validateCounterparty(counterparty: ICounterparty): void {
     counterparty.id,
     counterpartyError.InvalidCounterpartyId
   );
+  stringUtils.validateUUID(
+    counterparty.createdBy,
+    counterpartyError.InvalidCreatedBy
+  );
+  validateVersion(counterparty.version);
   validateAccountingEntityId(counterparty.accountingEntityId);
   validateName(counterparty.name);
   validateType(counterparty.type);
@@ -101,7 +111,26 @@ function validateCounterparty(counterparty: ICounterparty): void {
   dateUtils.validateDate(counterparty.updatedAt, counterpartyError.InvalidDate);
 }
 
+/** Checks update eligibility and treats an explicit Active status as activation. */
+function validateUpdateStatus(
+  currentStatus: UCounterpartyStatus,
+  status: UCounterpartyStatus | undefined
+): void {
+  if (currentStatus === ECounterpartyStatus.Archived)
+    throw new counterpartyError.Archived();
+  const invalidTarget =
+    status !== undefined && status !== ECounterpartyStatus.Active;
+  if (invalidTarget)
+    throw new counterpartyError.InvalidStatus({ field: 'status' });
+  const alreadyActive =
+    status === ECounterpartyStatus.Active &&
+    currentStatus === ECounterpartyStatus.Active;
+  if (alreadyActive) throw new counterpartyError.AlreadyActive();
+}
+
 const counterpartyValidation = Object.freeze({
+  validateUpdateStatus,
+  validateVersion,
   validateAccountingEntityId,
   validateName,
   validateType,

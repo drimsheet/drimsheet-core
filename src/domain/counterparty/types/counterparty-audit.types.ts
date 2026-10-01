@@ -8,6 +8,7 @@ import { ICounterparty } from './counterparty.types';
 export const ECounterpartyEntityActions = {
   Created: 'created',
   Updated: 'updated',
+  Activated: 'activated',
   RoleAdded: 'role-added',
 } as const;
 

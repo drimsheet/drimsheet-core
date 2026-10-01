@@ -24,6 +24,7 @@ const invalidTypeKey = new counterpartyError.InvalidType().errorKey;
 const invalidStatusKey = new counterpartyError.InvalidStatus().errorKey;
 const invalidRoleKey = new counterpartyError.InvalidRole().errorKey;
 const invalidOrderByKey = new paginationError.InvalidOrderBy().errorKey;
+const invalidVersionKey = new counterpartyError.InvalidVersion().errorKey;
 const invalidMetaKey = new counterpartyError.InvalidMeta().errorKey;
 
 const counterpartyStatusValidation = z.enum(
@@ -121,6 +122,28 @@ export const counterpartyCreateReqValidation = z.strictObject(
   },
   invalidMetaKey
 );
+
+export const counterpartyUpdateReqValidation = z
+  .strictObject(
+    {
+      expectedVersion: z
+        .number(invalidVersionKey)
+        .int(invalidVersionKey)
+        .positive(invalidVersionKey),
+      name: counterpartyNameValidation.optional(),
+      type: counterpartyTypeValidation.optional(),
+      status: z.literal('active', invalidStatusKey).optional(),
+      meta: counterpartyCreateMetaValidation.optional(),
+    },
+    invalidMetaKey
+  )
+  .refine(
+    (payload) =>
+      [payload.name, payload.type, payload.status, payload.meta].some(
+        (value) => value !== undefined
+      ),
+    new counterpartyError.InvalidUpdate().errorKey
+  );
 
 export const getCounterpartiesQueryValidationSchema = z.object({
   ...omit(paginationDtoValidation.shape, ['orderBy']),

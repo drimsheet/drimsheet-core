@@ -95,6 +95,7 @@ describe('makeCounterpartyAppService', () => {
           meta: {},
           roles: [],
           status: 'active',
+          version: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
         };

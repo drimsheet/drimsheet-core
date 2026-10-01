@@ -133,6 +133,22 @@ describe('counterpartyValidation', () => {
   });
 
   describe('validateCounterparty', () => {
+    it('rejects an invalid creator on the source entity', () => {
+      const [counterparty] = counterpartyEntity.make({
+        createdBy: validUUID,
+        accountingEntityId: validUUID2,
+        name: 'Supplier',
+        type: 'organization',
+      });
+
+      expect(() =>
+        counterpartyValidation.validateCounterparty({
+          ...counterparty,
+          createdBy: 'invalid' as TEntityId,
+        })
+      ).toThrow(counterpartyError.InvalidCreatedBy);
+    });
+
     it('should pass for a valid counterparty entity', () => {
       const validCounterparty: ICounterparty = {
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -154,6 +170,7 @@ describe('counterpartyValidation', () => {
           },
         },
         roles: [ECounterpartyRole.Contractor],
+        version: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -181,6 +198,7 @@ describe('counterpartyValidation', () => {
         type: ECounterpartyType.Individual,
         meta: {},
         roles: 'not-an-array',
+        version: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -191,5 +209,36 @@ describe('counterpartyValidation', () => {
         )
       ).toThrow(counterpartyError.InvalidRole);
     });
+  });
+});
+
+describe('update status validation', () => {
+  it.each(['draft', 'active'] as const)(
+    'allows details-only edits to %s',
+    (status) => {
+      expect(() =>
+        counterpartyValidation.validateUpdateStatus(status, undefined)
+      ).not.toThrow();
+    }
+  );
+  it('allows Draft activation', () => {
+    expect(() =>
+      counterpartyValidation.validateUpdateStatus('draft', 'active')
+    ).not.toThrow();
+  });
+  it('rejects repeated activation', () => {
+    expect(() =>
+      counterpartyValidation.validateUpdateStatus('active', 'active')
+    ).toThrow(counterpartyError.AlreadyActive);
+  });
+  it('rejects an Archived source', () => {
+    expect(() =>
+      counterpartyValidation.validateUpdateStatus('archived', undefined)
+    ).toThrow(counterpartyError.Archived);
+  });
+  it.each(['draft', 'archived'] as const)('rejects target %s', (status) => {
+    expect(() =>
+      counterpartyValidation.validateUpdateStatus('draft', status)
+    ).toThrow(counterpartyError.InvalidStatus);
   });
 });

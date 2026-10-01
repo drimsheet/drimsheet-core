@@ -31,6 +31,7 @@ describe('makeGetCounterpartiesUsecase', () => {
     type: 'organization',
     meta: { vendor: { address: null } },
     roles: ['vendor'],
+    version: 1,
     createdAt: new Date('2026-08-01T00:00:00.000Z'),
     updatedAt: new Date('2026-08-01T00:00:00.000Z'),
   };
@@ -99,6 +100,7 @@ describe('makeGetCounterpartiesUsecase', () => {
       type: 'organization',
       meta: { vendor: { address: null } },
       roles: ['vendor'],
+      version: 1,
       createdAt: mockCounterparty.createdAt,
       updatedAt: mockCounterparty.updatedAt,
     });

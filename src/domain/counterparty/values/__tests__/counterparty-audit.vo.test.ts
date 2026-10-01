@@ -27,6 +27,7 @@ describe('counterpartyAuditValue', () => {
     type: ECounterpartyType.Organization,
     meta: {},
     roles: [],
+    version: 1,
     createdAt: new Date('2026-07-31T12:00:00.000Z'),
     updatedAt: new Date('2026-07-31T12:00:00.000Z'),
   });
@@ -59,6 +60,25 @@ describe('counterpartyAuditValue', () => {
       ).toThrow(counterpartyError.InvalidCounterpartyPayload);
     });
 
+    it('uses the resulting entity version in the audit', () => {
+      const audit = counterpartyAuditValue.make({
+        before: mockCounterparty,
+        after: { ...mockCounterparty, version: 2, name: 'Changed' },
+        action: ECounterpartyEntityActions.Updated,
+      });
+      expect(audit.entityVersion).toBe(2);
+    });
+
+    it('rejects an invalid entity version', () => {
+      expect(() =>
+        counterpartyAuditValue.make({
+          before: null,
+          after: { ...mockCounterparty, version: 0 },
+          action: ECounterpartyEntityActions.Created,
+        })
+      ).toThrow(counterpartyError.InvalidVersion);
+    });
+
     it('should throw InvalidDiff if before and after are identical', () => {
       expect(() =>
         counterpartyAuditValue.make({
@@ -79,6 +99,7 @@ describe('counterpartyAuditValue', () => {
         type: mockCounterparty.type,
         meta: {},
         roles: mockCounterparty.roles,
+        version: 1,
         createdAt: mockCounterparty.createdAt,
         updatedAt: mockCounterparty.updatedAt,
       });
