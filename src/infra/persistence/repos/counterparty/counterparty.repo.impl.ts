@@ -2,6 +2,8 @@ import { and, eq, ilike, or, sql } from 'drizzle-orm';
 
 import drizzleFilters from '@shared/helpers/drizzle-filters';
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import repoError from '@shared/values/errors/repo.error';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
 import ICounterpartyRepo, {
@@ -15,6 +17,37 @@ import counterpartyMapper from '@infra/persistence/repos/counterparty/mappers/co
 import counterpartyHistoryRepo from './counterparty-history.repo.impl';
 
 const counterpartyRepo: ICounterpartyRepo = {
+  update: async (counterparty, options) => {
+    validateVersionInRepo(counterparty, options);
+
+    await getDbQuery(options).transaction(async (tx) => {
+      const updated = await tx
+        .update(counterpartiesInCore)
+        .set(counterpartyMapper.toRepo(counterparty))
+        .where(
+          and(
+            eq(counterpartiesInCore.id, counterparty.id),
+            eq(counterpartiesInCore.version, options.expectedVersion),
+            eq(
+              counterpartiesInCore.accountingEntityId,
+              counterparty.accountingEntityId
+            )
+          )
+        );
+
+      if (updated.rowCount === 0)
+        throw new repoError.VersionNotFound({
+          id: counterparty.id,
+          version: options.expectedVersion,
+        });
+      await counterpartyHistoryRepo.save(
+        counterparty,
+        options.history,
+        passOnRepoTransaction(options, tx)
+      );
+    });
+  },
+
   create: async (payload, options) => {
     await getDbQuery(options).transaction(async (tx) => {
       await tx
@@ -102,7 +135,7 @@ const counterpartyRepo: ICounterpartyRepo = {
   },
 
   async findById(id, accountingEntityId, options) {
-    const [row] = await getDbQuery(options)
+    const baseQuery = getDbQuery(options)
       .select()
       .from(counterpartiesInCore)
       .where(
@@ -113,6 +146,8 @@ const counterpartyRepo: ICounterpartyRepo = {
       )
       .limit(1);
 
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const [row] = await query;
     return row ? counterpartyMapper.toDomain(row) : null;
   },
 };

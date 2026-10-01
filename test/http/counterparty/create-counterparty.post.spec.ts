@@ -17,6 +17,7 @@ import {
   ICounterpartyDto,
 } from '@app/counterparty/dtos/counterparty/counterparty.dto';
 import makeCreateCounterpartyUsecase from '@app/counterparty/usecases/create-counterparty.usecase';
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 
 import { tokenService } from '@infra/ioc/services/auth';
@@ -103,6 +104,7 @@ const createdCounterparty: ICounterpartyDto = {
   type: validPayload.type,
   meta: {},
   roles: [],
+  version: 1,
   createdAt: new Date('2026-08-01T08:00:00.000Z'),
   updatedAt: new Date('2026-08-01T08:00:00.000Z'),
 };
@@ -143,7 +145,9 @@ describe('POST /counterparties', () => {
       mockCreateCounterparty.mockImplementationOnce(
         makeCreateCounterpartyUsecase({
           appContext,
-          counterpartyService: makeCounterpartyService(),
+          counterpartyService: makeCounterpartyService({
+            journalLineRepo: mockJournalLineRepo,
+          }),
           counterpartyRepo: mockCounterpartyRepo,
           eventBus: mockEventBus,
         })
@@ -171,7 +175,9 @@ describe('POST /counterparties', () => {
       mockCreateCounterparty.mockImplementationOnce(
         makeCreateCounterpartyUsecase({
           appContext,
-          counterpartyService: makeCounterpartyService(),
+          counterpartyService: makeCounterpartyService({
+            journalLineRepo: mockJournalLineRepo,
+          }),
           counterpartyRepo: mockCounterpartyRepo,
           eventBus: mockEventBus,
         })
@@ -200,6 +206,7 @@ describe('POST /counterparties', () => {
       expect(response.type).toBe('application/json');
       expect(response.body).toEqual({
         ...createdCounterparty,
+        version: 1,
         createdAt: createdCounterparty.createdAt.toISOString(),
         updatedAt: createdCounterparty.updatedAt.toISOString(),
       });

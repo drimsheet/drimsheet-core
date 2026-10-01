@@ -7,9 +7,14 @@ import {
   ICounterparty,
   ICreateCounterpartyMeta,
   ICreateCounterpartyPayload,
+  IUpdateCounterpartyPayload,
 } from '@domain/counterparty/types/counterparty.types';
 
-import { ICounterpartyCreateReq, ICounterpartyDto } from './counterparty.dto';
+import {
+  ICounterpartyCreateReq,
+  ICounterpartyDto,
+  ICounterpartyUpdateReq,
+} from './counterparty.dto';
 
 function fromAddressDto(address: IAddressDto): TCreateAddressPayload {
   return {
@@ -33,33 +38,40 @@ function toAddressDto(address: IAddress): IAddressDto {
   };
 }
 
+function fromMetaDto(
+  input: ICounterpartyCreateReq['meta']
+): ICreateCounterpartyMeta | undefined {
+  let meta: ICreateCounterpartyMeta | undefined;
+  if (input !== undefined) {
+    meta = {};
+    if (input.employer) {
+      meta.employer = {
+        displayName: input.employer.displayName,
+        address: fromAddressDto(input.employer.address),
+      };
+    }
+    if (input.vendor) {
+      const address = input.vendor.address;
+      meta.vendor = {
+        address: address == null ? address : fromAddressDto(address),
+      };
+    }
+    if (input.contractor) {
+      meta.contractor = {
+        address: fromAddressDto(input.contractor.address),
+      };
+    }
+  }
+  return meta;
+}
+
 const counterpartyDtoMapper = {
   fromDto(
     payload: ICounterpartyCreateReq,
     accountingEntityId: TEntityId,
     createdBy: TEntityId
   ): ICreateCounterpartyPayload {
-    let meta: ICreateCounterpartyMeta | undefined;
-    if (payload.meta !== undefined) {
-      meta = {};
-      if (payload.meta.employer) {
-        meta.employer = {
-          displayName: payload.meta.employer.displayName,
-          address: fromAddressDto(payload.meta.employer.address),
-        };
-      }
-      if (payload.meta.vendor) {
-        const address = payload.meta.vendor.address;
-        meta.vendor = {
-          address: address == null ? address : fromAddressDto(address),
-        };
-      }
-      if (payload.meta.contractor) {
-        meta.contractor = {
-          address: fromAddressDto(payload.meta.contractor.address),
-        };
-      }
-    }
+    const meta = fromMetaDto(payload.meta);
     return {
       accountingEntityId,
       createdBy,
@@ -67,6 +79,14 @@ const counterpartyDtoMapper = {
       type: payload.type,
       status: payload.status,
       meta,
+    };
+  },
+  fromUpdateDto(payload: ICounterpartyUpdateReq): IUpdateCounterpartyPayload {
+    return {
+      name: payload.name,
+      type: payload.type,
+      status: payload.status,
+      meta: fromMetaDto(payload.meta),
     };
   },
   toDto(counterparty: ICounterparty): ICounterpartyDto {
@@ -89,6 +109,7 @@ const counterpartyDtoMapper = {
       };
     return {
       id: counterparty.id,
+      version: counterparty.version,
       createdBy: counterparty.createdBy,
       accountingEntityId: counterparty.accountingEntityId,
       name: counterparty.name,

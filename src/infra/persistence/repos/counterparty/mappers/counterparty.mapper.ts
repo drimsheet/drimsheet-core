@@ -26,6 +26,7 @@ const counterpartyMapper = {
     return {
       createdBy: entity.createdBy as TEntityId,
       id: entity.id,
+      version: entity.version,
       accountingEntityId: entity.accountingEntityId,
       name: entity.name,
       status: entity.status,
@@ -41,6 +42,7 @@ const counterpartyMapper = {
     return deepFreeze({
       createdBy: payload.createdBy as TEntityId,
       id: payload.id as TEntityId,
+      version: payload.version,
       accountingEntityId: payload.accountingEntityId as TEntityId,
       name: payload.name,
       status: payload.status as UCounterpartyStatus,

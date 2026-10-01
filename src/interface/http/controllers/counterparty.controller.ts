@@ -4,6 +4,7 @@ import {
   Get,
   Middlewares,
   OperationId,
+  Patch,
   Path,
   Post,
   Queries,
@@ -18,6 +19,7 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 import {
   ICounterpartyCreateReq,
   ICounterpartyDto,
+  ICounterpartyUpdateReq,
   IGetCounterpartiesQuery,
 } from '@app/counterparty/dtos/counterparty/counterparty.dto';
 
@@ -26,11 +28,41 @@ import {
   createCounterpartyUseCase,
   getCounterpartiesUseCase,
   getCounterpartyUseCase,
+  updateCounterpartyUseCase,
 } from '@infra/ioc/usecases/counterparty';
 
 @Route('counterparties')
 @Tags('Counterparty')
 export class CounterpartyController extends Controller {
+  /**
+   * Update details and optionally activate a Draft. Supplied metadata replaces all roles.
+   * A type change after transaction use returns 409 with field=type,
+   * reason=transaction_usage and nextAction=create_counterparty.
+   * This counterparty's type cannot be changed because it has been used in a
+   * transaction. Create a new counterparty if a different type is required.
+   */
+  @Patch('/{id}')
+  @OperationId('updateCounterparty')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateCounterparty(
+    @Path() id: string,
+    @Body() body: ICounterpartyUpdateReq
+  ) {
+    return await updateCounterpartyUseCase(id, body);
+  }
+
   /**
    * Create a new counterparty
    */

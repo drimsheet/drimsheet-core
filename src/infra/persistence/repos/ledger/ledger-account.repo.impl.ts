@@ -3,12 +3,14 @@ import {
   desc,
   eq,
   getTableColumns,
+  getTableName,
   ilike,
   inArray,
   isNull,
   or,
   sql,
 } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import drizzleFilters from '@shared/helpers/drizzle-filters';
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
@@ -46,29 +48,6 @@ function isSuspenseDuplicate(error: unknown): boolean {
 }
 
 const ledgerAccountRepoImpl: ILedgerAccountRepo = {
-  findByCodeForUpdate: async (code, accountingEntityId, options) => {
-    if (!options.tx) throw new repoError.TransactionRequired();
-
-    const [lockedAccount] = await getDbQuery(options)
-      .select({ id: ledgerAccountsInCore.id })
-      .from(ledgerAccountsInCore)
-      .where(
-        and(
-          eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId),
-          eq(ledgerAccountsInCore.code, code)
-        )
-      )
-      .for('update');
-
-    if (!lockedAccount) return null;
-
-    return ledgerAccountRepoImpl.findById(
-      lockedAccount.id as Parameters<ILedgerAccountRepo['findById']>[0],
-      accountingEntityId,
-      options
-    );
-  },
-
   create: async (payload, options) => {
     try {
       await getDbQuery(options).transaction(async (tx) => {
@@ -182,7 +161,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   },
 
   findByCode: async (code, accountingEntityId, options) => {
-    const result = await getDbQuery(options)
+    const baseQuery = getDbQuery(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),
@@ -198,6 +177,13 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
           eq(ledgerAccountsInCore.code, code)
         )
       );
+    // FOR ... OF requires an unqualified table name and must exclude the nullable join.
+    const query = options.lock
+      ? baseQuery.for(options.lock, {
+          of: alias(ledgerAccountsInCore, getTableName(ledgerAccountsInCore)),
+        })
+      : baseQuery;
+    const result = await query;
 
     return result.map(ledgerAccountMapper.toDomain)[0] ?? null;
   },
@@ -250,7 +236,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   },
 
   findLatestBySubType: async (accountingEntityId, type, subType, options) => {
-    const [result] = await getDbQuery(options)
+    const baseQuery = getDbQuery(options)
       .select({
         id: ledgerAccountsInCore.id,
         code: ledgerAccountsInCore.code,
@@ -266,6 +252,8 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
       )
       .orderBy(desc(ledgerAccountsInCore.code))
       .limit(1);
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const [result] = await query;
 
     return result as unknown as ReturnType<
       ILedgerAccountRepo['findLatestBySubType']

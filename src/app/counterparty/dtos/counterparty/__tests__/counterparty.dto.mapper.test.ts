@@ -4,6 +4,7 @@ import makeCounterpartyService from '@domain/counterparty/services/counterparty.
 import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 
 import counterpartyDtoMapper from '@app/counterparty/dtos/counterparty/counterparty.dto.mapper';
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 
 describe('Counterparty DTO Mapper', () => {
   describe('toDto', () => {
@@ -17,6 +18,7 @@ describe('Counterparty DTO Mapper', () => {
         type: 'individual',
         meta: {},
         roles: [],
+        version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
         updatedAt: new Date('2026-08-01T08:00:00Z'),
       };
@@ -32,6 +34,7 @@ describe('Counterparty DTO Mapper', () => {
         type: 'individual',
         meta: {},
         roles: [],
+        version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
         updatedAt: new Date('2026-08-01T08:00:00Z'),
       });
@@ -47,6 +50,7 @@ describe('Counterparty DTO Mapper', () => {
         type: 'organization',
         meta: { vendor: { address: null } },
         roles: ['vendor'],
+        version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
         updatedAt: new Date('2026-08-01T08:00:00Z'),
       };
@@ -135,7 +139,9 @@ describe('complete counterparty response mapping', () => {
       countryCode: 'NG',
       ...optional,
     };
-    const [counterparty] = makeCounterpartyService().create({
+    const [counterparty] = makeCounterpartyService({
+      journalLineRepo: mockJournalLineRepo,
+    }).create({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       accountingEntityId: '123e4567-e89b-12d3-a456-426614174001' as TEntityId,
       name: 'Company',

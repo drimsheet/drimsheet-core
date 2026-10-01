@@ -1,7 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
-import repoError from '@shared/values/errors/repo.error';
 
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 
@@ -12,18 +11,6 @@ import accountingEntityMapper from '@infra/persistence/repos/accounting/mappers/
 import accountingEntityHistoryRepo from './accounting-entity-history.repo.impl';
 
 const accountingEntityRepo: IAccountingEntityRepo = {
-  findByIdForUpdate: async (id, options) => {
-    if (!options.tx) throw new repoError.TransactionRequired();
-
-    const [entity] = await getDbQuery(options)
-      .select()
-      .from(accountingEntitiesInCore)
-      .where(eq(accountingEntitiesInCore.id, id))
-      .for('update');
-
-    return entity ? accountingEntityMapper.toDomain(entity) : null;
-  },
-
   create: async (domain, options) => {
     await getDbQuery(options).transaction(async (tx) => {
       await tx
@@ -39,12 +26,12 @@ const accountingEntityRepo: IAccountingEntityRepo = {
   },
 
   findById: async (id, options) => {
-    const query = getDbQuery(options);
-
-    const [result] = await query
+    const baseQuery = getDbQuery(options)
       .select()
       .from(accountingEntitiesInCore)
       .where(eq(accountingEntitiesInCore.id, id));
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const [result] = await query;
 
     return result ? accountingEntityMapper.toDomain(result) : null;
   },

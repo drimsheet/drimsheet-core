@@ -1,8 +1,7 @@
 import { eq } from 'drizzle-orm';
 
-import { IWriteRepoOptions } from '@shared/types/repo.types';
+import { ERepoLock, IWriteRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import repoError from '@shared/values/errors/repo.error';
 
 import {
   IAccountingEntity,
@@ -200,9 +199,9 @@ describe('AccountingEntityRepoImpl', () => {
   });
 });
 
-describe('accountingEntityRepo.findByIdForUpdate', () => {
+describe('accountingEntityRepo.findById', () => {
   const id = '123e4567-e89b-42d3-a456-426614174001' as TEntityId;
-  const options = { correlationId: 'lock', tx: {} };
+  const options = { correlationId: 'lock', tx: {}, lock: ERepoLock.Update };
   beforeEach(() => jest.resetAllMocks());
 
   it.each([true, false])(
@@ -221,7 +220,7 @@ describe('accountingEntityRepo.findByIdForUpdate', () => {
         .mocked(getDbQuery)
         .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
       jest.mocked(accountingEntityMapper.toDomain).mockReturnValue(domain);
-      expect(await accountingEntityRepo.findByIdForUpdate(id, options)).toBe(
+      expect(await accountingEntityRepo.findById(id, options)).toBe(
         exists ? domain : null
       );
       expect(getDbQuery).toHaveBeenCalledWith(options);
@@ -232,13 +231,4 @@ describe('accountingEntityRepo.findByIdForUpdate', () => {
       else expect(accountingEntityMapper.toDomain).not.toHaveBeenCalled();
     }
   );
-
-  it('requires a supplied transaction before querying', async () => {
-    await expect(
-      accountingEntityRepo.findByIdForUpdate(id, {
-        correlationId: 'missing-transaction',
-      } as Parameters<typeof accountingEntityRepo.findByIdForUpdate>[1])
-    ).rejects.toBeInstanceOf(repoError.TransactionRequired);
-    expect(getDbQuery).not.toHaveBeenCalled();
-  });
 });

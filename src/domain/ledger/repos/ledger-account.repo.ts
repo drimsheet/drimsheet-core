@@ -1,7 +1,6 @@
 import {
   IPaginatedReadRepoOptions,
   IReadRepoOptions,
-  ITransactionContext,
   IVersionedRepoWriteOptions,
   IWriteRepoOptions,
 } from '@shared/types/repo.types';
@@ -49,13 +48,6 @@ export interface IFindAllLedgerAccountsOptions extends Omit<
 }
 
 export default interface ILedgerAccountRepo {
-  /** Locks the matching account until the supplied transaction ends. */
-  findByCodeForUpdate(
-    code: string,
-    accountingEntityId: TEntityId,
-    options: IReadRepoOptions & { tx: ITransactionContext }
-  ): Promise<ILedgerAccount | null>;
-
   create(
     account: ILedgerAccount | ILedgerAccount[],
     options: IWriteRepoOptions<ILedgerAccountHistory | ILedgerAccountHistory[]>

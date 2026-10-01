@@ -14,7 +14,7 @@ import accountingPeriodHistoryRepo from './accounting-period-history.repo.impl';
 const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   findByDate: async (accountingEntityId, date, options) => {
     const repoDate = toRepoDateOnly(date);
-    const [result] = await getDbQuery(options)
+    const baseQuery = getDbQuery(options)
       .select()
       .from(accountingPeriodsInCore)
       .where(
@@ -24,6 +24,8 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
           gte(accountingPeriodsInCore.endDate, repoDate)
         )
       );
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const [result] = await query;
 
     return result ? accountingPeriodMapper.toDomain(result) : null;
   },

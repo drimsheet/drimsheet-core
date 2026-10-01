@@ -68,6 +68,166 @@ const layerImportPaths = {
   },
 };
 
+// Deliberately syntax-based: recognize createTransaction by name and require
+// auditable ownership patterns rather than attempting general resource analysis.
+const requireTransactionDisposal = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description:
+        'Require manual transactions to have explicit success and failure cleanup.',
+    },
+    messages: {
+      declaration:
+        'Assign awaited createTransaction() to a single const identifier.',
+      cleanup:
+        'Immediately follow transaction creation with finally disposal, or an unconditional awaited disposing commit() and catch returning handleError(error). Use finally for branching before commit or commit({ dispose: false }).',
+    },
+    schema: [],
+  },
+  create(context) {
+    const sourceCode = context.sourceCode;
+    const callName = (callee) => {
+      if (callee.type === 'Identifier') return callee.name;
+      if (callee.type !== 'MemberExpression') return undefined;
+      return callee.computed ? callee.property.value : callee.property.name;
+    };
+    const referencesVariable = (variable, identifier) =>
+      variable?.references.some(
+        (reference) => reference.identifier === identifier
+      );
+    const isOwnedCall = (call, method, variable) =>
+      call?.type === 'CallExpression' &&
+      !call.optional &&
+      call.callee.type === 'MemberExpression' &&
+      !call.callee.optional &&
+      call.callee.object.type === 'Identifier' &&
+      callName(call.callee) === method &&
+      referencesVariable(variable, call.callee.object);
+
+    const hasDisposingCommitAndHandler = (statement, variable) => {
+      if (statement?.type !== 'TryStatement') return false;
+
+      const handler = statement.handler;
+      const returned = handler?.body.body[0];
+      const handled =
+        returned?.argument?.type === 'AwaitExpression'
+          ? returned.argument.argument
+          : returned?.argument;
+      const errorVariable =
+        handler?.param?.type === 'Identifier'
+          ? sourceCode.getDeclaredVariables(handler)[0]
+          : undefined;
+      const handlesCaughtError =
+        handler?.body.body.length === 1 &&
+        returned?.type === 'ReturnStatement' &&
+        isOwnedCall(handled, 'handleError', variable) &&
+        handled.arguments.length === 1 &&
+        referencesVariable(errorVariable, handled.arguments[0]);
+      if (!handlesCaughtError) return false;
+
+      // A linear prefix cannot return/break/continue around the disposing commit.
+      // Keep finally disposal for more complex control flow instead of guessing.
+      for (const step of statement.block.body) {
+        if (
+          !['VariableDeclaration', 'ExpressionStatement'].includes(step.type)
+        ) {
+          return false;
+        }
+        const commit =
+          step.expression?.type === 'AwaitExpression'
+            ? step.expression.argument
+            : undefined;
+        if (!isOwnedCall(commit, 'commit', variable)) continue;
+
+        if (commit.arguments.length === 0) return true;
+
+        const options = commit.arguments[0];
+        if (
+          commit.arguments.length !== 1 ||
+          options.type !== 'ObjectExpression'
+        ) {
+          return false;
+        }
+        if (options.properties.length === 0) return true;
+
+        const flag = options?.properties?.[0];
+        return (
+          options.properties.length === 1 &&
+          flag.type === 'Property' &&
+          flag.kind === 'init' &&
+          !flag.computed &&
+          (flag.key.name ?? flag.key.value) === 'dispose' &&
+          flag.value.type === 'Literal' &&
+          flag.value.value === true
+        );
+      }
+      return false;
+    };
+
+    return {
+      CallExpression(node) {
+        if (callName(node.callee) !== 'createTransaction') return;
+
+        const awaited = node.parent;
+        const declarator = awaited.parent;
+        const declaration = declarator?.parent;
+        const isOwnedTransaction =
+          awaited.type === 'AwaitExpression' &&
+          declarator.type === 'VariableDeclarator' &&
+          declarator.init === awaited &&
+          declarator.id.type === 'Identifier' &&
+          declaration.type === 'VariableDeclaration' &&
+          declaration.kind === 'const' &&
+          declaration.declarations.length === 1;
+
+        if (!isOwnedTransaction) {
+          context.report({ node, messageId: 'declaration' });
+          return;
+        }
+
+        const statements = declaration.parent.body;
+        const next = Array.isArray(statements)
+          ? statements[statements.indexOf(declaration) + 1]
+          : undefined;
+        const cleanup =
+          next?.type === 'TryStatement' ? next.finalizer?.body[0] : undefined;
+        const disposal = cleanup?.expression?.argument;
+        const isAwaitedDisposal =
+          cleanup?.type === 'ExpressionStatement' &&
+          cleanup.expression.type === 'AwaitExpression' &&
+          disposal?.type === 'CallExpression' &&
+          !disposal.optional &&
+          disposal.callee.type === 'MemberExpression' &&
+          !disposal.callee.optional &&
+          disposal.callee.object.type === 'Identifier' &&
+          callName(disposal.callee) === 'dispose';
+
+        // A computed argument could throw before dispose is called. Allow only
+        // no argument or the caller's already-captured operation error.
+        const hasSafeArguments =
+          isAwaitedDisposal &&
+          (disposal.arguments.length === 0 ||
+            (disposal.arguments.length === 1 &&
+              disposal.arguments[0].type === 'Identifier'));
+        const variable = sourceCode.getDeclaredVariables(declarator)[0];
+        const disposesOwnedTransaction =
+          hasSafeArguments &&
+          variable.references.some(
+            (reference) => reference.identifier === disposal.callee.object
+          );
+
+        if (
+          !disposesOwnedTransaction &&
+          !hasDisposingCommitAndHandler(next, variable)
+        ) {
+          context.report({ node, messageId: 'cleanup' });
+        }
+      },
+    };
+  },
+};
+
 export default [
   {
     ignores: ['coverage/**', 'dist/**', 'generated/**', 'node_modules/**'],
@@ -88,11 +248,13 @@ export default [
       local: {
         rules: {
           'layer-import-paths': layerImportPaths,
+          'require-transaction-disposal': requireTransactionDisposal,
         },
       },
     },
     rules: {
       'local/layer-import-paths': 'error',
+      'local/require-transaction-disposal': 'error',
     },
   },
   {

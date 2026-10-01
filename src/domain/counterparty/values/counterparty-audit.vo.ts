@@ -3,6 +3,7 @@ import generateDiff from '@shared/utils/diff-generator';
 import stringUtils from '@shared/utils/string';
 import historyError from '@shared/values/history/history.error';
 
+import counterpartyValidation from '@domain/counterparty/entities/validations/counterparty.validation';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import {
   ECounterpartyEntityActions,
@@ -31,6 +32,8 @@ function make(
     counterpartyError.InvalidDate
   );
 
+  counterpartyValidation.validateVersion(payload.after.version);
+
   const { before, after, hasChanges } = generateDiff(
     payload.after,
     payload.before
@@ -42,7 +45,7 @@ function make(
 
   const audit: ICounterpartyAudit = {
     entityId: payload.after.id,
-    entityVersion: 1,
+    entityVersion: payload.after.version,
     action: payload.action,
     diff: { before, after },
     occurredAt: payload.after.updatedAt,

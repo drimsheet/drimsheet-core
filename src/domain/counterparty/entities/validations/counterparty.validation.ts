@@ -15,6 +15,11 @@ import {
 } from '@domain/counterparty/types/counterparty.types';
 import counterpartyMetaValidation from '@domain/counterparty/values/validations/counterparty-meta.validation';
 
+function validateVersion(version: number): void {
+  const isInvalidVersion = !Number.isInteger(version) || version < 1;
+  if (isInvalidVersion) throw new counterpartyError.InvalidVersion({ version });
+}
+
 function validateAccountingEntityId(accountingEntityId: TEntityId): void {
   stringUtils.validateUUID(
     accountingEntityId,
@@ -22,6 +27,8 @@ function validateAccountingEntityId(accountingEntityId: TEntityId): void {
   );
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateName(name: string): string {
   return stringUtils.sanitizeAndValidate(
     name,
@@ -30,6 +37,8 @@ function validateName(name: string): string {
   );
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateType(type: UCounterpartyType): UCounterpartyType {
   stringUtils.validateIsInEnum(
     type,
@@ -49,6 +58,8 @@ function validateDraftCreationType(
   if (isMissingDraftType) throw new counterpartyError.InvalidType();
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateStatus(status: UCounterpartyStatus): UCounterpartyStatus {
   stringUtils.validateIsInEnum(
     status,
@@ -58,6 +69,8 @@ function validateStatus(status: UCounterpartyStatus): UCounterpartyStatus {
   return status;
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateRole(role: UCounterpartyRole): UCounterpartyRole {
   stringUtils.validateIsInEnum(
     role,
@@ -77,6 +90,11 @@ function validateCounterparty(counterparty: ICounterparty): void {
     counterparty.id,
     counterpartyError.InvalidCounterpartyId
   );
+  stringUtils.validateUUID(
+    counterparty.createdBy,
+    counterpartyError.InvalidCreatedBy
+  );
+  validateVersion(counterparty.version);
   validateAccountingEntityId(counterparty.accountingEntityId);
   validateName(counterparty.name);
   validateType(counterparty.type);
@@ -101,7 +119,26 @@ function validateCounterparty(counterparty: ICounterparty): void {
   dateUtils.validateDate(counterparty.updatedAt, counterpartyError.InvalidDate);
 }
 
+/** Checks update eligibility and treats an explicit Active status as activation. */
+function validateUpdateStatus(
+  currentStatus: UCounterpartyStatus,
+  status: UCounterpartyStatus | undefined
+): void {
+  if (currentStatus === ECounterpartyStatus.Archived)
+    throw new counterpartyError.Archived();
+  const invalidTarget =
+    status !== undefined && status !== ECounterpartyStatus.Active;
+  if (invalidTarget)
+    throw new counterpartyError.InvalidStatus({ field: 'status' });
+  const alreadyActive =
+    status === ECounterpartyStatus.Active &&
+    currentStatus === ECounterpartyStatus.Active;
+  if (alreadyActive) throw new counterpartyError.AlreadyActive();
+}
+
 const counterpartyValidation = Object.freeze({
+  validateUpdateStatus,
+  validateVersion,
   validateAccountingEntityId,
   validateName,
   validateType,

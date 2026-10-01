@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+
 import addressValue from '@shared/values/contact-details/address.vo';
 
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
@@ -11,6 +13,23 @@ const address = addressValue.make({
 });
 
 describe('counterpartyMetaValidation', () => {
+  it('accepts plain JSON parsed in another JavaScript context', () => {
+    const meta = runInNewContext(
+      'JSON.parse(\'{"vendor":{"address":null}}\')'
+    ) as ICounterpartyMeta;
+    expect(() => counterpartyMetaValidation.validate(meta)).not.toThrow();
+    expect(() => counterpartyMetaValidation.validateCreate(meta)).not.toThrow();
+  });
+
+  it('rejects class instances with otherwise valid role details', () => {
+    class Vendor {
+      address = null;
+    }
+    expect(() =>
+      counterpartyMetaValidation.validate({ vendor: new Vendor() })
+    ).toThrow(counterpartyError.InvalidMeta);
+  });
+
   it.each([
     {},
     { vendor: { address: null } },

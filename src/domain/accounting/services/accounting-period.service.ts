@@ -10,6 +10,8 @@ interface IDependencies {
 export default function makeAccountingPeriodService(
   deps: IDependencies
 ): IAccountingPeriodService {
+  // TODO: Rename this value-returning validation to a check; reserve validate
+  // for checks that only throw on failure and return no value.
   const validatePostingPeriod: IAccountingPeriodService['validatePostingPeriod'] =
     async (accountingEntityId, postingDate, repoOptions) => {
       const accountingPeriod = await deps.accountingPeriodRepo.findByDate(

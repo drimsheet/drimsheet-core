@@ -1,6 +1,7 @@
 import {
   IPaginatedReadRepoOptions,
   IReadRepoOptions,
+  IVersionedRepoWriteOptions,
   IWriteRepoOptions,
 } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
@@ -33,6 +34,12 @@ export interface IFindAllCounterpartiesOptions extends Omit<
 }
 
 export default interface ICounterpartyRepo {
+  /** Saves a conditional versioned update and its history atomically. */
+  update(
+    counterparty: ICounterparty,
+    options: IVersionedRepoWriteOptions<ICounterpartyHistory>
+  ): Promise<void>;
+
   create(
     counterparty: ICounterparty,
     options: IWriteRepoOptions<ICounterpartyHistory>

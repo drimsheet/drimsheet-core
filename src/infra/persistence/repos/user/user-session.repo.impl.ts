@@ -15,7 +15,7 @@ const userSessionRepo: IUserSessionRepo = {
   },
 
   findByRefreshToken: async (userId, refreshToken, options) => {
-    const [result] = await getDbQuery(options)
+    const baseQuery = getDbQuery(options)
       .select()
       .from(userSessions)
       .where(
@@ -24,6 +24,8 @@ const userSessionRepo: IUserSessionRepo = {
           eq(userSessions.refreshToken, refreshToken)
         )
       );
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const [result] = await query;
     if (!result) return null;
     return userSessionMapper.toDomain(result);
   },

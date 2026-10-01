@@ -5,6 +5,7 @@ export const mockCounterpartyHistoryRepo: jest.Mocked<ICounterpartyHistoryRepo> 
   { save: jest.fn() };
 export const mockCounterpartyRepo: jest.Mocked<ICounterpartyRepo> = {
   create: jest.fn(),
+  update: jest.fn(),
   findAll: jest.fn(),
   findById: jest.fn(),
 };

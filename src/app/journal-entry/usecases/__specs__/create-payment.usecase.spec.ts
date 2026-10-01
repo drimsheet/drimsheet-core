@@ -51,6 +51,7 @@ import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
 import makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment.usecase';
@@ -135,7 +136,9 @@ describe('makeCreatePaymentUsecase', () => {
     type: ELedgerType.Liability,
   });
 
-  const counterpartyService = makeCounterpartyService();
+  const counterpartyService = makeCounterpartyService({
+    journalLineRepo: mockJournalLineRepo,
+  });
   const newCounterparty = counterpartyService.create({
     createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
     accountingEntityId: accountingEntity.id,

@@ -17,6 +17,7 @@ const counterpartyHistoryMapper = {
   ): Omit<ICounterpartyHistoryRepoModel, 'id' | 'recordedAt'> {
     return {
       counterpartyId: history.entityId,
+      entityVersion: history.entityVersion,
       accountingEntityId: counterparty.accountingEntityId,
       action: history.action,
       actorId: history.actorId,

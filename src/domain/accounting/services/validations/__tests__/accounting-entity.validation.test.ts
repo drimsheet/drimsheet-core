@@ -37,7 +37,6 @@ describe('accountingEntityServiceValidation', () => {
   const repo: jest.Mocked<IAccountingEntityRepo> = {
     create: jest.fn(),
     findById: jest.fn(),
-    findByIdForUpdate: jest.fn(),
     findByIdAndUserId: jest.fn(),
     findByUserId: jest.fn(),
   };

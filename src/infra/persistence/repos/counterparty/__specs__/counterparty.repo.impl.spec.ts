@@ -6,7 +6,10 @@ import generateUUID from '@shared/utils/uuid-generator';
 import addressValue from '@shared/values/contact-details/address.vo';
 import historyValue from '@shared/values/history/history.vo';
 
+import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
+
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 
 import { counterpartiesInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
@@ -19,7 +22,9 @@ jest.mock(
   '@infra/persistence/repos/counterparty/counterparty-history.repo.impl'
 );
 
-const service = makeCounterpartyService();
+const service = makeCounterpartyService({
+  journalLineRepo: mockJournalLineRepo,
+});
 const payload = {
   accountingEntityId: generateUUID(),
   name: 'Vendor',
@@ -143,7 +148,9 @@ describe('Counterparty repository', () => {
 
 describe('Counterparty repository reads', () => {
   const dialect = new PgDialect();
-  const domainService = makeCounterpartyService();
+  const domainService = makeCounterpartyService({
+    journalLineRepo: mockJournalLineRepo,
+  });
   const payload = {
     accountingEntityId: generateUUID(),
     name: 'Acme',
@@ -318,6 +325,105 @@ describe('Counterparty repository reads', () => {
       ).toEqual(entity);
       expect(getDbQuery).toHaveBeenCalledWith(options);
       expect(fake.db.select).toHaveBeenCalledTimes(1);
+    }
+  );
+});
+
+describe('versioned counterparty updates', () => {
+  const [updated, , delta] = counterpartyEntity.update(counterparty, {
+    name: 'Changed',
+  });
+  const updateHistory = historyValue.make(
+    delta,
+    history.actorId,
+    'correlation'
+  );
+  const updateOptions = {
+    correlationId: 'correlation',
+    history: updateHistory,
+    expectedVersion: counterparty.version,
+  };
+  beforeEach(() => jest.resetAllMocks());
+
+  function writeQuery(rowCount = 1) {
+    const where = jest.fn().mockResolvedValue({ rowCount });
+    const set = jest.fn().mockReturnValue({ where });
+    const tx = { update: jest.fn().mockReturnValue({ set }) };
+    const query = {
+      _brand: 'DrimsheetTransactionContext' as const,
+      transaction: jest.fn(async (fn: (arg: typeof tx) => Promise<void>) =>
+        fn(tx)
+      ),
+    };
+    useQuery(query);
+    return { tx, query, set, where };
+  }
+
+  it('atomically saves the next version and history without requiring a caller transaction', async () => {
+    const { tx, query, set, where } = writeQuery();
+    await counterpartyRepo.update(updated, updateOptions);
+    expect(query.transaction).toHaveBeenCalledTimes(1);
+    expect(tx.update).toHaveBeenCalledWith(counterpartiesInCore);
+    expect(set).toHaveBeenCalledWith(counterpartyMapper.toRepo(updated));
+    expect(
+      new PgDialect().sqlToQuery(where.mock.calls[0][0] as SQL).params
+    ).toEqual([
+      counterparty.id,
+      counterparty.version,
+      counterparty.accountingEntityId,
+    ]);
+    expect(counterpartyHistoryRepo.save).toHaveBeenCalledWith(
+      updated,
+      updateHistory,
+      { ...updateOptions, tx }
+    );
+  });
+
+  it.each([
+    { expectedVersion: 0 },
+    { expectedVersion: undefined },
+    { expectedVersion: counterparty.version + 1 },
+    { history: { ...updateHistory, entityVersion: counterparty.version } },
+  ])(
+    'rejects inconsistent write versions before querying (%j)',
+    async (invalid) => {
+      await expect(
+        counterpartyRepo.update(updated, {
+          ...updateOptions,
+          ...invalid,
+        } as never)
+      ).rejects.toThrow();
+      expect(getDbQuery).not.toHaveBeenCalled();
+      expect(counterpartyHistoryRepo.save).not.toHaveBeenCalled();
+    }
+  );
+
+  it('does not write history when a tenant/version predicate matches no row', async () => {
+    writeQuery(0);
+    await expect(
+      counterpartyRepo.update(updated, updateOptions)
+    ).rejects.toThrow('repo_error_version_conflict');
+    expect(counterpartyHistoryRepo.save).not.toHaveBeenCalled();
+  });
+
+  it.each(['state', 'history', 'commit'] as const)(
+    'propagates %s failure for rollback',
+    async (stage) => {
+      const { tx, query, where } = writeQuery();
+      const error = new Error(stage);
+      if (stage === 'state') where.mockRejectedValue(error);
+      else if (stage === 'history')
+        jest.mocked(counterpartyHistoryRepo.save).mockRejectedValue(error);
+      else
+        query.transaction.mockImplementation(async (fn) => {
+          await fn(tx);
+          throw error;
+        });
+      await expect(
+        counterpartyRepo.update(updated, updateOptions)
+      ).rejects.toBe(error);
+      if (stage === 'state')
+        expect(counterpartyHistoryRepo.save).not.toHaveBeenCalled();
     }
   );
 });

@@ -78,7 +78,6 @@ describe('journal entry rules', () => {
     functionalCurrencyCode: currency.code,
   } as IAccountingEntity;
   const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
-    findByCodeForUpdate: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     findById: jest.fn(),

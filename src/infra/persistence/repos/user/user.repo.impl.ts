@@ -49,10 +49,12 @@ const userRepo: IUserRepo = {
   },
 
   findByEmail: async (email, options) => {
-    const result = await getDbQuery(options)
+    const baseQuery = getDbQuery(options)
       .select()
       .from(users)
       .where(and(eq(users.email, email), isNull(users.deletedAt)));
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const result = await query;
 
     if (!result.length) return null;
 
@@ -60,10 +62,12 @@ const userRepo: IUserRepo = {
   },
 
   findById: async (userId, options) => {
-    const result = await getDbQuery(options)
+    const baseQuery = getDbQuery(options)
       .select()
       .from(users)
       .where(and(eq(users.id, userId), isNull(users.deletedAt)));
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const result = await query;
 
     if (!result.length) return null;
 

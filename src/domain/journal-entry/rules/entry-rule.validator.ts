@@ -3,6 +3,8 @@ import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.t
 import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 export default function journalEntryRuleValidator(
   account: ILedgerAccount,
   permits: IJournalEntryRulePermits

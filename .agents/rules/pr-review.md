@@ -2,6 +2,10 @@
 
 Review for bugs first.
 
+Ground findings in concrete code paths, contracts, tests, or documented rules.
+Missing ticket context is not itself a finding or a reason to stop reviewing.
+Separate demonstrated defects from questions about unconfirmed product intent.
+
 ## Always Check
 
 - Correctness regressions and missed edge cases.

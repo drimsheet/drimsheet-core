@@ -80,6 +80,7 @@ const mockResult = {
       type: 'organization',
       meta: { vendor: { address: null } },
       roles: ['vendor'],
+      version: 1,
       createdAt: new Date('2026-08-01T08:00:00.000Z'),
       updatedAt: new Date('2026-08-01T08:00:00.000Z'),
     },
@@ -126,6 +127,7 @@ describe('GET /counterparties', () => {
       expect(response.body.data).toHaveLength(1);
       expect(response.body.data[0]).toEqual({
         ...mockResult.data[0],
+        version: 1,
         createdAt: mockResult.data[0].createdAt.toISOString(),
         updatedAt: mockResult.data[0].updatedAt.toISOString(),
       });

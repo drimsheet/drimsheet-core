@@ -13,6 +13,8 @@ interface IDependencies {
 }
 
 /** Creates the capability that validates an accepted plain-text password. */
+// TODO: Rename this factory to reflect its value-returning password check;
+// reserve validate for checks that only throw on failure and return no value.
 function makeValidatePassword(): IPasswordService['makePassword'] {
   return (input) => {
     if (

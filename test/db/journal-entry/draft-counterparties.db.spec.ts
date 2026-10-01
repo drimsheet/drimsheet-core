@@ -1,13 +1,17 @@
+import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
+import historyValue from '@shared/values/history/history.vo';
 
+import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
+import makeJournalEntryRemovalService from '@domain/journal-entry/services/journal-entry-removal.service';
 import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -20,11 +24,13 @@ import {
 } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import makeCounterpartyAppService from '@app/counterparty/services/counterparty.service';
+import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
 import mockFileManagementService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
 import makeJournalEntryPersistenceService from '@app/journal-entry/services/journal-entry-persistence.service';
 import makeJournalEntryRectificationPreparationService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
 import makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment.usecase';
+import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
@@ -34,9 +40,11 @@ import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks_
 import { ledgerAccountsInCore } from '@infra/config/drizzle/schema';
 import { postgres } from '@infra/config/postgres.config';
 import vars from '@infra/config/vars.config';
+import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import accountingEntityRepo from '@infra/persistence/repos/accounting/accounting-entity.repo.impl';
 import counterpartyRepo from '@infra/persistence/repos/counterparty/counterparty.repo.impl';
 import journalRepos from '@infra/persistence/repos/journal-entry';
+import journalLineRepo from '@infra/persistence/repos/journal-entry/journal-line.repo.impl';
 import ledgerAccountBalanceRepo from '@infra/persistence/repos/ledger/ledger-account-balance.repo.impl';
 import ledgerAccountRepo from '@infra/persistence/repos/ledger/ledger-account.repo.impl';
 import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
@@ -58,7 +66,7 @@ describe('draft counterparties with real PostgreSQL', () => {
   }> = [];
   const counterpartyAppService = makeCounterpartyAppService({
     counterpartyRepo,
-    counterpartyService: makeCounterpartyService(),
+    counterpartyService: makeCounterpartyService({ journalLineRepo }),
   });
   const journalEntryService = makeJournalEntryService({
     accountingPeriodService: mockAccountingPeriodService,
@@ -231,19 +239,45 @@ describe('draft counterparties with real PostgreSQL', () => {
       fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
     });
   }
-  const rectify = makeRectifyJournalEntryUsecase({
+  const makeRectify = (persistence = journalEntryPersistenceService) =>
+    makeRectifyJournalEntryUsecase({
+      accountingEntityService: mockAccountingEntityService,
+      appContext: mockAppContext,
+      counterpartyRepo,
+      journalEntryRepo: journalRepos.journalEntry,
+      journalEntryRectificationPreparationService,
+      journalEntryPersistenceService: persistence,
+      repoService,
+      eventBus: mockEventBus,
+      outboxService: mockOutboxService,
+      ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
+      fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
+    });
+
+  const rectify = makeRectify();
+  const remove = makeDeleteJournalEntryUsecase({
     accountingEntityService: mockAccountingEntityService,
     appContext: mockAppContext,
-    counterpartyRepo,
-    journalEntryRepo: journalRepos.journalEntry,
-    journalEntryRectificationPreparationService,
-    journalEntryPersistenceService,
     repoService,
     eventBus: mockEventBus,
+    journalEntryRepo: journalRepos.journalEntry,
+    journalEntryPersistenceService,
+    journalEntryRemovalService: makeJournalEntryRemovalService({
+      journalEntryRectificationService: makeJournalEntryRectificationService(),
+    }),
+    fxLotAppService: mockFxLotAppService,
+    fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
     outboxService: mockOutboxService,
     ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
-    fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
   });
+  const updateCounterparty = (repo: ICounterpartyRepo = counterpartyRepo) =>
+    makeUpdateCounterpartyUsecase({
+      repoService,
+      appContext: mockAppContext,
+      counterpartyRepo: repo,
+      counterpartyService: makeCounterpartyService({ journalLineRepo }),
+      eventBus: mockEventBus,
+    });
 
   it('commits a draft and one deduplicated draft counterparty, exposes status and reuses its ID', async () => {
     const { entityId, payload } = await setup();
@@ -295,10 +329,94 @@ describe('draft counterparties with real PostgreSQL', () => {
     ).toHaveLength(0);
   });
 
+  it('activation leaves stored drafts unchanged and allows later posting', async () => {
+    const { entityId, payload } = await setup();
+    const entry = await create()(payload);
+    const counterpartyId = entry.lines[0].counterpartyId!;
+    async function snapshot() {
+      const header = await observer.query(
+        'select * from core.journal_entries where id = $1',
+        [entry.id]
+      );
+      const lines = await observer.query(
+        'select * from core.journal_lines where entry_id = $1 order by id',
+        [entry.id]
+      );
+      const headersAudit = await observer.query(
+        'select * from audit.journal_entry_history where accounting_entity_id = $1 order by id',
+        [entityId]
+      );
+      const linesAudit = await observer.query(
+        'select * from audit.journal_line_history where accounting_entity_id = $1 order by id',
+        [entityId]
+      );
+      return {
+        header: header.rows,
+        lines: lines.rows,
+        headersAudit: headersAudit.rows,
+        linesAudit: linesAudit.rows,
+      };
+    }
+    const before = await snapshot();
+    mockEventBus.publish.mockClear();
+    mockFxLotAppService.dispose.mockClear();
+    mockOutboxService.createBalancePropagation.mockClear();
+    mockLedgerAccountBalanceAdjustmentQueue.add.mockClear();
+    const activate = makeUpdateCounterpartyUsecase({
+      repoService,
+      appContext: mockAppContext,
+      counterpartyService: makeCounterpartyService({ journalLineRepo }),
+      counterpartyRepo,
+      eventBus: mockEventBus,
+    });
+    const current = await counterpartyRepo.findById(
+      counterpartyId as TEntityId,
+      entityId,
+      repoOptions
+    );
+    if (!current) throw new Error('Missing draft counterparty');
+    await activate(counterpartyId, {
+      expectedVersion: current.version,
+      status: 'active',
+      name: 'Corrected supplier',
+      meta: { vendor: {} },
+      type: current.type,
+    });
+    expect(await snapshot()).toEqual(before);
+    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(
+      mockFxLotCostBasisService.persistence.persistDisposition
+    ).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).toHaveBeenCalledWith([
+      expect.objectContaining({ type: 'domain:counterparty:activated' }),
+    ]);
+    payload.sourceLine.counterparty = {
+      id: counterpartyId,
+      name: 'Draft supplier',
+    };
+    payload.destinationLines[0].counterparty = payload.sourceLine.counterparty;
+    payload.postedAt = payload.effectiveDate;
+    await rectify(entry.id, {
+      ...payload,
+      sourceType: 'payment',
+      expectedVersion: entry.version,
+      attachments: [],
+    });
+    expect(
+      await journalRepos.journalEntry.findById(
+        entry.id as TEntityId,
+        repoOptions
+      )
+    ).toMatchObject({ status: 'posted' });
+  });
+
   it('rolls back counterparties, journal lines and their histories when the outer save fails', async () => {
     const { entityId, payload } = await setup();
     const failure = new Error('failure after journal persistence');
     const transactionService: IRepoService = {
+      ...repoService,
       runInTransaction: (fn) =>
         repoService.runInTransaction(async (tx) => {
           await fn(tx);
@@ -424,4 +542,221 @@ describe('draft counterparties with real PostgreSQL', () => {
     expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });
+  it.each(['delete', 'reassign'] as const)(
+    'permits a type change only after the last reference is removed by %s',
+    async (operation) => {
+      const { entityId, payload } = await setup();
+      const first = await create()(payload);
+      const id = first.lines[0].counterpartyId as TEntityId;
+      payload.sourceLine.counterparty = { id, name: 'Draft supplier' };
+      payload.destinationLines[0].counterparty =
+        payload.sourceLine.counterparty;
+      const second = await create()(payload);
+      const current = await counterpartyRepo.findById(
+        id,
+        entityId,
+        repoOptions
+      );
+      if (!current) throw new Error('Missing fixture');
+      await remove(first.id, { expectedVersion: first.version });
+      await expect(
+        updateCounterparty()(id, {
+          expectedVersion: current.version,
+          type: 'individual',
+        })
+      ).rejects.toThrow(
+        'counterparty_error_type_change_after_transaction_use_conflict'
+      );
+      if (operation === 'delete')
+        await remove(second.id, { expectedVersion: second.version });
+      else {
+        const replacement = {
+          name: 'Replacement supplier',
+          type: 'organization' as const,
+        };
+        await rectify(second.id, {
+          ...payload,
+          sourceType: 'payment',
+          expectedVersion: second.version,
+          attachments: [],
+          sourceLine: {
+            ...payload.sourceLine,
+            id: second.lines[0].id,
+            counterparty: replacement,
+          },
+          destinationLines: [
+            {
+              ...payload.destinationLines[0],
+              id: second.lines[1].id,
+              counterparty: replacement,
+            },
+          ],
+        });
+      }
+      expect(
+        (
+          await journalLineRepo.findAllByCounterpartyId(
+            id,
+            entityId,
+            repoOptions
+          )
+        ).length > 0
+      ).toBe(false);
+      await expect(
+        updateCounterparty()(id, {
+          expectedVersion: current.version,
+          type: 'individual',
+        })
+      ).resolves.toMatchObject({ type: 'individual' });
+    }
+  );
+
+  function barrier<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((done) => {
+      resolve = done;
+    });
+    return { promise, resolve };
+  }
+  async function waitForBlock(waiter: number, holder: number) {
+    const deadline = Date.now() + 4000;
+    while (Date.now() < deadline) {
+      const state = await observer.query(
+        'select pg_blocking_pids($1) as blockers',
+        [waiter]
+      );
+      if (state.rows[0].blockers.includes(holder)) return;
+    }
+    throw new Error('Expected rectification/type update to block');
+  }
+
+  it.each(['association', 'type'] as const)(
+    'coordinates real draft rectification when %s acquires the lock first',
+    async (first) => {
+      const { entityId, payload } = await setup();
+      const entry = await create()(payload);
+      const actorId = mockAppContext.get().actor!.id;
+      const [target, , audit] = makeCounterpartyService({
+        journalLineRepo,
+      }).create({
+        createdBy: actorId,
+        accountingEntityId: entityId,
+        name: 'New target',
+        type: 'individual',
+        status: 'draft',
+      });
+      await counterpartyRepo.create(target, {
+        ...repoOptions,
+        history: historyValue.make(audit, actorId, correlationId),
+      });
+      const cp = { id: target.id, name: target.name };
+      const rectification = {
+        ...payload,
+        sourceType: 'payment' as const,
+        expectedVersion: entry.version,
+        attachments: [],
+        sourceLine: {
+          ...payload.sourceLine,
+          id: entry.lines[0].id,
+          counterparty: cp,
+        },
+        destinationLines: [
+          {
+            ...payload.destinationLines[0],
+            id: entry.lines[1].id,
+            counterparty: cp,
+          },
+        ],
+      };
+      const held = barrier<void>();
+      const release = barrier<void>();
+      const associationPid = barrier<number>();
+      const updaterPid = barrier<number>();
+      const persistence = {
+        ...journalEntryPersistenceService,
+        rectify: async (
+          ...args: Parameters<typeof journalEntryPersistenceService.rectify>
+        ) => {
+          const result = await getDbQuery(args[1]).execute(
+            sql`select pg_backend_pid() as pid`
+          );
+          associationPid.resolve(Number(result.rows[0].pid));
+          await journalEntryPersistenceService.rectify(...args);
+          if (first === 'association') {
+            held.resolve();
+            await release.promise;
+          }
+        },
+      };
+      const repo: ICounterpartyRepo = {
+        ...counterpartyRepo,
+        findById: async (...args) => {
+          const result = await getDbQuery(args[2]).execute(
+            sql`select pg_backend_pid() as pid`
+          );
+          updaterPid.resolve(Number(result.rows[0].pid));
+          const current = await counterpartyRepo.findById(...args);
+          if (first === 'type') {
+            held.resolve();
+            await release.promise;
+          }
+          return current;
+        },
+      };
+      const associate = () => makeRectify(persistence)(entry.id, rectification);
+      const change = () =>
+        updateCounterparty(repo)(target.id, {
+          expectedVersion: target.version,
+          type: 'organization',
+        });
+      const leading = Promise.allSettled([
+        first === 'association' ? associate() : change(),
+      ]);
+      let trailing: Promise<PromiseSettledResult<unknown>[]> | undefined;
+      try {
+        await held.promise;
+        trailing = Promise.allSettled([
+          first === 'association' ? change() : associate(),
+        ]);
+        const updater = await updaterPid.promise;
+        const association = await associationPid.promise;
+        await waitForBlock(
+          first === 'association' ? updater : association,
+          first === 'association' ? association : updater
+        );
+        release.resolve();
+        expect((await leading)[0].status).toBe('fulfilled');
+        const result = (await trailing)[0];
+        if (first === 'association')
+          expect(result).toMatchObject({
+            status: 'rejected',
+            reason: {
+              errorKey:
+                'counterparty_error_type_change_after_transaction_use_conflict',
+            },
+          });
+        else expect(result.status).toBe('fulfilled');
+        expect(
+          (
+            await journalLineRepo.findAllByCounterpartyId(
+              target.id,
+              entityId,
+              repoOptions
+            )
+          ).length > 0
+        ).toBe(true);
+        const history = await observer.query(
+          'select action from audit.counterparty_history where counterparty_id = $1 order by id',
+          [target.id]
+        );
+        expect(history.rows.map((row) => row.action)).toEqual(
+          first === 'association' ? ['created'] : ['created', 'updated']
+        );
+      } finally {
+        release.resolve();
+        await leading;
+        if (trailing) await trailing;
+      }
+    }
+  );
 });

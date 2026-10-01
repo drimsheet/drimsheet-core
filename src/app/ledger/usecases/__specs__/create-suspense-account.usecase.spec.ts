@@ -1,6 +1,6 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
+import { ERepoLock, ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 
@@ -55,7 +55,7 @@ describe('createSuspenseAccountUsecase', () => {
       accountingEntity,
       correlationId,
     });
-    mockAccountingEntityRepo.findByIdForUpdate.mockImplementation(async () => {
+    mockAccountingEntityRepo.findById.mockImplementation(async () => {
       locked = true;
       return accountingEntity;
     });
@@ -93,9 +93,9 @@ describe('createSuspenseAccountUsecase', () => {
       const result = await usecase({ ...valid, type });
       const [account, currency, options] =
         mockPersistence.createWithoutAssigningCode.mock.calls[0];
-      expect(mockAccountingEntityRepo.findByIdForUpdate).toHaveBeenCalledWith(
+      expect(mockAccountingEntityRepo.findById).toHaveBeenCalledWith(
         accountingEntity.id,
-        { correlationId, tx }
+        { correlationId, tx, lock: ERepoLock.Update }
       );
       expect(account).toMatchObject({
         name: valid.name,
@@ -166,7 +166,7 @@ describe('createSuspenseAccountUsecase', () => {
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
   });
   it('rejects a missing accounting entity before domain reads or writes', async () => {
-    mockAccountingEntityRepo.findByIdForUpdate.mockResolvedValueOnce(null);
+    mockAccountingEntityRepo.findById.mockResolvedValueOnce(null);
     await expect(usecase(valid)).rejects.toBeInstanceOf(
       accountingAppError.ActiveEntityNotFound
     );
@@ -188,7 +188,7 @@ describe('createSuspenseAccountUsecase', () => {
   });
   it('propagates lock failures without domain creation', async () => {
     const failure = new Error('lock failed');
-    mockAccountingEntityRepo.findByIdForUpdate.mockRejectedValueOnce(failure);
+    mockAccountingEntityRepo.findById.mockRejectedValueOnce(failure);
     await expect(usecase(valid)).rejects.toBe(failure);
     expect(
       mockSuspenseAccountService.createAssetSuspense

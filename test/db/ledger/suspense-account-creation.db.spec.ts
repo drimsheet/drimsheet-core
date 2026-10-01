@@ -218,6 +218,7 @@ describe('suspense creation with real PostgreSQL', () => {
       const started = barrier<number>();
       const rollback = new Error('failure after persistence');
       const holder: IRepoService = {
+        ...repoService,
         runInTransaction: (fn) =>
           repoService.runInTransaction(async (tx) => {
             const result = await fn(tx);
@@ -231,6 +232,7 @@ describe('suspense creation with real PostgreSQL', () => {
           }),
       };
       const waiter: IRepoService = {
+        ...repoService,
         runInTransaction: (fn) =>
           repoService.runInTransaction(async (tx) => {
             const pid = await getDbQuery({ correlationId, tx }).execute(
@@ -318,6 +320,7 @@ describe('suspense creation with real PostgreSQL', () => {
     const ready = barrier<void>();
     const release = barrier<void>();
     const holder: IRepoService = {
+      ...repoService,
       runInTransaction: (fn) =>
         repoService.runInTransaction(async (tx) => {
           const result = await fn(tx);

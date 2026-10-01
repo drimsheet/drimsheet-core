@@ -11,8 +11,11 @@ import {
 
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeCounterpartyAppService from '@app/counterparty/services/counterparty.service';
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 
-const domainService = makeCounterpartyService();
+const domainService = makeCounterpartyService({
+  journalLineRepo: mockJournalLineRepo,
+});
 
 describe('makeCounterpartyAppService', () => {
   const service = makeCounterpartyAppService({
@@ -95,6 +98,7 @@ describe('makeCounterpartyAppService', () => {
           meta: {},
           roles: [],
           status: 'active',
+          version: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
         };

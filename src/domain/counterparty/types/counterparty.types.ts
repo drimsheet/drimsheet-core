@@ -38,6 +38,7 @@ export interface ICounterparty {
   type: UCounterpartyType;
   roles: UCounterpartyRole[];
   meta: ICounterpartyMeta;
+  version: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -96,6 +97,13 @@ export interface ICreateCounterpartyMeta {
 }
 
 export interface ICreateCounterpartyPayload extends IMakeCounterpartyPayload {
+  meta?: ICreateCounterpartyMeta;
+}
+
+export interface IUpdateCounterpartyPayload {
+  name?: string;
+  type?: UCounterpartyType;
+  status?: typeof ECounterpartyStatus.Active;
   meta?: ICreateCounterpartyMeta;
 }
 

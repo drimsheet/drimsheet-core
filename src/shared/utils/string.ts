@@ -51,6 +51,8 @@ function validateStringWithinRange<T extends Error>(
   }
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function sanitizeAndValidateString<T extends Error>(
   value: string,
   options: IValidationOptions,
