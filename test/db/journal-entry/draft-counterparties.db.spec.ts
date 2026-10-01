@@ -379,6 +379,7 @@ describe('draft counterparties with real PostgreSQL', () => {
     const { entityId, payload } = await setup();
     const failure = new Error('failure after journal persistence');
     const transactionService: IRepoService = {
+      ...repoService,
       runInTransaction: (fn) =>
         repoService.runInTransaction(async (tx) => {
           await fn(tx);

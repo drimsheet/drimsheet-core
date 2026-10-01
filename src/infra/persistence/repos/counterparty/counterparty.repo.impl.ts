@@ -34,6 +34,7 @@ const counterpartyRepo: ICounterpartyRepo = {
             )
           )
         );
+
       if (updated.rowCount === 0)
         throw new repoError.VersionNotFound({
           id: counterparty.id,
