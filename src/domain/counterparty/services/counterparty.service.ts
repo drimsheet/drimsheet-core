@@ -20,23 +20,23 @@ interface IDependencies {
 /** Prepares all requested roles, immutable transition events, and one creation audit without persistence. */
 function makeCreate(): ICounterpartyService['create'] {
   return (payload) => {
-    const meta = payload.meta ?? {};
-    counterpartyMetaValidation.validateCreate(meta);
+    const { meta } = payload;
+    if (meta !== undefined) counterpartyMetaValidation.validateCreate(meta);
 
     const assignments: TCounterpartyRoleDetails[] = [];
-    if (meta.employer) {
+    if (meta?.employer) {
       assignments.push({
         role: 'employer',
         meta: employerMetaValue.make(meta.employer),
       });
     }
-    if (meta.vendor) {
+    if (meta?.vendor) {
       assignments.push({
         role: 'vendor',
         meta: vendorMetaValue.make(meta.vendor),
       });
     }
-    if (meta.contractor) {
+    if (meta?.contractor) {
       assignments.push({
         role: 'contractor',
         meta: contractorMetaValue.make(meta.contractor),
