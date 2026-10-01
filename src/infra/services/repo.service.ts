@@ -26,8 +26,11 @@ interface ITransactionState {
 }
 
 /** Commit once; discard the connection if the outcome is unsuccessful or uncertain. */
-function makeCommit(state: ITransactionState): IRepoTransaction['commit'] {
-  return async () => {
+function makeCommit(
+  state: ITransactionState,
+  dispose: IRepoTransaction['dispose']
+): IRepoTransaction['commit'] {
+  return async (options) => {
     const isInactive = state.completed || state.released;
     if (isInactive) throw new repoError.TransactionInactive();
 
@@ -46,6 +49,9 @@ function makeCommit(state: ITransactionState): IRepoTransaction['commit'] {
       state.discard = true;
       throw error;
     }
+
+    const shouldDispose = options?.dispose !== false;
+    if (shouldDispose) await dispose();
   };
 }
 
@@ -67,6 +73,16 @@ function makeDispose(state: ITransactionState): IRepoTransaction['dispose'] {
       state.client.removeListener('error', state.onClientError);
       state.client.release(state.discard);
     }
+  };
+}
+
+/** Preserve the operation error unless cleanup fails with both errors attached. */
+function makeHandleError(
+  dispose: IRepoTransaction['dispose']
+): IRepoTransaction['handleError'] {
+  return async (error) => {
+    await dispose(error);
+    throw error;
   };
 }
 
@@ -112,11 +128,13 @@ function makeCreateTransaction(): IRepoService['createTransaction'] {
 
     try {
       await client.query('BEGIN');
+      const dispose = makeDispose(state);
 
       return Object.freeze({
         context: makeTransactionContext(client),
-        commit: makeCommit(state),
-        dispose: makeDispose(state),
+        commit: makeCommit(state, dispose),
+        dispose,
+        handleError: makeHandleError(dispose),
       });
     } catch (error) {
       client.removeListener('error', state.onClientError);

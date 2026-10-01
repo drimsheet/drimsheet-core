@@ -1,4 +1,6 @@
 import IEventBus from '@shared/contracts/event-bus.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
+import { ERepoLock } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -19,6 +21,7 @@ import { counterpartyUpdateReqValidation } from '@app/counterparty/dtos/counterp
 import counterpartyMutationPolicy from '@app/counterparty/policies/counterparty-mutation.policy';
 
 interface IDependencies {
+  repoService: IRepoService;
   appContext: IAppContext;
   counterpartyService: ICounterpartyService;
   counterpartyRepo: ICounterpartyRepo;
@@ -41,32 +44,43 @@ export default function makeUpdateCounterpartyUsecase(
     const changes = counterpartyDtoMapper.fromUpdateDto(payload);
     const repoOptions = { correlationId, idempotencyKey };
 
-    const existing = await deps.counterpartyRepo.findById(
-      id as TEntityId,
-      accountingEntity.id,
-      { correlationId }
-    );
+    const transaction = await deps.repoService.createTransaction();
 
-    const current = counterpartyMutationPolicy.validate({
-      id,
-      counterparty: existing,
-      accountingEntityId: accountingEntity.id,
-      expectedVersion: payload.expectedVersion,
-    });
+    try {
+      const readOptions = { correlationId, tx: transaction.context };
 
-    const update = deps.counterpartyService.update(current, changes);
+      const existing = await deps.counterpartyRepo.findById(
+        id as TEntityId,
+        accountingEntity.id,
+        { ...readOptions, lock: ERepoLock.Update }
+      );
 
-    const [counterparty, events, audit] = update;
-    const history = historyValue.make(audit, actor.id, correlationId);
+      const current = counterpartyMutationPolicy.validate({
+        id,
+        counterparty: existing,
+        accountingEntityId: accountingEntity.id,
+        expectedVersion: payload.expectedVersion,
+      });
 
-    await deps.counterpartyRepo.update(counterparty, {
-      correlationId,
-      expectedVersion: payload.expectedVersion,
-      history,
-    });
+      // Read usage after acquiring the parent lock so committed associations are visible.
+      const [counterparty, events, audit] =
+        await deps.counterpartyService.update(current, changes, readOptions);
 
-    await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
+      const history = historyValue.make(audit, actor.id, correlationId);
 
-    return counterpartyDtoMapper.toDto(counterparty);
+      await deps.counterpartyRepo.update(counterparty, {
+        ...readOptions,
+        expectedVersion: payload.expectedVersion,
+        history,
+      });
+
+      await transaction.commit();
+
+      await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
+
+      return counterpartyDtoMapper.toDto(counterparty);
+    } catch (error) {
+      return transaction.handleError(error);
+    }
   };
 }

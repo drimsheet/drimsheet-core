@@ -11,6 +11,8 @@ import {
   UCounterpartyRole,
 } from '@domain/counterparty/types/counterparty.types';
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateObject(value: unknown): Record<string, unknown> {
   const isInvalidObject = !isPlainObject(value);
   if (isInvalidObject) throw new counterpartyError.InvalidMeta({ value });

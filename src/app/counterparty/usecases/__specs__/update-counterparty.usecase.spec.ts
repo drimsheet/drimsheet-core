@@ -1,6 +1,10 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
+import mockRepoService, {
+  mockRepoTransaction,
+} from '@shared/contracts/__mocks__/repo.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
+import repoError from '@shared/values/errors/repo.error';
 
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
@@ -11,8 +15,11 @@ import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import { mockCounterpartyService } from '@app/counterparty/contracts/__mocks__/counterparty.domain.services.mock';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 
-const service = makeCounterpartyService();
+const service = makeCounterpartyService({
+  journalLineRepo: mockJournalLineRepo,
+});
 const [actor] = actorEntity.makeUser({
   email: 'update@example.test',
   displayName: 'Updater',
@@ -25,6 +32,7 @@ const [before] = service.create({
   status: 'draft',
 });
 const usecase = makeUpdateCounterpartyUsecase({
+  repoService: mockRepoService,
   appContext: mockAppContext,
   counterpartyService: mockCounterpartyService,
   counterpartyRepo: mockCounterpartyRepo,
@@ -34,6 +42,11 @@ const usecase = makeUpdateCounterpartyUsecase({
 describe('update counterparty use case', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.handleError.mockImplementation(async (error) => {
+      throw error;
+    });
+    mockJournalLineRepo.findAllByCounterpartyId.mockResolvedValue([]);
     mockAppContext.get.mockReturnValue({
       actor,
       accountingEntity: { id: before.accountingEntityId },
@@ -51,23 +64,34 @@ describe('update counterparty use case', () => {
     });
     mockEventBus.publish.mockImplementation(async () => {
       expect(persisted).toBe(true);
+      expect(mockRepoTransaction.commit).toHaveBeenCalledWith();
     });
     const response = await usecase(before.id, {
       expectedVersion: before.version,
       name: 'Completed',
       status: 'active',
     });
+    expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     expect(mockCounterpartyRepo.findById).toHaveBeenCalledWith(
       before.id,
       before.accountingEntityId,
-      { correlationId: 'update' }
+      {
+        correlationId: 'update',
+        tx: mockRepoTransaction.context,
+        lock: 'update',
+      }
     );
-    expect(mockCounterpartyService.update).toHaveBeenCalledWith(before, {
-      name: 'Completed',
-      status: 'active',
-      type: undefined,
-      meta: undefined,
-    });
+    expect(mockCounterpartyService.update).toHaveBeenCalledWith(
+      before,
+      {
+        name: 'Completed',
+        status: 'active',
+        type: undefined,
+        meta: undefined,
+      },
+      { correlationId: 'update', tx: mockRepoTransaction.context }
+    );
     const [saved, options] = mockCounterpartyRepo.update.mock.calls[0];
     expect(options).toMatchObject({
       expectedVersion: before.version,
@@ -83,6 +107,7 @@ describe('update counterparty use case', () => {
         },
       },
     });
+    expect(options.tx).toBe(mockRepoTransaction.context);
     expect(saved.createdBy).toBe(before.createdBy);
     expect(response).toMatchObject({
       id: before.id,
@@ -166,16 +191,24 @@ describe('update counterparty use case', () => {
     expect(mockCounterpartyRepo.findById).not.toHaveBeenCalled();
   });
 
-  it.each(['read', 'domain', 'history', 'write'] as const)(
-    'does not publish when %s fails',
+  it.each([
+    'acquire',
+    'read',
+    'domain',
+    'history',
+    'write',
+    'commit',
+    'publish',
+  ] as const)(
+    'preserves the %s failure while disposing the transaction',
     async (stage) => {
       const failure = new Error(stage);
+      if (stage === 'acquire')
+        mockRepoService.createTransaction.mockRejectedValue(failure);
       if (stage === 'read')
         mockCounterpartyRepo.findById.mockRejectedValue(failure);
       if (stage === 'domain')
-        mockCounterpartyService.update.mockImplementation(() => {
-          throw failure;
-        });
+        mockCounterpartyService.update.mockRejectedValue(failure);
       if (stage === 'history')
         mockAppContext.get.mockReturnValue({
           ...mockAppContext.get(),
@@ -183,15 +216,121 @@ describe('update counterparty use case', () => {
         } as never);
       if (stage === 'write')
         mockCounterpartyRepo.update.mockRejectedValue(failure);
-      await expect(
-        usecase(before.id, {
-          status: 'active',
-          expectedVersion: before.version,
-        })
-      ).rejects.toThrow();
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
+      if (stage === 'commit')
+        mockRepoTransaction.commit.mockRejectedValue(failure);
+      if (stage === 'publish') mockEventBus.publish.mockRejectedValue(failure);
+
+      const result = usecase(before.id, {
+        status: 'active',
+        expectedVersion: before.version,
+      });
+      if (stage === 'history') await expect(result).rejects.toThrow();
+      else await expect(result).rejects.toBe(failure);
+
+      if (stage === 'publish')
+        expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+      else expect(mockEventBus.publish).not.toHaveBeenCalled();
+      if (stage === 'acquire')
+        expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+      else {
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledTimes(1);
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
+          stage === 'history' ? expect.any(Error) : failure
+        );
+      }
+      if (!['commit', 'publish'].includes(stage))
+        expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
       if (['read', 'domain', 'history'].includes(stage))
         expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
+    }
+  );
+
+  it('propagates both operation and cleanup errors from the transaction handler', async () => {
+    const operationError = new Error('write failed');
+    const cleanupError = new Error('rollback failed');
+    const failure = new repoError.TransactionCleanupFailed({
+      operationError,
+      cleanupError,
+    });
+    mockCounterpartyRepo.update.mockRejectedValue(operationError);
+    mockRepoTransaction.handleError.mockRejectedValue(failure);
+
+    await expect(
+      usecase(before.id, { expectedVersion: before.version, name: 'Changed' })
+    ).rejects.toBe(failure);
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
+      operationError
+    );
+    expect(failure.cause).toEqual({ operationError, cleanupError });
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('does not publish when disposing commit rejects', async () => {
+    const failure = new Error('release failed');
+    mockRepoTransaction.commit.mockRejectedValue(failure);
+    await expect(
+      usecase(before.id, { expectedVersion: before.version, name: 'Changed' })
+    ).rejects.toBe(failure);
+    expect(mockRepoTransaction.commit).toHaveBeenCalledWith();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+  });
+
+  it.each(['commit', 'handleError'] as const)(
+    'waits for %s before settling the request',
+    async (stage) => {
+      let release!: () => void;
+      let started!: () => void;
+      const blocked = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const ready = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const failure = new Error('write failed');
+      if (stage === 'commit') {
+        mockRepoTransaction.commit.mockImplementation(async () => {
+          started();
+          await blocked;
+        });
+      } else {
+        mockCounterpartyRepo.update.mockRejectedValue(failure);
+        mockRepoTransaction.handleError.mockImplementation(async (error) => {
+          started();
+          await blocked;
+          throw error;
+        });
+      }
+      let settled = false;
+      const result = usecase(before.id, {
+        expectedVersion: before.version,
+        name: 'Changed',
+      }).then(
+        (response) => {
+          settled = true;
+          return response;
+        },
+        (error: unknown) => {
+          settled = true;
+          return error;
+        }
+      );
+      try {
+        await ready;
+        expect(settled).toBe(false);
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
+      } finally {
+        release();
+        await result;
+      }
+      expect(settled).toBe(true);
+      if (stage === 'commit')
+        expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+      else {
+        expect(await result).toBe(failure);
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
+      }
     }
   );
 });

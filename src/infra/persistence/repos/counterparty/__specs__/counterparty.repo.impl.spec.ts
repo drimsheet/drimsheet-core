@@ -6,7 +6,10 @@ import generateUUID from '@shared/utils/uuid-generator';
 import addressValue from '@shared/values/contact-details/address.vo';
 import historyValue from '@shared/values/history/history.vo';
 
+import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
+
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 
 import { counterpartiesInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
@@ -19,7 +22,9 @@ jest.mock(
   '@infra/persistence/repos/counterparty/counterparty-history.repo.impl'
 );
 
-const service = makeCounterpartyService();
+const service = makeCounterpartyService({
+  journalLineRepo: mockJournalLineRepo,
+});
 const payload = {
   accountingEntityId: generateUUID(),
   name: 'Vendor',
@@ -143,7 +148,9 @@ describe('Counterparty repository', () => {
 
 describe('Counterparty repository reads', () => {
   const dialect = new PgDialect();
-  const domainService = makeCounterpartyService();
+  const domainService = makeCounterpartyService({
+    journalLineRepo: mockJournalLineRepo,
+  });
   const payload = {
     accountingEntityId: generateUUID(),
     name: 'Acme',
@@ -323,7 +330,9 @@ describe('Counterparty repository reads', () => {
 });
 
 describe('versioned counterparty updates', () => {
-  const [updated, , delta] = service.update(counterparty, { name: 'Changed' });
+  const [updated, , delta] = counterpartyEntity.update(counterparty, {
+    name: 'Changed',
+  });
   const updateHistory = historyValue.make(
     delta,
     history.actorId,

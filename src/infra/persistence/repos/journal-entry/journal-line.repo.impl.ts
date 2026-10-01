@@ -1,4 +1,5 @@
-import { and, eq, ilike, inArray, sql } from 'drizzle-orm';
+import { and, eq, getTableName, ilike, inArray, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import drizzleFilters from '@shared/helpers/drizzle-filters';
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
@@ -8,7 +9,10 @@ import paginationValue from '@shared/values/pagination/pagination.vo';
 
 import IJournalLineRepo from '@domain/journal-entry/repos/journal-line.repo';
 
-import { journalLinesInCore } from '@infra/config/drizzle/schema';
+import {
+  journalEntriesInCore,
+  journalLinesInCore,
+} from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import journalLineMapper from '@infra/persistence/repos/journal-entry/mappers/journal-line.mapper';
 
@@ -67,6 +71,37 @@ const journalLineRepo: IJournalLineRepo = {
     await getDbQuery(options)
       .delete(journalLinesInCore)
       .where(inArray(journalLinesInCore.id, ids));
+  },
+
+  findAllByCounterpartyId: async (
+    counterpartyId,
+    accountingEntityId,
+    options
+  ) => {
+    const whereClause = and(
+      eq(journalLinesInCore.counterpartyId, counterpartyId),
+      eq(journalEntriesInCore.accountingEntityId, accountingEntityId)
+    );
+    const dbQuery = getDbQuery(options);
+
+    const baseQuery = dbQuery
+      .select({ line: journalLinesInCore })
+      .from(journalLinesInCore)
+      .innerJoin(
+        journalEntriesInCore,
+        eq(journalEntriesInCore.id, journalLinesInCore.entryId)
+      )
+      .where(whereClause);
+
+    const query = options.lock
+      ? baseQuery.for(options.lock, {
+          of: alias(journalLinesInCore, getTableName(journalLinesInCore)),
+        })
+      : baseQuery;
+
+    const result = await query;
+
+    return result.map(({ line }) => journalLineMapper.toDomain(line));
   },
 
   findAllByAccountId: async (accountId, options) => {

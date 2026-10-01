@@ -60,9 +60,106 @@ tester.run(ruleName, rule, {
         try {} finally { await inner.dispose(); }
       } finally { await outer.dispose(); }
     `),
+    example(`
+      const tx = await repo.createTransaction();
+      try {
+        const prepared = await prepare(tx.context);
+        await write(prepared, tx.context);
+        await tx.commit({ dispose: true });
+        await publish(prepared);
+        if (done) return;
+        return prepared;
+      } catch (error) { return tx.handleError(error); }
+    `),
+    example(`
+      const tx = await repo['createTransaction']();
+      try { await tx['commit']({ 'dispose': true }); return; }
+      catch (error) { return await tx['handleError'](error); }
+    `),
+    ...['await tx.commit();', 'await tx.commit({});'].map((commit) =>
+      example(`
+      const tx = await repo.createTransaction();
+      try { ${commit} return result; }
+      catch (error) { return tx.handleError(error); }
+    `)
+    ),
+    example(`
+      const tx = await repo.createTransaction();
+      try { await tx.commit({ dispose: false }); }
+      finally { await tx.dispose(); }
+    `),
     'const tx = await repo.createTransaction(); try {} finally { await tx.dispose(); }',
   ],
   invalid: [
+    ...[
+      'return;',
+      'if (done) return;',
+      'return; await tx.commit({ dispose: true });',
+      'if (done) return; await tx.commit({ dispose: true });',
+      'try { return; } catch {} await tx.commit({ dispose: true });',
+      'if (ready) await tx.commit({ dispose: true });',
+      'await tx.commit({ dispose: false });',
+      'await tx.commit(options);',
+      'await tx.commit({ dispose: shouldDispose });',
+      'if (done) return; await tx.commit();',
+      'if (ready) await tx.commit();',
+      'tx.commit();',
+      'await tx.commit({ dispose: true, ...options });',
+      'await tx.commit({ dispose: true, dispose: false });',
+      'await tx.commit({ get dispose() { return true; } });',
+      'await tx.commit({ [key]: true });',
+      'await tx.commit({ dispose: true }, other);',
+      'await tx.commit?.({ dispose: true });',
+      'await tx?.commit({ dispose: true });',
+      'tx.commit({ dispose: true });',
+      'await other.commit({ dispose: true });',
+      'await commit({ dispose: true });',
+      'await (ready && tx.commit({ dispose: true }));',
+      'await tx.commit({ dispose: true }); const tx = other;',
+    ].map((body) =>
+      invalid(`
+      const tx = await repo.createTransaction();
+      try { ${body} }
+      catch (error) { return tx.handleError(error); }
+    `)
+    ),
+    ...[
+      '',
+      'return;',
+      'tx.handleError(error);',
+      'await tx.handleError(error);',
+      'log(error); return tx.handleError(error);',
+      'return other.handleError(error);',
+      'return tx.handleError(other);',
+      'return tx.handleError();',
+      'return tx.handleError(getError());',
+      'return tx.handleError(...errors);',
+      'return tx.handleError(error, other);',
+      'return tx.handleError?.(error);',
+      'return tx?.handleError(error);',
+      'return (ready && tx.handleError(error));',
+    ].map((body) =>
+      invalid(`
+      const tx = await repo.createTransaction();
+      try { await tx.commit({ dispose: true }); }
+      catch (error) { ${body} }
+    `)
+    ),
+    invalid(`
+      const tx = await repo.createTransaction();
+      try { await tx.commit({ dispose: true }); }
+      catch (tx) { return tx.handleError(tx); }
+    `),
+    invalid(`
+      const tx = await repo.createTransaction();
+      try { await tx.commit({ dispose: true }); }
+      catch { return tx.handleError(error); }
+    `),
+    invalid(`
+      const tx = await repo.createTransaction();
+      try { await tx.commit({ dispose: true }); }
+      catch ({ error }) { return tx.handleError(error); }
+    `),
     invalid('repo.createTransaction();', 'declaration'),
     invalid('await repo.createTransaction();', 'declaration'),
     invalid('return repo.createTransaction();', 'declaration'),

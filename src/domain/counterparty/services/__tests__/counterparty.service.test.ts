@@ -3,8 +3,44 @@ import generateUUID from '@shared/utils/uuid-generator';
 import addressValue from '@shared/values/contact-details/address.vo';
 
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
+import journalLineEntity from '@domain/journal-entry/entities/journal-line.entity';
+import IJournalLineRepo from '@domain/journal-entry/repos/journal-line.repo';
+import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import moneyValue from '@domain/money/values/money.vo';
 
-const service = makeCounterpartyService();
+const journalLineRepo: jest.Mocked<IJournalLineRepo> = {
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  findAllByAccountId: jest.fn(),
+  findAllByCounterpartyId: jest.fn(),
+};
+
+const [referencedLine] = journalLineEntity.make(
+  {
+    id: generateUUID(),
+    createdBy: generateUUID(),
+    memo: null,
+    createdAt: new Date(),
+  },
+  {
+    accountId: generateUUID(),
+    counterpartyId: generateUUID(),
+    sequenceOrder: 1,
+    amount: moneyValue.make(1000, SYSTEM_CURRENCIES.NGN, true),
+    exchangeRate: null,
+    side: 'debit',
+    description: null,
+    functionalCurrency: SYSTEM_CURRENCIES.NGN,
+  }
+);
+const service = makeCounterpartyService({ journalLineRepo });
+const readOptions = { correlationId: 'domain-update' };
+
+beforeEach(() => {
+  jest.resetAllMocks();
+  journalLineRepo.findAllByCounterpartyId.mockResolvedValue([]);
+});
 const payload = {
   createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
   accountingEntityId: generateUUID(),
@@ -179,15 +215,19 @@ describe('counterparty updates', () => {
       meta: { employer: { address }, vendor: { address } },
     })[0];
 
-  it('activates with corrections and one complete immutable activation audit', () => {
+  it('activates with corrections and one complete immutable activation audit', async () => {
     const before = draft();
     const snapshot = structuredClone(before);
-    const [after, events, audit] = service.update(before, {
-      name: ' Corrected ',
-      type: 'individual',
-      meta: { vendor: {} },
-      status: 'active',
-    });
+    const [after, events, audit] = await service.update(
+      before,
+      {
+        name: ' Corrected ',
+        type: 'individual',
+        meta: { vendor: {} },
+        status: 'active',
+      },
+      readOptions
+    );
     expect(after).toMatchObject({
       id: before.id,
       createdBy: before.createdBy,
@@ -217,15 +257,19 @@ describe('counterparty updates', () => {
 
   it.each(['draft', 'active'] as const)(
     'edits %s without activating and preserves omitted roles',
-    (status) => {
+    async (status) => {
       const [before] = service.create({
         ...payload,
         status,
         meta: { vendor: {} },
       });
-      const [after, events, audit] = service.update(before, {
-        name: 'Changed',
-      });
+      const [after, events, audit] = await service.update(
+        before,
+        {
+          name: 'Changed',
+        },
+        readOptions
+      );
       expect(after.status).toBe(status);
       expect(after.meta).toEqual(before.meta);
       expect(after.roles).toEqual(before.roles);
@@ -234,9 +278,11 @@ describe('counterparty updates', () => {
     }
   );
 
-  it('activates a minimal draft with no roles', () => {
+  it('activates a minimal draft with no roles', async () => {
     const [before] = service.create({ ...payload, status: 'draft' });
-    expect(service.update(before, { status: 'active' })[0]).toMatchObject({
+    expect(
+      (await service.update(before, { status: 'active' }, readOptions))[0]
+    ).toMatchObject({
       status: 'active',
       roles: [],
       meta: {},
@@ -245,13 +291,13 @@ describe('counterparty updates', () => {
 
   it.each([0, 1, 2, 3, 4, 5, 6, 7])(
     'replaces all roles for role mask %i, including clearing',
-    (mask) => {
+    async (mask) => {
       const meta: NonNullable<Parameters<typeof service.update>[1]['meta']> =
         {};
       if (mask & 1) meta.employer = { address };
       if (mask & 2) meta.vendor = {};
       if (mask & 4) meta.contractor = { address };
-      const [after] = service.update(draft(), { meta });
+      const [after] = await service.update(draft(), { meta }, readOptions);
       expect(after.roles).toEqual(
         (['employer', 'vendor', 'contractor'] as const).filter(
           (_, index) => mask & (1 << index)
@@ -271,17 +317,19 @@ describe('counterparty updates', () => {
     { name: ' Example ' },
     { type: 'organization' as const },
     { meta: { employer: { address }, vendor: { address } } },
-  ])('rejects an effective no-change update %j', (changes) => {
-    expect(() => service.update(draft(), changes)).toThrow(
+  ])('rejects an effective no-change update %j', async (changes) => {
+    await expect(service.update(draft(), changes, readOptions)).rejects.toThrow(
       'counterparty_error_update_invalid'
     );
   });
 
   it.each(['active', 'archived'] as const)(
     'rejects activation from %s',
-    (status) => {
+    async (status) => {
       const [before] = service.create({ ...payload, status });
-      expect(() => service.update(before, { status: 'active' })).toThrow(
+      await expect(
+        service.update(before, { status: 'active' }, readOptions)
+      ).rejects.toThrow(
         status === 'active'
           ? 'counterparty_error_already_active_conflict'
           : 'counterparty_error_archived_conflict'
@@ -289,11 +337,11 @@ describe('counterparty updates', () => {
     }
   );
 
-  it('rejects ordinary updates to Archived', () => {
+  it('rejects ordinary updates to Archived', async () => {
     const [before] = service.create({ ...payload, status: 'archived' });
-    expect(() => service.update(before, { name: 'Changed' })).toThrow(
-      'counterparty_error_archived_conflict'
-    );
+    await expect(
+      service.update(before, { name: 'Changed' }, readOptions)
+    ).rejects.toThrow('counterparty_error_archived_conflict');
   });
 
   it.each([
@@ -306,20 +354,26 @@ describe('counterparty updates', () => {
     { meta: { vendor: null } },
     { meta: { contractor: { address: { ...address, city: '' } } } },
     { meta: { employer: { address, displayName: 'x'.repeat(256) } } },
-  ])('rejects invalid changes atomically %j', (changes) => {
+  ])('rejects invalid changes atomically %j', async (changes) => {
     const before = draft();
     const snapshot = structuredClone(before);
-    expect(() => service.update(before, changes as never)).toThrow();
+    await expect(
+      service.update(before, changes as never, readOptions)
+    ).rejects.toThrow();
     expect(before).toEqual(snapshot);
   });
 
   it.each(['employer', 'vendor', 'contractor'] as const)(
     'maps shared address faults to %s field context',
-    (role) => {
+    async (role) => {
       try {
-        service.update(draft(), {
-          meta: { [role]: { address: { ...address, city: '' } } },
-        });
+        await service.update(
+          draft(),
+          {
+            meta: { [role]: { address: { ...address, city: '' } } },
+          },
+          readOptions
+        );
         throw new Error('Expected invalid address');
       } catch (error) {
         expect(error).toMatchObject({
@@ -333,7 +387,9 @@ describe('counterparty updates', () => {
 
 describe('counterparty service version composition', () => {
   it('keeps the final creation audit version aligned with all assigned roles', () => {
-    const [counterparty, events, audit] = makeCounterpartyService().create({
+    const [counterparty, events, audit] = makeCounterpartyService({
+      journalLineRepo,
+    }).create({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       accountingEntityId: 'a1111111-1111-4111-8111-111111111112' as TEntityId,
       name: 'Supplier',
@@ -350,5 +406,94 @@ describe('counterparty service version composition', () => {
     expect(audit.entityVersion).toBe(counterparty.version);
     expect(audit.diff.after?.version).toBe(counterparty.version);
     expect(events.map((event) => event.data.version)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('counterparty type changes after transaction use', () => {
+  it.each(['individual', 'organization'] as const)(
+    'allows unused %s to change type',
+    async (type) => {
+      const [before] = service.create({ ...payload, type });
+      const nextType = type === 'individual' ? 'organization' : 'individual';
+      const [after, , audit] = await service.update(
+        before,
+        { type: nextType },
+        readOptions
+      );
+      expect(after.type).toBe(nextType);
+      expect(audit.diff.before?.type).toBe(type);
+      expect(audit.diff.after.type).toBe(nextType);
+      expect(journalLineRepo.findAllByCounterpartyId).toHaveBeenCalledWith(
+        before.id,
+        before.accountingEntityId,
+        readOptions
+      );
+    }
+  );
+
+  it.each(['individual', 'organization'] as const)(
+    'rejects a used %s combined mutation without changing input',
+    async (type) => {
+      const [before] = service.create({ ...payload, type, status: 'draft' });
+      const snapshot = structuredClone(before);
+      journalLineRepo.findAllByCounterpartyId.mockResolvedValue([
+        referencedLine,
+      ]);
+      await expect(
+        service.update(
+          before,
+          {
+            type: type === 'individual' ? 'organization' : 'individual',
+            name: 'Changed',
+            meta: { vendor: {} },
+            status: 'active',
+          },
+          readOptions
+        )
+      ).rejects.toMatchObject({
+        errorKey:
+          'counterparty_error_type_change_after_transaction_use_conflict',
+        cause: {
+          field: 'type',
+          reason: 'transaction_usage',
+          nextAction: 'create_counterparty',
+        },
+      });
+      expect(before).toEqual(snapshot);
+    }
+  );
+
+  it.each([undefined, 'organization'] as const)(
+    'skips usage for omitted or unchanged type %s',
+    async (type) => {
+      const [before] = service.create(payload);
+      journalLineRepo.findAllByCounterpartyId.mockResolvedValue([
+        referencedLine,
+      ]);
+      const [after] = await service.update(
+        before,
+        { type, name: 'Changed', meta: {} },
+        readOptions
+      );
+      expect(after.type).toBe(before.type);
+      expect(journalLineRepo.findAllByCounterpartyId).not.toHaveBeenCalled();
+    }
+  );
+
+  it('propagates an invariant read failure', async () => {
+    const [before] = service.create(payload);
+    const failure = new Error('usage lookup failed');
+    journalLineRepo.findAllByCounterpartyId.mockRejectedValue(failure);
+    await expect(
+      service.update(before, { type: 'individual' }, readOptions)
+    ).rejects.toBe(failure);
+  });
+
+  it('rejects an invalid requested type before reading usage', async () => {
+    const [before] = service.create(payload);
+    await expect(
+      service.update(before, { type: 'other' as never }, readOptions)
+    ).rejects.toThrow('counterparty_error_type_invalid');
+    expect(journalLineRepo.findAllByCounterpartyId).not.toHaveBeenCalled();
   });
 });

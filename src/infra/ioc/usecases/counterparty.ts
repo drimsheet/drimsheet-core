@@ -8,6 +8,7 @@ import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import appContext from '@infra/runtime/app-context';
+import repoService from '@infra/services/repo.service';
 
 export const createCounterpartyUseCase = makeTracedUseCase(
   'counterparty.createCounterpartyUseCase',
@@ -38,6 +39,7 @@ export const getCounterpartyUseCase = makeTracedUseCase(
 export const updateCounterpartyUseCase = makeTracedUseCase(
   'counterparty.updateCounterpartyUseCase',
   makeUpdateCounterpartyUsecase({
+    repoService,
     appContext,
     counterpartyService,
     counterpartyRepo: counterpartyRepos.counterparty,

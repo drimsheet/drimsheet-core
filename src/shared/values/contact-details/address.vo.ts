@@ -12,6 +12,8 @@ export type TCreateAddressPayload = {
   countryCode: string;
 };
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateLine1(line1: string): string {
   return stringUtils.sanitizeAndValidate(
     line1,
@@ -20,6 +22,8 @@ function validateLine1(line1: string): string {
   );
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateCity(city: string): string {
   return stringUtils.sanitizeAndValidate(
     city,
@@ -28,6 +32,8 @@ function validateCity(city: string): string {
   );
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateCountryCode(countryCode: string): string {
   const sanitized = stringUtils
     .sanitizeAndValidate(

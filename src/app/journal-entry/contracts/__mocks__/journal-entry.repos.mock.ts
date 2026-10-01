@@ -33,4 +33,5 @@ export const mockJournalLineRepo: jest.Mocked<IJournalLineRepo> = {
   update: jest.fn(),
   delete: jest.fn(),
   findAllByAccountId: jest.fn(),
+  findAllByCounterpartyId: jest.fn(),
 };

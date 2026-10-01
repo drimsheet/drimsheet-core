@@ -1,3 +1,5 @@
+import { IReadRepoOptions } from '@shared/types/repo.types';
+
 import {
   ICounterparty,
   ICreateCounterpartyPayload,
@@ -6,11 +8,15 @@ import {
 } from './counterparty.types';
 
 export default interface ICounterpartyService {
-  /** Prepares a validated update and optional activation without persistence. */
+  /**
+   * Prepares an audited update. The caller holds the counterparty FOR UPDATE lock
+   * in options.tx through this read and persistence to prevent concurrent association.
+   */
   update(
     counterparty: ICounterparty,
-    payload: IUpdateCounterpartyPayload
-  ): TAuditedCounterparty;
+    payload: IUpdateCounterpartyPayload,
+    options: IReadRepoOptions
+  ): Promise<TAuditedCounterparty>;
 
   create(payload: ICreateCounterpartyPayload): TAuditedCounterparty;
 }

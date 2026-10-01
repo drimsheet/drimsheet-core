@@ -2,6 +2,9 @@ import { Express } from 'express';
 import request from 'supertest';
 
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
+import mockRepoService, {
+  mockRepoTransaction,
+} from '@shared/contracts/__mocks__/repo.mock';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import repoError from '@shared/values/errors/repo.error';
@@ -9,12 +12,16 @@ import repoError from '@shared/values/errors/repo.error';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
+import journalLineEntity from '@domain/journal-entry/entities/journal-line.entity';
+import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import moneyValue from '@domain/money/values/money.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 
 import { tokenService } from '@infra/ioc/services/auth';
@@ -86,10 +93,30 @@ const accountingEntity = {
   jurisdictionCode: 'NG',
 } as IAccountingEntity;
 
+const [referencedLine] = journalLineEntity.make(
+  {
+    id: generateUUID(),
+    createdBy: generateUUID(),
+    memo: null,
+    createdAt: new Date(),
+  },
+  {
+    accountId: generateUUID(),
+    counterpartyId: generateUUID(),
+    sequenceOrder: 1,
+    amount: moneyValue.make(1000, SYSTEM_CURRENCIES.NGN, true),
+    exchangeRate: null,
+    side: 'debit',
+    description: null,
+    functionalCurrency: SYSTEM_CURRENCIES.NGN,
+  }
+);
 describe('PATCH /counterparties/{id}', () => {
   let app: Express;
   const update = counterpartyUseCases.updateCounterpartyUseCase as jest.Mock;
-  const service = makeCounterpartyService();
+  const service = makeCounterpartyService({
+    journalLineRepo: mockJournalLineRepo,
+  });
   const [draft] = service.create({
     createdBy: actor.id,
     accountingEntityId: accountingEntityId as TEntityId,
@@ -101,6 +128,11 @@ describe('PATCH /counterparties/{id}', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.handleError.mockImplementation(async (error) => {
+      throw error;
+    });
+    mockJournalLineRepo.findAllByCounterpartyId.mockResolvedValue([]);
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
     jest.mocked(tokenService.getAuthUser).mockResolvedValue({ id: userId });
@@ -115,6 +147,7 @@ describe('PATCH /counterparties/{id}', () => {
     mockCounterpartyRepo.findById.mockResolvedValue(draft);
     update.mockImplementation(
       makeUpdateCounterpartyUsecase({
+        repoService: mockRepoService,
         appContext,
         counterpartyService: service,
         counterpartyRepo: mockCounterpartyRepo,
@@ -132,6 +165,25 @@ describe('PATCH /counterparties/{id}', () => {
       .send({ expectedVersion: draft.version, ...body });
 
   describe('200 Response', () => {
+    it('allows an unused counterparty to change type', async () => {
+      const response = await patch({ type: 'individual' });
+      expect(response.status).toBe(200);
+      expect(response.body.type).toBe('individual');
+    });
+    it.each([undefined, 'organization'])(
+      'allows permitted details with used type %s',
+      async (type) => {
+        mockJournalLineRepo.findAllByCounterpartyId.mockResolvedValue([
+          referencedLine,
+        ]);
+        const response = await patch({ type, name: 'Changed', meta: {} });
+        expect(response.status).toBe(200);
+        expect(response.body.type).toBe('organization');
+        expect(
+          mockJournalLineRepo.findAllByCounterpartyId
+        ).not.toHaveBeenCalled();
+      }
+    );
     it('lets an ordinary user activate with corrections and trusted actor attribution', async () => {
       const response = await patch({ name: 'Complete', status: 'active' }).set(
         'x-actor-id',
@@ -177,7 +229,11 @@ describe('PATCH /counterparties/{id}', () => {
       );
     });
     it('edits an Active record when status is omitted', async () => {
-      const [active] = service.update(draft, { status: 'active' });
+      const [active] = await service.update(
+        draft,
+        { status: 'active' },
+        { correlationId: 'http-fixture' }
+      );
       mockCounterpartyRepo.findById.mockResolvedValue(active);
       expect(
         (await patch({ name: 'Edited', expectedVersion: active.version }))
@@ -224,6 +280,30 @@ describe('PATCH /counterparties/{id}', () => {
     });
   });
   describe('409 Response', () => {
+    it('explains a used type conflict and how to recover without saving other changes', async () => {
+      mockJournalLineRepo.findAllByCounterpartyId.mockResolvedValue([
+        referencedLine,
+      ]);
+      const response = await patch({
+        type: 'individual',
+        name: 'Changed',
+        meta: {},
+        status: 'active',
+      });
+      expect(response.status).toBe(409);
+      expect(response.body).toMatchObject({
+        errorKey:
+          'counterparty_error_type_change_after_transaction_use_conflict',
+        cause: {
+          field: 'type',
+          reason: 'transaction_usage',
+          nextAction: 'create_counterparty',
+        },
+      });
+      expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
+      expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    });
     it('rejects stale versions before preparing an update', async () => {
       mockCounterpartyRepo.findById.mockResolvedValue({
         ...draft,

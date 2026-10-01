@@ -1,3 +1,6 @@
+import { SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
+
 import { TEntityId } from '@shared/types/uuid';
 import repoError from '@shared/values/errors/repo.error';
 
@@ -164,5 +167,64 @@ describe('journalLineRepo', () => {
     }
 
     expect(journalLineMapper.toDomain).toHaveBeenCalled();
+  });
+});
+
+describe('journal lines by counterparty', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
+  const tenant = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
+  const dialect = new PgDialect();
+  beforeEach(() => jest.resetAllMocks());
+
+  function queryFake(rows: Array<{ line: { id: TEntityId } }>) {
+    const where = jest.fn().mockResolvedValue(rows);
+    const innerJoin = jest.fn().mockReturnValue({ where });
+    const from = jest.fn().mockReturnValue({ innerJoin });
+    const db = { select: jest.fn().mockReturnValue({ from }) };
+    jest
+      .mocked(getDbQuery)
+      .mockReturnValue(db as unknown as ReturnType<typeof getDbQuery>);
+    return { where, db };
+  }
+
+  it('returns an empty array when no scoped references exist', async () => {
+    const fake = queryFake([]);
+    const result = await journalLineRepo.findAllByCounterpartyId(id, tenant, {
+      correlationId: 'read',
+    });
+    expect(result).toEqual([]);
+    expect(fake.db.select).toHaveBeenCalledTimes(1);
+    expect(journalLineMapper.toDomain).not.toHaveBeenCalled();
+    expect(
+      dialect.sqlToQuery(fake.where.mock.calls[0][0] as SQL).params
+    ).toEqual([id, tenant]);
+  });
+
+  it('returns all mapped references with only counterparty and tenant predicates', async () => {
+    const rows = [{ line: { id } }, { line: { id: tenant } }];
+    const fake = queryFake(rows);
+    jest
+      .mocked(journalLineMapper.toDomain)
+      .mockImplementation((row) => ({ id: row.id }) as never);
+    const options = { correlationId: 'read' };
+
+    const result = await journalLineRepo.findAllByCounterpartyId(
+      id,
+      tenant,
+      options
+    );
+
+    expect(result).toEqual([{ id }, { id: tenant }]);
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(fake.db.select).toHaveBeenCalledTimes(1);
+    expect(fake.db.select).toHaveBeenCalledWith({ line: journalLinesInCore });
+    expect(journalLineMapper.toDomain).toHaveBeenCalledTimes(2);
+    expect(journalLineMapper.toDomain).toHaveBeenNthCalledWith(1, rows[0].line);
+    expect(journalLineMapper.toDomain).toHaveBeenNthCalledWith(2, rows[1].line);
+    const predicate = dialect.sqlToQuery(fake.where.mock.calls[0][0] as SQL);
+    expect(predicate.params).toEqual([id, tenant]);
+    expect(predicate.sql).toContain('"counterparty_id"');
+    expect(predicate.sql).toContain('"accounting_entity_id"');
+    expect(predicate.sql).not.toMatch(/status|archived|posted|description/);
   });
 });

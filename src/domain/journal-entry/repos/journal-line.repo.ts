@@ -1,5 +1,6 @@
 import {
   IPaginatedReadRepoOptions,
+  IReadRepoOptions,
   IVersionedRepoWriteOptions,
   IWriteRepoOptions,
 } from '@shared/types/repo.types';
@@ -25,6 +26,13 @@ export default interface IJournalLineRepo {
   ): Promise<void>;
 
   delete(ids: TEntityId[], options: IWriteRepoOptions): Promise<void>;
+
+  /** Retrieves tenant-scoped references across every journal status. */
+  findAllByCounterpartyId(
+    counterpartyId: TEntityId,
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IJournalLine[]>;
 
   findAllByAccountId(
     accountId: string,

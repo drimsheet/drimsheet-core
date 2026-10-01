@@ -10,6 +10,8 @@ interface IValidateJournalEntryMutationPayload {
   expectedVersion: number;
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validate(
   payload: IValidateJournalEntryMutationPayload
 ): IJournalEntry {

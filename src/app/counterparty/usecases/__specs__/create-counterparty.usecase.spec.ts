@@ -11,6 +11,7 @@ import { mockCounterpartyService } from '@app/counterparty/contracts/__mocks__/c
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import { ICounterpartyCreateReq } from '@app/counterparty/dtos/counterparty/counterparty.dto';
 import makeCreateCounterpartyUsecase from '@app/counterparty/usecases/create-counterparty.usecase';
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 
 const mockCounterpartyDomainServices = Object.freeze({
   counterparty: mockCounterpartyService,
@@ -27,7 +28,9 @@ const actor = {
 describe('makeCreateCounterpartyUsecase', () => {
   const accountingEntityId = '123e4567-e89b-12d3-a456-426614174001';
 
-  const realCounterpartyService = makeCounterpartyService();
+  const realCounterpartyService = makeCounterpartyService({
+    journalLineRepo: mockJournalLineRepo,
+  });
 
   let usecase: ReturnType<typeof makeCreateCounterpartyUsecase>;
 

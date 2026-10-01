@@ -17,6 +17,7 @@ import {
   ICounterpartyDto,
 } from '@app/counterparty/dtos/counterparty/counterparty.dto';
 import makeCreateCounterpartyUsecase from '@app/counterparty/usecases/create-counterparty.usecase';
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 
 import { tokenService } from '@infra/ioc/services/auth';
@@ -144,7 +145,9 @@ describe('POST /counterparties', () => {
       mockCreateCounterparty.mockImplementationOnce(
         makeCreateCounterpartyUsecase({
           appContext,
-          counterpartyService: makeCounterpartyService(),
+          counterpartyService: makeCounterpartyService({
+            journalLineRepo: mockJournalLineRepo,
+          }),
           counterpartyRepo: mockCounterpartyRepo,
           eventBus: mockEventBus,
         })
@@ -172,7 +175,9 @@ describe('POST /counterparties', () => {
       mockCreateCounterparty.mockImplementationOnce(
         makeCreateCounterpartyUsecase({
           appContext,
-          counterpartyService: makeCounterpartyService(),
+          counterpartyService: makeCounterpartyService({
+            journalLineRepo: mockJournalLineRepo,
+          }),
           counterpartyRepo: mockCounterpartyRepo,
           eventBus: mockEventBus,
         })

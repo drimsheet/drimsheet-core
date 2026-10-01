@@ -1,22 +1,32 @@
-import { Pool } from 'pg';
+import { sql } from 'drizzle-orm';
+import { Pool, PoolClient } from 'pg';
 
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
+import { ERepoLock } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
+import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import actorEntity from '@domain/user/entities/actor.entity';
 import userEntity from '@domain/user/entities/user.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
 
+import { ledgerAccountsInCore } from '@infra/config/drizzle/schema';
 import { postgres } from '@infra/config/postgres.config';
 import vars from '@infra/config/vars.config';
+import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import accountingEntityRepo from '@infra/persistence/repos/accounting/accounting-entity.repo.impl';
 import counterpartyRepo from '@infra/persistence/repos/counterparty/counterparty.repo.impl';
+import journalLineRepo from '@infra/persistence/repos/journal-entry/journal-line.repo.impl';
+import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
+import repoService from '@infra/services/repo.service';
 
 function barrier<T>() {
   let resolve!: (value: T) => void;
@@ -37,9 +47,10 @@ describe('counterparty updates with real PostgreSQL', () => {
     userId: TEntityId;
   }> = [];
   const correlationId = 'update-counterparty-db-spec';
-  const service = makeCounterpartyService();
+  const service = makeCounterpartyService({ journalLineRepo });
   const update = (repo: ICounterpartyRepo = counterpartyRepo) =>
     makeUpdateCounterpartyUsecase({
+      repoService,
       appContext: mockAppContext,
       counterpartyService: service,
       counterpartyRepo: repo,
@@ -55,10 +66,27 @@ describe('counterparty updates with real PostgreSQL', () => {
     );
     expect(state.rows[0].database).toMatch(/_test$/);
     expect(state.rows[0].isolation).toBe('read committed');
+    const constraint =
+      await observer.query(`select c.condeferrable, c.convalidated,
+      bool_and(t.tgenabled = 'O') as enabled from pg_constraint c
+      join pg_trigger t on t.tgconstraint = c.oid
+      where c.conname = 'journal_lines_counterparty_id_fkey'
+      and c.conrelid = 'core.journal_lines'::regclass group by c.oid`);
+    expect(constraint.rows).toEqual([
+      { condeferrable: false, convalidated: true, enabled: true },
+    ]);
   });
   beforeEach(() => jest.resetAllMocks());
   afterEach(async () => {
     for (const fixture of fixtures) {
+      await observer.query(
+        'delete from core.journal_entries where accounting_entity_id = $1',
+        [fixture.entityId]
+      );
+      await observer.query(
+        'delete from core.ledger_accounts where accounting_entity_id = $1',
+        [fixture.entityId]
+      );
       await observer.query(
         'delete from audit.counterparty_history where accounting_entity_id = $1',
         [fixture.entityId]
@@ -189,6 +217,41 @@ describe('counterparty updates with real PostgreSQL', () => {
     expect(await stored(counterparty.id)).toEqual(result);
   });
 
+  it('retains the committed counterparty and audit when event publication fails', async () => {
+    const { counterparty, actor } = await setup();
+    const failure = new Error('event publication failed');
+    mockEventBus.publish.mockImplementation(async () => {
+      // An independent connection can already see the committed update.
+      const committed = await stored(counterparty.id);
+      expect(committed.state[0]).toMatchObject({
+        name: 'Committed',
+        version: counterparty.version + 1,
+      });
+      expect(committed.audit).toHaveLength(2);
+      throw failure;
+    });
+
+    await expect(
+      update()(counterparty.id, {
+        expectedVersion: counterparty.version,
+        name: 'Committed',
+      })
+    ).rejects.toBe(failure);
+
+    const result = await stored(counterparty.id);
+    expect(result.state[0]).toMatchObject({
+      name: 'Committed',
+      version: counterparty.version + 1,
+    });
+    expect(result.audit).toHaveLength(2);
+    expect(result.audit[1]).toMatchObject({
+      action: 'updated',
+      actor_id: actor.id,
+      correlation_id: correlationId,
+      entity_version: counterparty.version + 1,
+    });
+  });
+
   it('preserves state and audit when replacement metadata is invalid', async () => {
     const { counterparty } = await setup();
     const before = await stored(counterparty.id);
@@ -265,16 +328,15 @@ describe('counterparty updates with real PostgreSQL', () => {
       const { counterparty } = await setup();
       const ready = barrier<void>();
       let readers = 0;
-      // Both independent requests read the same version before either may write.
+      // Both independent requests begin before either acquires the row lock.
       const simultaneousReads: ICounterpartyRepo = {
         ...counterpartyRepo,
         findById: async (...args) => {
           try {
-            const current = await counterpartyRepo.findById(...args);
             readers += 1;
             if (readers === 2) ready.resolve();
             await ready.promise;
-            return current;
+            return await counterpartyRepo.findById(...args);
           } catch (error) {
             ready.resolve();
             throw error;
@@ -307,7 +369,7 @@ describe('counterparty updates with real PostgreSQL', () => {
       ).toEqual([
         expect.objectContaining({
           reason: expect.objectContaining({
-            errorKey: 'repo_error_version_conflict',
+            errorKey: 'app_error_conflict',
           }),
         }),
       ]);
@@ -329,4 +391,393 @@ describe('counterparty updates with real PostgreSQL', () => {
       }
     }
   );
+  async function waitForBlock(waiter: number, holder: number) {
+    const deadline = Date.now() + 4000;
+    while (Date.now() < deadline) {
+      const state = await observer.query(
+        'select pg_blocking_pids($1) as blockers',
+        [waiter]
+      );
+      if (state.rows[0].blockers.includes(holder)) return;
+    }
+    throw new Error('Expected competing transaction to block');
+  }
+
+  function observeRead(
+    beforeRead: (pid: number) => Promise<void>,
+    afterRead?: () => Promise<void>
+  ): ICounterpartyRepo {
+    return {
+      ...counterpartyRepo,
+      findById: async (...args) => {
+        const result = await getDbQuery(args[2]).execute(
+          sql`select pg_backend_pid() as pid`
+        );
+        await beforeRead(Number(result.rows[0].pid));
+        const current = await counterpartyRepo.findById(...args);
+        if (afterRead) await afterRead();
+        return current;
+      },
+    };
+  }
+
+  async function prepareAssociation(
+    counterparty: ICounterparty,
+    mode: 'insert' | 'null' | 'reassign' = 'insert'
+  ) {
+    const entryId = generateUUID();
+    const lineId = generateUUID();
+    const [account] = ledgerAccountEntity.make({
+      accountingEntityId: counterparty.accountingEntityId,
+      createdBy: counterparty.createdBy,
+      code: '100001',
+      materializedPath: '100001',
+      name: 'Bank',
+      type: 'asset',
+      subType: 'cash_and_cash_equivalent',
+      behavior: 'bank',
+      normalBalance: 'debit',
+      isControlAccount: false,
+      controlAccountId: null,
+      currency: SYSTEM_CURRENCIES.NGN,
+      status: 'active',
+      contraAccountRule: 'contra_permitted',
+      adjunctAccountRule: 'adjunct_permitted',
+      meta: {},
+    });
+    await postgres
+      .insert(ledgerAccountsInCore)
+      .values(ledgerAccountMapper.toRepo(account));
+    await observer.query(
+      "insert into core.journal_entries (id,created_by,accounting_entity_id,source_type,status,effective_date,version) values ($1,$2,$3,'payment','draft','2026-09-01',1)",
+      [entryId, counterparty.createdBy, counterparty.accountingEntityId]
+    );
+    const insert = (client: Pick<PoolClient, 'query'>, id: TEntityId | null) =>
+      client.query(
+        "insert into core.journal_lines (id,created_by,entry_id,account_id,counterparty_id,sequence_order,amount,currency_code,functional_amount,functional_currency_code,side,version) values ($1,$2,$3,$4,$5,1,1000,'NGN',1000,'NGN','debit',1)",
+        [lineId, counterparty.createdBy, entryId, account.id, id]
+      );
+    if (mode !== 'insert') {
+      let initialId: TEntityId | null = null;
+      if (mode === 'reassign') {
+        const [other, , audit] = service.create({
+          createdBy: counterparty.createdBy,
+          accountingEntityId: counterparty.accountingEntityId,
+          name: 'Other',
+          type: 'individual',
+        });
+        await counterpartyRepo.create(other, {
+          correlationId,
+          history: historyValue.make(
+            audit,
+            counterparty.createdBy,
+            correlationId
+          ),
+        });
+        initialId = other.id;
+      }
+      await insert(observer, initialId);
+    }
+    return {
+      entryId,
+      lineId,
+      associate: (client: Pick<PoolClient, 'query'>) =>
+        mode === 'insert'
+          ? insert(client, counterparty.id)
+          : client.query(
+              'update core.journal_lines set counterparty_id = $1 where id = $2',
+              [counterparty.id, lineId]
+            ),
+    };
+  }
+
+  it.each(['draft', 'posted', 'archived', 'voided'] as const)(
+    'counts %s references and preserves journal data during permitted edits',
+    async (status) => {
+      const { counterparty } = await setup();
+      const fixture = await prepareAssociation(counterparty);
+      await fixture.associate(observer);
+      await observer.query(
+        'update core.journal_entries set status = $1 where id = $2',
+        [status, fixture.entryId]
+      );
+      const lockedReferences = await repoService.runInTransaction((tx) =>
+        journalLineRepo.findAllByCounterpartyId(
+          counterparty.id,
+          counterparty.accountingEntityId,
+          {
+            correlationId,
+            tx,
+            lock: ERepoLock.Update,
+          }
+        )
+      );
+      expect(lockedReferences.map((line) => line.id)).toEqual([fixture.lineId]);
+      const before = await stored(counterparty.id);
+      const journal = async () => ({
+        entries: (
+          await observer.query(
+            'select * from core.journal_entries where id = $1',
+            [fixture.entryId]
+          )
+        ).rows,
+        lines: (
+          await observer.query(
+            'select * from core.journal_lines where entry_id = $1',
+            [fixture.entryId]
+          )
+        ).rows,
+      });
+      const snapshot = await journal();
+      expect(
+        (
+          await journalLineRepo.findAllByCounterpartyId(
+            counterparty.id,
+            generateUUID(),
+            { correlationId }
+          )
+        ).length > 0
+      ).toBe(false);
+      await expect(
+        update()(counterparty.id, {
+          expectedVersion: counterparty.version,
+          type: 'organization',
+          name: 'Blocked',
+          meta: {},
+          status: 'active',
+        })
+      ).rejects.toThrow(
+        'counterparty_error_type_change_after_transaction_use_conflict'
+      );
+      expect(await stored(counterparty.id)).toEqual(before);
+      await update()(counterparty.id, {
+        expectedVersion: counterparty.version,
+        type: counterparty.type,
+        name: 'Allowed',
+        meta: {},
+      });
+      expect(await journal()).toEqual(snapshot);
+      const after = await stored(counterparty.id);
+      expect(after.audit).toHaveLength(before.audit.length + 1);
+      expect(after.audit[after.audit.length - 1]).toMatchObject({
+        actor_id: counterparty.createdBy,
+        correlation_id: correlationId,
+        action: 'updated',
+      });
+    }
+  );
+
+  it.each(['insert', 'null', 'reassign'] as const)(
+    'waits for %s association and rejects after its commit',
+    async (mode) => {
+      const { counterparty } = await setup();
+      const fixture = await prepareAssociation(counterparty, mode);
+      const before = await stored(counterparty.id);
+      const client = await observer.connect();
+      const waiting = barrier<number>();
+      let outcome: Promise<PromiseSettledResult<unknown>[]> | undefined;
+      try {
+        await client.query('begin');
+        const pid = Number(
+          (await client.query('select pg_backend_pid() as pid')).rows[0].pid
+        );
+        await fixture.associate(client);
+        const repo = observeRead(async (id) => {
+          waiting.resolve(id);
+        });
+        outcome = Promise.allSettled([
+          update(repo)(counterparty.id, {
+            expectedVersion: counterparty.version,
+            type: 'organization',
+          }),
+        ]);
+        await waitForBlock(await waiting.promise, pid);
+        await client.query('commit');
+        expect(await outcome).toEqual([
+          expect.objectContaining({
+            status: 'rejected',
+            reason: expect.objectContaining({
+              errorKey:
+                'counterparty_error_type_change_after_transaction_use_conflict',
+            }),
+          }),
+        ]);
+        expect(await stored(counterparty.id)).toEqual(before);
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
+      } finally {
+        await client.query('rollback');
+        client.release();
+        if (outcome) await outcome;
+      }
+    }
+  );
+
+  it.each(['insert', 'null', 'reassign'] as const)(
+    'blocks %s association until the type update commits',
+    async (mode) => {
+      const { counterparty } = await setup();
+      const fixture = await prepareAssociation(counterparty, mode);
+      const locked = barrier<void>();
+      const release = barrier<void>();
+      let holder = 0;
+      const repo = observeRead(
+        async (pid) => {
+          holder = pid;
+        },
+        async () => {
+          locked.resolve();
+          await release.promise;
+        }
+      );
+      const outcome = Promise.allSettled([
+        update(repo)(counterparty.id, {
+          expectedVersion: counterparty.version,
+          type: 'organization',
+        }),
+      ]);
+      const client = await observer.connect();
+      let association: Promise<unknown> | undefined;
+      try {
+        await locked.promise;
+        await client.query('begin');
+        const waiter = Number(
+          (await client.query('select pg_backend_pid() as pid')).rows[0].pid
+        );
+        association = fixture.associate(client);
+        await waitForBlock(waiter, holder);
+        release.resolve();
+        expect((await outcome)[0].status).toBe('fulfilled');
+        await association;
+        await client.query('commit');
+        expect((await stored(counterparty.id)).state[0].type).toBe(
+          'organization'
+        );
+        expect(
+          (
+            await journalLineRepo.findAllByCounterpartyId(
+              counterparty.id,
+              counterparty.accountingEntityId,
+              { correlationId }
+            )
+          ).length > 0
+        ).toBe(true);
+      } finally {
+        release.resolve();
+        await outcome;
+        if (association) await association;
+        await client.query('rollback');
+        client.release();
+      }
+    }
+  );
+
+  it('allows a waiting type change after association rollback', async () => {
+    const { counterparty } = await setup();
+    const fixture = await prepareAssociation(counterparty);
+    const client = await observer.connect();
+    const waiting = barrier<number>();
+    let outcome: Promise<PromiseSettledResult<unknown>[]> | undefined;
+    try {
+      await client.query('begin');
+      const holder = Number(
+        (await client.query('select pg_backend_pid() as pid')).rows[0].pid
+      );
+      await fixture.associate(client);
+      outcome = Promise.allSettled([
+        update(
+          observeRead(async (pid) => {
+            waiting.resolve(pid);
+          })
+        )(counterparty.id, {
+          expectedVersion: counterparty.version,
+          type: 'organization',
+        }),
+      ]);
+      await waitForBlock(await waiting.promise, holder);
+      await client.query('rollback');
+      expect((await outcome)[0].status).toBe('fulfilled');
+      expect(
+        (
+          await journalLineRepo.findAllByCounterpartyId(
+            counterparty.id,
+            counterparty.accountingEntityId,
+            { correlationId }
+          )
+        ).length > 0
+      ).toBe(false);
+    } finally {
+      await client.query('rollback');
+      client.release();
+      if (outcome) await outcome;
+    }
+  });
+
+  it('releases an association waiter after counterparty rollback and permits unrelated updates', async () => {
+    const { counterparty } = await setup();
+    const fixture = await prepareAssociation(counterparty);
+    const before = await stored(counterparty.id);
+    const locked = barrier<void>();
+    const release = barrier<void>();
+    let holder = 0;
+    const failure = new Error('fail after counterparty and history write');
+    const repo: ICounterpartyRepo = {
+      ...observeRead(async (pid) => {
+        holder = pid;
+      }),
+      update: async (...args) => {
+        await counterpartyRepo.update(...args);
+        locked.resolve();
+        await release.promise;
+        throw failure;
+      },
+    };
+    const outcome = Promise.allSettled([
+      update(repo)(counterparty.id, {
+        expectedVersion: counterparty.version,
+        type: 'organization',
+      }),
+    ]);
+    const client = await observer.connect();
+    let association: Promise<unknown> | undefined;
+    try {
+      await locked.promise;
+      await client.query('begin');
+      const waiter = Number(
+        (await client.query('select pg_backend_pid() as pid')).rows[0].pid
+      );
+      association = fixture.associate(client);
+      await waitForBlock(waiter, holder);
+      const [other, , audit] = service.create({
+        createdBy: counterparty.createdBy,
+        accountingEntityId: counterparty.accountingEntityId,
+        name: 'Unrelated',
+        type: 'individual',
+      });
+      await counterpartyRepo.create(other, {
+        correlationId,
+        history: historyValue.make(
+          audit,
+          counterparty.createdBy,
+          correlationId
+        ),
+      });
+      await expect(
+        update()(other.id, {
+          expectedVersion: other.version,
+          type: 'organization',
+        })
+      ).resolves.toMatchObject({ type: 'organization' });
+      release.resolve();
+      expect(await outcome).toEqual([{ status: 'rejected', reason: failure }]);
+      await association;
+      await client.query('commit');
+      expect(await stored(counterparty.id)).toEqual(before);
+    } finally {
+      release.resolve();
+      await outcome;
+      if (association) await association;
+      await client.query('rollback');
+      client.release();
+    }
+  });
 });

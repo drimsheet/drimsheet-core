@@ -135,7 +135,7 @@ const counterpartyRepo: ICounterpartyRepo = {
   },
 
   async findById(id, accountingEntityId, options) {
-    const [row] = await getDbQuery(options)
+    const baseQuery = getDbQuery(options)
       .select()
       .from(counterpartiesInCore)
       .where(
@@ -146,6 +146,8 @@ const counterpartyRepo: ICounterpartyRepo = {
       )
       .limit(1);
 
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const [row] = await query;
     return row ? counterpartyMapper.toDomain(row) : null;
   },
 };

@@ -49,6 +49,8 @@ function validateCount(purpose: UFileUploadPurpose, count: number) {
 }
 
 /** Validates and normalizes an upload MIME type. */
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateType(purpose: UFileUploadPurpose, type: string) {
   const policy = getPolicy(purpose);
   const normalizedType = type.trim().toLowerCase();
@@ -98,6 +100,8 @@ function detectMimeType(bytes: Uint8Array) {
 }
 
 /** Validates stored file metadata and signature. */
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateStoredFile(
   purpose: UFileUploadPurpose,
   type: string,

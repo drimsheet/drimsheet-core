@@ -5,9 +5,14 @@ import addressValue from '@shared/values/contact-details/address.vo';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
 
+import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
+
 import counterpartyMapper from '@infra/persistence/repos/counterparty/mappers/counterparty.mapper';
 
-const service = makeCounterpartyService();
+const service = makeCounterpartyService({
+  journalLineRepo: mockJournalLineRepo,
+});
+
 const payload = {
   createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
   accountingEntityId: generateUUID(),

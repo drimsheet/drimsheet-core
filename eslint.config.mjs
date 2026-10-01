@@ -68,20 +68,20 @@ const layerImportPaths = {
   },
 };
 
-// Deliberately syntax-based: recognize createTransaction by name and require one
-// auditable ownership pattern rather than attempting general resource analysis.
+// Deliberately syntax-based: recognize createTransaction by name and require
+// auditable ownership patterns rather than attempting general resource analysis.
 const requireTransactionDisposal = {
   meta: {
     type: 'problem',
     docs: {
       description:
-        'Require manual transactions to be disposed in an adjacent try/finally.',
+        'Require manual transactions to have explicit success and failure cleanup.',
     },
     messages: {
       declaration:
         'Assign awaited createTransaction() to a single const identifier.',
       cleanup:
-        'Immediately follow transaction creation with try/finally whose first finally statement awaits disposal of the same transaction.',
+        'Immediately follow transaction creation with finally disposal, or an unconditional awaited disposing commit() and catch returning handleError(error). Use finally for branching before commit or commit({ dispose: false }).',
     },
     schema: [],
   },
@@ -91,6 +91,78 @@ const requireTransactionDisposal = {
       if (callee.type === 'Identifier') return callee.name;
       if (callee.type !== 'MemberExpression') return undefined;
       return callee.computed ? callee.property.value : callee.property.name;
+    };
+    const referencesVariable = (variable, identifier) =>
+      variable?.references.some(
+        (reference) => reference.identifier === identifier
+      );
+    const isOwnedCall = (call, method, variable) =>
+      call?.type === 'CallExpression' &&
+      !call.optional &&
+      call.callee.type === 'MemberExpression' &&
+      !call.callee.optional &&
+      call.callee.object.type === 'Identifier' &&
+      callName(call.callee) === method &&
+      referencesVariable(variable, call.callee.object);
+
+    const hasDisposingCommitAndHandler = (statement, variable) => {
+      if (statement?.type !== 'TryStatement') return false;
+
+      const handler = statement.handler;
+      const returned = handler?.body.body[0];
+      const handled =
+        returned?.argument?.type === 'AwaitExpression'
+          ? returned.argument.argument
+          : returned?.argument;
+      const errorVariable =
+        handler?.param?.type === 'Identifier'
+          ? sourceCode.getDeclaredVariables(handler)[0]
+          : undefined;
+      const handlesCaughtError =
+        handler?.body.body.length === 1 &&
+        returned?.type === 'ReturnStatement' &&
+        isOwnedCall(handled, 'handleError', variable) &&
+        handled.arguments.length === 1 &&
+        referencesVariable(errorVariable, handled.arguments[0]);
+      if (!handlesCaughtError) return false;
+
+      // A linear prefix cannot return/break/continue around the disposing commit.
+      // Keep finally disposal for more complex control flow instead of guessing.
+      for (const step of statement.block.body) {
+        if (
+          !['VariableDeclaration', 'ExpressionStatement'].includes(step.type)
+        ) {
+          return false;
+        }
+        const commit =
+          step.expression?.type === 'AwaitExpression'
+            ? step.expression.argument
+            : undefined;
+        if (!isOwnedCall(commit, 'commit', variable)) continue;
+
+        if (commit.arguments.length === 0) return true;
+
+        const options = commit.arguments[0];
+        if (
+          commit.arguments.length !== 1 ||
+          options.type !== 'ObjectExpression'
+        ) {
+          return false;
+        }
+        if (options.properties.length === 0) return true;
+
+        const flag = options?.properties?.[0];
+        return (
+          options.properties.length === 1 &&
+          flag.type === 'Property' &&
+          flag.kind === 'init' &&
+          !flag.computed &&
+          (flag.key.name ?? flag.key.value) === 'dispose' &&
+          flag.value.type === 'Literal' &&
+          flag.value.value === true
+        );
+      }
+      return false;
     };
 
     return {
@@ -145,7 +217,10 @@ const requireTransactionDisposal = {
             (reference) => reference.identifier === disposal.callee.object
           );
 
-        if (!disposesOwnedTransaction) {
+        if (
+          !disposesOwnedTransaction &&
+          !hasDisposingCommitAndHandler(next, variable)
+        ) {
           context.report({ node, messageId: 'cleanup' });
         }
       },

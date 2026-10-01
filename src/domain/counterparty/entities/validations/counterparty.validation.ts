@@ -27,6 +27,8 @@ function validateAccountingEntityId(accountingEntityId: TEntityId): void {
   );
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateName(name: string): string {
   return stringUtils.sanitizeAndValidate(
     name,
@@ -35,6 +37,8 @@ function validateName(name: string): string {
   );
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateType(type: UCounterpartyType): UCounterpartyType {
   stringUtils.validateIsInEnum(
     type,
@@ -54,6 +58,8 @@ function validateDraftCreationType(
   if (isMissingDraftType) throw new counterpartyError.InvalidType();
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateStatus(status: UCounterpartyStatus): UCounterpartyStatus {
   stringUtils.validateIsInEnum(
     status,
@@ -63,6 +69,8 @@ function validateStatus(status: UCounterpartyStatus): UCounterpartyStatus {
   return status;
 }
 
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validateRole(role: UCounterpartyRole): UCounterpartyRole {
   stringUtils.validateIsInEnum(
     role,

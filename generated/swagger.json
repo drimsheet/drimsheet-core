@@ -5041,7 +5041,7 @@
             }
           }
         },
-        "description": "Update details and optionally activate a Draft. Supplied metadata replaces all roles.",
+        "description": "Update details and optionally activate a Draft. Supplied metadata replaces all roles.\nA type change after transaction use returns 409 with field=type,\nreason=transaction_usage and nextAction=create_counterparty.\nThis counterparty's type cannot be changed because it has been used in a\ntransaction. Create a new counterparty if a different type is required.",
         "tags": ["Counterparty"],
         "security": [],
         "parameters": [

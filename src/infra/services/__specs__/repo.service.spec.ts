@@ -110,6 +110,127 @@ describe('repoService manual transactions', () => {
     expect(postgres.transaction).not.toHaveBeenCalled();
   });
 
+  it('waits for COMMIT before disposing and never rolls back a later publication failure', async () => {
+    const client = makeClient();
+    const transaction = await repoService.createTransaction();
+    let finishCommit!: () => void;
+    client.query.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishCommit = () => resolve({ command: 'COMMIT', rows: [] });
+        })
+    );
+
+    const committed = transaction.commit();
+    expect(client.release).not.toHaveBeenCalled();
+    finishCommit();
+    await committed;
+    expect(client.release).toHaveBeenCalledTimes(1);
+    expect(client.release).toHaveBeenCalledWith(false);
+    expect(client.listenerCount('error')).toBe(0);
+
+    const publicationError = new Error('event publication failed');
+    await expect(transaction.handleError(publicationError)).rejects.toBe(
+      publicationError
+    );
+    await transaction.dispose();
+    expect(client.query.mock.calls).toEqual([['BEGIN'], ['COMMIT']]);
+    expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([undefined, {}, { dispose: undefined }, { dispose: true }])(
+    'disposes after a successful commit with options %j',
+    async (options) => {
+      const client = makeClient();
+      const transaction = await repoService.createTransaction();
+
+      await transaction.commit(options);
+
+      expect(client.query.mock.calls).toEqual([['BEGIN'], ['COMMIT']]);
+      expect(client.release).toHaveBeenCalledTimes(1);
+      expect(client.release).toHaveBeenCalledWith(false);
+      expect(client.listenerCount('error')).toBe(0);
+      await transaction.dispose();
+      expect(client.release).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('leaves explicit disposal available when committing without automatic disposal', async () => {
+    const client = makeClient();
+    const transaction = await repoService.createTransaction();
+    await transaction.commit({ dispose: false });
+    expect(client.release).not.toHaveBeenCalled();
+
+    const failure = new Error('post-commit failure');
+    await expect(transaction.handleError(failure)).rejects.toBe(failure);
+    expect(client.query.mock.calls).toEqual([['BEGIN'], ['COMMIT']]);
+    expect(client.release).toHaveBeenCalledTimes(1);
+    expect(client.release).toHaveBeenCalledWith(false);
+  });
+
+  it.each([
+    new Error('write failed'),
+    new TypeError('application failed'),
+    'thrown value',
+  ])(
+    'rolls back unfinished work before rethrowing %s unchanged',
+    async (failure) => {
+      const client = makeClient();
+      const transaction = await repoService.createTransaction();
+      await expect(transaction.handleError(failure)).rejects.toBe(failure);
+      expect(client.query.mock.calls).toEqual([['BEGIN'], ['ROLLBACK']]);
+      expect(client.release).toHaveBeenCalledTimes(1);
+      expect(client.release).toHaveBeenCalledWith(false);
+      expect(client.listenerCount('error')).toBe(0);
+    }
+  );
+
+  it('retains the original error when error-handler rollback fails', async () => {
+    const client = makeClient();
+    const transaction = await repoService.createTransaction();
+    const operationError = new Error('domain validation failed');
+    const cleanupError = new Error('rollback failed');
+    client.query.mockRejectedValueOnce(cleanupError);
+
+    await expect(transaction.handleError(operationError)).rejects.toMatchObject(
+      {
+        errorKey: 'repo_error_transaction_cleanup_failed_unexpected',
+        cause: { operationError, cleanupError },
+      }
+    );
+    await transaction.dispose();
+    expect(client.query.mock.calls).toEqual([['BEGIN'], ['ROLLBACK']]);
+    expect(client.release).toHaveBeenCalledTimes(1);
+    expect(client.release).toHaveBeenCalledWith(true);
+  });
+
+  it('discards the client through the handler when a disposing commit fails', async () => {
+    const client = makeClient();
+    const transaction = await repoService.createTransaction();
+    const failure = new Error('commit outcome unknown');
+    client.query.mockRejectedValueOnce(failure);
+
+    await expect(transaction.commit({ dispose: true })).rejects.toBe(failure);
+    await expect(transaction.handleError(failure)).rejects.toBe(failure);
+    expect(client.query.mock.calls).toEqual([['BEGIN'], ['COMMIT']]);
+    expect(client.release).toHaveBeenCalledTimes(1);
+    expect(client.release).toHaveBeenCalledWith(true);
+  });
+
+  it('does not roll back or release twice if release after commit throws', async () => {
+    const client = makeClient();
+    const transaction = await repoService.createTransaction();
+    const failure = new Error('release failed');
+    client.release.mockImplementationOnce(() => {
+      throw failure;
+    });
+
+    await expect(transaction.commit({ dispose: true })).rejects.toBe(failure);
+    await expect(transaction.handleError(failure)).rejects.toBe(failure);
+    expect(client.query.mock.calls).toEqual([['BEGIN'], ['COMMIT']]);
+    expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
   it('rolls back unfinished work and releases only once', async () => {
     const client = makeClient();
     const transaction = await repoService.createTransaction();

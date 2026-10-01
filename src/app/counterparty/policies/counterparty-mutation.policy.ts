@@ -11,6 +11,8 @@ interface IValidateCounterpartyMutationPayload {
 }
 
 /** Rejects missing/foreign resources and stale client versions before preparation. */
+// TODO: Rename this value-returning validation to a check; reserve validate
+// for checks that only throw on failure and return no value.
 function validate(
   payload: IValidateCounterpartyMutationPayload
 ): ICounterparty {

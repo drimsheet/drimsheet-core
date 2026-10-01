@@ -34,7 +34,13 @@ import {
 @Route('counterparties')
 @Tags('Counterparty')
 export class CounterpartyController extends Controller {
-  /** Update details and optionally activate a Draft. Supplied metadata replaces all roles. */
+  /**
+   * Update details and optionally activate a Draft. Supplied metadata replaces all roles.
+   * A type change after transaction use returns 409 with field=type,
+   * reason=transaction_usage and nextAction=create_counterparty.
+   * This counterparty's type cannot be changed because it has been used in a
+   * transaction. Create a new counterparty if a different type is required.
+   */
   @Patch('/{id}')
   @OperationId('updateCounterparty')
   @SuccessResponse('200')
