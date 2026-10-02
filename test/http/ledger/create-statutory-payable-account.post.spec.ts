@@ -15,7 +15,6 @@ import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-fla
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateStatutoryPayableAccountDto } from '@app/ledger/dtos/payable-account/payable-account.dto';
 import { createStatutoryPayableAccountValidation } from '@app/ledger/dtos/payable-account/payable-account.dto.validation';
-import ledgerAppError from '@app/ledger/errors/ledger.error';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
@@ -214,8 +213,14 @@ describe('POST /accounts/liability/payables/statutory', () => {
   });
   describe('404 Response', () => {
     it('maps a missing selected parent', async () => {
-      mockCreate.mockRejectedValueOnce(new ledgerAppError.AccountNotFound());
-      expect((await send()).status).toBe(404);
+      mockCreate.mockRejectedValueOnce(
+        new ledgerAccountError.ControlAccountIdNotFound()
+      );
+      const response = await send({ ...valid, controlAccountId });
+      expect(response.status).toBe(404);
+      expect(response.body.errorKey).toBe(
+        'ledger_error_control_account_id_not_found'
+      );
     });
   });
   describe('500 Response', () => {

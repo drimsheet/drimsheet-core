@@ -3,8 +3,6 @@ import errorUtils from '@shared/utils/error';
 import appError from '@shared/values/errors/app.error';
 
 const EErrorKeys = {
-  AssignmentTransactionRequired:
-    'app_error_ledger_assignment_transaction_required_unexpected',
   AccountNotFound: 'app_error_ledger_account_not_found',
   BalanceNotFound: 'app_error_ledger_balance_not_found',
   BalancePropagationOutboxNotFound:

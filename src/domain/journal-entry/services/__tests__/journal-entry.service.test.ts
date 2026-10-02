@@ -1,8 +1,9 @@
-import { IReadRepoOptions } from '@shared/types/repo.types';
+import { ERepoLock, IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
+import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import {
@@ -49,6 +50,7 @@ import {
   EExpenseAccountBehavior,
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
@@ -56,12 +58,16 @@ import {
   ELedgerType,
   ILedgerAccount,
 } from '@domain/ledger/types/ledger.types';
+import payablesMetaValue from '@domain/ledger/values/payables-meta.vo.';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import { ICurrency } from '@domain/money/types/currency.types';
 import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 import userEntity from '@domain/user/entities/user.entity';
+
+const mockLedgerCodeAllocationService: jest.Mocked<ILedgerCodeAllocationService> =
+  { getNextCode: jest.fn() };
 
 const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
   validatePostingPeriod: jest.fn(),
@@ -115,15 +121,23 @@ describe('journalEntryService', () => {
   });
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    bankAccountRepo: {
+      findOne: jest.fn(),
+      findByLedgerAccountId: jest.fn(),
+      create: jest.fn(),
+    },
+    ledgerCodeAllocationService: { getNextCode: jest.fn() },
   });
   const equityAccountService = makeEquityAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
   const servicesAccountService = makeServicesAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   const payablesAccountService = makePayablesAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
 
   async function makeReceiptFixture(postedAt: Date | null = null) {
@@ -164,14 +178,40 @@ describe('journalEntryService', () => {
       },
       repoOptions
     );
-    const [sourceAccountWithoutOpeningDate] =
-      servicesAccountService.createSubAccount({
-        name: 'Service Revenue',
-        accountingEntityId: accountingEntity.id,
-        isControlAccount: false,
-        controlAccount: servicesHeader,
-        createdBy: user.actorId,
-      });
+    const [sourceAccountWithoutOpeningDate] = ((
+      payload: Omit<
+        Parameters<typeof servicesAccountService.createSubAccount>[0],
+        'controlAccountId'
+      > & { controlAccount: ILedgerAccount }
+    ) => {
+      const controlAccount = payload.controlAccount;
+      const code = String(Number(controlAccount.code) + 1).padStart(6, '0');
+      const materializedPath = controlAccount.materializedPath + '.' + code;
+      return ledgerAccountEntity.make<ILedgerAccount>({
+        name: payload.name,
+        accountingEntityId: payload.accountingEntityId,
+        code,
+        materializedPath,
+        normalBalance: 'credit',
+        type: 'revenue',
+        subType: 'services',
+        behavior: 'services',
+        isControlAccount: payload.isControlAccount,
+        controlAccountId: controlAccount.id,
+        currency: null,
+        meta: null,
+        status: 'active',
+        contraAccountRule: 'contra_not_permitted',
+        adjunctAccountRule: 'adjunct_not_permitted',
+        createdBy: payload.createdBy,
+      }) as Awaited<ReturnType<typeof servicesAccountService.createSubAccount>>;
+    })({
+      name: 'Service Revenue',
+      accountingEntityId: accountingEntity.id,
+      isControlAccount: false,
+      controlAccount: servicesHeader,
+      createdBy: user.actorId,
+    });
     mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
     const [payablesHeader] = await payablesAccountService.createHeader(
       {
@@ -181,19 +221,51 @@ describe('journalEntryService', () => {
       },
       repoOptions
     );
-    const [vatPayableAccountWithoutOpeningDate] =
-      payablesAccountService.createStatutoryPayableSubAccount({
-        name: 'VAT Payable',
-        createdBy: user.actorId,
-        accountingEntity,
-        currency: SYSTEM_CURRENCIES.NGN,
-        isControlAccount: false,
-        controlAccount: payablesHeader,
-        meta: {
-          taxAuthority: 'Federal Inland Revenue Service',
-          taxType: 'vat',
-        },
-      });
+    const [vatPayableAccountWithoutOpeningDate] = ((
+      payload: Omit<
+        Parameters<
+          typeof payablesAccountService.createStatutoryPayableSubAccount
+        >[0],
+        'controlAccountId'
+      > & { controlAccount: ILedgerAccount }
+    ) => {
+      const controlAccount = payload.controlAccount;
+      const code = String(Number(controlAccount.code) + 1).padStart(6, '0');
+      const materializedPath = controlAccount.materializedPath + '.' + code;
+      return ledgerAccountEntity.make<ILedgerAccount>({
+        name: payload.name,
+        accountingEntityId: payload.accountingEntity.id,
+        code,
+        materializedPath,
+        normalBalance: 'credit',
+        type: 'liability',
+        subType: 'payable',
+        behavior: 'tax_payable',
+        isControlAccount: payload.isControlAccount,
+        controlAccountId: controlAccount.id,
+        currency: payload.currency,
+        status: 'active',
+        meta: payablesMetaValue.makeStatutoryMeta(payload.meta),
+        contraAccountRule: 'contra_not_permitted',
+        adjunctAccountRule: 'adjunct_not_permitted',
+        createdBy: payload.createdBy,
+      }) as Awaited<
+        ReturnType<
+          typeof payablesAccountService.createStatutoryPayableSubAccount
+        >
+      >;
+    })({
+      name: 'VAT Payable',
+      createdBy: user.actorId,
+      accountingEntity,
+      currency: SYSTEM_CURRENCIES.NGN,
+      isControlAccount: false,
+      controlAccount: payablesHeader,
+      meta: {
+        taxAuthority: 'Federal Inland Revenue Service',
+        taxType: 'vat',
+      },
+    });
     mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
     const [cashHeader] = await cashAccountService.createHeader(
       {
@@ -203,15 +275,43 @@ describe('journalEntryService', () => {
       },
       repoOptions
     );
-    const [destinationAccountWithoutOpeningDate] =
-      cashAccountService.createPettyCashSubAccount({
-        name: 'Cash on Hand',
-        currency: SYSTEM_CURRENCIES.NGN,
-        isControlAccount: false,
-        controlAccount: cashHeader,
-        accountingEntity,
-        createdBy: user.actorId,
-      });
+    const [destinationAccountWithoutOpeningDate] = ((
+      payload: Omit<
+        Parameters<typeof cashAccountService.createPettyCashSubAccount>[0],
+        'controlAccountId'
+      > & { controlAccount: ILedgerAccount }
+    ) => {
+      const controlAccount = payload.controlAccount;
+      const code = String(Number(controlAccount.code) + 1).padStart(6, '0');
+      const materializedPath = controlAccount.materializedPath + '.' + code;
+      return ledgerAccountEntity.make<ILedgerAccount>({
+        name: payload.name,
+        accountingEntityId: payload.accountingEntity.id,
+        code,
+        materializedPath,
+        normalBalance: 'debit',
+        type: 'asset',
+        subType: 'cash_and_cash_equivalent',
+        behavior: 'petty_cash',
+        isControlAccount: payload.isControlAccount,
+        controlAccountId: controlAccount.id,
+        currency: payload.currency,
+        meta: null,
+        status: 'active',
+        contraAccountRule: 'contra_permitted',
+        adjunctAccountRule: 'adjunct_permitted',
+        createdBy: payload.createdBy,
+      }) as Awaited<
+        ReturnType<typeof cashAccountService.createPettyCashSubAccount>
+      >;
+    })({
+      name: 'Cash on Hand',
+      currency: SYSTEM_CURRENCIES.NGN,
+      isControlAccount: false,
+      controlAccount: cashHeader,
+      accountingEntity,
+      createdBy: user.actorId,
+    });
     const [sourceAccount] = ledgerAccountEntity.updateOpeningBalanceDate(
       sourceAccountWithoutOpeningDate,
       effectiveDate
@@ -509,7 +609,7 @@ describe('journalEntryService', () => {
     });
     const destinationAccount = makePaymentAccount({
       accountingEntityId: accountingEntity.id,
-      behavior: EAssetAccountBehavior.PettyCash,
+      behavior: 'petty_cash',
       code: '100002',
       createdBy: user.actorId,
       name: 'Petty cash',
@@ -804,7 +904,36 @@ describe('journalEntryService', () => {
       },
       repoOptions
     );
-    const [account] = cashAccountService.createPettyCashSubAccount({
+    const [account] = ((
+      payload: Omit<
+        Parameters<typeof cashAccountService.createPettyCashSubAccount>[0],
+        'controlAccountId'
+      > & { controlAccount: ILedgerAccount }
+    ) => {
+      const controlAccount = payload.controlAccount;
+      const code = String(Number(controlAccount.code) + 1).padStart(6, '0');
+      const materializedPath = controlAccount.materializedPath + '.' + code;
+      return ledgerAccountEntity.make<ILedgerAccount>({
+        name: payload.name,
+        accountingEntityId: payload.accountingEntity.id,
+        code,
+        materializedPath,
+        normalBalance: 'debit',
+        type: 'asset',
+        subType: 'cash_and_cash_equivalent',
+        behavior: 'petty_cash',
+        isControlAccount: payload.isControlAccount,
+        controlAccountId: controlAccount.id,
+        currency: payload.currency,
+        meta: null,
+        status: 'active',
+        contraAccountRule: 'contra_permitted',
+        adjunctAccountRule: 'adjunct_permitted',
+        createdBy: payload.createdBy,
+      }) as Awaited<
+        ReturnType<typeof cashAccountService.createPettyCashSubAccount>
+      >;
+    })({
       name: 'Other Entity Cash',
       currency: SYSTEM_CURRENCIES.NGN,
       isControlAccount: false,
@@ -1627,7 +1756,36 @@ describe('journalEntryService', () => {
         },
         repoOptions
       );
-      const [postingAccount] = cashAccountService.createPettyCashSubAccount({
+      const [postingAccount] = ((
+        payload: Omit<
+          Parameters<typeof cashAccountService.createPettyCashSubAccount>[0],
+          'controlAccountId'
+        > & { controlAccount: ILedgerAccount }
+      ) => {
+        const controlAccount = payload.controlAccount;
+        const code = String(Number(controlAccount.code) + 1).padStart(6, '0');
+        const materializedPath = controlAccount.materializedPath + '.' + code;
+        return ledgerAccountEntity.make<ILedgerAccount>({
+          name: payload.name,
+          accountingEntityId: payload.accountingEntity.id,
+          code,
+          materializedPath,
+          normalBalance: 'debit',
+          type: 'asset',
+          subType: 'cash_and_cash_equivalent',
+          behavior: 'petty_cash',
+          isControlAccount: payload.isControlAccount,
+          controlAccountId: controlAccount.id,
+          currency: payload.currency,
+          meta: null,
+          status: 'active',
+          contraAccountRule: 'contra_permitted',
+          adjunctAccountRule: 'adjunct_permitted',
+          createdBy: payload.createdBy,
+        }) as Awaited<
+          ReturnType<typeof cashAccountService.createPettyCashSubAccount>
+        >;
+      })({
         name: 'Main Petty Cash',
         currency: postingCurrency,
         isControlAccount: false,
@@ -1668,6 +1826,157 @@ describe('journalEntryService', () => {
         createdBy: fixture.user.actorId,
       };
     }
+
+    describe('initial opening balance for a newly created dated account', () => {
+      const transactionOptions = { ...repoOptions, tx: {} };
+      async function initialPayload() {
+        const fixture = await makeOpeningBalanceFixture();
+        const [account] = ledgerAccountEntity.make({
+          ...fixture.postingAccount,
+          openingBalanceDate: new Date(timestamp.getTime() - 1),
+        });
+        mockLedgerAccountRepo.findBySubType.mockResolvedValue([
+          fixture.equityAccount,
+        ]);
+        mockLedgerAccountRepo.findById.mockResolvedValue(null);
+        return { ...makeOpeningBalancePayload(fixture), account };
+      }
+      it('prepares a posted journal for an unpersisted account with its initial date', async () => {
+        const payload = await initialPayload();
+        const [entry] = await service.createInitialOpeningBalance(
+          payload,
+          transactionOptions
+        );
+        expect(entry.status).toBe(EJournalEntryStatus.Posted);
+        expect(entry.lines[0].accountId).toBe(payload.account.id);
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod
+        ).toHaveBeenCalledWith(
+          payload.accountingEntityId,
+          payload.effectiveDate,
+          { ...transactionOptions, lock: ERepoLock.Share }
+        );
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod.mock
+            .invocationCallOrder[0]
+        ).toBeLessThan(
+          mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId.mock
+            .invocationCallOrder[0]
+        );
+        expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
+          payload.account.id,
+          payload.account.accountingEntityId,
+          transactionOptions
+        );
+        expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+        await expect(
+          service.createOpeningBalance(payload, transactionOptions)
+        ).rejects.toBeInstanceOf(journalEntryError.ExistingOpeningBalance);
+      });
+      it.each([
+        new periodError.PostingDateNotCovered(),
+        new periodError.PostingPeriodNotOpen(),
+        new Error('Period lookup failed'),
+      ])(
+        'rejects before preparing the journal when period validation fails: %s',
+        async (failure) => {
+          const payload = await initialPayload();
+          mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
+            failure
+          );
+
+          await expect(
+            service.createInitialOpeningBalance(payload, transactionOptions)
+          ).rejects.toBe(failure);
+          expect(
+            mockAccountingPeriodService.validatePostingPeriod
+          ).toHaveBeenCalledWith(
+            payload.accountingEntityId,
+            payload.effectiveDate,
+            { ...transactionOptions, lock: ERepoLock.Share }
+          );
+          expect(
+            mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId
+          ).not.toHaveBeenCalled();
+        }
+      );
+      it('requires a caller transaction', async () => {
+        const payload = await initialPayload();
+        await expect(
+          // @ts-expect-error Exercise runtime guard.
+          service.createInitialOpeningBalance(payload, repoOptions)
+        ).rejects.toBeInstanceOf(
+          journalEntryError.InitialOpeningBalanceTransactionRequired
+        );
+      });
+      it.each([null, new Date('2020-01-01')])(
+        'rejects a missing or mismatched date: %s',
+        async (openingBalanceDate) => {
+          const payload = await initialPayload();
+          const [account] = ledgerAccountEntity.make({
+            ...payload.account,
+            openingBalanceDate,
+          });
+          await expect(
+            service.createInitialOpeningBalance(
+              { ...payload, account },
+              transactionOptions
+            )
+          ).rejects.toBeInstanceOf(journalEntryError.InvalidOpeningBalanceDate);
+        }
+      );
+      it('rejects an already-persisted account', async () => {
+        const payload = await initialPayload();
+        mockLedgerAccountRepo.findById.mockResolvedValue(payload.account);
+        await expect(
+          service.createInitialOpeningBalance(payload, transactionOptions)
+        ).rejects.toBeInstanceOf(
+          journalEntryError.InitialOpeningBalanceAccountAlreadyExists
+        );
+      });
+      it('rejects control accounts', async () => {
+        const payload = await initialPayload();
+        await expect(
+          service.createInitialOpeningBalance(
+            {
+              ...payload,
+              account: { ...payload.account, isControlAccount: true },
+            },
+            transactionOptions
+          )
+        ).rejects.toBeInstanceOf(
+          journalEntryError.ControlAccountOpeningBalanceNotAllowed
+        );
+      });
+      it('retains existing-adjustment protection', async () => {
+        const payload = await initialPayload();
+        mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId.mockResolvedValueOnce(
+          [{}] as Awaited<
+            ReturnType<ILedgerAccountBalanceRepo['findAdjustmentsByAccountId']>
+          >
+        );
+        await expect(
+          service.createInitialOpeningBalance(payload, transactionOptions)
+        ).rejects.toBeInstanceOf(journalEntryError.ExistingOpeningBalance);
+      });
+      it('retains equity configuration protection', async () => {
+        const payload = await initialPayload();
+        mockLedgerAccountRepo.findBySubType.mockResolvedValue([]);
+        await expect(
+          service.createInitialOpeningBalance(payload, transactionOptions)
+        ).rejects.toBeInstanceOf(
+          journalEntryError.UnConfiguredOpeningBalanceAccount
+        );
+      });
+      it('propagates account lookup failure', async () => {
+        const payload = await initialPayload();
+        const failure = new Error('database unavailable');
+        mockLedgerAccountRepo.findById.mockRejectedValue(failure);
+        await expect(
+          service.createInitialOpeningBalance(payload, transactionOptions)
+        ).rejects.toBe(failure);
+      });
+    });
 
     it('creates a posted opening balance with the configured equity account', async () => {
       const fixture = await makeOpeningBalanceFixture();

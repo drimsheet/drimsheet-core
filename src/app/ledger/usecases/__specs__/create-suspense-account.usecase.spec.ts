@@ -91,8 +91,7 @@ describe('createSuspenseAccountUsecase', () => {
     'creates one %s with final code, audit and zero balances',
     async (type) => {
       const result = await usecase({ ...valid, type });
-      const [account, currency, options] =
-        mockPersistence.createWithoutAssigningCode.mock.calls[0];
+      const [account, currency, options] = mockPersistence.create.mock.calls[0];
       expect(mockAccountingEntityRepo.findById).toHaveBeenCalledWith(
         accountingEntity.id,
         { correlationId, tx, lock: ERepoLock.Update }
@@ -144,7 +143,6 @@ describe('createSuspenseAccountUsecase', () => {
           : mockSuspenseAccountService.createAssetSuspense;
       expect(selected).toHaveBeenCalledTimes(1);
       expect(other).not.toHaveBeenCalled();
-      expect(mockPersistence.createAndAssignCode).not.toHaveBeenCalled();
       expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
       expect(mockEventBus.publish.mock.calls[0][0]).toEqual([
         expect.objectContaining({ correlationId, data: account }),
@@ -173,7 +171,7 @@ describe('createSuspenseAccountUsecase', () => {
     expect(
       mockSuspenseAccountService.createAssetSuspense
     ).not.toHaveBeenCalled();
-    expect(mockPersistence.createWithoutAssigningCode).not.toHaveBeenCalled();
+    expect(mockPersistence.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
   it('rejects a domain duplicate without persistence or publication', async () => {
@@ -183,7 +181,7 @@ describe('createSuspenseAccountUsecase', () => {
     await expect(usecase(valid)).rejects.toBeInstanceOf(
       ledgerAccountError.SuspenseAccountAlreadyExists
     );
-    expect(mockPersistence.createWithoutAssigningCode).not.toHaveBeenCalled();
+    expect(mockPersistence.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
   it('propagates lock failures without domain creation', async () => {
@@ -197,7 +195,7 @@ describe('createSuspenseAccountUsecase', () => {
   });
   it('propagates persistence failures without publication', async () => {
     const failure = new Error('balance failed');
-    mockPersistence.createWithoutAssigningCode.mockRejectedValueOnce(failure);
+    mockPersistence.create.mockRejectedValueOnce(failure);
     await expect(usecase(valid)).rejects.toBe(failure);
     expect(committed).toBe(false);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -217,6 +215,6 @@ describe('createSuspenseAccountUsecase', () => {
     await expect(usecase(valid)).rejects.toBe(failure);
     expect(committed).toBe(true);
     expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
-    expect(mockPersistence.createWithoutAssigningCode).toHaveBeenCalledTimes(1);
+    expect(mockPersistence.create).toHaveBeenCalledTimes(1);
   });
 });

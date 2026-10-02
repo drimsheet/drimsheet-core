@@ -4,6 +4,7 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -11,7 +12,11 @@ import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import {
+  mockBankAccountRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mapLedgerAccountToDto from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 
 describe('mapLedgerAccountToDto', () => {
@@ -24,6 +29,8 @@ describe('mapLedgerAccountToDto', () => {
   } as IAccountingEntity;
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    bankAccountRepo: mockBankAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   let mockAccount: ILedgerAccount;
   let controlAccount: ILedgerAccount;
@@ -37,7 +44,36 @@ describe('mapLedgerAccountToDto', () => {
       },
       { correlationId: 'test-correlation-id' }
     );
-    [mockAccount] = cashAccountService.createPettyCashSubAccount({
+    [mockAccount] = ((
+      payload: Omit<
+        Parameters<typeof cashAccountService.createPettyCashSubAccount>[0],
+        'controlAccountId'
+      > & { controlAccount: ILedgerAccount }
+    ) => {
+      const controlAccount = payload.controlAccount;
+      const code = String(Number(controlAccount.code) + 1).padStart(6, '0');
+      const materializedPath = controlAccount.materializedPath + '.' + code;
+      return ledgerAccountEntity.make<ILedgerAccount>({
+        name: payload.name,
+        accountingEntityId: payload.accountingEntity.id,
+        code,
+        materializedPath,
+        normalBalance: 'debit',
+        type: 'asset',
+        subType: 'cash_and_cash_equivalent',
+        behavior: 'petty_cash',
+        isControlAccount: payload.isControlAccount,
+        controlAccountId: controlAccount.id,
+        currency: payload.currency,
+        meta: null,
+        status: 'active',
+        contraAccountRule: 'contra_permitted',
+        adjunctAccountRule: 'adjunct_permitted',
+        createdBy: payload.createdBy,
+      }) as Awaited<
+        ReturnType<typeof cashAccountService.createPettyCashSubAccount>
+      >;
+    })({
       name: 'Petty Cash',
       currency: SYSTEM_CURRENCIES.NGN,
       isControlAccount: false,

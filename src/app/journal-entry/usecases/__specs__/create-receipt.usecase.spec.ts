@@ -14,9 +14,11 @@ import {
   EJournalEntryStatus,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import makeServicesAccountService from '@domain/ledger/services/revenue-account/services.service';
 import { ICashAndCashEquivalentAccount } from '@domain/ledger/types/asset-account.types';
+import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { IServicesAccount } from '@domain/ledger/types/revenue-account.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import actorEntity from '@domain/user/entities/actor.entity';
@@ -38,7 +40,11 @@ import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/jour
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import makeCreateReceiptUsecase from '@app/journal-entry/usecases/create-receipt.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import {
+  mockBankAccountRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
@@ -82,9 +88,12 @@ describe('makeCreateReceiptUsecase', () => {
 
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    bankAccountRepo: mockBankAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   const servicesAccountService = makeServicesAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   let sourceAccount: IServicesAccount;
   let destinationAccount: ICashAndCashEquivalentAccount;
@@ -131,7 +140,34 @@ describe('makeCreateReceiptUsecase', () => {
       },
       { correlationId }
     );
-    [sourceAccount] = servicesAccountService.createSubAccount({
+    [sourceAccount] = ((
+      payload: Omit<
+        Parameters<typeof servicesAccountService.createSubAccount>[0],
+        'controlAccountId'
+      > & { controlAccount: ILedgerAccount }
+    ) => {
+      const controlAccount = payload.controlAccount;
+      const code = String(Number(controlAccount.code) + 1).padStart(6, '0');
+      const materializedPath = controlAccount.materializedPath + '.' + code;
+      return ledgerAccountEntity.make<ILedgerAccount>({
+        name: payload.name,
+        accountingEntityId: payload.accountingEntityId,
+        code,
+        materializedPath,
+        normalBalance: 'credit',
+        type: 'revenue',
+        subType: 'services',
+        behavior: 'services',
+        isControlAccount: payload.isControlAccount,
+        controlAccountId: controlAccount.id,
+        currency: null,
+        meta: null,
+        status: 'active',
+        contraAccountRule: 'contra_not_permitted',
+        adjunctAccountRule: 'adjunct_not_permitted',
+        createdBy: payload.createdBy,
+      }) as Awaited<ReturnType<typeof servicesAccountService.createSubAccount>>;
+    })({
       name: 'Services Revenue',
       accountingEntityId: accountingEntity.id,
       isControlAccount: false,

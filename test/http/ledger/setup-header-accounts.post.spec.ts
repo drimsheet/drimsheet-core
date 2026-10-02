@@ -2,11 +2,12 @@ import { Express } from 'express';
 import request from 'supertest';
 
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
+import mockRepoService, {
+  mockRepoTransaction,
+} from '@shared/contracts/__mocks__/repo.mock';
 import { TEntityId } from '@shared/types/uuid';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
-import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
@@ -100,6 +101,7 @@ const setup = makeSetupHeaderAccountsUsecase({
 
 describe('POST /ledger/header-accounts/setup', () => {
   let app: Express;
+  let accounts: ILedgerAccount[];
   const mockSetup = jest.mocked(setupHeaderAccountsUseCase);
 
   beforeEach(() => {
@@ -115,20 +117,38 @@ describe('POST /ledger/header-accounts/setup', () => {
     mockAccountingEntityRepo.findByIdAndUserId.mockResolvedValue(
       accountingEntity
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
-    mockRepoService.runInTransaction.mockImplementation(async (fn) => fn({}));
-    mockLedgerAccountPersistenceService.createWithoutAssigningCode.mockResolvedValue();
-    const assignedCounts = new Map<string, number>();
-    mockLedgerAccountPersistenceService.createAndAssignCode.mockImplementation(
-      async (payload) => {
-        const next =
-          (assignedCounts.get(payload.allocationHeaderCode) ?? 0) + 1;
-        assignedCounts.set(payload.allocationHeaderCode, next);
-        const [account, events] = ledgerAccountEntity.updateCode(
-          payload.account,
-          String(Number(payload.allocationHeaderCode) + next)
-        );
-        return { account, events };
+    accounts = [];
+    mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.commit.mockResolvedValue();
+    mockRepoTransaction.handleError.mockImplementation(async (error) => {
+      throw error;
+    });
+    mockLedgerAccountRepo.findByCode.mockImplementation(
+      async (code, entityId) =>
+        accounts.find(
+          (a) => a.accountingEntityId === entityId && a.code === code
+        ) ?? null
+    );
+    mockLedgerAccountRepo.findById.mockImplementation(
+      async (id, entityId) =>
+        accounts.find(
+          (a) => a.id === id && a.accountingEntityId === entityId
+        ) ?? null
+    );
+    mockLedgerAccountRepo.findLatestBySubType.mockImplementation(
+      async (entityId, type, subType) =>
+        accounts
+          .filter(
+            (a) =>
+              a.accountingEntityId === entityId &&
+              a.type === type &&
+              a.subType === subType
+          )
+          .sort((a, b) => b.code.localeCompare(a.code))[0] ?? null
+    );
+    mockLedgerAccountPersistenceService.create.mockImplementation(
+      async (account) => {
+        accounts.push(account);
       }
     );
     mockEventBus.publish.mockResolvedValue();
@@ -193,11 +213,8 @@ describe('POST /ledger/header-accounts/setup', () => {
         );
         expect(mockSetup).toHaveBeenCalledWith(body);
         expect(
-          mockLedgerAccountPersistenceService.createWithoutAssigningCode
-        ).toHaveBeenCalledTimes(20);
-        expect(
-          mockLedgerAccountPersistenceService.createAndAssignCode
-        ).toHaveBeenCalledTimes(4);
+          mockLedgerAccountPersistenceService.create
+        ).toHaveBeenCalledTimes(24);
         expect(
           (response.body as ILedgerAccountDto[])
             .slice(20)
@@ -210,6 +227,7 @@ describe('POST /ledger/header-accounts/setup', () => {
     it('translates only supplied names and sanitizes them through the domain', async () => {
       const defaults = await makeRequest().send({});
       expect(defaults.status).toBe(201);
+      accounts = []; // Start a fresh setup scenario for the alias comparison.
       const response = await makeRequest().send({
         receivables: '  Créances  ',
         retained_earnings: '利益剰余金',
@@ -293,7 +311,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.status).toBe(409);
         expect(response.body.errorKey).toBe(errorKey);
         expect(
-          mockLedgerAccountPersistenceService.createWithoutAssigningCode
+          mockLedgerAccountPersistenceService.create
         ).not.toHaveBeenCalled();
         expect(mockEventBus.publish).not.toHaveBeenCalled();
       }
@@ -317,7 +335,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.body.errorKey).toBe('app_error_validation_error');
         expect(mockSetup).not.toHaveBeenCalled();
         expect(
-          mockLedgerAccountPersistenceService.createWithoutAssigningCode
+          mockLedgerAccountPersistenceService.create
         ).not.toHaveBeenCalled();
       }
     );
@@ -330,7 +348,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.body.errorKey).toBe('app_error_validation_error');
         expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
         expect(
-          mockLedgerAccountPersistenceService.createWithoutAssigningCode
+          mockLedgerAccountPersistenceService.create
         ).not.toHaveBeenCalled();
       }
     );
@@ -352,32 +370,33 @@ describe('POST /ledger/header-accounts/setup', () => {
         .send('null');
       expect(response.status).toBe(500);
       expect(mockSetup).not.toHaveBeenCalled();
-      expect(
-        mockLedgerAccountPersistenceService.createWithoutAssigningCode
-      ).not.toHaveBeenCalled();
+      expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
     });
 
-    it('sanitizes a late control assignment failure without publishing', async () => {
-      mockLedgerAccountPersistenceService.createAndAssignCode
-        .mockImplementationOnce(async ({ account }) => ({
-          account,
-          events: [],
-        }))
-        .mockRejectedValueOnce(new Error('allocation failed'));
+    it('sanitizes a late control persistence failure without publishing', async () => {
+      const store =
+        mockLedgerAccountPersistenceService.create.getMockImplementation()!;
+      mockLedgerAccountPersistenceService.create.mockImplementation(
+        async (account, currency, options) => {
+          await store(account, currency, options);
+          if (account.behavior === 'tax_payable')
+            throw new Error('allocation failed');
+        }
+      );
       const response = await makeRequest().send({});
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
         name: 'InternalServerError',
         errorKey: 'app_error_unexpected',
       });
-      expect(
-        mockLedgerAccountPersistenceService.createWithoutAssigningCode
-      ).toHaveBeenCalledTimes(20);
+      expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(
+        24
+      );
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
 
     it('sanitizes write failures without publishing events', async () => {
-      mockLedgerAccountPersistenceService.createWithoutAssigningCode.mockRejectedValueOnce(
+      mockLedgerAccountPersistenceService.create.mockRejectedValueOnce(
         new Error('database password leaked')
       );
       const response = await makeRequest().send({});

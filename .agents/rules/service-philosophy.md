@@ -69,8 +69,6 @@ do not own workflow decisions.
 - Do not call domain services, decide whether to persist, publish events,
   enqueue work, or invoke another persistence service.
 - Return persistence completion or a persistence error to the use case.
-- For the domain-owned ledger code-assignment exception and its returned
-  assigned account, see [Service Ownership](service-ownership.md#persistence-services).
 
 ### Use Cases
 

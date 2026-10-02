@@ -1,17 +1,18 @@
 import { EXPENSE_LEDGER_CODES } from '@domain/ledger/config/expense-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import assetDisposalLossControlAccountValidation from '@domain/ledger/services/validations/asset-disposal-loss-control-account.validation';
 import { IAssetDisposalLossAccountService } from '@domain/ledger/types/asset-disposal-loss.service.types';
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TAssetDisposalLossLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -23,6 +24,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
+  ledgerCodeAllocationService: ILedgerCodeAllocationService;
 }
 
 const LEDGER_CODE = EXPENSE_LEDGER_CODES.ASSET_DISPOSAL_LOSS;
@@ -75,16 +77,24 @@ function makeCreateHeader(
   };
 }
 
-/**
- *
- * Creates a new asset disposal loss sub account
- *
- * @returns Audited IAssetDisposalLossAccount
- *
- */
-function makeCreateSubAccount(): IAssetDisposalLossAccountService['createSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+/** Prepares a final account under caller-owned family and parent locks; never writes. */
+function makeCreateSubAccount(
+  deps: IDependencies
+): IAssetDisposalLossAccountService['createSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntityId,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.HEADER,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
 
     assetDisposalLossControlAccountValidation.validate(
       controlAccount,
@@ -96,21 +106,25 @@ function makeCreateSubAccount(): IAssetDisposalLossAccountService['createSubAcco
       subAccountCurrency: null,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TAssetDisposalLossLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntityId,
+        type: ELedgerType.Expense,
+        subType: EExpenseSubType.LossOnAssetDisposal,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
 
-    const materializedPath =
-      getLedgerAccountMaterializedPath<TAssetDisposalLossLedgerCode>(
-        controlAccount.materializedPath as TAssetDisposalLossLedgerCode,
-        code
-      );
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
+      code
+    );
 
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
-      code,
+      code: code as TAssetDisposalLossLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Expense),
       type: ELedgerType.Expense,
@@ -131,7 +145,7 @@ function makeCreateSubAccount(): IAssetDisposalLossAccountService['createSubAcco
 export default function makeAssetDisposalService(deps: IDependencies) {
   const service: IAssetDisposalLossAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(),
+    createSubAccount: makeCreateSubAccount(deps),
   };
 
   return Object.freeze(service);

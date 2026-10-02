@@ -60,6 +60,11 @@ const reads: Array<{
     read: (options) => bankAccountRepo.findByLedgerAccountId(id, options),
   },
   {
+    name: 'ledgerAccount.findById',
+    read: (options) => ledgerAccountRepo.findById(id, id, options),
+    lockTarget: ' of "ledger_accounts"',
+  },
+  {
     name: 'ledgerAccount.findByCode',
     read: (options) => ledgerAccountRepo.findByCode('100000', id, options),
     lockTarget: ' of "ledger_accounts"',

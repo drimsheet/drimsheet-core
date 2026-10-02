@@ -12,6 +12,10 @@ class JournalEntryError<K extends TErrorPrefix> extends DomainError<K> {
 }
 
 const EErrorKeys = {
+  InitialOpeningBalanceTransactionRequired:
+    'journal_entry_error_initial_opening_balance_transaction_required_unexpected',
+  InitialOpeningBalanceAccountAlreadyExists:
+    'journal_entry_error_initial_opening_balance_account_already_exists_conflict',
   InvalidCreatedBy: 'journal_entry_error_created_by_invalid',
   InvalidAccountingEntityId: 'journal_entry_error_accounting_entity_id_invalid',
   InvalidVoidingEntryId: 'journal_entry_error_voiding_entry_id_invalid',

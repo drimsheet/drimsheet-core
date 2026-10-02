@@ -44,13 +44,6 @@ owner. Do not create a service merely to shorten a use case.
   bundle must be atomic.
 - Persist prepared domain/application records as supplied; do not revalidate
   entities, histories, events, or application-owned outbox decisions.
-- New ledger-account creation is a narrow exception: persistence may call the
-  ledger code assignment app service under its transaction lock. That service
-  delegates the account's code/path update to `ledgerAccountEntity.updateCode`,
-  returning only the audited update. The use case supplies prior histories and
-  retains prior events; persistence wraps and appends the assignment audit.
-  Assignment performs no writes or workflow side effects; this persistence
-  operation only inserts new accounts.
 - May join a caller-owned transaction or create the transaction required for
   their own bundle, but they do not own the outer workflow or the decision to
   persist.

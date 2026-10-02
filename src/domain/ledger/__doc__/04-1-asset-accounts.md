@@ -84,7 +84,7 @@ _Figure: View the mermaid sourcecode here: _[_1-coa-assets.mermaid_](./assets/1-
 The cash-account service ([`cash-account.service.ts`](../services/cash-account.service.ts)) exposes:
 
 - `createHeader()` — creates the default cash control account
-- `createBankSubAccount()` — validates `IBankDetails` and creates a bank account beneath a valid cash control account
+- `createBankSubAccount(payload, repoOptions)` — asynchronously normalizes bank details, rejects duplicates, resolves an optional control-account ID, validates the parent and currency, and creates a complete bank account under caller-owned locks
 - `createPettyCashSubAccount()` — creates petty cash beneath a valid cash control account
 
 ### Short Term Investments
@@ -257,3 +257,15 @@ For the individual MVP, the following asset accounts will be bootstrapped:
 
 > [!NOTE]
 > An opening balance equity account will also be created for each of the control accounts above.
+
+### Bank account creation transactions
+
+Bank creation accepts `controlAccountId` and optional `openingBalanceDate`, with a required caller-owned transaction. The cash service acquires the shared cash-family header lock before locking an explicit parent, then validates the parent and currency before allocating the final code. It returns one creation entity, event, and audit at version 1; it never writes or publishes. Normalized bank details live in the account metadata and are used for the related bank-details insert. The bank-details primary key remains the final protection against concurrent duplicates.
+
+The bank use case persists the prepared account and initial balance without reassignment, together with bank details and any initial journal, FX records, and propagation outbox records. `journalEntryService.createInitialOpeningBalance` accepts only an unpersisted account with a matching initial date and validates the posting period under a Share lock in the caller's transaction; existing-account opening-balance checks remain unchanged. The use case owns commit, cleanup, history wrapping, and post-commit event publication followed by queue submission. Existing account families retain their audited application assignment flow.
+
+## Domain Account Creation
+
+Child creation methods accept an optional `controlAccountId` and require a caller-owned transaction. They lock the allocation root before resolving and locking the selected parent, enforce the existing parent and currency rules, and create the account with its final code and materialized path. Omitted parent IDs retain the existing family-specific default parents. Trade/statutory receivables and payables share their respective root allocation sequences; direct-cost variants share theirs.
+
+Creation returns a version-1 entity and one complete creation event/audit. Bank and petty-cash opening dates are initialized during creation. Initial-opening journals own the posting-period check and Share lock. Use cases persist the prepared account/history and initial balance, commit, publish events, and submit any balance queue work after publication. Persistence never assigns codes or updates prepared domain entities. Existing historical audits and versions are unchanged.

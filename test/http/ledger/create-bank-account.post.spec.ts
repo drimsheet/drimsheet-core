@@ -176,6 +176,21 @@ describe('POST /accounts/asset/bank', () => {
     });
   });
 
+  describe('404 Response', () => {
+    it('maps the domain missing-control-account error to 404', async () => {
+      mockCreateBankAccount.mockRejectedValueOnce(
+        new ledgerAccountError.ControlAccountIdNotFound({
+          id: controlAccountId,
+        })
+      );
+      const response = await makeRequest({ ...validPayload, controlAccountId });
+      expect(response.status).toBe(404);
+      expect(response.body.errorKey).toBe(
+        'ledger_error_control_account_id_not_found'
+      );
+    });
+  });
+
   describe('409 Response', () => {
     it('maps a posting period failure', async () => {
       mockCreateBankAccount.mockRejectedValueOnce(

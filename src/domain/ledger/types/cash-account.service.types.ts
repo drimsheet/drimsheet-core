@@ -1,4 +1,7 @@
-import { IReadRepoOptions } from '@shared/types/repo.types';
+import {
+  IReadRepoOptions,
+  ITransactionContext,
+} from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
@@ -18,12 +21,13 @@ interface IMakeHeaderPayload {
 }
 
 interface IMakePettyCashPayload {
+  openingBalanceDate?: Date;
   name: string;
   currency: ICurrency;
   isControlAccount: boolean;
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
-  controlAccount: ILedgerAccount;
+  controlAccountId?: TEntityId;
 }
 
 interface IMakeBankPayload {
@@ -32,7 +36,8 @@ interface IMakeBankPayload {
   isControlAccount: boolean;
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
-  controlAccount: ILedgerAccount;
+  controlAccountId?: TEntityId;
+  openingBalanceDate?: Date;
   bankDetails: IBankDetails;
 }
 
@@ -48,7 +53,14 @@ export default interface ICashAccountService {
     repoOptions: IReadRepoOptions
   ): Promise<TReturnType>;
 
-  createPettyCashSubAccount(payload: IMakePettyCashPayload): TReturnType;
+  createPettyCashSubAccount(
+    payload: IMakePettyCashPayload,
+    repoOptions: IReadRepoOptions & { tx: ITransactionContext }
+  ): Promise<TReturnType>;
 
-  createBankSubAccount(payload: IMakeBankPayload): TReturnType;
+  /** Prepares a complete account under caller-owned allocation/parent locks; never persists. */
+  createBankSubAccount(
+    payload: IMakeBankPayload,
+    repoOptions: IReadRepoOptions & { tx: ITransactionContext }
+  ): Promise<TReturnType>;
 }

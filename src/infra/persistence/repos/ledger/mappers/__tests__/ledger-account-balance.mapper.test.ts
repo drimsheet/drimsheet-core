@@ -8,7 +8,11 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 import userEntity from '@domain/user/entities/user.entity';
 
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import {
+  mockBankAccountRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 
 import ledgerAccountBalanceMapper, {
   ILedgerAccountBalanceAdjustmentModel,
@@ -19,6 +23,8 @@ import ledgerAccountBalanceMapper, {
 describe('Ledger Account Balance Mapper', () => {
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    bankAccountRepo: mockBankAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   beforeEach(() => {
     jest.useFakeTimers();

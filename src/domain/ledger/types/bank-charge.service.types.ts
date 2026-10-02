@@ -1,4 +1,8 @@
-import { IRepoOptions } from '@shared/types/repo.types';
+import {
+  IReadRepoOptions,
+  IRepoOptions,
+  ITransactionContext,
+} from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
@@ -24,7 +28,7 @@ interface ISubAccountPayload {
   createdBy: TEntityId;
   accountingEntityId: TEntityId;
   isControlAccount: boolean;
-  controlAccount: ILedgerAccount;
+  controlAccountId?: TEntityId;
 }
 
 export interface IBankChargeAccountService {
@@ -32,5 +36,8 @@ export interface IBankChargeAccountService {
     payload: IHeaderPayload,
     repoOptions: IRepoOptions
   ): Promise<TReturnType>;
-  createSubAccount(payload: ISubAccountPayload): TReturnType;
+  createSubAccount(
+    payload: ISubAccountPayload,
+    repoOptions: IReadRepoOptions & { tx: ITransactionContext }
+  ): Promise<TReturnType>;
 }

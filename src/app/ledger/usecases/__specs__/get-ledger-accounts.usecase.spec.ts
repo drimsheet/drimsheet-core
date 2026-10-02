@@ -3,6 +3,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import { ICashAndCashEquivalentAccount } from '@domain/ledger/types/asset-account.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
@@ -10,7 +11,11 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import mockLedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import {
+  mockBankAccountRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import {
   IGetLedgerAccountsQuery,
   ILedgerAccountDto,
@@ -40,6 +45,8 @@ describe('makeGetLedgerAccountsUsecase', () => {
 
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    bankAccountRepo: mockBankAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   let ledgerAccount: ICashAndCashEquivalentAccount;
   let controlAccount: ICashAndCashEquivalentAccount;
@@ -54,14 +61,18 @@ describe('makeGetLedgerAccountsUsecase', () => {
       },
       { correlationId }
     );
-    [ledgerAccount] = cashAccountService.createBankSubAccount({
+    [ledgerAccount] = ledgerAccountEntity.make<ICashAndCashEquivalentAccount>({
+      ...cashHeader,
+      code: '100001',
+      materializedPath: '100000.100001',
+      behavior: 'bank',
       name: 'Operations Bank Account',
       isControlAccount: false,
-      controlAccount: cashHeader,
+      controlAccountId: cashHeader.id,
       currency: usdCurrency,
       createdBy: userId,
-      accountingEntity,
-      bankDetails: {
+      accountingEntityId: accountingEntity.id,
+      meta: {
         countryCode: 'US',
         bankName: 'Test Bank',
         accountNumber: '1234567890',

@@ -1,20 +1,13 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
+import mockRepoService, {
+  mockRepoTransaction,
+} from '@shared/contracts/__mocks__/repo.mock';
 import { ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
-import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
-import makeAssetDisposalService from '@domain/ledger/services/expense-account/asset-disposal-loss.service';
-import makeBankChargeAccountService from '@domain/ledger/services/expense-account/bank-charge.service';
-import makeDirectCostsAccountService from '@domain/ledger/services/expense-account/direct-costs.service';
-import makeFinanceCostAccountService from '@domain/ledger/services/expense-account/finance-cost.service';
-import makeInterestAccountService from '@domain/ledger/services/expense-account/interest.service';
-import makeRentAndUtilitiesAccountService from '@domain/ledger/services/expense-account/rent-and-utilities.service';
-import makeTaxExpenseAccountService from '@domain/ledger/services/expense-account/tax-expense.service';
-import makeUnrealizedLossAccountService from '@domain/ledger/services/expense-account/unrealized-loss.service';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 
@@ -30,7 +23,6 @@ import {
   mockTaxExpenseAccountService,
   mockUnrealizedLossAccountService,
 } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { ICreateExpenseAccountDto } from '@app/ledger/dtos/expense-account/expense-account.dto';
 import makeCreateExpenseAccountUsecase from '@app/ledger/usecases/create-expense-account.usecase';
 
@@ -117,7 +109,6 @@ const usecase = makeCreateExpenseAccountUsecase({
   appContext: mockAppContext,
   eventBus: mockEventBus,
   repoService: mockRepoService,
-  ledgerAccountRepo: mockLedgerAccountRepo,
   ledgerAccountPersistenceService: mockLedgerAccountPersistenceService,
   directCostsAccountService: mockDirectCostsAccountService,
   rentAndUtilitiesAccountService: mockRentAndUtilitiesAccountService,
@@ -134,301 +125,181 @@ const valid: ICreateExpenseAccountDto = {
   behavior: 'default_direct_cost',
 };
 
-describe('createExpenseAccountUsecase', () => {
-  let parent: ILedgerAccount;
-  let committed: boolean;
-  beforeEach(async () => {
+let creation: ReturnType<typeof ledgerAccountEntity.make<ILedgerAccount>>;
+function makeAccount(scenario: (typeof cases)[number]) {
+  return ledgerAccountEntity.make<ILedgerAccount>({
+    name: valid.name,
+    code: scenario.header.slice(0, 3) + '099',
+    materializedPath:
+      scenario.header + '.' + scenario.header.slice(0, 3) + '099',
+    accountingEntityId: accountingEntity.id,
+    createdBy: actor.id,
+    type: 'expense',
+    subType: scenario.subType,
+    behavior: scenario.behavior,
+    normalBalance: 'debit',
+    isControlAccount: false,
+    controlAccountId: actor.id,
+    currency: null,
+    status: 'active',
+    meta: null,
+    contraAccountRule: 'contra_not_permitted',
+    adjunctAccountRule: 'adjunct_not_permitted',
+  });
+}
+
+describe('complete expense creation workflow', () => {
+  beforeEach(() => {
     jest.resetAllMocks();
-    committed = false;
     mockAppContext.get.mockReturnValue({
       actor,
       accountingEntity,
       correlationId,
     });
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
-    const directCosts = makeDirectCostsAccountService({
-      ledgerAccountRepo: mockLedgerAccountRepo,
+    mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.handleError.mockImplementation(async (error) => {
+      throw error;
     });
-    mockDirectCostsAccountService.createHeader.mockImplementation(
-      directCosts.createHeader
-    );
+    creation = makeAccount(cases[0]);
     mockDirectCostsAccountService.createSubAccount.mockImplementation(
-      directCosts.createSubAccount
-    );
-    const rentAndUtilities = makeRentAndUtilitiesAccountService({
-      ledgerAccountRepo: mockLedgerAccountRepo,
-    });
-    mockRentAndUtilitiesAccountService.createHeader.mockImplementation(
-      rentAndUtilities.createHeader
+      async () =>
+        creation as Awaited<
+          ReturnType<typeof mockDirectCostsAccountService.createSubAccount>
+        >
     );
     mockRentAndUtilitiesAccountService.createSubAccount.mockImplementation(
-      rentAndUtilities.createSubAccount
-    );
-    const bankCharge = makeBankChargeAccountService({
-      ledgerAccountRepo: mockLedgerAccountRepo,
-    });
-    mockBankChargeAccountService.createHeader.mockImplementation(
-      bankCharge.createHeader
+      async () =>
+        creation as Awaited<
+          ReturnType<typeof mockRentAndUtilitiesAccountService.createSubAccount>
+        >
     );
     mockBankChargeAccountService.createSubAccount.mockImplementation(
-      bankCharge.createSubAccount
-    );
-    const financeCost = makeFinanceCostAccountService({
-      ledgerAccountRepo: mockLedgerAccountRepo,
-    });
-    mockFinanceCostAccountService.createHeader.mockImplementation(
-      financeCost.createHeader
+      async () =>
+        creation as Awaited<
+          ReturnType<typeof mockBankChargeAccountService.createSubAccount>
+        >
     );
     mockFinanceCostAccountService.createSubAccount.mockImplementation(
-      financeCost.createSubAccount
-    );
-    const interest = makeInterestAccountService({
-      ledgerAccountRepo: mockLedgerAccountRepo,
-    });
-    mockInterestAccountService.createHeader.mockImplementation(
-      interest.createHeader
+      async () =>
+        creation as Awaited<
+          ReturnType<typeof mockFinanceCostAccountService.createSubAccount>
+        >
     );
     mockInterestAccountService.createSubAccount.mockImplementation(
-      interest.createSubAccount
-    );
-    const taxExpense = makeTaxExpenseAccountService({
-      ledgerAccountRepo: mockLedgerAccountRepo,
-    });
-    mockTaxExpenseAccountService.createHeader.mockImplementation(
-      taxExpense.createHeader
+      async () =>
+        creation as Awaited<
+          ReturnType<typeof mockInterestAccountService.createSubAccount>
+        >
     );
     mockTaxExpenseAccountService.createSubAccount.mockImplementation(
-      taxExpense.createSubAccount
-    );
-    const unrealizedLoss = makeUnrealizedLossAccountService({
-      ledgerAccountRepo: mockLedgerAccountRepo,
-    });
-    mockUnrealizedLossAccountService.createHeader.mockImplementation(
-      unrealizedLoss.createHeader
+      async () =>
+        creation as Awaited<
+          ReturnType<typeof mockTaxExpenseAccountService.createSubAccount>
+        >
     );
     mockUnrealizedLossAccountService.createSubAccount.mockImplementation(
-      unrealizedLoss.createSubAccount
-    );
-    const assetDisposalLoss = makeAssetDisposalService({
-      ledgerAccountRepo: mockLedgerAccountRepo,
-    });
-    mockAssetDisposalLossAccountService.createHeader.mockImplementation(
-      assetDisposalLoss.createHeader
+      async () =>
+        creation as Awaited<
+          ReturnType<typeof mockUnrealizedLossAccountService.createSubAccount>
+        >
     );
     mockAssetDisposalLossAccountService.createSubAccount.mockImplementation(
-      assetDisposalLoss.createSubAccount
+      async () =>
+        creation as Awaited<
+          ReturnType<
+            typeof mockAssetDisposalLossAccountService.createSubAccount
+          >
+        >
     );
-    parent = (
-      await cases[0].service.createHeader(
-        { name: 'Header', createdBy: actor.id, accountingEntity },
-        repoOptions
-      )
-    )[0];
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(parent);
-    mockLedgerAccountRepo.findById.mockResolvedValue(parent);
-    mockLedgerAccountPersistenceService.createAndAssignCode.mockImplementation(
-      async ({ account, allocationHeaderCode }) => {
-        const [assigned, events] = ledgerAccountEntity.updateCode(
-          account,
-          String(Number(allocationHeaderCode) + 99)
-        );
-        return { account: assigned, events };
-      }
-    );
-    mockRepoService.runInTransaction.mockImplementation(async (fn) => {
-      const result = await fn(tx);
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-      committed = true;
-      return result;
-    });
-    mockEventBus.publish.mockImplementation(async () => {
-      expect(committed).toBe(true);
-    });
   });
   it.each(cases)(
-    'dispatches $behavior with its allocation root and final DTO',
-    async (entry) => {
-      mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
-      const header = (
-        await entry.service.createHeader(
-          { name: 'Header', createdBy: actor.id, accountingEntity },
-          repoOptions
-        )
-      )[0];
-      const control =
-        entry.header === '500000'
-          ? { ...header, behavior: entry.behavior }
-          : header;
-      mockLedgerAccountRepo.findByCode.mockResolvedValue(control);
-      mockLedgerAccountRepo.findByCode.mockClear();
-      const result = await usecase({ ...valid, behavior: entry.behavior });
-      expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
-        entry.header,
-        accountingEntity.id,
-        repoOptions
-      );
-      expect(entry.service.createSubAccount).toHaveBeenCalledTimes(1);
-      expect(entry.service.createSubAccount).toHaveBeenCalledWith({
-        name: valid.name,
-        isControlAccount: false,
-        controlAccount: control,
-        createdBy: actor.id,
-        accountingEntityId: accountingEntity.id,
-        ...(entry.header === '500000' ? { behavior: entry.behavior } : {}),
+    'stores the final version 1 account and one creation history for $behavior',
+    async (scenario) => {
+      creation = makeAccount(scenario);
+      const response = await usecase({ ...valid, behavior: scenario.behavior });
+      const [account, functionalCurrency, writeOptions] =
+        mockLedgerAccountPersistenceService.create.mock.calls[0];
+      expect(account).toBe(creation[0]);
+      expect(account.version).toBe(1);
+      expect(functionalCurrency).toBe(accountingEntity.functionalCurrencyCode);
+      expect(writeOptions).toMatchObject({
+        correlationId,
+        tx: mockRepoTransaction.context,
       });
-      const uniqueServices = new Set(
-        cases.map((candidate) => candidate.service)
-      );
-      for (const service of uniqueServices) {
-        if (service !== entry.service)
-          expect(service.createSubAccount).not.toHaveBeenCalled();
-      }
+      expect(writeOptions.history).toHaveLength(1);
+      expect(writeOptions.history[0].diff).toMatchObject({
+        before: null,
+        after: JSON.parse(JSON.stringify(account)),
+      });
+      expect(response).toMatchObject({
+        id: account.id,
+        code: account.code,
+        materializedPath: account.materializedPath,
+      });
+      expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
       expect(
-        mockLedgerAccountPersistenceService.createAndAssignCode.mock.calls[0][0]
-          .allocationHeaderCode
-      ).toBe(entry.header);
-      expect(result).toMatchObject({
-        name: valid.name,
-        behavior: entry.behavior,
-        subType: entry.subType,
-        code: String(Number(entry.header) + 99),
-        balance: { amount: 0 },
-        functionalBalance: { amount: 0 },
-      });
+        mockRepoTransaction.commit.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
+      expect(mockEventBus.publish.mock.calls[0][0]).toEqual([
+        expect.objectContaining({
+          correlationId,
+          data: expect.objectContaining({ version: 1, code: account.code }),
+        }),
+      ]);
     }
   );
-  it('persists creation history in the transaction and publishes both event sets after commit', async () => {
-    const result = await usecase(valid);
-    const [payload, currency, options] =
-      mockLedgerAccountPersistenceService.createAndAssignCode.mock.calls[0];
-    expect(payload).toMatchObject({
-      actorId: actor.id,
-      allocationHeaderCode: '500000',
-      account: {
-        name: valid.name,
-        controlAccountId: parent.id,
+  it('passes an optional parent ID and the caller transaction to the domain', async () => {
+    await usecase({ ...valid, controlAccountId: actor.id });
+    expect(mockDirectCostsAccountService.createSubAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        controlAccountId: actor.id,
+        createdBy: actor.id,
         accountingEntityId: accountingEntity.id,
-      },
-    });
-    expect(currency).toBe('NGN');
-    expect(options).toMatchObject({
-      correlationId,
-      tx,
-      history: [
-        {
-          actorId: actor.id,
-          correlationId,
-          entityVersion: 1,
-          diff: { before: null, after: { name: valid.name } },
-        },
-      ],
-    });
-    expect(result.code).toBe('500099');
-    expect(result.code).not.toBe(payload.account.code);
-    expect(result.materializedPath).toBe(
-      `${parent.materializedPath}.${result.code}`
-    );
-    expect(result.balance).toMatchObject({ amount: 0, currencyCode: 'NGN' });
-    const events = mockEventBus.publish.mock.calls[0][0];
-    expect(events).toEqual([
-      expect.objectContaining({
-        correlationId,
-        data: expect.objectContaining({ version: 1 }),
       }),
-      expect.objectContaining({
-        correlationId,
-        data: expect.objectContaining({ version: 2, code: result.code }),
-      }),
-    ]);
-    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-  });
-  it('resolves explicit parents within the entity without changing the allocation root', async () => {
-    mockLedgerAccountRepo.findByCode.mockClear();
-    await usecase({ ...valid, controlAccountId: parent.id });
-    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
-      parent.id,
-      accountingEntity.id,
-      repoOptions
+      { correlationId, tx: mockRepoTransaction.context }
     );
-    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
-    expect(
-      mockLedgerAccountPersistenceService.createAndAssignCode.mock.calls[0][0]
-        .allocationHeaderCode
-    ).toBe('500000');
   });
-  it('rejects invalid input before reads or transactions', async () => {
-    mockLedgerAccountRepo.findByCode.mockClear();
+  it('rejects malformed requests before acquiring a transaction', async () => {
     await expect(usecase({ ...valid, name: '' })).rejects.toBeInstanceOf(
       appError.UnprocessableEntity
     );
-    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
-  it.each([true, false])(
-    'rejects missing parents before writes (explicit: %s)',
-    async (explicit) => {
-      mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
-      mockLedgerAccountRepo.findById.mockResolvedValue(null);
-      await expect(
-        usecase({
-          ...valid,
-          ...(explicit ? { controlAccountId: parent.id } : {}),
-        })
-      ).rejects.toThrow();
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+  it('propagates acquisition failure without using or disposing a context', async () => {
+    const failure = new Error('acquisition failed');
+    mockRepoService.createTransaction.mockRejectedValueOnce(failure);
+    await expect(usecase(valid)).rejects.toBe(failure);
+    expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
+  });
+  it.each(['creation', 'write', 'commit'] as const)(
+    'cleans up after %s failure without publishing',
+    async (stage) => {
+      const failure = new Error(stage);
+      if (stage === 'creation')
+        mockDirectCostsAccountService.createSubAccount.mockRejectedValueOnce(
+          failure
+        );
+      if (stage === 'write')
+        mockLedgerAccountPersistenceService.create.mockRejectedValueOnce(
+          failure
+        );
+      if (stage === 'commit')
+        mockRepoTransaction.commit.mockRejectedValueOnce(failure);
+      await expect(usecase(valid)).rejects.toBe(failure);
+      expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
-  it.each([
-    { isControlAccount: false },
-    { type: 'equity' },
-    { subType: 'other' },
-    { accountingEntityId: '123e4567-e89b-42d3-a456-426614174099' },
-  ])('preserves domain parent validation for %o', async (override) => {
-    mockLedgerAccountRepo.findById.mockResolvedValue({
-      ...parent,
-      ...override,
-    } as ILedgerAccount);
-    await expect(
-      usecase({ ...valid, controlAccountId: parent.id })
-    ).rejects.toBeInstanceOf(ledgerAccountError.InvalidControlAccount);
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-  it('propagates persistence failure without publication', async () => {
-    const failure = new Error('persistence failed');
-    mockLedgerAccountPersistenceService.createAndAssignCode.mockRejectedValueOnce(
-      failure
-    );
-    await expect(usecase(valid)).rejects.toBe(failure);
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-  it('does not publish if commit fails', async () => {
-    const failure = new Error('commit failed');
-    mockRepoService.runInTransaction.mockImplementationOnce(async (fn) => {
-      await fn(tx);
-      throw failure;
-    });
-    await expect(usecase(valid)).rejects.toBe(failure);
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-  it('propagates publication failure after commit without retrying creation', async () => {
+  it('preserves committed state when publication rejects and does not retry writes', async () => {
     const failure = new Error('publication failed');
     mockEventBus.publish.mockRejectedValueOnce(failure);
     await expect(usecase(valid)).rejects.toBe(failure);
-    expect(committed).toBe(true);
-    expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
-    expect(
-      mockLedgerAccountPersistenceService.createAndAssignCode
-    ).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
   });
-  it.each(['cogs', 'cost_of_services', 'cost_of_revenue'] as const)(
-    'rejects %s below the default-direct-cost header',
-    async (behavior) => {
-      await expect(usecase({ ...valid, behavior })).rejects.toBeInstanceOf(
-        ledgerAccountError.InvalidControlAccount
-      );
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-    }
-  );
 });

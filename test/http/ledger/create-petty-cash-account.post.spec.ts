@@ -5,6 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import periodError from '@domain/accounting/errors/period.error';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
@@ -272,5 +273,15 @@ describe('POST /ledger/asset/petty-cash', () => {
       });
       expect(JSON.stringify(response.body)).not.toContain('password leaked');
     });
+  });
+  it('returns the domain missing selected-parent key with HTTP 404', async () => {
+    mockCreatePettyCashAccount.mockRejectedValueOnce(
+      new ledgerAccountError.ControlAccountIdNotFound()
+    );
+    const response = await makeRequest();
+    expect(response.status).toBe(404);
+    expect(response.body.errorKey).toBe(
+      'ledger_error_control_account_id_not_found'
+    );
   });
 });

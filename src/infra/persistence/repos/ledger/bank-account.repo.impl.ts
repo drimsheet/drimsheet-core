@@ -9,6 +9,18 @@ import { bankDetailsInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import bankAccountMapper from '@infra/persistence/repos/ledger/mappers/bank-account.mapper';
 
+/** Matches only the bank identity constraint, including Drizzle cause wrappers. */
+function isBankIdentityConflict(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const isConflict =
+    'code' in error &&
+    error.code === '23505' &&
+    'constraint' in error &&
+    error.constraint === 'bank_accounts_pkey';
+  if (isConflict) return true;
+  return 'cause' in error && isBankIdentityConflict(error.cause);
+}
+
 const bankAccountRepoImpl: IBankAccountRepo = {
   findOne: async (bankName, accountNumber, options) => {
     const baseQuery = getDbQuery((options ?? {}) as IRepoOptions)
@@ -53,12 +65,7 @@ const bankAccountRepoImpl: IBankAccountRepo = {
       );
       await getDbQuery(options).insert(bankDetailsInCore).values(model);
     } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        (err as { code: string }).code === '23505'
-      ) {
+      if (isBankIdentityConflict(err)) {
         throw new ledgerAccountError.DuplicateBankAccount({
           bankName: bankValue.bankName,
           accountNumber: bankValue.accountNumber,

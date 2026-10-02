@@ -3,6 +3,11 @@ import errorUtils from '@shared/utils/error';
 import DomainError from '@shared/values/errors/domain.error';
 
 const EErrorKeys = {
+  CodeAllocationTransactionRequired:
+    'ledger_error_code_allocation_transaction_required_unexpected',
+  BankCreationTransactionRequired:
+    'ledger_error_bank_creation_transaction_required_unexpected',
+  ControlAccountIdNotFound: 'ledger_error_control_account_id_not_found',
   SuspenseAccountAlreadyExists:
     'ledger_error_suspense_account_already_exists_conflict',
   InvalidCreatedBy: 'ledger_error_created_by_invalid',

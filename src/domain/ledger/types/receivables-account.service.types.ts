@@ -1,4 +1,7 @@
-import { IReadRepoOptions } from '@shared/types/repo.types';
+import {
+  IReadRepoOptions,
+  ITransactionContext,
+} from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
@@ -26,7 +29,7 @@ interface ICreateReceivableSubAccountPayload {
   accountingEntity: IAccountingEntity;
   currency: ICurrency;
   isControlAccount: boolean;
-  controlAccount: ILedgerAccount;
+  controlAccountId?: TEntityId;
 }
 
 export interface IReceivablesAccountService {
@@ -36,10 +39,12 @@ export interface IReceivablesAccountService {
   ): Promise<TReturnType>;
 
   createStatutoryReceivableSubAccount(
-    payload: ICreateReceivableSubAccountPayload
-  ): TReturnType;
+    payload: ICreateReceivableSubAccountPayload,
+    repoOptions: IReadRepoOptions & { tx: ITransactionContext }
+  ): Promise<TReturnType>;
 
   createTradeReceivableSubAccount(
-    payload: ICreateReceivableSubAccountPayload
-  ): TReturnType;
+    payload: ICreateReceivableSubAccountPayload,
+    repoOptions: IReadRepoOptions & { tx: ITransactionContext }
+  ): Promise<TReturnType>;
 }
