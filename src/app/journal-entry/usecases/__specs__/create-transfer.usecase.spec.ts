@@ -9,6 +9,7 @@ import { EAccountingEntityType } from '@domain/accounting/types/accounting-entit
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
@@ -715,6 +716,36 @@ describe('makeCreateTransferUsecase', () => {
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['account', journalEntryError.DraftLedgerAccountNotAllowed],
+    ['counterparty', journalEntryError.DraftCounterpartyNotAllowed],
+  ] as const)(
+    'stops before journal, FX, and propagation writes when a draft %s blocks posting',
+    async (_, ErrorType) => {
+      const error = new ErrorType();
+      mockJournalEntryService.createTransfer.mockRejectedValueOnce(error);
+
+      await expect(getUseCase()(makePayload())).rejects.toBe(error);
+
+      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
+      expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistDisposition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 
   it('does not run post-commit effects when the transaction fails', async () => {
     mockRepoService.runInTransaction.mockRejectedValueOnce(

@@ -44,6 +44,7 @@ export default function makeCreateTradePayableAccountUsecase(
         await deps.payablesAccountService.createTradePayableSubAccount(
           {
             name: payload.name,
+            status: payload.status,
             isControlAccount: payload.isControlAccount,
             controlAccountId: payload.controlAccountId as TEntityId | undefined,
             createdBy: actor.id,

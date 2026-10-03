@@ -21,7 +21,9 @@ import {
 } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
-function makeCashAccount() {
+function makeCashAccount(
+  status: ILedgerAccount['status'] = ELedgerAccountStatus.Active
+) {
   return ledgerAccountEntity.make({
     code: '100001',
     materializedPath: '100000.100001',
@@ -35,7 +37,7 @@ function makeCashAccount() {
     normalBalance: ENormalBalance.Debit,
     isControlAccount: false,
     currency: SYSTEM_CURRENCIES.NGN,
-    status: ELedgerAccountStatus.Active,
+    status,
     contraAccountRule: EContraAccountRule.ContraPermitted,
     adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
     meta: null,
@@ -94,6 +96,24 @@ describe('Ledger Account Shared Entity', () => {
     expect(Object.isFrozen(entity.createdBy)).toBe(true);
   });
 
+  it('preserves Draft on a complete subaccount, its created event, and its audit', () => {
+    const [account, events, audit] = makeCashAccount(
+      ELedgerAccountStatus.Draft
+    );
+
+    expect(account.status).toBe(ELedgerAccountStatus.Draft);
+    expect(account.controlAccountId).not.toBeNull();
+    expect(events).toEqual([
+      expect.objectContaining({
+        type: ELedgerAccountEvent.Created,
+        data: account,
+      }),
+    ]);
+    expect(audit.action).toBe(ELedgerAccountAuditAction.Created);
+    expect(audit.diff.after.status).toBe(ELedgerAccountStatus.Draft);
+    expect(Object.isFrozen(account)).toBe(true);
+  });
+
   describe('Validation Functions', () => {
     it('validateCode: should not throw for valid ledger codes', () => {
       expect(() =>
@@ -125,9 +145,13 @@ describe('Ledger Account Shared Entity', () => {
       }).toThrow();
     });
 
-    it('validateStatus: should not throw for valid statuses', () => {
+    it.each([
+      ELedgerAccountStatus.Active,
+      ELedgerAccountStatus.Archived,
+      ELedgerAccountStatus.Draft,
+    ])('validateStatus: accepts %s', (status) => {
       expect(() =>
-        ledgerAccountValidation.validateStatus(ELedgerAccountStatus.Active)
+        ledgerAccountValidation.validateStatus(status)
       ).not.toThrow();
     });
 

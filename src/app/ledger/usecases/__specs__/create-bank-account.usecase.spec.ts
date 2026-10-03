@@ -11,6 +11,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { ICashAndCashEquivalentAccount } from '@domain/ledger/types/asset-account.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
@@ -81,7 +82,11 @@ const deps = {
   fxLotAppService: mockFxLotAppService,
   fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
 };
-function makeBank(openingBalanceDate: Date | undefined = undefined) {
+function makeBank(
+  openingBalanceDate: Date | undefined = undefined,
+  status: 'active' | 'draft' = 'active',
+  currency = SYSTEM_CURRENCIES.NGN
+) {
   return ledgerAccountEntity.make<ICashAndCashEquivalentAccount>({
     name: payload.name,
     code: '100042',
@@ -94,8 +99,8 @@ function makeBank(openingBalanceDate: Date | undefined = undefined) {
     normalBalance: 'debit',
     isControlAccount: false,
     controlAccountId: parentId,
-    currency: SYSTEM_CURRENCIES.NGN,
-    status: 'active',
+    currency,
+    status,
     contraAccountRule: 'contra_permitted',
     adjunctAccountRule: 'adjunct_permitted',
     meta: bankDetails,
@@ -104,6 +109,19 @@ function makeBank(openingBalanceDate: Date | undefined = undefined) {
 }
 let bank = makeBank();
 function makeJournal(posted = true) {
+  const currency = bank[0].currency!;
+  const exchangeRate =
+    currency.code === 'NGN'
+      ? null
+      : exchangeRateValue.make({
+          baseCurrencyCode: currency.code,
+          targetCurrencyCode: 'NGN',
+          rate: 2,
+          type: 'official',
+          asOf: date,
+          source: 'Test',
+        });
+  const functionalAmount = exchangeRate ? 20000n : 10000n;
   return journalEntryEntity.make({
     accountingEntityId: accountingEntity.id,
     sourceType: 'opening_balance',
@@ -116,8 +134,8 @@ function makeJournal(posted = true) {
       {
         accountId: bank[0].id,
         sequenceOrder: 1,
-        amount: { amount: 10000n, currency: SYSTEM_CURRENCIES.NGN },
-        exchangeRate: null,
+        amount: { amount: 10000n, currency },
+        exchangeRate,
         side: 'debit',
         description: 'Opening balance',
         functionalCurrency: SYSTEM_CURRENCIES.NGN,
@@ -125,7 +143,7 @@ function makeJournal(posted = true) {
       {
         accountId: parentId,
         sequenceOrder: 2,
-        amount: { amount: 10000n, currency: SYSTEM_CURRENCIES.NGN },
+        amount: { amount: functionalAmount, currency: SYSTEM_CURRENCIES.NGN },
         exchangeRate: null,
         side: 'credit',
         description: null,
@@ -152,26 +170,39 @@ describe('bank account creation workflow', () => {
     journal = makeJournal();
     mockAssetAccountService.createBankSubAccount.mockImplementation(
       async (creation) => {
-        bank = makeBank(creation.openingBalanceDate);
+        bank = makeBank(
+          creation.openingBalanceDate,
+          creation.status,
+          creation.currency
+        );
         return bank;
       }
     );
     mockJournalEntryService.createInitialOpeningBalance.mockImplementation(
       async () => {
-        journal = makeJournal();
+        journal = makeJournal(bank[0].status !== 'draft');
         return journal;
       }
     );
     mockFxLotAppService.acquire.mockResolvedValue(null);
   });
-  it.each([false, true])(
-    'persists a complete version 1 account and bank details in one transaction (opening: %s)',
-    async (withOpening) => {
-      const response = await makeCreateBankAccountUseCase(deps)(
-        withOpening ? openingPayload : payload
-      );
+  it.each(
+    [false, true].flatMap((withOpening) =>
+      ([undefined, 'active'] as const).map((status) => ({
+        withOpening,
+        status,
+      }))
+    )
+  )(
+    'persists a complete version 1 account and bank details in one transaction (opening: $withOpening, status: $status)',
+    async ({ withOpening, status }) => {
+      const response = await makeCreateBankAccountUseCase(deps)({
+        ...(withOpening ? openingPayload : payload),
+        status,
+      });
       expect(response).toMatchObject({
         id: bank[0].id,
+        status: 'active',
         code: '100042',
         materializedPath: '100000.100042',
         openingBalanceDate: withOpening ? date : null,
@@ -205,6 +236,10 @@ describe('bank account creation workflow', () => {
         withOpening ? bank[1].length + journal[1].length : 1
       );
       if (withOpening) {
+        expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
+          { journalEntry: journal[0], account: bank[0], actor: actor.id },
+          options
+        );
         expect(
           mockJournalEntryService.createInitialOpeningBalance
         ).toHaveBeenCalledWith(
@@ -247,6 +282,89 @@ describe('bank account creation workflow', () => {
       }
     }
   );
+  it.each([
+    { withOpening: false, foreign: false },
+    { withOpening: true, foreign: false },
+    { withOpening: true, foreign: true },
+  ])(
+    'saves Draft accounting data without effects (opening: $withOpening, foreign: $foreign)',
+    async ({ withOpening, foreign }) => {
+      const currencyCode = foreign ? 'USD' : 'NGN';
+      const request = {
+        ...payload,
+        status: 'draft' as const,
+        currencyCode,
+        openingBalance: withOpening
+          ? {
+              amount: { amount: 10000, currencyCode, isMinorUnit: true },
+              date,
+              exchangeRate: foreign
+                ? {
+                    baseCurrencyCode: 'USD',
+                    targetCurrencyCode: 'NGN',
+                    rate: 2,
+                    type: 'official' as const,
+                    asOf: date,
+                    source: 'Test',
+                  }
+                : null,
+            }
+          : null,
+      };
+      const response = await makeCreateBankAccountUseCase(deps)(request);
+      expect(mockAssetAccountService.createBankSubAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'draft' }),
+        options
+      );
+      expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledWith(
+        bank[0],
+        'NGN',
+        expect.objectContaining({ tx: options.tx, history: expect.any(Array) })
+      );
+      expect(response).toMatchObject({
+        status: 'draft',
+        balance: { amount: 0, currencyCode },
+        functionalBalance: { amount: 0, currencyCode: 'NGN' },
+      });
+      if (withOpening) {
+        expect(journal[0]).toMatchObject({
+          status: 'draft',
+          postedAt: null,
+          effectiveDate: date,
+        });
+        expect(
+          mockJournalEntryService.createInitialOpeningBalance
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            account: bank[0],
+            amount: expect.objectContaining({ amount: 10000n }),
+          }),
+          options
+        );
+        expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledWith(
+          journal[0],
+          expect.objectContaining({
+            diff: JSON.parse(JSON.stringify(journal[2].header.diff)),
+          }),
+          expect.any(Array),
+          options
+        );
+      } else
+        expect(
+          mockJournalEntryPersistenceService.create
+        ).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+    }
+  );
   it('passes domain creation facts including optional ID and initial date', async () => {
     await makeCreateBankAccountUseCase(deps)({
       ...openingPayload,
@@ -255,6 +373,7 @@ describe('bank account creation workflow', () => {
     expect(mockAssetAccountService.createBankSubAccount).toHaveBeenCalledWith(
       {
         name: payload.name,
+        status: undefined,
         currency: SYSTEM_CURRENCIES.NGN,
         isControlAccount: false,
         createdBy: actor.id,
@@ -283,10 +402,7 @@ describe('bank account creation workflow', () => {
     );
     await makeCreateBankAccountUseCase(deps)(openingPayload);
     expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-      { journalEntry: journal[0], account: bank[0], actor: actor.id },
-      options
-    );
+    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
     expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });

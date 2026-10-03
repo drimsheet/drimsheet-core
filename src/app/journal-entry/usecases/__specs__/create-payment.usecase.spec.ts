@@ -9,6 +9,7 @@ import { EAccountingEntityType } from '@domain/accounting/types/accounting-entit
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
@@ -539,6 +540,36 @@ describe('makeCreatePaymentUsecase', () => {
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['account', journalEntryError.DraftLedgerAccountNotAllowed],
+    ['counterparty', journalEntryError.DraftCounterpartyNotAllowed],
+  ] as const)(
+    'stops before journal, FX, and propagation writes when a draft %s blocks posting',
+    async (_, ErrorType) => {
+      const error = new ErrorType();
+      mockJournalEntryService.createPayment.mockRejectedValueOnce(error);
+
+      await expect(getUseCase()(makePayload())).rejects.toBe(error);
+
+      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
+      expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistDisposition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects invalid input before reading request context', async () => {
     const payload = { ...makePayload(), destinationLines: [] };

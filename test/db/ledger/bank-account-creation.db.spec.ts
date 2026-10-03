@@ -37,6 +37,7 @@ import outboxService from '@infra/ioc/services/outbox';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import accountingEntityRepo from '@infra/persistence/repos/accounting/accounting-entity.repo.impl';
 import bankAccountRepo from '@infra/persistence/repos/ledger/bank-account.repo.impl';
+import ledgerAccountBalanceRepo from '@infra/persistence/repos/ledger/ledger-account-balance.repo.impl';
 import ledgerAccountRepo from '@infra/persistence/repos/ledger/ledger-account.repo.impl';
 import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
 import repoService from '@infra/services/repo.service';
@@ -352,6 +353,88 @@ describe('bank account creation with real PostgreSQL', () => {
       expect(mockLedgerBalanceAdjustmentQueue.add).toHaveBeenCalledTimes(1);
     }
   );
+  it('persists a foreign Draft opening and zero balances without FX or propagation records', async () => {
+    const header = await seedHeader();
+    await seedOpeningPeriod(header);
+    await setContext(header);
+    const request = { ...openingRequest(true), status: 'draft' as const };
+    const response = await makeCreateBankAccountUseCase(deps)(request);
+    expect(response).toMatchObject({
+      status: 'draft',
+      balance: { amount: 0, currencyCode: 'USD' },
+      functionalBalance: { amount: 0, currencyCode: 'NGN' },
+    });
+    const options = { correlationId: 'assert-draft-bank' };
+    const account = await ledgerAccountRepo.findById(
+      response.id,
+      header.accountingEntityId,
+      options
+    );
+    expect(account).toMatchObject({
+      status: 'draft',
+      version: 1,
+      openingBalanceDate: request.openingBalance!.date,
+    });
+    const balance = await ledgerAccountBalanceRepo.findByAccountId(
+      response.id,
+      header.accountingEntityId,
+      options
+    );
+    expect(balance).toMatchObject({
+      amount: { amount: 0n },
+      functionalAmount: { amount: 0n },
+    });
+    expect(
+      await bankAccountRepo.findByLedgerAccountId(response.id)
+    ).toMatchObject(request.bankAccount);
+    const journal = await observer.query(
+      'select id, status, posted_at, effective_date::text as effective_date from core.journal_entries where accounting_entity_id = $1',
+      [header.accountingEntityId]
+    );
+    expect(journal.rows).toHaveLength(1);
+    expect(journal.rows[0]).toMatchObject({
+      status: 'draft',
+      posted_at: null,
+      effective_date: request.openingBalance!.date.toISOString().split('T')[0],
+    });
+    const lines = await observer.query(
+      'select id from core.journal_lines where entry_id = $1',
+      [journal.rows[0].id]
+    );
+    expect(lines.rows).toHaveLength(2);
+    for (const [table, expected] of [
+      ['audit.ledger_account_history', 1],
+      ['audit.journal_entry_history', 1],
+      ['audit.journal_line_history', 2],
+    ] as const) {
+      const histories = await observer.query(
+        `select diff from ${table} where accounting_entity_id = $1`,
+        [header.accountingEntityId]
+      );
+      expect(histories.rows).toHaveLength(expected);
+      if (table !== 'audit.journal_line_history')
+        expect(histories.rows[0].diff.after.status).toBe('draft');
+    }
+    for (const table of [
+      'core.subledger_fx_cost_basis_lots',
+      'core.subledger_fx_cost_basis_lot_acquisitions',
+      'audit.subledger_fx_cost_basis_lot_history',
+      'audit.subledger_fx_cost_basis_lot_acquisition_history',
+    ]) {
+      const records = await observer.query(
+        `select id from ${table} where accounting_entity_id = $1`,
+        [header.accountingEntityId]
+      );
+      expect(records.rows).toHaveLength(0);
+    }
+    const outbox = await observer.query(
+      'select id from core.outbox where correlation_id = $1',
+      [`bank-db-${header.accountingEntityId}`]
+    );
+    expect(outbox.rows).toHaveLength(0);
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+    expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+  });
   it('rolls back account, bank, journal, FX, histories, and outbox after a late write failure', async () => {
     const header = await seedHeader();
     await seedOpeningPeriod(header);

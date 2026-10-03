@@ -18,7 +18,10 @@ import {
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { EEquitySubType } from '@domain/ledger/types/equity-account.types';
-import { ELedgerType } from '@domain/ledger/types/ledger.types';
+import {
+  ELedgerAccountStatus,
+  ELedgerType,
+} from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 import moneyValue from '@domain/money/values/money.vo';
 
@@ -85,9 +88,12 @@ async function prepareOpeningBalance(
     openingBalanceEntryRule
   );
 
+  const postedAt =
+    account.status === ELedgerAccountStatus.Draft ? null : effectiveDate;
   const headerValidationPayload = {
     accountingEntityId,
     effectiveDate,
+    postedAt,
   };
   const accountValidationPayload = {
     account,
@@ -128,7 +134,7 @@ async function prepareOpeningBalance(
     accountingEntityId,
     sourceType: EJournalEntrySourceType.OpeningBalance,
     effectiveDate,
-    postedAt: effectiveDate,
+    postedAt,
     memo: 'Opening balance',
     createdBy,
     functionalCurrency,

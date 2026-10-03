@@ -60,6 +60,7 @@ export default function makeCreateExpenseAccountUsecase(
       const auditedAccount = await create(
         {
           name: payload.name,
+          status: payload.status,
           isControlAccount: payload.isControlAccount,
           controlAccountId: payload.controlAccountId as TEntityId | undefined,
           createdBy: actor.id,

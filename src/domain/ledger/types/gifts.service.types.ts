@@ -8,7 +8,7 @@ import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 
-import { ILedgerAccount } from './ledger.types';
+import { ILedgerAccount, ULedgerAccountCreationStatus } from './ledger.types';
 import { IGiftsAccount } from './revenue-account.types';
 
 type TReturnType = TAuditedEntity<IGiftsAccount, IGiftsAccount, ILedgerAccount>;
@@ -24,6 +24,7 @@ interface ISubAccountPayload {
   createdBy: TEntityId;
   accountingEntityId: TEntityId;
   isControlAccount: boolean;
+  status?: ULedgerAccountCreationStatus;
   controlAccountId?: TEntityId;
 }
 

@@ -1,6 +1,9 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import {
+  ELedgerAccountStatus,
+  ILedgerAccount,
+} from '@domain/ledger/types/ledger.types';
 
 import ledgerAccountMapper, {
   ILedgerAccountModel,
@@ -98,6 +101,25 @@ describe('Ledger Account Mapper', () => {
       expect(restored.createdBy).toEqual(createdBy);
     }
   );
+
+  it('round-trips a Draft subaccount through persistence mapping', () => {
+    const draftAccount: ILedgerAccount = {
+      ...domainLedgerAccount,
+      code: '100001',
+      materializedPath: '100000.100001',
+      controlAccountId: 'c3333333-3333-4333-8333-333333333333' as TEntityId,
+      status: ELedgerAccountStatus.Draft,
+    };
+
+    const model = ledgerAccountMapper.toRepo(draftAccount);
+    const restored = ledgerAccountMapper.toDomain({
+      ...model,
+      currency: currencyRepoModel,
+    });
+
+    expect(model.status).toBe(ELedgerAccountStatus.Draft);
+    expect(restored).toEqual(draftAccount);
+  });
 
   describe('toRepo', () => {
     it('should map a domain ledger account to a repo model', () => {

@@ -38,6 +38,9 @@ const EErrorKeys = {
   // Client message: Complete and activate the counterparty before posting.
   DraftCounterpartyNotAllowed:
     'journal_entry_error_draft_counterparty_not_allowed_invalid',
+  // Client message: Activate the ledger account before posting.
+  DraftLedgerAccountNotAllowed:
+    'journal_entry_error_draft_ledger_account_not_allowed_invalid',
   InvalidCounterpartyId: 'journal_entry_error_counterparty_id_invalid',
   InvalidMemo: 'journal_entry_error_memo_invalid',
   ControlAccountOpeningBalanceNotAllowed:

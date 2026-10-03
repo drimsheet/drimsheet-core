@@ -1,3 +1,5 @@
+import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types';
+
 type TSupportedExpenseAccountBehavior =
   | 'default_direct_cost'
   | 'cogs'
@@ -13,6 +15,8 @@ type TSupportedExpenseAccountBehavior =
 
 export interface ICreateExpenseAccountDto {
   name: string;
+  /** Defaults to active when omitted. */
+  status?: ULedgerAccountCreationStatus;
   isControlAccount: boolean;
   /** @format uuid */
   controlAccountId?: string;

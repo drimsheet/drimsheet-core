@@ -3,10 +3,12 @@ import z from 'zod';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 
 import { openingBalanceDtoValidation } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
+import { ledgerAccountCreationStatusValidation } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
 import { currencyCodeValidation } from '@app/money/dtos/currency/currency.dto.validation';
 
 export const pettyCashCreationReqValidation = z
   .object({
+    status: ledgerAccountCreationStatusValidation.optional(),
     name: z
       .string()
       .min(1, new ledgerAccountError.InvalidName().errorKey)
@@ -51,6 +53,7 @@ export const bankDetailsCreationReqValidation = z
 
 export const bankAccountCreationReqValidation = z
   .object({
+    status: ledgerAccountCreationStatusValidation.optional(),
     name: z
       .string()
       .min(1, new ledgerAccountError.InvalidName().errorKey)

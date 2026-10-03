@@ -403,30 +403,41 @@ describe('payablesAccountService', () => {
         .mockReset()
         .mockResolvedValue(header.code.slice(0, 3) + '042');
     });
-    it('uses the established default parent and creates the final version 1 state once', async () => {
-      const [account, events, audit] =
-        await service.createStatutoryPayableSubAccount(payload, options);
-      expect(ledgerAccountRepo.findByCode).toHaveBeenCalledWith(
-        LIABILITY_LEDGER_CODES.PAYABLES.STATUTORY,
-        accountingEntity.id,
-        { ...options, lock: 'update' }
-      );
-      expect(ledgerAccountRepo.findById).not.toHaveBeenCalled();
-      expect(account).toMatchObject({
-        code: header.code.slice(0, 3) + '042',
-        materializedPath:
-          header.materializedPath + '.' + header.code.slice(0, 3) + '042',
-        controlAccountId: header.id,
-        version: 1,
-      });
-      expect(account.currency).toBe(SYSTEM_CURRENCIES.USD);
-      expect(events).toHaveLength(1);
-      expect(events[0].data).toEqual(account);
-      expect(audit.diff).toMatchObject({ before: null, after: account });
-      expect(Object.isFrozen(account)).toBe(true);
-      expect(ledgerAccountRepo.create).not.toHaveBeenCalled();
-      expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
-    });
+    it.each([
+      undefined,
+      ELedgerAccountStatus.Active,
+      ELedgerAccountStatus.Draft,
+    ])(
+      'creates complete account, event, and audit state with status %s',
+      async (status) => {
+        const [account, events, audit] =
+          await service.createStatutoryPayableSubAccount(
+            { ...payload, status },
+            options
+          );
+        expect(ledgerAccountRepo.findByCode).toHaveBeenCalledWith(
+          LIABILITY_LEDGER_CODES.PAYABLES.STATUTORY,
+          accountingEntity.id,
+          { ...options, lock: 'update' }
+        );
+        expect(ledgerAccountRepo.findById).not.toHaveBeenCalled();
+        expect(account).toMatchObject({
+          code: header.code.slice(0, 3) + '042',
+          materializedPath:
+            header.materializedPath + '.' + header.code.slice(0, 3) + '042',
+          controlAccountId: header.id,
+          version: 1,
+        });
+        expect(account.status).toBe(status ?? ELedgerAccountStatus.Active);
+        expect(account.currency).toBe(SYSTEM_CURRENCIES.USD);
+        expect(events).toHaveLength(1);
+        expect(events[0].data).toEqual(account);
+        expect(audit.diff).toMatchObject({ before: null, after: account });
+        expect(Object.isFrozen(account)).toBe(true);
+        expect(ledgerAccountRepo.create).not.toHaveBeenCalled();
+        expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
+      }
+    );
     it('locks the common root before a nested explicit parent and keeps the selected path', async () => {
       const parent = ledgerAccountEntity.make<ILedgerAccount>({
         ...header,
@@ -544,30 +555,41 @@ describe('payablesAccountService', () => {
         .mockReset()
         .mockResolvedValue(header.code.slice(0, 3) + '042');
     });
-    it('uses the established default parent and creates the final version 1 state once', async () => {
-      const [account, events, audit] =
-        await service.createTradePayableSubAccount(payload, options);
-      expect(ledgerAccountRepo.findByCode).toHaveBeenCalledWith(
-        LIABILITY_LEDGER_CODES.PAYABLES.TRADE,
-        accountingEntity.id,
-        { ...options, lock: 'update' }
-      );
-      expect(ledgerAccountRepo.findById).not.toHaveBeenCalled();
-      expect(account).toMatchObject({
-        code: header.code.slice(0, 3) + '042',
-        materializedPath:
-          header.materializedPath + '.' + header.code.slice(0, 3) + '042',
-        controlAccountId: header.id,
-        version: 1,
-      });
-      expect(account.currency).toBe(null);
-      expect(events).toHaveLength(1);
-      expect(events[0].data).toEqual(account);
-      expect(audit.diff).toMatchObject({ before: null, after: account });
-      expect(Object.isFrozen(account)).toBe(true);
-      expect(ledgerAccountRepo.create).not.toHaveBeenCalled();
-      expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
-    });
+    it.each([
+      undefined,
+      ELedgerAccountStatus.Active,
+      ELedgerAccountStatus.Draft,
+    ])(
+      'creates complete account, event, and audit state with status %s',
+      async (status) => {
+        const [account, events, audit] =
+          await service.createTradePayableSubAccount(
+            { ...payload, status },
+            options
+          );
+        expect(ledgerAccountRepo.findByCode).toHaveBeenCalledWith(
+          LIABILITY_LEDGER_CODES.PAYABLES.TRADE,
+          accountingEntity.id,
+          { ...options, lock: 'update' }
+        );
+        expect(ledgerAccountRepo.findById).not.toHaveBeenCalled();
+        expect(account).toMatchObject({
+          code: header.code.slice(0, 3) + '042',
+          materializedPath:
+            header.materializedPath + '.' + header.code.slice(0, 3) + '042',
+          controlAccountId: header.id,
+          version: 1,
+        });
+        expect(account.status).toBe(status ?? ELedgerAccountStatus.Active);
+        expect(account.currency).toBe(null);
+        expect(events).toHaveLength(1);
+        expect(events[0].data).toEqual(account);
+        expect(audit.diff).toMatchObject({ before: null, after: account });
+        expect(Object.isFrozen(account)).toBe(true);
+        expect(ledgerAccountRepo.create).not.toHaveBeenCalled();
+        expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
+      }
+    );
     it('locks the common root before a nested explicit parent and keeps the selected path', async () => {
       const parent = ledgerAccountEntity.make<ILedgerAccount>({
         ...header,

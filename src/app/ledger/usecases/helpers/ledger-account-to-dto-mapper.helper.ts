@@ -1,4 +1,7 @@
-import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
+import {
+  EJournalEntryStatus,
+  IJournalEntry,
+} from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
@@ -25,7 +28,9 @@ export default function ledgerAccountToDtoMapperHelper(
   journalEntry: IJournalEntry | null,
   functionalCurrencyCode: string
 ): ILedgerAccountDto {
-  const accountLine = journalEntry?.lines.find(
+  const postedJournal =
+    journalEntry?.status === EJournalEntryStatus.Posted ? journalEntry : null;
+  const accountLine = postedJournal?.lines.find(
     (line) => line.accountId === account.id
   );
   const functionalCurrency = currencyEntity.getByCode(functionalCurrencyCode);

@@ -109,60 +109,63 @@ describe('mapLedgerAccountToDto', () => {
     expect(dto.functionalBalance.currencyCode).toBe(SYSTEM_CURRENCIES.NGN.code);
   });
 
-  it('uses a journal line functional amount as a null-currency account balance', () => {
-    const nullCurrencyAccount: ILedgerAccount = {
-      ...mockAccount,
-      currency: null,
-    };
-    const exchangeRate = exchangeRateValue.make({
-      baseCurrencyCode: SYSTEM_CURRENCIES.USD.code,
-      targetCurrencyCode: SYSTEM_CURRENCIES.NGN.code,
-      rate: 2,
-      type: EExchangeRateType.Official,
-      asOf: new Date('2026-08-08T00:00:00.000Z'),
-      source: 'CBN',
-    });
-    const [journalEntry] = journalEntryEntity.make({
-      accountingEntityId: accountingEntity.id,
-      sourceType: EJournalEntrySourceType.Adjustment,
-      effectiveDate: new Date('2026-08-08T00:00:00.000Z'),
-      postedAt: null,
-      memo: 'Null account mapping',
-      createdBy: mockUser,
-      functionalCurrency: SYSTEM_CURRENCIES.NGN,
-      lines: [
-        {
-          accountId: nullCurrencyAccount.id,
-          functionalCurrency: SYSTEM_CURRENCIES.NGN,
-          amount: moneyValue.make(5000n, SYSTEM_CURRENCIES.USD, true),
-          exchangeRate,
-          sequenceOrder: 1,
-          side: EJournalSide.Debit,
-          description: 'Foreign amount',
-        },
-        {
-          accountId: controlAccount.id,
-          functionalCurrency: SYSTEM_CURRENCIES.NGN,
-          amount: moneyValue.make(10000n, SYSTEM_CURRENCIES.NGN, true),
-          exchangeRate: null,
-          sequenceOrder: 2,
-          side: EJournalSide.Credit,
-          description: 'Functional offset',
-        },
-      ],
-    });
+  it.each([true, false])(
+    'maps posted amounts and excludes Draft amounts (posted: %s)',
+    (posted) => {
+      const nullCurrencyAccount: ILedgerAccount = {
+        ...mockAccount,
+        currency: null,
+      };
+      const exchangeRate = exchangeRateValue.make({
+        baseCurrencyCode: SYSTEM_CURRENCIES.USD.code,
+        targetCurrencyCode: SYSTEM_CURRENCIES.NGN.code,
+        rate: 2,
+        type: EExchangeRateType.Official,
+        asOf: new Date('2026-08-08T00:00:00.000Z'),
+        source: 'CBN',
+      });
+      const [journalEntry] = journalEntryEntity.make({
+        accountingEntityId: accountingEntity.id,
+        sourceType: EJournalEntrySourceType.Adjustment,
+        effectiveDate: new Date('2026-08-08T00:00:00.000Z'),
+        postedAt: posted ? new Date('2026-08-08T00:00:00.000Z') : null,
+        memo: 'Null account mapping',
+        createdBy: mockUser,
+        functionalCurrency: SYSTEM_CURRENCIES.NGN,
+        lines: [
+          {
+            accountId: nullCurrencyAccount.id,
+            functionalCurrency: SYSTEM_CURRENCIES.NGN,
+            amount: moneyValue.make(5000n, SYSTEM_CURRENCIES.USD, true),
+            exchangeRate,
+            sequenceOrder: 1,
+            side: EJournalSide.Debit,
+            description: 'Foreign amount',
+          },
+          {
+            accountId: controlAccount.id,
+            functionalCurrency: SYSTEM_CURRENCIES.NGN,
+            amount: moneyValue.make(10000n, SYSTEM_CURRENCIES.NGN, true),
+            exchangeRate: null,
+            sequenceOrder: 2,
+            side: EJournalSide.Credit,
+            description: 'Functional offset',
+          },
+        ],
+      });
 
-    const dto = mapLedgerAccountToDto(
-      nullCurrencyAccount,
-      journalEntry,
-      SYSTEM_CURRENCIES.NGN.code
-    );
+      const dto = mapLedgerAccountToDto(
+        nullCurrencyAccount,
+        journalEntry,
+        SYSTEM_CURRENCIES.NGN.code
+      );
 
-    expect(dto.balance).toEqual({
-      amount: 10000,
-      currencyCode: SYSTEM_CURRENCIES.NGN.code,
-      isMinorUnit: true,
-    });
-    expect(dto.functionalBalance).toEqual(dto.balance);
-  });
+      expect(dto.balance).toEqual({
+        amount: posted ? 10000 : 0,
+        currencyCode: SYSTEM_CURRENCIES.NGN.code,
+        isMinorUnit: true,
+      });
+      expect(dto.functionalBalance).toEqual(dto.balance);
+    }
+  );
 });

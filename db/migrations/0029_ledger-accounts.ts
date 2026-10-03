@@ -24,7 +24,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     'expense',
   ]);
   pgm.createType(normalBalanceType, ['debit', 'credit']);
-  pgm.createType(ledgerAccountStatus, ['active', 'archived']);
+  pgm.createType(ledgerAccountStatus, ['active', 'archived', 'draft']);
   pgm.createType(contraAccountRule, [
     'contra_permitted',
     'contra_not_permitted',

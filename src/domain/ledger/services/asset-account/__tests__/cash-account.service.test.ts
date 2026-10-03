@@ -15,7 +15,11 @@ import {
   EAssetSubType,
 } from '@domain/ledger/types/asset-account.types';
 import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
-import { ELedgerType, ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import {
+  ELedgerAccountStatus,
+  ELedgerType,
+  ILedgerAccount,
+} from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
@@ -145,11 +149,21 @@ describe('cashAccountService', () => {
       isControlAccount: false,
       bankDetails,
     });
-    it.each([undefined, new Date('2026-03-01T00:00:00Z')])(
-      'creates complete version 1 state, events, and audit (date: %s)',
-      async (openingBalanceDate) => {
+    it.each(
+      [
+        undefined,
+        ELedgerAccountStatus.Active,
+        ELedgerAccountStatus.Draft,
+      ].flatMap((status) =>
+        [undefined, new Date('2026-03-01T00:00:00Z')].map(
+          (openingBalanceDate) => ({ status, openingBalanceDate })
+        )
+      )
+    )(
+      'creates complete version 1 state, events, and audit ($status, $openingBalanceDate)',
+      async ({ status, openingBalanceDate }) => {
         const [account, events, audit] = await service.createBankSubAccount(
-          { ...payload(), openingBalanceDate },
+          { ...payload(), openingBalanceDate, status },
           options
         );
         expect(account).toMatchObject({
@@ -157,6 +171,7 @@ describe('cashAccountService', () => {
           materializedPath: '100000.100042',
           controlAccountId: parent.id,
           openingBalanceDate: openingBalanceDate ?? null,
+          status: status ?? ELedgerAccountStatus.Active,
           version: 1,
           meta: {
             bankName: 'Test Bank',
@@ -375,32 +390,41 @@ describe('cashAccountService', () => {
         .mockReset()
         .mockResolvedValue(header.code.slice(0, 3) + '042');
     });
-    it('uses the established default parent and creates the final version 1 state once', async () => {
-      const [account, events, audit] = await service.createPettyCashSubAccount(
-        payload,
-        options
-      );
-      expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
-        ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
-        accountingEntity.id,
-        { ...options, lock: 'update' }
-      );
-      expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
-      expect(account).toMatchObject({
-        code: header.code.slice(0, 3) + '042',
-        materializedPath:
-          header.materializedPath + '.' + header.code.slice(0, 3) + '042',
-        controlAccountId: header.id,
-        version: 1,
-      });
-      expect(account.currency).toBe(SYSTEM_CURRENCIES.USD);
-      expect(events).toHaveLength(1);
-      expect(events[0].data).toEqual(account);
-      expect(audit.diff).toMatchObject({ before: null, after: account });
-      expect(Object.isFrozen(account)).toBe(true);
-      expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
-      expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-    });
+    it.each([
+      undefined,
+      ELedgerAccountStatus.Active,
+      ELedgerAccountStatus.Draft,
+    ])(
+      'creates complete account, event, and audit state with status %s',
+      async (status) => {
+        const [account, events, audit] =
+          await service.createPettyCashSubAccount(
+            { ...payload, status },
+            options
+          );
+        expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
+          ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
+          accountingEntity.id,
+          { ...options, lock: 'update' }
+        );
+        expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+        expect(account).toMatchObject({
+          code: header.code.slice(0, 3) + '042',
+          materializedPath:
+            header.materializedPath + '.' + header.code.slice(0, 3) + '042',
+          controlAccountId: header.id,
+          version: 1,
+        });
+        expect(account.status).toBe(status ?? ELedgerAccountStatus.Active);
+        expect(account.currency).toBe(SYSTEM_CURRENCIES.USD);
+        expect(events).toHaveLength(1);
+        expect(events[0].data).toEqual(account);
+        expect(audit.diff).toMatchObject({ before: null, after: account });
+        expect(Object.isFrozen(account)).toBe(true);
+        expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+        expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      }
+    );
     it('locks the common root before a nested explicit parent and keeps the selected path', async () => {
       const parent = ledgerAccountEntity.make<ILedgerAccount>({
         ...header,
@@ -410,12 +434,22 @@ describe('cashAccountService', () => {
           header.materializedPath + '.' + header.code.slice(0, 3) + '037',
         controlAccountId: header.id,
         currency: SYSTEM_CURRENCIES.USD,
+        status: ELedgerAccountStatus.Draft,
       })[0];
       mockLedgerAccountRepo.findById.mockResolvedValue(parent);
       const [account] = await service.createPettyCashSubAccount(
-        { ...payload, controlAccountId: parent.id },
+        {
+          ...payload,
+          controlAccountId: parent.id,
+          status: ELedgerAccountStatus.Draft,
+          isControlAccount: true,
+        },
         options
       );
+      expect(account).toMatchObject({
+        status: ELedgerAccountStatus.Draft,
+        isControlAccount: true,
+      });
       expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
         ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
         accountingEntity.id,

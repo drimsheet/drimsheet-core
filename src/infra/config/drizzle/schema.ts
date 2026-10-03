@@ -88,6 +88,7 @@ export const ledgerAccountBalanceEffectInCore = core.enum(
 export const ledgerAccountStatusInCore = core.enum('ledger_account_status', [
   'active',
   'archived',
+  'draft',
 ]);
 export const ledgerTypeInCore = core.enum('ledger_type', [
   'asset',

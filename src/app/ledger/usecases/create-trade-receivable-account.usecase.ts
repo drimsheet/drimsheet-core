@@ -46,6 +46,7 @@ export default function makeCreateTradeReceivableAccountUsecase(
         await deps.receivablesAccountService.createTradeReceivableSubAccount(
           {
             name: payload.name,
+            status: payload.status,
             isControlAccount: payload.isControlAccount,
             controlAccountId: payload.controlAccountId as TEntityId | undefined,
             createdBy: actor.id,

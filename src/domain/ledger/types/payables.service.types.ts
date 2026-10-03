@@ -8,7 +8,7 @@ import { TAuditedEntity } from '@shared/values/events/types/event.types';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { ICurrency } from '@domain/money/types/currency.types';
 
-import { ILedgerAccount } from './ledger.types';
+import { ILedgerAccount, ULedgerAccountCreationStatus } from './ledger.types';
 import {
   IPayableAccount,
   IStatutoryPayableAccountMeta,
@@ -33,6 +33,7 @@ interface IStatutoryPayload {
   accountingEntity: IAccountingEntity;
   currency: ICurrency;
   isControlAccount: boolean;
+  status?: ULedgerAccountCreationStatus;
   controlAccountId?: TEntityId;
   meta: IStatutoryPayableAccountMeta | null;
 }
@@ -42,6 +43,7 @@ interface ITradePayload {
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
   isControlAccount: boolean;
+  status?: ULedgerAccountCreationStatus;
   controlAccountId?: TEntityId;
   meta: ITradePayableAccountMeta | null;
 }

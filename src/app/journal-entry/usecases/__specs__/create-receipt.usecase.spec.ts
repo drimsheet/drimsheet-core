@@ -9,6 +9,7 @@ import { EAccountingEntityType } from '@domain/accounting/types/accounting-entit
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
@@ -652,46 +653,61 @@ describe('makeCreateReceiptUsecase', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('rejects when journalEntryService.createReceipt fails and prevents side-effects', async () => {
-    const usecase = getUseCase();
+  it.each([
+    ['domain failure', new Error('Domain Error')],
+    ['draft account', new journalEntryError.DraftLedgerAccountNotAllowed()],
+    ['draft counterparty', new journalEntryError.DraftCounterpartyNotAllowed()],
+  ] as const)(
+    'rejects %s from receipt preparation before persistence and FX effects',
+    async (_, error) => {
+      const usecase = getUseCase();
 
-    mockJournalEntryService.createReceipt.mockRejectedValue(
-      new Error('Domain Error')
-    );
+      mockJournalEntryService.createReceipt.mockRejectedValueOnce(error);
 
-    const payload = {
-      sourceLines: [
-        {
-          accountId: sourceAccount.id,
+      const payload = {
+        sourceLines: [
+          {
+            accountId: sourceAccount.id,
+            counterparty: { name: 'Jane Doe' },
+            amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+            exchangeRate: null,
+            description: 'Revenue',
+            sequenceOrder: 1,
+          },
+        ],
+        destinationLine: {
+          accountId: destinationAccount.id,
           counterparty: { name: 'Jane Doe' },
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
-          description: 'Revenue',
-          sequenceOrder: 1,
+          description: 'Cash',
+          sequenceOrder: 2,
         },
-      ],
-      destinationLine: {
-        accountId: destinationAccount.id,
-        counterparty: { name: 'Jane Doe' },
-        amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
-        exchangeRate: null,
-        description: 'Cash',
-        sequenceOrder: 2,
-      },
-      effectiveDate: new Date('2026-08-06T00:00:00.000Z'),
-      postedAt: new Date('2026-08-06T00:00:00.000Z'),
-      memo: 'Receipt',
-    };
+        effectiveDate: new Date('2026-08-06T00:00:00.000Z'),
+        postedAt: new Date('2026-08-06T00:00:00.000Z'),
+        memo: 'Receipt',
+      };
 
-    await expect(usecase(payload)).rejects.toThrow('Domain Error');
+      await expect(usecase(payload)).rejects.toBe(error);
 
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-    expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
+      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
+      expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistDisposition
+      ).not.toHaveBeenCalled();
+      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 
   it('successfully orchestrates receipt creation with exchange rates', async () => {
     const usecase = getUseCase();

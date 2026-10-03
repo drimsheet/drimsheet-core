@@ -150,6 +150,22 @@ describe('POST /ledger/asset/petty-cash', () => {
       .send(payload);
 
   describe('201 Response', () => {
+    it.each(['active', 'draft'] as const)(
+      'accepts %s creation and returns its status',
+      async (status) => {
+        mockCreatePettyCashAccount.mockResolvedValueOnce({
+          ...createdAccount,
+          status,
+        });
+        const response = await makeRequest({ ...validPayload, status });
+        expect(response.status).toBe(201);
+        expect(response.body.status).toBe(status);
+        expect(mockCreatePettyCashAccount).toHaveBeenCalledWith(
+          expect.objectContaining({ status })
+        );
+      }
+    );
+
     it('returns the concrete account and coerces request dates', async () => {
       const response = await makeRequest();
 
@@ -234,6 +250,15 @@ describe('POST /ledger/asset/petty-cash', () => {
   });
 
   describe('422 Response', () => {
+    it.each(['archived', 'invalid'])(
+      'rejects unsupported creation status %s',
+      async (status) => {
+        const response = await makeRequest({ ...validPayload, status });
+        expect(response.status).toBe(422);
+        expect(mockCreatePettyCashAccount).not.toHaveBeenCalled();
+      }
+    );
+
     it('rejects an invalid request before orchestration', async () => {
       const { currencyCode: _currencyCode, ...invalidPayload } = validPayload;
       const response = await makeRequest(invalidPayload);

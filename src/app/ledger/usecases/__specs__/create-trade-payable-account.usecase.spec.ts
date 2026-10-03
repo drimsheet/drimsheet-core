@@ -45,7 +45,10 @@ const cases = [
 ] as const;
 
 let creation: ReturnType<typeof ledgerAccountEntity.make<ILedgerAccount>>;
-function makeAccount(scenario: (typeof cases)[number]) {
+function makeAccount(
+  scenario: (typeof cases)[number],
+  status: 'active' | 'draft' = 'active'
+) {
   return ledgerAccountEntity.make<ILedgerAccount>({
     name: valid.name,
     code: scenario.header.slice(0, 3) + '099',
@@ -60,7 +63,7 @@ function makeAccount(scenario: (typeof cases)[number]) {
     isControlAccount: false,
     controlAccountId: actor.id,
     currency: null,
-    status: 'active',
+    status,
     meta: null,
     contraAccountRule: 'contra_not_permitted',
     adjunctAccountRule: 'adjunct_not_permitted',
@@ -89,15 +92,29 @@ describe('complete trade-payable creation workflow', () => {
         >
     );
   });
-  it.each(cases)(
-    'stores the final version 1 account and one creation history for $behavior',
+  it.each(
+    cases.flatMap((scenario) =>
+      ([undefined, 'active', 'draft'] as const).map((status) => ({
+        ...scenario,
+        status,
+      }))
+    )
+  )(
+    'stores the final version 1 account and one creation history for $behavior ($status)',
     async (scenario) => {
-      creation = makeAccount(scenario);
-      const response = await usecase(valid);
+      creation = makeAccount(scenario, scenario.status);
+      const response = await usecase({ ...valid, status: scenario.status });
       const [account, functionalCurrency, writeOptions] =
         mockLedgerAccountPersistenceService.create.mock.calls[0];
+      expect(
+        mockPayablesAccountService.createTradePayableSubAccount
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ status: scenario.status }),
+        expect.objectContaining({ tx: mockRepoTransaction.context })
+      );
       expect(account).toBe(creation[0]);
       expect(account.version).toBe(1);
+      expect(account.status).toBe(scenario.status ?? 'active');
       expect(functionalCurrency).toBe(accountingEntity.functionalCurrencyCode);
       expect(writeOptions).toMatchObject({
         correlationId,
@@ -110,6 +127,7 @@ describe('complete trade-payable creation workflow', () => {
       });
       expect(response).toMatchObject({
         id: account.id,
+        status: account.status,
         code: account.code,
         materializedPath: account.materializedPath,
       });

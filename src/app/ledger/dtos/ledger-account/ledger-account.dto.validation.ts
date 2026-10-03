@@ -17,7 +17,11 @@ import {
   ELedgerAccountSubType,
   ULedgerAccountSubType,
 } from '@domain/ledger/types/ledger-aggregate.types';
-import { ELedgerType, ULedgerType } from '@domain/ledger/types/ledger.types';
+import {
+  ELedgerAccountStatus,
+  ELedgerType,
+  ULedgerType,
+} from '@domain/ledger/types/ledger.types';
 
 // =========== error keys start ===========
 const invalidTypeKey = new ledgerAccountError.InvalidType().errorKey;
@@ -25,6 +29,11 @@ const invalidSubTypeKey = new ledgerAccountError.InvalidSubType().errorKey;
 const invalidBehaviorKey = new ledgerAccountError.InvalidBehavior().errorKey;
 const defaultErrorKey = new appError.UnprocessableEntity([]).errorKey;
 // =========== error keys end ===========
+
+export const ledgerAccountCreationStatusValidation = z.enum(
+  [ELedgerAccountStatus.Active, ELedgerAccountStatus.Draft],
+  new ledgerAccountError.InvalidStatus().errorKey
+);
 
 export const ledgerAccountTypeValidation = z.enum(
   Object.values(ELedgerType) as [ULedgerType, ...ULedgerType[]],

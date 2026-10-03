@@ -142,6 +142,19 @@ describe('POST /accounts/liability/payables/trade', () => {
       .set('x-accounting-entity-id', accountingEntityId)
       .send(payload);
   describe('201 Response', () => {
+    it.each(['active', 'draft'] as const)(
+      'accepts %s creation and returns its status',
+      async (status) => {
+        mockCreate.mockResolvedValueOnce({ ...created, status });
+        const response = await send({ ...valid, status });
+        expect(response.status).toBe(201);
+        expect(response.body.status).toBe(status);
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ status })
+        );
+      }
+    );
+
     it('returns one created DTO and security headers', async () => {
       const response = await send();
       expect(response.status).toBe(201);
@@ -192,6 +205,15 @@ describe('POST /accounts/liability/payables/trade', () => {
     });
   });
   describe('422 Response', () => {
+    it.each(['archived', 'invalid'])(
+      'rejects unsupported creation status %s',
+      async (status) => {
+        const response = await send({ ...valid, status });
+        expect(response.status).toBe(422);
+        expect(mockCreate).not.toHaveBeenCalled();
+      }
+    );
+
     it.each([
       'subType',
       'type',

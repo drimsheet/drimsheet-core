@@ -65,6 +65,7 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
 
       const accountCreationInput = {
         name: payload.name,
+        status: payload.status,
         currency,
         isControlAccount: payload.isControlAccount,
         createdBy: actor.id,
@@ -120,10 +121,16 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
           transactionOptions
         );
 
-      const fxAcquisition = await deps.fxLotAppService.acquire(
-        { journalEntry, account, actor: actor.id },
-        transactionOptions
-      );
+      const postedJournal =
+        journalEntry.status === EJournalEntryStatus.Posted
+          ? journalEntry
+          : null;
+      const fxAcquisition = postedJournal
+        ? await deps.fxLotAppService.acquire(
+            { journalEntry: postedJournal, account, actor: actor.id },
+            transactionOptions
+          )
+        : null;
 
       const journalHeaderHistory = historyValue.make(
         journalAudit.header,
@@ -133,10 +140,6 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
       const journalLineHistories = journalAudit.lines.map((audit) =>
         historyValue.make(audit, actor.id, correlationId)
       );
-      const postedJournal =
-        journalEntry.status === EJournalEntryStatus.Posted
-          ? journalEntry
-          : null;
 
       await deps.ledgerAccountPersistenceService.create(
         account,

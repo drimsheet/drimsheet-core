@@ -204,3 +204,37 @@ describe('Asset Account DTO Validation', () => {
     });
   });
 });
+
+describe.each([
+  {
+    name: 'bank',
+    schema: bankAccountCreationReqValidation,
+    valid: {
+      name: 'Draft Bank',
+      currencyCode: 'NGN',
+      bankAccount: {
+        bankName: 'Test Bank',
+        accountName: 'Operating Account',
+        accountNumber: '0123456789',
+      },
+      openingBalance: null,
+    },
+  },
+  {
+    name: 'petty cash',
+    schema: pettyCashCreationReqValidation,
+    valid: {
+      name: 'Draft Cash',
+      currencyCode: 'NGN',
+      isControlAccount: false,
+      openingBalance: null,
+    },
+  },
+])('$name creation status', ({ schema, valid }) => {
+  it.each([undefined, 'active', 'draft'])('accepts %s', (status) => {
+    expect(schema.safeParse({ ...valid, status }).success).toBe(true);
+  });
+  it.each(['archived', 'invalid', null])('rejects %s', (status) => {
+    expect(schema.safeParse({ ...valid, status }).success).toBe(false);
+  });
+});

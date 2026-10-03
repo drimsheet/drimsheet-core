@@ -1,7 +1,11 @@
+import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types';
+
 import { IOpeningBalanceDto } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
 
 export interface IPettyCashAccountCreationReq {
   name: string;
+  /** Defaults to active when omitted. */
+  status?: ULedgerAccountCreationStatus;
   currencyCode: string;
   isControlAccount: boolean;
   controlAccountId?: string;
@@ -16,6 +20,8 @@ export interface IBankDetailsCreationReq {
 
 export interface IBankAccountCreationReq {
   name: string;
+  /** Defaults to active when omitted. */
+  status?: ULedgerAccountCreationStatus;
   currencyCode: string;
   controlAccountId?: string;
   bankAccount: IBankDetailsCreationReq;

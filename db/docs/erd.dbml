@@ -84,6 +84,7 @@ Enum core.ledger_account_balance_effect {
 Enum core.ledger_account_status {
   active
   archived
+  draft
 }
 
 Enum core.ledger_type {

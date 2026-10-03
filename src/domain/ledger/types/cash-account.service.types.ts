@@ -12,7 +12,7 @@ import {
   IBankDetails,
   ICashAndCashEquivalentAccount,
 } from './asset-account.types';
-import { ILedgerAccount } from './ledger.types';
+import { ILedgerAccount, ULedgerAccountCreationStatus } from './ledger.types';
 
 interface IMakeHeaderPayload {
   name: string;
@@ -25,6 +25,7 @@ interface IMakePettyCashPayload {
   name: string;
   currency: ICurrency;
   isControlAccount: boolean;
+  status?: ULedgerAccountCreationStatus;
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
   controlAccountId?: TEntityId;
@@ -34,6 +35,7 @@ interface IMakeBankPayload {
   name: string;
   currency: ICurrency;
   isControlAccount: boolean;
+  status?: ULedgerAccountCreationStatus;
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
   controlAccountId?: TEntityId;
