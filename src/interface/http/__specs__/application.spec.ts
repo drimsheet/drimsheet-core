@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response, Router } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 
 import httpMiddlewares from '@infra/ioc/middlewares/http';
@@ -31,6 +31,28 @@ jest.mock('../../../infra/ioc/middlewares/http', () => ({
   },
 }));
 
+jest.mock('@interface/http/routes/health.route', () => ({
+  __esModule: true,
+  default: jest
+    .requireActual<typeof import('express')>('express')
+    .Router()
+    .get('/health/live', (_req: Request, res: Response) =>
+      res.status(200).json({ status: 'ok' })
+    ),
+}));
+
+jest.mock('@interface/http/routes', () => ({
+  __esModule: true,
+  default: [
+    jest
+      .requireActual<typeof import('express')>('express')
+      .Router()
+      .get('/registered-route', (_req: Request, res: Response) =>
+        res.status(204).end()
+      ),
+  ],
+}));
+
 jest.mock('../../../infra/server/cors', () => ({
   __esModule: true,
   default: () => (_request: Request, _response: Response, next: NextFunction) =>
@@ -54,15 +76,7 @@ describe('HTTP application', () => {
   });
 
   it('mounts health probes before normal HTTP middleware', async () => {
-    const healthRouter = Router();
-    const bullMqDashboardRouter = Router();
-    healthRouter.get('/health/live', (_request, response) => {
-      response.status(200).json({ status: 'ok' });
-    });
-    const app = createApplication({
-      bullMqDashboardRouter,
-      healthRouter,
-    });
+    const app = createApplication();
 
     const response = await request(app).get('/health/live');
 
@@ -72,6 +86,17 @@ describe('HTTP application', () => {
     expect(httpMiddlewares.requestLogger).not.toHaveBeenCalled();
     expect(httpMiddlewares.globalRateLimiter).not.toHaveBeenCalled();
     expect(httpMiddlewares.appContextEnrichment).not.toHaveBeenCalled();
+  });
+
+  it('mounts the imported routes after normal HTTP middleware', async () => {
+    const response =
+      await request(createApplication()).get('/registered-route');
+
+    expect(response.status).toBe(204);
+    expect(httpMiddlewares.appContextInit).toHaveBeenCalledTimes(1);
+    expect(httpMiddlewares.requestLogger).toHaveBeenCalledTimes(1);
+    expect(httpMiddlewares.globalRateLimiter).toHaveBeenCalledTimes(1);
+    expect(httpMiddlewares.appContextEnrichment).toHaveBeenCalledTimes(1);
   });
 
   it('keeps normal middleware active outside the health router', async () => {

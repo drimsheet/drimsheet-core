@@ -3,13 +3,19 @@ import request from 'supertest';
 
 import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 
-import mcpRouter from '@infra/ioc/mcp';
+import { healthHandlers, mcpRouteHandler } from '@infra/ioc/handlers/http';
 import { getJournalEntriesUseCase } from '@infra/ioc/usecases/journal-entry';
 import { getLedgerAccountsUseCase } from '@infra/ioc/usecases/ledger';
+import runtimeHealth from '@infra/server/health';
+
+jest.mock('@infra/server/health', () => ({
+  __esModule: true,
+  default: { isReady: jest.fn() },
+}));
 
 jest.mock('@infra/config/vars.config', () => ({
   __esModule: true,
-  default: { APP_URL: '', APP_ENV: 'local', APP_VERSION: '1.2.3' },
+  default: { APP_URL: '', APP_ENV: 'local', APP_VERSION: '1.2.3', PORT: 0 },
 }));
 jest.mock('@infra/ioc/usecases/ledger', () => ({
   getLedgerAccountsUseCase: jest.fn(),
@@ -26,7 +32,7 @@ jest.mock('@infra/observability', () => ({
   },
 }));
 
-describe('MCP composition', () => {
+describe('HTTP MCP handler composition', () => {
   beforeEach(() => {
     jest.resetAllMocks();
   });
@@ -44,7 +50,7 @@ describe('MCP composition', () => {
       jest.mocked(useCase).mockResolvedValue(result);
       const app = express();
       app.use(express.json());
-      app.use('/mcp', mcpRouter);
+      app.all('/mcp', mcpRouteHandler);
       const response = await request(app)
         .post('/mcp')
         .set('Host', 'localhost')
@@ -62,4 +68,32 @@ describe('MCP composition', () => {
       expect(mockReporter.report).not.toHaveBeenCalled();
     }
   );
+});
+
+describe('HTTP health handler composition', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it.each([true, false])(
+    'uses runtime readiness %s for the ready handler',
+    async (ready) => {
+      jest.mocked(runtimeHealth.isReady).mockResolvedValue(ready);
+      const response = await request(
+        express().get('/ready', healthHandlers.ready)
+      ).get('/ready');
+
+      expect(response.status).toBe(ready ? 200 : 503);
+      expect(runtimeHealth.isReady).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('keeps the live handler independent of runtime readiness', async () => {
+    const response = await request(
+      express().get('/live', healthHandlers.live)
+    ).get('/live');
+
+    expect(response.status).toBe(200);
+    expect(runtimeHealth.isReady).not.toHaveBeenCalled();
+  });
 });

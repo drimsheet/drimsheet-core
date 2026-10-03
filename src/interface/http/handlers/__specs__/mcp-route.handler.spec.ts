@@ -5,21 +5,20 @@ import { McpServer } from '@modelcontextprotocol/server';
 import express from 'express';
 import request from 'supertest';
 
-import createMcpRouter from '@interface/mcp/router';
+import makeMcpRouteHandler from '@interface/http/handlers/mcp-route.handler';
 
-describe('MCP router', () => {
+describe('MCP route handler', () => {
   it('rejects every host when no application host is configured outside local development', async () => {
-    const createServer = jest.fn(
-      () => new McpServer({ name: 'test', version: '1' })
-    );
+    const server = new McpServer({ name: 'test', version: '1' });
+    const connect = jest.spyOn(server, 'connect');
     const app = express();
-    app.use(
+    app.all(
       '/mcp',
-      createMcpRouter({ createServer, appUrl: '', isLocal: false })
+      makeMcpRouteHandler({ server, appUrl: '', isLocal: false })
     );
     const response = await request(app).post('/mcp').set('Host', 'localhost');
     expect(response.status).toBe(403);
-    expect(createServer).not.toHaveBeenCalled();
+    expect(connect).not.toHaveBeenCalled();
   });
 
   it('closes a request server when its client disconnects', async () => {
@@ -37,21 +36,19 @@ describe('MCP router', () => {
     });
     const app = express();
     app.use(express.json());
-    app.use(
+    const server = new McpServer({ name: 'test', version: '1' });
+    server.server.onclose = serverClosed;
+    server.registerTool('wait', {}, async () => {
+      startTool();
+      await finished;
+      return { content: [{ type: 'text', text: 'finished' }] };
+    });
+    app.all(
       '/mcp',
-      createMcpRouter({
+      makeMcpRouteHandler({
         appUrl: '',
         isLocal: true,
-        createServer: () => {
-          const server = new McpServer({ name: 'test', version: '1' });
-          server.server.onclose = serverClosed;
-          server.registerTool('wait', {}, async () => {
-            startTool();
-            await finished;
-            return { content: [{ type: 'text', text: 'finished' }] };
-          });
-          return server;
-        },
+        server,
       })
     );
     const listener = app.listen(0, '127.0.0.1');

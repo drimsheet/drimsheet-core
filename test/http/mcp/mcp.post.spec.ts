@@ -20,17 +20,34 @@ import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accoun
 
 import { configureRateLimiter } from '@infra/config/rate-limiter.config';
 import vars from '@infra/config/vars.config';
-import httpHandlers from '@infra/ioc/handlers/http';
+import httpHandlers, { mcpRouteHandler } from '@infra/ioc/handlers/http';
 import httpMiddlewares from '@infra/ioc/middlewares/http';
+import { getJournalEntriesUseCase } from '@infra/ioc/usecases/journal-entry';
+import { getLedgerAccountsUseCase } from '@infra/ioc/usecases/ledger';
 import appContext from '@infra/runtime/app-context';
 
 import createApplication from '@interface/http/application';
 import makeHttpErrorHandler from '@interface/http/handlers/error.handler';
+import makeMcpRouteHandler from '@interface/http/handlers/mcp-route.handler';
 import makeAppContextInitMiddleware from '@interface/http/middlewares/app-context-init.middleware';
 import makeErrorHandlerMiddleware from '@interface/http/middlewares/error-handler.middleware';
 import makeRequestLoggerMiddleware from '@interface/http/middlewares/request-logger.middleware';
-import createMcpRouter from '@interface/mcp/router';
 import createMcpServer from '@interface/mcp/server';
+
+jest.mock('@infra/ioc/usecases/ledger', () => ({
+  getLedgerAccountsUseCase: jest.fn(),
+}));
+jest.mock('@infra/ioc/usecases/journal-entry', () => ({
+  getJournalEntriesUseCase: jest.fn(),
+}));
+jest.mock('@infra/observability', () => ({
+  __esModule: true,
+  default: {
+    reporter: jest.requireActual<
+      typeof import('@shared/contracts/__mocks__/reporter.mock')
+    >('@shared/contracts/__mocks__/reporter.mock').default,
+  },
+}));
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -46,10 +63,22 @@ jest.mock('@infra/ioc/middlewares/http', () => ({
 jest.mock('@infra/ioc/handlers/http', () => ({
   __esModule: true,
   default: {},
+  mcpRouteHandler: jest.fn(),
+  healthHandlers: jest
+    .requireActual<
+      typeof import('@interface/http/handlers/health.handler')
+    >('@interface/http/handlers/health.handler')
+    .default({
+      isReady: async () => false,
+    }),
 }));
 jest.mock('@infra/config/vars.config', () => ({
   __esModule: true,
   default: { APP_URL: 'https://core.test', NODE_ENV: 'test' },
+}));
+jest.mock('@interface/http/routes/bull.route', () => ({
+  __esModule: true,
+  default: jest.requireActual<typeof import('express')>('express').Router(),
 }));
 jest.mock('@infra/server/swagger', () => ({
   __esModule: true,
@@ -85,13 +114,26 @@ const meta = { page: 1, limit: 10, total: 0, totalPages: 0 };
 
 describe('POST /mcp', () => {
   let app: Express;
-  const createdServers: ReturnType<typeof createMcpServer>[] = [];
+  let server: ReturnType<typeof createMcpServer>;
 
   beforeEach(() => {
     jest.resetAllMocks();
     mockLedgerAccountRepo.findAll.mockResolvedValue({ data: [], meta });
     mockJournalEntryQueryRepo.findAll.mockResolvedValue({ data: [], meta });
     mockBalanceEnrichment.enrich.mockResolvedValue([]);
+    jest.mocked(getLedgerAccountsUseCase).mockImplementation(
+      makeGetLedgerAccountsUsecase({
+        appContext,
+        ledgerAccountRepo: mockLedgerAccountRepo,
+        balanceEnrichmentService: mockBalanceEnrichment,
+      })
+    );
+    jest.mocked(getJournalEntriesUseCase).mockImplementation(
+      makeGetJournalEntriesUsecase({
+        appContext,
+        journalEntryQueryRepo: mockJournalEntryQueryRepo,
+      })
+    );
     httpMiddlewares.appContextInit = makeAppContextInitMiddleware(
       appContext,
       vars
@@ -119,40 +161,24 @@ describe('POST /mcp', () => {
       nodeEnv: 'test',
     });
     httpMiddlewares.errorHandler = makeErrorHandlerMiddleware();
-    const mcpRouter = createMcpRouter({
-      appUrl: 'https://core.test',
-      isLocal: false,
-      createServer: () => {
-        const server = createMcpServer({
-          version: 'test',
-          reporter: mockReporter,
-          getLedgerAccounts: makeGetLedgerAccountsUsecase({
-            appContext,
-            ledgerAccountRepo: mockLedgerAccountRepo,
-            balanceEnrichmentService: mockBalanceEnrichment,
-          }),
-          getJournalEntries: makeGetJournalEntriesUsecase({
-            appContext,
-            journalEntryQueryRepo: mockJournalEntryQueryRepo,
-          }),
-        });
-        jest.spyOn(server, 'close');
-        createdServers.push(server);
-        return server;
-      },
-    });
-    const healthRouter = Router();
-    healthRouter.get('/health/live', (_req, res) => {
-      res.json({ status: 'ok' });
-    });
-    app = createApplication({ mcpRouter, healthRouter });
+    server = createMcpServer({ version: 'test' });
+    jest.spyOn(server, 'connect');
+    jest.spyOn(server, 'close');
+    jest.mocked(mcpRouteHandler).mockImplementation(
+      makeMcpRouteHandler({
+        appUrl: 'https://core.test',
+        isLocal: false,
+        server,
+      })
+    );
+    app = createApplication();
   });
 
   afterEach(async () => {
     await setImmediate();
-    for (const server of createdServers)
+    if (jest.mocked(server.connect).mock.calls.length > 0)
       expect(server.close).toHaveBeenCalled();
-    createdServers.length = 0;
+    await server.close();
   });
 
   function post(method: string, params?: object) {
@@ -326,7 +352,7 @@ describe('POST /mcp', () => {
     it('rejects unrecognized hosts before MCP dispatch', async () => {
       const response = await post('tools/list').set('Host', 'attacker.test');
       expect(response.status).toBe(403);
-      expect(createdServers).toHaveLength(0);
+      expect(server.connect).not.toHaveBeenCalled();
     });
 
     it('preserves the existing Origin rejection', async () => {
@@ -335,7 +361,7 @@ describe('POST /mcp', () => {
         'https://attacker.test'
       );
       expect(response.status).toBe(403);
-      expect(createdServers).toHaveLength(0);
+      expect(server.connect).not.toHaveBeenCalled();
     });
   });
 
@@ -354,7 +380,7 @@ describe('POST /mcp', () => {
       });
       // The current application error handler sanitizes parser failures as 500.
       expect(response.status).toBe(500);
-      expect(createdServers).toHaveLength(0);
+      expect(server.connect).not.toHaveBeenCalled();
       expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
     });
   });
