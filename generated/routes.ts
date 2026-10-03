@@ -265,6 +265,7 @@ const models: TsoaRoute.Models = {
       subSchemas: [
         { dataType: 'enum', enums: ['active'] },
         { dataType: 'enum', enums: ['archived'] },
+        { dataType: 'enum', enums: ['draft'] },
       ],
       validators: {},
     },
@@ -548,6 +549,18 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountCreationStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['active'] },
+        { dataType: 'enum', enums: ['draft'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UExchangeRateType: {
     dataType: 'refAlias',
     type: {
@@ -595,6 +608,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
       currencyCode: { dataType: 'string', required: true },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
@@ -1999,6 +2013,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
       currencyCode: { dataType: 'string', required: true },
       controlAccountId: { dataType: 'string' },
       bankAccount: { ref: 'IBankDetailsCreationReq', required: true },
@@ -2034,6 +2049,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
       behavior: { ref: 'TSupportedRevenueAccountBehavior', required: true },
@@ -2066,6 +2082,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
       behavior: { ref: 'TSupportedExpenseAccountBehavior', required: true },
@@ -2077,6 +2094,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
       currencyCode: { dataType: 'string', required: true },
@@ -2088,6 +2106,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
       currencyCode: { dataType: 'string', required: true },
@@ -2099,6 +2118,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
       meta: {
@@ -2131,6 +2151,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
       currencyCode: { dataType: 'string', required: true },

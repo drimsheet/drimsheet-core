@@ -5,12 +5,14 @@ import generateUUID from '@shared/utils/uuid-generator';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { EXPENSE_LEDGER_CODES } from '@domain/ledger/config/expense-codes.config';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeUnrealizedLossAccountService from '@domain/ledger/services/expense-account/unrealized-loss.service';
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
@@ -33,10 +35,14 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findLatestBySubType: jest.fn(),
   findAll: jest.fn(),
 };
+const allocation: jest.Mocked<ILedgerCodeAllocationService> = {
+  getNextCode: jest.fn(),
+};
 
 describe('unrealizedLossAccountService', () => {
   const service = makeUnrealizedLossAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
+    ledgerCodeAllocationService: allocation,
   });
   const createdBy = generateUUID();
   const accountingEntity = {
@@ -48,7 +54,6 @@ describe('unrealizedLossAccountService', () => {
   const repoOptions: IReadRepoOptions = {
     correlationId: 'test-correlation-id',
   };
-
   const makeControlAccount = (
     behavior: string = EExpenseAccountBehavior.UnrealizedLoss,
     overrides: Partial<ILedgerAccount> = {}
@@ -72,28 +77,42 @@ describe('unrealizedLossAccountService', () => {
       createdBy: createdBy,
       ...overrides,
     })[0];
-
   const subAccountPayload = {
     name: 'Unrealized Loss (Default)',
     createdBy: createdBy,
     accountingEntityId: accountingEntity.id,
     isControlAccount: false,
   };
-
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-08-08T00:00:00.000Z'));
     jest.clearAllMocks();
   });
 
+  async function prepareSubAccount(
+    payload: Omit<
+      Parameters<typeof service.createSubAccount>[0],
+      'controlAccountId'
+    > & { controlAccount: ILedgerAccount }
+  ) {
+    const { controlAccount, ...facts } = payload;
+    mockLedgerAccountRepo.findByCode.mockResolvedValue(controlAccount);
+    mockLedgerAccountRepo.findById.mockResolvedValue(controlAccount);
+    allocation.getNextCode.mockResolvedValue(
+      String(Number(controlAccount.code) + 1).padStart(6, '0')
+    );
+    return service.createSubAccount(
+      { ...facts, controlAccountId: controlAccount.id },
+      { correlationId: 'creation-test', tx: {} }
+    );
+  }
+
   afterEach(() => {
     expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     jest.useRealTimers();
   });
-
   it('creates a frozen unrealized-loss header when one does not exist', async () => {
     mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
-
     const [account, events, audit] = await service.createHeader(
       {
         name: 'Unrealized Loss',
@@ -102,7 +121,6 @@ describe('unrealizedLossAccountService', () => {
       },
       repoOptions
     );
-
     expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
       EXPENSE_LEDGER_CODES.UNREALIZED_LOSS.HEADER,
       accountingEntity.id,
@@ -131,11 +149,9 @@ describe('unrealizedLossAccountService', () => {
     expect(events).toHaveLength(1);
     expect(audit.entityId).toBe(account.id);
   });
-
   it('rejects a duplicate unrealized-loss header', async () => {
     const existingHeader = makeControlAccount();
     mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(existingHeader);
-
     await expect(
       service.createHeader(
         {
@@ -150,21 +166,18 @@ describe('unrealizedLossAccountService', () => {
       cause: { existingHeader },
     });
   });
-
   it.each([
     EExpenseAccountBehavior.UnrealizedLoss,
     EExpenseAccountBehavior.Default,
   ])(
     'creates a sub-account under a %s control account',
-    (controlAccountBehavior) => {
+    async (controlAccountBehavior) => {
       const controlAccount = makeControlAccount(controlAccountBehavior);
-
-      const [account, events, audit] = service.createSubAccount({
+      const [account, events, audit] = await prepareSubAccount({
         ...subAccountPayload,
         controlAccount,
       });
 
-      expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
       expect(account).toMatchObject({
         name: subAccountPayload.name,
         code: `${EXPENSE_LEDGER_CODES.UNREALIZED_LOSS.PREFIX}001`,
@@ -188,8 +201,7 @@ describe('unrealizedLossAccountService', () => {
       expect(audit.entityId).toBe(account.id);
     }
   );
-
-  it('derives the candidate and full path from a nested control account', () => {
+  it('derives the candidate and full path from a nested control account', async () => {
     const header = makeControlAccount();
     const controlAccount = {
       ...header,
@@ -200,12 +212,10 @@ describe('unrealizedLossAccountService', () => {
       materializedPath:
         header.materializedPath + '.' + header.code.slice(0, 3) + '037',
     };
-
-    const [account] = service.createSubAccount({
+    const [account] = await prepareSubAccount({
       ...subAccountPayload,
       controlAccount,
     });
-
     expect(account.code).toBe(
       `${EXPENSE_LEDGER_CODES.UNREALIZED_LOSS.PREFIX}038`
     );
@@ -213,26 +223,23 @@ describe('unrealizedLossAccountService', () => {
       `${controlAccount.materializedPath}.${EXPENSE_LEDGER_CODES.UNREALIZED_LOSS.PREFIX}038`
     );
   });
-
-  it('rejects a control account from another accounting entity', () => {
+  it('rejects a control account from another accounting entity', async () => {
     const suppliedControlAccount = {
       ...makeControlAccount(),
       accountingEntityId: generateUUID(),
     };
-
-    expect(() =>
-      service.createSubAccount({
+    await expect(
+      prepareSubAccount({
         ...subAccountPayload,
         controlAccount: suppliedControlAccount,
       })
-    ).toThrow(
+    ).rejects.toThrow(
       expect.objectContaining({
         errorKey: 'ledger_error_asset_account_control_account_invalid',
       })
     );
     expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
   });
-
   it.each([
     { label: 'type', overrides: { type: ELedgerType.Asset } },
     {
@@ -244,22 +251,164 @@ describe('unrealizedLossAccountService', () => {
       label: 'behavior',
       overrides: { behavior: EExpenseAccountBehavior.AssetDisposalLoss },
     },
-  ])('rejects a control account with an invalid $label', ({ overrides }) => {
-    const suppliedControlAccount = makeControlAccount(
-      EExpenseAccountBehavior.UnrealizedLoss,
-      overrides
+  ])(
+    'rejects a control account with an invalid $label',
+    async ({ overrides }) => {
+      const suppliedControlAccount = makeControlAccount(
+        EExpenseAccountBehavior.UnrealizedLoss,
+        overrides
+      );
+      await expect(
+        prepareSubAccount({
+          ...subAccountPayload,
+          controlAccount: suppliedControlAccount,
+        })
+      ).rejects.toThrow(
+        expect.objectContaining({
+          errorKey: 'ledger_error_asset_account_control_account_invalid',
+        })
+      );
+      expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
+    }
+  );
+  describe('createSubAccount protected creation', () => {
+    const createdBy = generateUUID();
+    const accountingEntity = {
+      id: generateUUID(),
+      createdBy,
+      ownerId: createdBy,
+      functionalCurrencyCode: 'USD',
+    } as IAccountingEntity;
+    const options = { correlationId: 'protected-creation', tx: {} };
+    let header: ILedgerAccount;
+    const payload: Parameters<typeof service.createSubAccount>[0] = {
+      name: 'Final account',
+      createdBy,
+      isControlAccount: false,
+      accountingEntityId: accountingEntity.id,
+    };
+    beforeEach(async () => {
+      mockLedgerAccountRepo.findByCode.mockReset().mockResolvedValue(null);
+      header = (
+        await service.createHeader(
+          { name: 'Root account', accountingEntity, createdBy },
+          options
+        )
+      )[0];
+      jest.clearAllMocks();
+      mockLedgerAccountRepo.findByCode.mockResolvedValue(header);
+      mockLedgerAccountRepo.findById.mockResolvedValue(header);
+      allocation.getNextCode
+        .mockReset()
+        .mockResolvedValue(header.code.slice(0, 3) + '042');
+    });
+    it.each([
+      undefined,
+      ELedgerAccountStatus.Active,
+      ELedgerAccountStatus.Draft,
+    ])(
+      'creates complete account, event, and audit state with status %s',
+      async (status) => {
+        const [account, events, audit] = await service.createSubAccount(
+          { ...payload, status },
+          options
+        );
+        expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
+          EXPENSE_LEDGER_CODES.UNREALIZED_LOSS.HEADER,
+          accountingEntity.id,
+          { ...options, lock: 'update' }
+        );
+        expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+        expect(account).toMatchObject({
+          code: header.code.slice(0, 3) + '042',
+          materializedPath:
+            header.materializedPath + '.' + header.code.slice(0, 3) + '042',
+          controlAccountId: header.id,
+          version: 1,
+        });
+        expect(account.status).toBe(status ?? ELedgerAccountStatus.Active);
+        expect(account.currency).toBe(null);
+        expect(events).toHaveLength(1);
+        expect(events[0].data).toEqual(account);
+        expect(audit.diff).toMatchObject({ before: null, after: account });
+        expect(Object.isFrozen(account)).toBe(true);
+        expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+        expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      }
     );
-
-    expect(() =>
-      service.createSubAccount({
-        ...subAccountPayload,
-        controlAccount: suppliedControlAccount,
-      })
-    ).toThrow(
-      expect.objectContaining({
-        errorKey: 'ledger_error_asset_account_control_account_invalid',
-      })
-    );
-    expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
+    it('locks the common root before a nested explicit parent and keeps the selected path', async () => {
+      const parent = ledgerAccountEntity.make<ILedgerAccount>({
+        ...header,
+        name: 'Nested parent',
+        code: header.code.slice(0, 3) + '037',
+        materializedPath:
+          header.materializedPath + '.' + header.code.slice(0, 3) + '037',
+        controlAccountId: header.id,
+        currency: null,
+      })[0];
+      mockLedgerAccountRepo.findById.mockResolvedValue(parent);
+      const [account] = await service.createSubAccount(
+        { ...payload, controlAccountId: parent.id },
+        options
+      );
+      expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
+        EXPENSE_LEDGER_CODES.UNREALIZED_LOSS.HEADER,
+        accountingEntity.id,
+        { ...options, lock: 'update' }
+      );
+      expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
+        parent.id,
+        accountingEntity.id,
+        { ...options, lock: 'update' }
+      );
+      expect(
+        mockLedgerAccountRepo.findByCode.mock.invocationCallOrder[0]
+      ).toBeLessThan(
+        mockLedgerAccountRepo.findById.mock.invocationCallOrder[0]
+      );
+      expect(
+        mockLedgerAccountRepo.findById.mock.invocationCallOrder[0]
+      ).toBeLessThan(allocation.getNextCode.mock.invocationCallOrder[0]);
+      expect(account.materializedPath).toBe(
+        parent.materializedPath + '.' + account.code
+      );
+      expect(account.code).toBe(header.code.slice(0, 3) + '042');
+    });
+    it('rejects missing transaction context before any reads', async () => {
+      await expect(
+        service.createSubAccount(payload, {
+          correlationId: 'missing',
+          tx: undefined,
+        } as unknown as typeof options)
+      ).rejects.toBeInstanceOf(
+        ledgerAccountError.CodeAllocationTransactionRequired
+      );
+      expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
+    });
+    it('rejects a missing allocation root before parent resolution', async () => {
+      mockLedgerAccountRepo.findByCode.mockResolvedValueOnce(null);
+      await expect(
+        service.createSubAccount(payload, options)
+      ).rejects.toBeInstanceOf(ledgerAccountError.ControlAccountNotFound);
+      expect(allocation.getNextCode).not.toHaveBeenCalled();
+    });
+    it('rejects a missing scoped explicit parent as a domain 404', async () => {
+      mockLedgerAccountRepo.findById.mockResolvedValueOnce(null);
+      await expect(
+        service.createSubAccount(
+          { ...payload, controlAccountId: createdBy },
+          options
+        )
+      ).rejects.toBeInstanceOf(ledgerAccountError.ControlAccountIdNotFound);
+      expect(allocation.getNextCode).not.toHaveBeenCalled();
+    });
+    it('propagates allocation failure without creating or storing state', async () => {
+      const failure = new ledgerAccountError.MaximumLimitReached();
+      allocation.getNextCode.mockRejectedValueOnce(failure);
+      await expect(service.createSubAccount(payload, options)).rejects.toBe(
+        failure
+      );
+      expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+    });
   });
 });

@@ -6,6 +6,28 @@ import {
 describe('createTradePayableAccountValidation', () => {
   const schema = createTradePayableAccountValidation;
   const valid = { name: 'Custom account', isControlAccount: false };
+  it.each([undefined, 'active', 'draft'])(
+    'accepts creation status %s',
+    (status) => {
+      expect(schema.safeParse({ ...valid, status }).success).toBe(true);
+    }
+  );
+  it.each(['archived', 'invalid', null])(
+    'rejects creation status %s',
+    (status) => {
+      const result = schema.safeParse({ ...valid, status });
+      expect(result.success).toBe(false);
+      if (!result.success)
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['status'],
+              message: 'ledger_error_ledger_account_status_invalid',
+            }),
+          ])
+        );
+    }
+  );
   it('accepts a single account with an optional UUID parent', () => {
     expect(schema.safeParse(valid).success).toBe(true);
     expect(
@@ -86,6 +108,28 @@ describe('createStatutoryPayableAccountValidation', () => {
     isControlAccount: false,
     currencyCode: 'NGN',
   };
+  it.each([undefined, 'active', 'draft'])(
+    'accepts creation status %s',
+    (status) => {
+      expect(schema.safeParse({ ...valid, status }).success).toBe(true);
+    }
+  );
+  it.each(['archived', 'invalid', null])(
+    'rejects creation status %s',
+    (status) => {
+      const result = schema.safeParse({ ...valid, status });
+      expect(result.success).toBe(false);
+      if (!result.success)
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['status'],
+              message: 'ledger_error_ledger_account_status_invalid',
+            }),
+          ])
+        );
+    }
+  );
   it('accepts a single account with an optional UUID parent', () => {
     expect(schema.safeParse(valid).success).toBe(true);
     expect(

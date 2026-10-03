@@ -172,7 +172,7 @@ describe('bankAccountRepoImpl', () => {
 
     it('translates 23505 duplicate key error to DuplicateBankAccount', async () => {
       const dbErr = new Error('duplicate key value violates unique constraint');
-      (dbErr as any).code = '23505';
+      Object.assign(dbErr, { code: '23505', constraint: 'bank_accounts_pkey' });
 
       const mockInsert = {
         values: jest.fn().mockRejectedValue(dbErr),
@@ -191,6 +191,48 @@ describe('bankAccountRepoImpl', () => {
           { correlationId: 'test-id' }
         )
       ).rejects.toBeInstanceOf(ledgerAccountError.DuplicateBankAccount);
+    });
+
+    it.each([
+      { code: '23505', constraint: 'bank_accounts_pkey' },
+      { cause: { code: '23505', constraint: 'bank_accounts_pkey' } },
+      { cause: { cause: { code: '23505', constraint: 'bank_accounts_pkey' } } },
+    ])('translates named identity errors: %o', async (error) => {
+      mockGetDbQuery.mockReturnValue({
+        insert: jest
+          .fn()
+          .mockReturnValue({ values: jest.fn().mockRejectedValue(error) }),
+      });
+      await expect(
+        bankAccountRepoImpl.create(
+          ledgerAccountId,
+          accountingEntityId,
+          bankDetails,
+          ledgerAccountId,
+          { correlationId: 'duplicate' }
+        )
+      ).rejects.toBeInstanceOf(ledgerAccountError.DuplicateBankAccount);
+    });
+    it.each([
+      null,
+      'failure',
+      { code: '23505', constraint: 'bank_accounts_ledger_account_id_uk' },
+      { cause: { code: '23505', constraint: 'unrelated' } },
+    ])('propagates non-identity errors: %o', async (error) => {
+      mockGetDbQuery.mockReturnValue({
+        insert: jest
+          .fn()
+          .mockReturnValue({ values: jest.fn().mockRejectedValue(error) }),
+      });
+      await expect(
+        bankAccountRepoImpl.create(
+          ledgerAccountId,
+          accountingEntityId,
+          bankDetails,
+          ledgerAccountId,
+          { correlationId: 'failure' }
+        )
+      ).rejects.toBe(error);
     });
 
     it('rethrows non-duplicate insert errors', async () => {

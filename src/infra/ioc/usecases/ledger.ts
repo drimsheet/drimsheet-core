@@ -16,10 +16,7 @@ import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-per
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
 
-import {
-  accountingEntityService,
-  accountingPeriodService,
-} from '@infra/ioc/services/accounting';
+import { accountingEntityService } from '@infra/ioc/services/accounting';
 import {
   fxCostBasisPersistenceService,
   fxLotAppService,
@@ -129,8 +126,6 @@ export const createPettyCashAccountUseCase = makeTracedUseCase(
     appContext: appContext,
     eventBus: messaging.eventBus,
     cashAccountService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    accountingPeriodService,
     journalEntryService,
     journalEntryPersistenceService,
     outboxService,
@@ -148,8 +143,6 @@ export const createBankAccountUseCase = makeTracedUseCase(
     appContext: appContext,
     eventBus: messaging.eventBus,
     cashAccountService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    accountingPeriodService,
     bankAccountRepo: ledgerRepos.bankAccount,
     journalEntryService,
     journalEntryPersistenceService,
@@ -197,7 +190,6 @@ export const createRevenueAccountUseCase = makeTracedUseCase(
     appContext,
     eventBus: messaging.eventBus,
     repoService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountPersistenceService,
     servicesAccountService,
     employmentIncomeAccountService,
@@ -214,7 +206,6 @@ export const createExpenseAccountUseCase = makeTracedUseCase(
     appContext,
     eventBus: messaging.eventBus,
     repoService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountPersistenceService,
     directCostsAccountService,
     rentAndUtilitiesAccountService,
@@ -233,7 +224,6 @@ export const createTradeReceivableAccountUseCase = makeTracedUseCase(
     appContext,
     eventBus: messaging.eventBus,
     repoService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountPersistenceService,
     receivablesAccountService,
   })
@@ -245,7 +235,6 @@ export const createStatutoryReceivableAccountUseCase = makeTracedUseCase(
     appContext,
     eventBus: messaging.eventBus,
     repoService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountPersistenceService,
     receivablesAccountService,
   })
@@ -257,7 +246,6 @@ export const createTradePayableAccountUseCase = makeTracedUseCase(
     appContext,
     eventBus: messaging.eventBus,
     repoService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountPersistenceService,
     payablesAccountService,
   })
@@ -269,7 +257,6 @@ export const createStatutoryPayableAccountUseCase = makeTracedUseCase(
     appContext,
     eventBus: messaging.eventBus,
     repoService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountPersistenceService,
     payablesAccountService,
   })

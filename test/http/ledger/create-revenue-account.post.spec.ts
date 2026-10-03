@@ -15,7 +15,6 @@ import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-fla
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateRevenueAccountDto } from '@app/ledger/dtos/revenue-account/revenue-account.dto';
 import { createRevenueAccountValidation } from '@app/ledger/dtos/revenue-account/revenue-account.dto.validation';
-import ledgerAppError from '@app/ledger/errors/ledger.error';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
@@ -144,6 +143,19 @@ describe('POST /accounts/revenues', () => {
       .set('x-accounting-entity-id', accountingEntityId)
       .send(payload);
   describe('201 Response', () => {
+    it.each(['active', 'draft'] as const)(
+      'accepts %s creation and returns its status',
+      async (status) => {
+        mockCreate.mockResolvedValueOnce({ ...created, status });
+        const response = await send({ ...valid, status });
+        expect(response.status).toBe(201);
+        expect(response.body.status).toBe(status);
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ status })
+        );
+      }
+    );
+
     it('returns one created DTO and security headers', async () => {
       const response = await send();
       expect(response.status).toBe(201);
@@ -184,6 +196,15 @@ describe('POST /accounts/revenues', () => {
     });
   });
   describe('422 Response', () => {
+    it.each(['archived', 'invalid'])(
+      'rejects unsupported creation status %s',
+      async (status) => {
+        const response = await send({ ...valid, status });
+        expect(response.status).toBe(422);
+        expect(mockCreate).not.toHaveBeenCalled();
+      }
+    );
+
     it.each([
       'subType',
       'type',
@@ -221,8 +242,14 @@ describe('POST /accounts/revenues', () => {
   });
   describe('404 Response', () => {
     it('maps a missing selected parent', async () => {
-      mockCreate.mockRejectedValueOnce(new ledgerAppError.AccountNotFound());
-      expect((await send()).status).toBe(404);
+      mockCreate.mockRejectedValueOnce(
+        new ledgerAccountError.ControlAccountIdNotFound()
+      );
+      const response = await send({ ...valid, controlAccountId });
+      expect(response.status).toBe(404);
+      expect(response.body.errorKey).toBe(
+        'ledger_error_control_account_id_not_found'
+      );
     });
   });
   describe('500 Response', () => {

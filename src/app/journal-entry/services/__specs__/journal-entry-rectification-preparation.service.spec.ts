@@ -3,7 +3,10 @@ import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
+import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import {
   EJournalEntryRectificationMode,
   IJournalEntryRectificationResult,
@@ -15,10 +18,18 @@ import {
   UJournalEntrySourceType,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
-import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import {
+  EAdjunctAccountRule,
+  EContraAccountRule,
+  ELedgerAccountStatus,
+  ELedgerType,
+  ILedgerAccount,
+} from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 
+import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockCounterpartyAppService from '@app/counterparty/contracts/__mocks__/counterparty.service.mock';
 import {
   mockJournalEntryRectificationService,
@@ -30,7 +41,10 @@ import {
   ITransferJournalEntryRectificationReq,
 } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
 import makeJournalEntryRectificationPreparationService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import {
+  mockLedgerAccountBalanceRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 
 describe('makeJournalEntryRectificationPreparationService', () => {
@@ -208,6 +222,14 @@ describe('makeJournalEntryRectificationPreparationService', () => {
         creationStatus
       );
       expect(mockJournalEntryService.createPayment).toHaveBeenCalledTimes(1);
+      expect(mockJournalEntryService.createPayment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          header: expect.objectContaining({
+            postedAt: originalPostedAt ?? requestedPostedAt,
+          }),
+        }),
+        repoOptions
+      );
       expect(
         result.rectification.currentJournalEntry.lines.map((line) => line.id)
       ).toEqual(originalEntry.lines.map((line) => line.id));
@@ -219,16 +241,32 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     }
   );
 
-  it.each(['receipt', 'transfer'] as const)(
-    'prepares new draft counterparties when editing a draft %s',
-    async (sourceType) => {
-      const candidate = makeEntry(sourceType, 100, null);
-      const originalEntry = candidate[0];
+  it.each(
+    (['receipt', 'transfer'] as const).flatMap((sourceType) =>
+      (
+        [
+          [null, null],
+          [null, effectiveDate],
+          [effectiveDate, null],
+          [effectiveDate, effectiveDate],
+        ] as const
+      ).map(([originalPostedAt, requestedPostedAt]) => ({
+        sourceType,
+        originalPostedAt,
+        requestedPostedAt,
+      }))
+    )
+  )(
+    'forwards effective posting intent for $sourceType: $originalPostedAt / $requestedPostedAt',
+    async ({ sourceType, originalPostedAt, requestedPostedAt }) => {
+      const [originalEntry] = makeEntry(sourceType, 100, originalPostedAt);
+      const postedAt = originalPostedAt ?? requestedPostedAt;
+      const candidate = makeEntry(sourceType, 100, postedAt);
       const base = {
         expectedVersion: 1,
         attachments: [],
         effectiveDate,
-        postedAt: null,
+        postedAt: requestedPostedAt,
         memo: 'Draft edit',
       };
       const sourceLine = {
@@ -272,12 +310,154 @@ describe('makeJournalEntryRectificationPreparationService', () => {
         repoOptions
       );
       expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
-        'draft'
+        postedAt === null ? 'draft' : 'active'
+      );
+      const creation =
+        sourceType === 'receipt'
+          ? mockJournalEntryService.createReceipt
+          : mockJournalEntryService.createTransfer;
+      expect(creation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          header: expect.objectContaining({ postedAt }),
+        }),
+        repoOptions
       );
       expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
       expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
     }
   );
+
+  describe('posting guards through the real journal domain service', () => {
+    it.each(
+      (['account', 'counterparty'] as const).flatMap((reference) =>
+        (
+          [
+            [null, effectiveDate],
+            [effectiveDate, effectiveDate],
+            [effectiveDate, null],
+          ] as const
+        ).map(([originalPostedAt, requestedPostedAt]) => ({
+          reference,
+          originalPostedAt,
+          requestedPostedAt,
+        }))
+      )
+    )(
+      'rejects draft $reference with original $originalPostedAt and requested $requestedPostedAt',
+      async ({ reference, originalPostedAt, requestedPostedAt }) => {
+        const [source] = ledgerAccountEntity.make({
+          accountingEntityId,
+          createdBy: actor,
+          code: '100001',
+          materializedPath: '100001',
+          type: ELedgerType.Asset,
+          subType: 'cash_and_cash_equivalent',
+          behavior: 'petty_cash',
+          normalBalance: EJournalSide.Debit,
+          name: 'Petty cash',
+          isControlAccount: false,
+          controlAccountId: null,
+          currency: SYSTEM_CURRENCIES.NGN,
+          status: ELedgerAccountStatus.Active,
+          contraAccountRule: EContraAccountRule.ContraPermitted,
+          adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
+          meta: {},
+        });
+        const [destination] = ledgerAccountEntity.make({
+          ...source,
+          code: '502001',
+          materializedPath: '502000.502001',
+          type: ELedgerType.Expense,
+          subType: 'rent_and_utilities',
+          behavior: 'rent_and_utilities',
+          name: 'Rent expense',
+          controlAccountId: generateUUID(),
+          status:
+            reference === 'account'
+              ? ELedgerAccountStatus.Draft
+              : ELedgerAccountStatus.Active,
+        });
+        mockLedgerAccountRepo.findById.mockImplementation(async (id) =>
+          id === source.id ? source : id === destination.id ? destination : null
+        );
+        if (reference === 'counterparty') {
+          mockCounterpartyAppService.getFoundOrCreated.mockReturnValue({
+            new: false,
+            data: counterpartyEntity.make({
+              accountingEntityId,
+              createdBy: actor,
+              name: 'Draft supplier',
+              type: 'organization',
+              status: 'draft',
+            }),
+          });
+        }
+        const domainService = makeJournalEntryService({
+          accountingPeriodService: mockAccountingPeriodService,
+          ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
+          ledgerAccountRepo: mockLedgerAccountRepo,
+        });
+        const guardedPreparation =
+          makeJournalEntryRectificationPreparationService({
+            counterpartyAppService: mockCounterpartyAppService,
+            journalEntryService: domainService,
+            journalEntryRectificationService:
+              mockJournalEntryRectificationService,
+            ledgerAccountRepo: mockLedgerAccountRepo,
+            fxLotAppService: mockFxLotAppService,
+          });
+        const [originalEntry] = makeEntry('payment', 100, originalPostedAt);
+        const requestedEntry: IPaymentJournalEntryRectificationReq = {
+          sourceType: 'payment',
+          expectedVersion: originalEntry.version,
+          attachments: [],
+          effectiveDate,
+          postedAt: requestedPostedAt,
+          memo: 'Correction',
+          sourceLine: {
+            accountId: source.id,
+            counterparty,
+            amount: amountDto,
+            exchangeRate: null,
+            description: null,
+            sequenceOrder: 1,
+          },
+          destinationLines: [
+            {
+              accountId: destination.id,
+              counterparty,
+              amount: amountDto,
+              exchangeRate: null,
+              description: null,
+              sequenceOrder: 2,
+            },
+          ],
+        };
+
+        await expect(
+          guardedPreparation.prepare(
+            {
+              originalEntry,
+              requestedEntry,
+              accountingEntity,
+              actor,
+            },
+            repoOptions
+          )
+        ).rejects.toBeInstanceOf(
+          reference === 'account'
+            ? journalEntryError.DraftLedgerAccountNotAllowed
+            : journalEntryError.DraftCounterpartyNotAllowed
+        );
+        expect(
+          mockJournalEntryRectificationService.rectify
+        ).not.toHaveBeenCalled();
+        expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
+        expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+        expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+      }
+    );
+  });
 
   it('prepares a receipt through the receipt domain capability', async () => {
     const [originalEntry] = makeEntry(EJournalEntrySourceType.Receipt);

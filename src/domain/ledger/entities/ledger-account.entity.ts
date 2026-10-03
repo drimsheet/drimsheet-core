@@ -1,24 +1,21 @@
 import { TCreationOmits } from '@shared/types/creation-omits.types';
 import dateUtils from '@shared/utils/date';
-import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountValidation from '@domain/ledger/entities/validations/ledger-account.validation';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ledgerAccountEvents from '@domain/ledger/events/ledger-account.events';
 import { ELedgerAccountAuditAction } from '@domain/ledger/types/ledger-account-audit.types';
-import {
-  ILedgerAccount,
-  TAuditedLedgerAccount,
-} from '@domain/ledger/types/ledger.types';
+import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import ledgerAccountAudit from '@domain/ledger/values/ledger-account-audit.vo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 function make<T extends ILedgerAccount>(
-  payload: TCreationOmits<T, 'openingBalanceDate'>
+  payload: TCreationOmits<T, 'openingBalanceDate'> & {
+    openingBalanceDate?: Date | null;
+  }
 ): TAuditedEntity<Readonly<T>, T, ILedgerAccount> {
   ledgerAccountValidation.validateCode(payload.code);
   stringUtils.validateUUID(
@@ -54,6 +51,16 @@ function make<T extends ILedgerAccount>(
   ledgerAccountValidation.validateMeta(payload.meta);
   ledgerAccountValidation.validateMaterializedPath(payload.materializedPath);
 
+  const openingBalanceDate = payload.openingBalanceDate ?? null;
+  if (openingBalanceDate !== null) {
+    dateUtils.validateDateIsNotInTheFuture(
+      openingBalanceDate,
+      ledgerAccountError.InvalidOpeningBalanceDate
+    );
+    if (payload.isControlAccount)
+      throw new ledgerAccountError.ForbiddenControlAccountOpeningBalanceDate();
+  }
+
   const timestamp = new Date();
 
   const ledgerAccount: ILedgerAccount = {
@@ -78,7 +85,8 @@ function make<T extends ILedgerAccount>(
     adjunctAccountRule: payload.adjunctAccountRule,
     // Proper meta validation is delegated to the specific ledger account entity
     meta: payload.meta,
-    openingBalanceDate: null,
+    openingBalanceDate:
+      openingBalanceDate === null ? null : new Date(openingBalanceDate),
     version: 1,
     createdBy: payload.createdBy,
     createdAt: timestamp,
@@ -169,72 +177,9 @@ function getMaterializedPaths(
   return [...new Set(accountPaths)];
 }
 
-/** Updates the account code and the final segment of its materialized path. */
-function updateCode(
-  account: ILedgerAccount,
-  newCode: string
-): TAuditedLedgerAccount {
-  ledgerAccountValidation.validateCode(newCode);
-
-  const materializedPath = account.materializedPath
-    .split('.')
-    .slice(0, -1)
-    .concat(newCode)
-    .join('.');
-  ledgerAccountValidation.validateMaterializedPath(materializedPath);
-
-  const updatedAccount: ILedgerAccount = {
-    id: account.id,
-    code: newCode,
-    materializedPath,
-    accountingEntityId: account.accountingEntityId,
-    type: account.type,
-    normalBalance: account.normalBalance,
-    subType: account.subType,
-    behavior: account.behavior,
-    isControlAccount: account.isControlAccount,
-    controlAccountId: account.controlAccountId,
-    name: account.name,
-    currency: structuredClone(account.currency),
-    status: account.status,
-    contraAccountRule: account.contraAccountRule,
-    adjunctAccountRule: account.adjunctAccountRule,
-    meta: structuredClone(account.meta),
-    openingBalanceDate: structuredClone(account.openingBalanceDate),
-    version: account.version + 1,
-    createdBy: account.createdBy,
-    createdAt: structuredClone(account.createdAt),
-    updatedAt: new Date(),
-    deletedAt: structuredClone(account.deletedAt),
-  };
-  const entity = deepFreeze(updatedAccount);
-  const event = ledgerAccountEvents.updated(entity);
-  const audit = ledgerAccountAudit.make({
-    before: account,
-    after: entity,
-    action: ELedgerAccountAuditAction.Updated,
-  });
-
-  return [entity, [event], audit];
-}
-
-/** Allocates the next code in the account's code family and applies the update. */
-function assignNextCode(
-  account: ILedgerAccount,
-  latestAccount: Pick<ILedgerAccount, 'code'>
-): TAuditedLedgerAccount {
-  const nextCode = getNextSubledgerAccountCode(
-    account.code.slice(0, 3),
-    latestAccount.code
-  );
-  return updateCode(account, nextCode);
-}
-
 const ledgerAccountEntity = Object.freeze({
   make,
   updateOpeningBalanceDate,
-  updateCode,
-  assignNextCode,
   getMaterializedPaths,
   ...ledgerAccountValidation,
 });

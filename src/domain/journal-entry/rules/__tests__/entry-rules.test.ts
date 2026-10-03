@@ -25,6 +25,7 @@ import {
   EExpenseAccountBehavior,
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
@@ -37,6 +38,9 @@ import {
   ELiabilitySubType,
 } from '@domain/ledger/types/liability-account.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+
+const mockLedgerCodeAllocationService: jest.Mocked<ILedgerCodeAllocationService> =
+  { getNextCode: jest.fn() };
 
 function makePaymentAccount(
   overrides: Partial<ILedgerAccount>
@@ -89,16 +93,27 @@ describe('journal entry rules', () => {
     findLatestBySubType: jest.fn(),
     findAll: jest.fn(),
   };
-  const cashAccountService = makeCashAccountService({ ledgerAccountRepo });
+  const cashAccountService = makeCashAccountService({
+    ledgerAccountRepo: ledgerAccountRepo,
+    bankAccountRepo: {
+      findOne: jest.fn(),
+      findByLedgerAccountId: jest.fn(),
+      create: jest.fn(),
+    },
+    ledgerCodeAllocationService: { getNextCode: jest.fn() },
+  });
   const receivablesAccountService = makeReceivablesAccountService({
     ledgerAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   const payablesAccountService = makePayablesAccountService({
     ledgerAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   const equityAccountService = makeEquityAccountService({ ledgerAccountRepo });
   const servicesAccountService = makeServicesAccountService({
     ledgerAccountRepo,
+    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
   });
   const repoOptions = { correlationId: 'test-correlation-id' };
   let cashAccount: ILedgerAccount;

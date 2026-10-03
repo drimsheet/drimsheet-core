@@ -1,12 +1,13 @@
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import payablesControlAccountValidation from '@domain/ledger/services/validations/payables-control-account.validation';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TPayablesLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -24,6 +25,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
+  ledgerCodeAllocationService: ILedgerCodeAllocationService;
 }
 
 const LEDGER_CODE = LIABILITY_LEDGER_CODES.PAYABLES;
@@ -76,16 +78,26 @@ function makeCreateHeader(
   };
 }
 
-/**
- *
- * Creates a new statutory payable account
- *
- * @returns Audited IPayableAccount
- *
- */
-function makeCreateStatutoryPayableSubAccount(): IPayablesAccountService['createStatutoryPayableSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+/** Prepares a final account under caller-owned family and parent locks; never writes. */
+function makeCreateStatutoryPayableSubAccount(
+  deps: IDependencies
+): IPayablesAccountService['createStatutoryPayableSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
+
+    const meta = payablesMetaValue.makeStatutoryMeta(payload.meta);
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntity.id,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.STATUTORY,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
 
     payablesControlAccountValidation.validateStatutoryPayableSubAccount(
       controlAccount,
@@ -97,21 +109,25 @@ function makeCreateStatutoryPayableSubAccount(): IPayablesAccountService['create
       subAccountCurrency: payload.currency,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TPayablesLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntity.id,
+        type: ELedgerType.Liability,
+        subType: ELiabilitySubType.Payable,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
 
-    const materializedPath =
-      getLedgerAccountMaterializedPath<TPayablesLedgerCode>(
-        controlAccount.materializedPath as TPayablesLedgerCode,
-        code
-      );
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
+      code
+    );
 
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
-      code,
+      code: code as TPayablesLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
       type: ELedgerType.Liability,
@@ -120,8 +136,8 @@ function makeCreateStatutoryPayableSubAccount(): IPayablesAccountService['create
       isControlAccount: payload.isControlAccount,
       controlAccountId: controlAccount.id,
       currency: payload.currency,
-      status: ELedgerAccountStatus.Active,
-      meta: payablesMetaValue.makeStatutoryMeta(payload.meta),
+      status: payload.status ?? ELedgerAccountStatus.Active,
+      meta,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
@@ -129,17 +145,26 @@ function makeCreateStatutoryPayableSubAccount(): IPayablesAccountService['create
   };
 }
 
-/**
- *
- * Creates a new payable account header
- *
- * @returns Audited IPayableAccount
- *
- */
+/** Prepares a final account under caller-owned family and parent locks; never writes. */
+function makeCreateTradePayableAccount(
+  deps: IDependencies
+): IPayablesAccountService['createTradePayableSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
 
-function makeCreateTradePayableAccount(): IPayablesAccountService['createTradePayableSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+    const meta = payablesMetaValue.makeTradeMeta(payload.meta);
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntity.id,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.TRADE,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
 
     payablesControlAccountValidation.validateTradePayableSubAccount(
       controlAccount,
@@ -151,21 +176,25 @@ function makeCreateTradePayableAccount(): IPayablesAccountService['createTradePa
       subAccountCurrency: null,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TPayablesLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntity.id,
+        type: ELedgerType.Liability,
+        subType: ELiabilitySubType.Payable,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
 
-    const materializedPath =
-      getLedgerAccountMaterializedPath<TPayablesLedgerCode>(
-        controlAccount.materializedPath as TPayablesLedgerCode,
-        code
-      );
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
+      code
+    );
 
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
-      code,
+      code: code as TPayablesLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
       type: ELedgerType.Liability,
@@ -174,8 +203,8 @@ function makeCreateTradePayableAccount(): IPayablesAccountService['createTradePa
       isControlAccount: payload.isControlAccount,
       controlAccountId: controlAccount.id,
       currency: null,
-      status: ELedgerAccountStatus.Active,
-      meta: payablesMetaValue.makeTradeMeta(payload.meta),
+      status: payload.status ?? ELedgerAccountStatus.Active,
+      meta,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,
@@ -186,8 +215,9 @@ function makeCreateTradePayableAccount(): IPayablesAccountService['createTradePa
 export default function makePayablesAccountService(deps: IDependencies) {
   const service: IPayablesAccountService = {
     createHeader: makeCreateHeader(deps),
-    createStatutoryPayableSubAccount: makeCreateStatutoryPayableSubAccount(),
-    createTradePayableSubAccount: makeCreateTradePayableAccount(),
+    createStatutoryPayableSubAccount:
+      makeCreateStatutoryPayableSubAccount(deps),
+    createTradePayableSubAccount: makeCreateTradePayableAccount(deps),
   };
 
   return Object.freeze(service);

@@ -1,17 +1,19 @@
 import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
+import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import cashControlAccountValidation from '@domain/ledger/services/validations/cash-control-account.validation';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
 } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TCashLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -24,6 +26,8 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
+  bankAccountRepo: IBankAccountRepo;
+  ledgerCodeAllocationService: ILedgerCodeAllocationService;
 }
 
 const LEDGER_CODE = ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS;
@@ -76,16 +80,25 @@ function makeCreateHeader(
   };
 }
 
-/**
- *
- * Validates the supplied parent and creates a petty-cash account in memory.
- *
- * @returns Audited ICashAndCashEquivalentAccount
- *
- */
-function makeCreatePettyCashSubAccount(): ICashAccountService['createPettyCashSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+/** Prepares a final account under caller-owned family and parent locks; never writes. */
+function makeCreatePettyCashSubAccount(
+  deps: IDependencies
+): ICashAccountService['createPettyCashSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntity.id,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.HEADER,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
+
     cashControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntity.id,
@@ -97,20 +110,25 @@ function makeCreatePettyCashSubAccount(): ICashAccountService['createPettyCashSu
       subAccountCurrency: payload.currency,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TCashLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntity.id,
+        type: ELedgerType.Asset,
+        subType: EAssetSubType.CashAndCashEquivalent,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
 
-    const materializedPath = getLedgerAccountMaterializedPath<TCashLedgerCode>(
-      controlAccount.materializedPath as TCashLedgerCode,
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
       code
     );
 
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
-      code,
+      code: code as TCashLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Asset),
       type: ELedgerType.Asset,
@@ -120,7 +138,8 @@ function makeCreatePettyCashSubAccount(): ICashAccountService['createPettyCashSu
       controlAccountId: controlAccount.id,
       currency: payload.currency,
       meta: null,
-      status: ELedgerAccountStatus.Active,
+      openingBalanceDate: payload.openingBalanceDate,
+      status: payload.status ?? ELedgerAccountStatus.Active,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,
@@ -130,39 +149,69 @@ function makeCreatePettyCashSubAccount(): ICashAccountService['createPettyCashSu
 
 /**
  *
- * Validates the supplied parent and creates a bank account in memory.
+ * Normalizes bank details, enforces persisted-state invariants, and prepares a complete bank account.
+ * The caller holds allocation and parent locks through insertion and commit.
  *
  * @returns Audited ICashAndCashEquivalentAccount
  *
  */
-function makeCreateBankSubAccount(): ICashAccountService['createBankSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+function makeCreateBankSubAccount(
+  deps: IDependencies
+): ICashAccountService['createBankSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.BankCreationTransactionRequired();
+
+    const bankDetails = bankDetailsValue.make(payload.bankDetails);
+    const existing = await deps.bankAccountRepo.findOne(
+      bankDetails.bankName,
+      bankDetails.accountNumber,
+      repoOptions
+    );
+    if (existing)
+      throw new ledgerAccountError.DuplicateBankAccount({
+        details: bankDetails,
+      });
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntity.id,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.HEADER,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
+
     cashControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntity.id,
       EAssetAccountBehavior.Bank
     );
-
     ledgerAccountCurrencyInvarianceRule.validate({
       controlAccount,
       subAccountCurrency: payload.currency,
     });
-
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TCashLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntity.id,
+        type: ELedgerType.Asset,
+        subType: EAssetSubType.CashAndCashEquivalent,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
 
-    const materializedPath = getLedgerAccountMaterializedPath<TCashLedgerCode>(
-      controlAccount.materializedPath as TCashLedgerCode,
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
       code
     );
 
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
-      code,
+      code: code as TCashLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Asset),
       type: ELedgerType.Asset,
@@ -171,8 +220,9 @@ function makeCreateBankSubAccount(): ICashAccountService['createBankSubAccount']
       isControlAccount: payload.isControlAccount,
       controlAccountId: controlAccount.id,
       currency: payload.currency,
-      meta: bankDetailsValue.make(payload.bankDetails),
-      status: ELedgerAccountStatus.Active,
+      meta: bankDetails,
+      openingBalanceDate: payload.openingBalanceDate,
+      status: payload.status ?? ELedgerAccountStatus.Active,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,
@@ -191,8 +241,8 @@ export default function makeCashAccountService(
 ): ICashAccountService {
   const service: ICashAccountService = {
     createHeader: makeCreateHeader(deps),
-    createPettyCashSubAccount: makeCreatePettyCashSubAccount(),
-    createBankSubAccount: makeCreateBankSubAccount(),
+    createPettyCashSubAccount: makeCreatePettyCashSubAccount(deps),
+    createBankSubAccount: makeCreateBankSubAccount(deps),
   };
 
   return Object.freeze(service);

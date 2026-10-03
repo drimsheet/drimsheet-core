@@ -1,17 +1,18 @@
 import { EXPENSE_LEDGER_CODES } from '@domain/ledger/config/expense-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import directCostsControlAccountValidation from '@domain/ledger/services/validations/direct-costs-control-account.validation';
 import { IDirectCostsAccountService } from '@domain/ledger/types/direct-costs.service.types';
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TDirectCostsLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -23,6 +24,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
+  ledgerCodeAllocationService: ILedgerCodeAllocationService;
 }
 const LEDGER_CODE = EXPENSE_LEDGER_CODES.DIRECT_COSTS;
 
@@ -65,9 +67,24 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(): IDirectCostsAccountService['createSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+/** Prepares a final account under caller-owned family and parent locks; never writes. */
+function makeCreateSubAccount(
+  deps: IDependencies
+): IDirectCostsAccountService['createSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntityId,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.HEADER,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
 
     directCostsControlAccountValidation.validate(
       controlAccount,
@@ -80,20 +97,24 @@ function makeCreateSubAccount(): IDirectCostsAccountService['createSubAccount'] 
       subAccountCurrency: null,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TDirectCostsLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntityId,
+        type: ELedgerType.Expense,
+        subType: EExpenseSubType.DirectCosts,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
-    const materializedPath =
-      getLedgerAccountMaterializedPath<TDirectCostsLedgerCode>(
-        controlAccount.materializedPath as TDirectCostsLedgerCode,
-        code
-      );
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
+      code
+    );
 
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
-      code,
+      code: code as TDirectCostsLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Expense),
       type: ELedgerType.Expense,
@@ -103,7 +124,7 @@ function makeCreateSubAccount(): IDirectCostsAccountService['createSubAccount'] 
       controlAccountId: controlAccount.id,
       currency: null,
       meta: null,
-      status: ELedgerAccountStatus.Active,
+      status: payload.status ?? ELedgerAccountStatus.Active,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
@@ -114,7 +135,7 @@ function makeCreateSubAccount(): IDirectCostsAccountService['createSubAccount'] 
 export default function makeDirectCostsAccountService(deps: IDependencies) {
   const service: IDirectCostsAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(),
+    createSubAccount: makeCreateSubAccount(deps),
   };
   return Object.freeze(service);
 }

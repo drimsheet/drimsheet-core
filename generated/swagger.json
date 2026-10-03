@@ -243,7 +243,7 @@
       },
       "ULedgerAccountStatus": {
         "type": "string",
-        "enum": ["active", "archived"]
+        "enum": ["active", "archived", "draft"]
       },
       "UContraAccountRule": {
         "type": "string",
@@ -649,6 +649,11 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ULedgerAccountCreationStatus": {
+        "type": "string",
+        "enum": ["active", "draft"],
+        "description": "Status accepted when proposing or creating a ledger subaccount."
+      },
       "UExchangeRateType": {
         "type": "string",
         "enum": ["official", "negotiated", "market"]
@@ -713,6 +718,10 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
           },
           "currencyCode": {
             "type": "string"
@@ -2655,6 +2664,10 @@
           "name": {
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
           "currencyCode": {
             "type": "string"
           },
@@ -2693,6 +2706,10 @@
           "name": {
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
           "isControlAccount": {
             "type": "boolean"
           },
@@ -2729,6 +2746,10 @@
           "name": {
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
           "isControlAccount": {
             "type": "boolean"
           },
@@ -2748,6 +2769,10 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
           },
           "isControlAccount": {
             "type": "boolean"
@@ -2769,6 +2794,10 @@
           "name": {
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
           "isControlAccount": {
             "type": "boolean"
           },
@@ -2788,6 +2817,10 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
           },
           "isControlAccount": {
             "type": "boolean"
@@ -2833,6 +2866,10 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
           },
           "isControlAccount": {
             "type": "boolean"
@@ -3820,7 +3857,7 @@
             }
           }
         },
-        "description": "Create a new petty cash sub account",
+        "description": "Create an Active or Draft petty-cash subaccount; status defaults to Active.",
         "tags": ["Asset Accounts", "Ledger"],
         "security": [],
         "parameters": [],
@@ -6041,7 +6078,7 @@
             }
           }
         },
-        "description": "Create a new asset bank sub account",
+        "description": "Create an Active or Draft bank subaccount; status defaults to Active.",
         "tags": ["Asset Accounts", "Accounts"],
         "security": [],
         "parameters": [],
@@ -6132,7 +6169,7 @@
             }
           }
         },
-        "description": "Create one revenue account with an initial zero balance.",
+        "description": "Create an Active or Draft revenue subaccount; status defaults to Active.",
         "tags": ["Revenue Accounts", "Accounts"],
         "security": [],
         "parameters": [],
@@ -6223,7 +6260,7 @@
             }
           }
         },
-        "description": "Create one expense account with an initial zero balance.",
+        "description": "Create an Active or Draft expense subaccount; status defaults to Active.",
         "tags": ["Expense Accounts", "Accounts"],
         "security": [],
         "parameters": [],
@@ -6314,7 +6351,7 @@
             }
           }
         },
-        "description": "Create one trade receivable account with an initial zero balance.",
+        "description": "Create an Active or Draft trade receivable subaccount; status defaults to Active.",
         "tags": ["Asset Accounts", "Accounts"],
         "security": [],
         "parameters": [],
@@ -6405,7 +6442,7 @@
             }
           }
         },
-        "description": "Create one statutory receivable account with an initial zero balance.",
+        "description": "Create an Active or Draft statutory receivable subaccount; status defaults to Active.",
         "tags": ["Asset Accounts", "Accounts"],
         "security": [],
         "parameters": [],
@@ -6496,7 +6533,7 @@
             }
           }
         },
-        "description": "Create one trade payable account with an initial zero balance.",
+        "description": "Create an Active or Draft trade payable subaccount; status defaults to Active.",
         "tags": ["Liability Accounts", "Accounts"],
         "security": [],
         "parameters": [],
@@ -6587,7 +6624,7 @@
             }
           }
         },
-        "description": "Create one statutory payable account with an initial zero balance.",
+        "description": "Create an Active or Draft statutory payable subaccount; status defaults to Active.",
         "tags": ["Liability Accounts", "Accounts"],
         "security": [],
         "parameters": [],

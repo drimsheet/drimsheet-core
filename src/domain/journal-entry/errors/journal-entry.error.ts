@@ -12,6 +12,10 @@ class JournalEntryError<K extends TErrorPrefix> extends DomainError<K> {
 }
 
 const EErrorKeys = {
+  InitialOpeningBalanceTransactionRequired:
+    'journal_entry_error_initial_opening_balance_transaction_required_unexpected',
+  InitialOpeningBalanceAccountAlreadyExists:
+    'journal_entry_error_initial_opening_balance_account_already_exists_conflict',
   InvalidCreatedBy: 'journal_entry_error_created_by_invalid',
   InvalidAccountingEntityId: 'journal_entry_error_accounting_entity_id_invalid',
   InvalidVoidingEntryId: 'journal_entry_error_voiding_entry_id_invalid',
@@ -34,6 +38,9 @@ const EErrorKeys = {
   // Client message: Complete and activate the counterparty before posting.
   DraftCounterpartyNotAllowed:
     'journal_entry_error_draft_counterparty_not_allowed_invalid',
+  // Client message: Activate the ledger account before posting.
+  DraftLedgerAccountNotAllowed:
+    'journal_entry_error_draft_ledger_account_not_allowed_invalid',
   InvalidCounterpartyId: 'journal_entry_error_counterparty_id_invalid',
   InvalidMemo: 'journal_entry_error_memo_invalid',
   ControlAccountOpeningBalanceNotAllowed:

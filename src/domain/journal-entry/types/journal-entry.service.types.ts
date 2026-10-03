@@ -1,4 +1,7 @@
-import { IReadRepoOptions } from '@shared/types/repo.types';
+import {
+  IReadRepoOptions,
+  ITransactionContext,
+} from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
@@ -69,6 +72,12 @@ interface ICreateOpeningBalancePayload {
 }
 
 export interface IJournalEntryService {
+  /** Prepares the initial journal for an unpersisted, dated account and locks its open posting period in the caller's transaction. */
+  createInitialOpeningBalance(
+    payload: ICreateOpeningBalancePayload,
+    repoOptions: IReadRepoOptions & { tx: ITransactionContext }
+  ): Promise<TAuditedJournalEntry>;
+
   createOpeningBalance(
     payload: ICreateOpeningBalancePayload,
     repoOptions: IReadRepoOptions

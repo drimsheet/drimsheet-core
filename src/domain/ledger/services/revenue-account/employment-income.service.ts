@@ -1,13 +1,14 @@
 import { REVENUE_LEDGER_CODES } from '@domain/ledger/config/revenue-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import employmentIncomeControlAccountValidation from '@domain/ledger/services/validations/employment-income-control-account.validation';
 import { IEmploymentIncomeAccountService } from '@domain/ledger/types/employment-income.service.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TEmploymentIncomeLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -23,6 +24,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
+  ledgerCodeAllocationService: ILedgerCodeAllocationService;
 }
 
 const LEDGER_CODE = REVENUE_LEDGER_CODES.EMPLOYMENT_INCOME;
@@ -68,9 +70,24 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(): IEmploymentIncomeAccountService['createSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+/** Prepares a final account under caller-owned family and parent locks; never writes. */
+function makeCreateSubAccount(
+  deps: IDependencies
+): IEmploymentIncomeAccountService['createSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntityId,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.HEADER,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
 
     employmentIncomeControlAccountValidation.validate(
       controlAccount,
@@ -82,21 +99,25 @@ function makeCreateSubAccount(): IEmploymentIncomeAccountService['createSubAccou
       subAccountCurrency: null,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TEmploymentIncomeLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntityId,
+        type: ELedgerType.Revenue,
+        subType: ERevenueSubType.EmploymentIncome,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
 
-    const materializedPath =
-      getLedgerAccountMaterializedPath<TEmploymentIncomeLedgerCode>(
-        controlAccount.materializedPath as TEmploymentIncomeLedgerCode,
-        code
-      );
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
+      code
+    );
 
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
-      code,
+      code: code as TEmploymentIncomeLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Revenue),
       type: ELedgerType.Revenue,
@@ -106,7 +127,7 @@ function makeCreateSubAccount(): IEmploymentIncomeAccountService['createSubAccou
       controlAccountId: controlAccount.id,
       currency: null,
       meta: null,
-      status: ELedgerAccountStatus.Active,
+      status: payload.status ?? ELedgerAccountStatus.Active,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
@@ -119,7 +140,7 @@ export default function makeEmploymentIncomeAccountService(
 ) {
   const service: IEmploymentIncomeAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(),
+    createSubAccount: makeCreateSubAccount(deps),
   };
 
   return Object.freeze(service);

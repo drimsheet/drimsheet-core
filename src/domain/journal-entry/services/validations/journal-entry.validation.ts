@@ -14,7 +14,10 @@ import {
   IJournalEntryLinePayload,
 } from '@domain/journal-entry/types/journal-entry.service.types';
 import { ILedgerAccountBalance } from '@domain/ledger/types/ledger-account-balance.types';
-import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import {
+  ELedgerAccountStatus,
+  ILedgerAccount,
+} from '@domain/ledger/types/ledger.types';
 import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 
@@ -47,7 +50,7 @@ function validateAccountsAgainstRule(
 function validateAccounts(
   header: Pick<
     IJournalEntryHeaderPayload,
-    'accountingEntityId' | 'effectiveDate'
+    'accountingEntityId' | 'effectiveDate' | 'postedAt'
   >,
   journalLines: Pick<IJournalEntryBaseLinePayload, 'account' | 'amount'>[]
 ) {
@@ -108,6 +111,20 @@ function validateAccounts(
   if (mismatchedJournalLines.length) {
     throw new journalEntryError.JournalLineAccountCurrencyMismatch({
       lines: mismatchedJournalLines,
+    });
+  }
+
+  if (header.postedAt === null) return;
+
+  const draftAccounts = allAccounts.filter(
+    (account) => account.status === ELedgerAccountStatus.Draft
+  );
+  if (draftAccounts.length) {
+    throw new journalEntryError.DraftLedgerAccountNotAllowed({
+      accounts: draftAccounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+      })),
     });
   }
 }

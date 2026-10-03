@@ -95,7 +95,7 @@ export class LedgerController extends Controller {
   }
 
   /**
-   * Create a new petty cash sub account
+   * Create an Active or Draft petty-cash subaccount; status defaults to Active.
    */
   @Tags('Asset Accounts')
   @Post('/asset/petty-cash')

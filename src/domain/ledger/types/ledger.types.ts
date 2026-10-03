@@ -24,10 +24,14 @@ export type UNormalBalance =
 export const ELedgerAccountStatus = {
   Active: 'active',
   Archived: 'archived',
+  Draft: 'draft',
 } as const;
 
 export type ULedgerAccountStatus =
   (typeof ELedgerAccountStatus)[keyof typeof ELedgerAccountStatus];
+
+/** Status accepted when proposing or creating a ledger subaccount. */
+export type ULedgerAccountCreationStatus = 'active' | 'draft';
 
 export const EContraAccountRule = {
   ContraPermitted: 'contra_permitted',

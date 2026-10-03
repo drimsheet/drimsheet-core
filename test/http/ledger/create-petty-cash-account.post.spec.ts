@@ -5,6 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import periodError from '@domain/accounting/errors/period.error';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
@@ -149,6 +150,22 @@ describe('POST /ledger/asset/petty-cash', () => {
       .send(payload);
 
   describe('201 Response', () => {
+    it.each(['active', 'draft'] as const)(
+      'accepts %s creation and returns its status',
+      async (status) => {
+        mockCreatePettyCashAccount.mockResolvedValueOnce({
+          ...createdAccount,
+          status,
+        });
+        const response = await makeRequest({ ...validPayload, status });
+        expect(response.status).toBe(201);
+        expect(response.body.status).toBe(status);
+        expect(mockCreatePettyCashAccount).toHaveBeenCalledWith(
+          expect.objectContaining({ status })
+        );
+      }
+    );
+
     it('returns the concrete account and coerces request dates', async () => {
       const response = await makeRequest();
 
@@ -233,6 +250,15 @@ describe('POST /ledger/asset/petty-cash', () => {
   });
 
   describe('422 Response', () => {
+    it.each(['archived', 'invalid'])(
+      'rejects unsupported creation status %s',
+      async (status) => {
+        const response = await makeRequest({ ...validPayload, status });
+        expect(response.status).toBe(422);
+        expect(mockCreatePettyCashAccount).not.toHaveBeenCalled();
+      }
+    );
+
     it('rejects an invalid request before orchestration', async () => {
       const { currencyCode: _currencyCode, ...invalidPayload } = validPayload;
       const response = await makeRequest(invalidPayload);
@@ -272,5 +298,15 @@ describe('POST /ledger/asset/petty-cash', () => {
       });
       expect(JSON.stringify(response.body)).not.toContain('password leaked');
     });
+  });
+  it('returns the domain missing selected-parent key with HTTP 404', async () => {
+    mockCreatePettyCashAccount.mockRejectedValueOnce(
+      new ledgerAccountError.ControlAccountIdNotFound()
+    );
+    const response = await makeRequest();
+    expect(response.status).toBe(404);
+    expect(response.body.errorKey).toBe(
+      'ledger_error_control_account_id_not_found'
+    );
   });
 });

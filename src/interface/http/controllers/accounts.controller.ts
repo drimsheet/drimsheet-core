@@ -60,7 +60,7 @@ export class AccountsController extends Controller {
   }
 
   /**
-   * Create a new asset bank sub account
+   * Create an Active or Draft bank subaccount; status defaults to Active.
    */
   @Tags('Asset Accounts')
   @Post('/asset/bank')
@@ -82,7 +82,7 @@ export class AccountsController extends Controller {
     return await createBankAccountUseCase(body);
   }
 
-  /** Create one revenue account with an initial zero balance. */
+  /** Create an Active or Draft revenue subaccount; status defaults to Active. */
   @Tags('Revenue Accounts')
   @Post('/revenues')
   @OperationId('createRevenueAccount')
@@ -105,7 +105,7 @@ export class AccountsController extends Controller {
     return createRevenueAccountUseCase(body);
   }
 
-  /** Create one expense account with an initial zero balance. */
+  /** Create an Active or Draft expense subaccount; status defaults to Active. */
   @Tags('Expense Accounts')
   @Post('/expenses')
   @OperationId('createExpenseAccount')
@@ -128,7 +128,7 @@ export class AccountsController extends Controller {
     return createExpenseAccountUseCase(body);
   }
 
-  /** Create one trade receivable account with an initial zero balance. */
+  /** Create an Active or Draft trade receivable subaccount; status defaults to Active. */
   @Tags('Asset Accounts')
   @Post('/asset/receivables/trade')
   @OperationId('createTradeReceivableAccount')
@@ -151,7 +151,7 @@ export class AccountsController extends Controller {
     return createTradeReceivableAccountUseCase(body);
   }
 
-  /** Create one statutory receivable account with an initial zero balance. */
+  /** Create an Active or Draft statutory receivable subaccount; status defaults to Active. */
   @Tags('Asset Accounts')
   @Post('/asset/receivables/statutory')
   @OperationId('createStatutoryReceivableAccount')
@@ -174,7 +174,7 @@ export class AccountsController extends Controller {
     return createStatutoryReceivableAccountUseCase(body);
   }
 
-  /** Create one trade payable account with an initial zero balance. */
+  /** Create an Active or Draft trade payable subaccount; status defaults to Active. */
   @Tags('Liability Accounts')
   @Post('/liability/payables/trade')
   @OperationId('createTradePayableAccount')
@@ -197,7 +197,7 @@ export class AccountsController extends Controller {
     return createTradePayableAccountUseCase(body);
   }
 
-  /** Create one statutory payable account with an initial zero balance. */
+  /** Create an Active or Draft statutory payable subaccount; status defaults to Active. */
   @Tags('Liability Accounts')
   @Post('/liability/payables/statutory')
   @OperationId('createStatutoryPayableAccount')

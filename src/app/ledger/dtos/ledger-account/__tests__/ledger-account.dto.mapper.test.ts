@@ -1,6 +1,9 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import {
+  ELedgerAccountStatus,
+  ILedgerAccount,
+} from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 
@@ -80,7 +83,11 @@ describe('Ledger Account DTO Mapper', () => {
       });
     });
 
-    it('should map DTO correctly when controlAccountId and deletedAt are set', () => {
+    it.each([
+      ELedgerAccountStatus.Active,
+      ELedgerAccountStatus.Archived,
+      ELedgerAccountStatus.Draft,
+    ])('maps a %s subaccount with its parent and deletion date', (status) => {
       const balance = moneyValue.make(0n, SYSTEM_CURRENCIES.GBP, true);
       const functionalBalance = moneyValue.make(
         0n,
@@ -102,7 +109,7 @@ describe('Ledger Account DTO Mapper', () => {
         controlAccountId: 'parent-id-999' as unknown as TEntityId,
         name: 'Main Cash Account',
         currency: SYSTEM_CURRENCIES.GBP,
-        status: 'active',
+        status,
         contraAccountRule: 'contra_permitted',
         adjunctAccountRule: 'adjunct_permitted',
         meta: null,
@@ -120,6 +127,7 @@ describe('Ledger Account DTO Mapper', () => {
       );
 
       expect(dto.controlAccountId).toBe('parent-id-999');
+      expect(dto.status).toBe(status);
       expect(dto.deletedAt).toEqual(new Date('2026-07-13T19:00:00Z'));
     });
   });

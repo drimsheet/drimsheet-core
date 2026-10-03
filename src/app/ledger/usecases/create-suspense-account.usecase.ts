@@ -78,7 +78,7 @@ export default function makeCreateSuspenseAccountUsecase(
       const accountHistory = historyValue.make(audit, actor.id, correlationId);
 
       // Persist the prepared account/history/zero balance in the same transaction.
-      await deps.ledgerAccountPersistenceService.createWithoutAssigningCode(
+      await deps.ledgerAccountPersistenceService.create(
         account,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [accountHistory] }

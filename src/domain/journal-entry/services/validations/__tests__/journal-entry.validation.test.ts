@@ -105,6 +105,134 @@ describe('journalEntryServiceValidation', () => {
     };
   }
 
+  describe('validateAccounts', () => {
+    const effectiveDate = new Date('2026-08-03T10:00:00.000Z');
+    const header = { accountingEntityId, effectiveDate, postedAt: null };
+    const activeSource = makeTransferAccount(
+      '100001',
+      EAssetAccountBehavior.Bank
+    );
+    const activeDestination = makeTransferAccount(
+      '100002',
+      EAssetAccountBehavior.PettyCash
+    );
+    const amount = moneyValue.make(100n, SYSTEM_CURRENCIES.NGN, true);
+
+    it.each(['source', 'destination'] as const)(
+      'allows a draft %s account only when preparing a draft journal',
+      (side) => {
+        const [draft] = ledgerAccountEntity.make({
+          ...(side === 'source' ? activeSource : activeDestination),
+          status: ELedgerAccountStatus.Draft,
+          controlAccountId: generateUUID(),
+        });
+        const lines = [
+          { account: side === 'source' ? draft : activeSource, amount },
+          {
+            account: side === 'destination' ? draft : activeDestination,
+            amount,
+          },
+        ];
+        expect(() =>
+          journalEntryServiceValidation.validateAccounts(header, lines)
+        ).not.toThrow();
+        expect(() =>
+          journalEntryServiceValidation.validateAccounts(
+            { ...header, postedAt: effectiveDate },
+            lines
+          )
+        ).toThrow(
+          new journalEntryError.DraftLedgerAccountNotAllowed({
+            accounts: [{ id: draft.id, name: draft.name }],
+          })
+        );
+      }
+    );
+
+    it('identifies every blocking account with the dedicated error key and cause', () => {
+      const accounts = [activeSource, activeDestination].map(
+        (account) =>
+          ledgerAccountEntity.make({
+            ...account,
+            status: ELedgerAccountStatus.Draft,
+            controlAccountId: generateUUID(),
+          })[0]
+      );
+      const lines = accounts.map((account) => ({ account, amount }));
+      expect.assertions(2);
+      try {
+        journalEntryServiceValidation.validateAccounts(
+          { ...header, postedAt: effectiveDate },
+          lines
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(
+          journalEntryError.DraftLedgerAccountNotAllowed
+        );
+        expect(error).toMatchObject({
+          errorKey:
+            'journal_entry_error_draft_ledger_account_not_allowed_invalid',
+          cause: { accounts: accounts.map(({ id, name }) => ({ id, name })) },
+        });
+      }
+    });
+
+    it('allows posting with active accounts including a currency-flexible account', () => {
+      const [flexible] = ledgerAccountEntity.make({
+        ...activeDestination,
+        currency: null,
+        openingBalanceDate: effectiveDate,
+      });
+      expect(() =>
+        journalEntryServiceValidation.validateAccounts(
+          { ...header, postedAt: effectiveDate },
+          [
+            { account: activeSource, amount },
+            { account: flexible, amount },
+          ]
+        )
+      ).not.toThrow();
+    });
+
+    it.each([
+      [
+        'ownership',
+        { accountingEntityId: generateUUID() },
+        journalEntryError.InvalidAccountingEntity,
+      ],
+      [
+        'control account',
+        { isControlAccount: true },
+        journalEntryError.ControlAccountNotAllowed,
+      ],
+      [
+        'opening date',
+        { openingBalanceDate: new Date('2026-08-04T00:00:00.000Z') },
+        journalEntryError.EffectiveDateIsBeforeOpeningDate,
+      ],
+      [
+        'currency',
+        { currency: SYSTEM_CURRENCIES.USD },
+        journalEntryError.JournalLineAccountCurrencyMismatch,
+      ],
+    ] as const)(
+      'still validates %s on draft journals with draft accounts',
+      (_, overrides, errorType) => {
+        const [account] = ledgerAccountEntity.make({
+          ...activeSource,
+          status: ELedgerAccountStatus.Draft,
+          controlAccountId: generateUUID(),
+          ...overrides,
+        });
+        expect(() =>
+          journalEntryServiceValidation.validateAccounts(header, [
+            { account, amount },
+          ])
+        ).toThrow(errorType);
+      }
+    );
+  });
+
   describe('validateCounterparties', () => {
     it.each(['source', 'destination'] as const)(
       'rejects posting with a draft %s counterparty',

@@ -21,7 +21,9 @@ import {
 } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
-function makeCashAccount() {
+function makeCashAccount(
+  status: ILedgerAccount['status'] = ELedgerAccountStatus.Active
+) {
   return ledgerAccountEntity.make({
     code: '100001',
     materializedPath: '100000.100001',
@@ -35,7 +37,7 @@ function makeCashAccount() {
     normalBalance: ENormalBalance.Debit,
     isControlAccount: false,
     currency: SYSTEM_CURRENCIES.NGN,
-    status: ELedgerAccountStatus.Active,
+    status,
     contraAccountRule: EContraAccountRule.ContraPermitted,
     adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
     meta: null,
@@ -94,6 +96,24 @@ describe('Ledger Account Shared Entity', () => {
     expect(Object.isFrozen(entity.createdBy)).toBe(true);
   });
 
+  it('preserves Draft on a complete subaccount, its created event, and its audit', () => {
+    const [account, events, audit] = makeCashAccount(
+      ELedgerAccountStatus.Draft
+    );
+
+    expect(account.status).toBe(ELedgerAccountStatus.Draft);
+    expect(account.controlAccountId).not.toBeNull();
+    expect(events).toEqual([
+      expect.objectContaining({
+        type: ELedgerAccountEvent.Created,
+        data: account,
+      }),
+    ]);
+    expect(audit.action).toBe(ELedgerAccountAuditAction.Created);
+    expect(audit.diff.after.status).toBe(ELedgerAccountStatus.Draft);
+    expect(Object.isFrozen(account)).toBe(true);
+  });
+
   describe('Validation Functions', () => {
     it('validateCode: should not throw for valid ledger codes', () => {
       expect(() =>
@@ -125,9 +145,13 @@ describe('Ledger Account Shared Entity', () => {
       }).toThrow();
     });
 
-    it('validateStatus: should not throw for valid statuses', () => {
+    it.each([
+      ELedgerAccountStatus.Active,
+      ELedgerAccountStatus.Archived,
+      ELedgerAccountStatus.Draft,
+    ])('validateStatus: accepts %s', (status) => {
       expect(() =>
-        ledgerAccountValidation.validateStatus(ELedgerAccountStatus.Active)
+        ledgerAccountValidation.validateStatus(status)
       ).not.toThrow();
     });
 
@@ -540,109 +564,41 @@ describe('Ledger Account Shared Entity', () => {
   });
 });
 
-describe('ledgerAccountEntity.updateCode', () => {
-  it('returns an immutable code/path update with an event and before/after audit', () => {
-    const [account] = makeCashAccount();
-    const original = structuredClone(account);
-    const now = new Date('2026-09-29T12:00:00Z');
-    jest.useFakeTimers().setSystemTime(now);
-    try {
-      const [updated, events, audit] = ledgerAccountEntity.updateCode(
-        account,
-        '100009'
-      );
-
-      expect(updated).toEqual({
-        ...account,
-        code: '100009',
-        materializedPath: '100000.100009',
-        version: account.version + 1,
-        updatedAt: now,
+describe('initial ledger opening balance date', () => {
+  it.each([undefined, null, new Date('2026-01-01T00:00:00Z')])(
+    'records the initial date in one creation tuple: %s',
+    (openingBalanceDate) => {
+      const [base] = makeCashAccount();
+      const [account, events, audit] = ledgerAccountEntity.make({
+        ...base,
+        openingBalanceDate,
       });
-      expect(account).toEqual(original);
-      expect(Object.isFrozen(updated)).toBe(true);
-      expect(Object.isFrozen(updated.currency)).toBe(true);
+      expect(account.openingBalanceDate).toEqual(openingBalanceDate ?? null);
+      expect(account.version).toBe(1);
       expect(events).toHaveLength(1);
-      expect(events[0]).toMatchObject({
-        type: ELedgerAccountEvent.Updated,
-        data: updated,
-      });
-      expect(audit).toEqual({
-        entityId: account.id,
-        entityVersion: updated.version,
-        action: ELedgerAccountAuditAction.Updated,
-        diff: { before: account, after: updated },
-        occurredAt: now,
-      });
-    } finally {
-      jest.useRealTimers();
-    }
-  });
-
-  it.each(['100001', '100000.100001', '100000.100005.100001'])(
-    'replaces only the final path segment of %s',
-    (materializedPath) => {
-      const [createdAccount] = makeCashAccount();
-      const [account] = ledgerAccountEntity.make({
-        ...createdAccount,
-        materializedPath,
-      });
-      const [updated] = ledgerAccountEntity.updateCode(account, '100009');
-      expect(updated.materializedPath).toBe(
-        materializedPath.replace(/100001$/, '100009')
-      );
+      expect(events[0].data).toEqual(account);
+      expect(audit.diff).toMatchObject({ before: null, after: account });
+      if (openingBalanceDate)
+        expect(account.openingBalanceDate).not.toBe(openingBalanceDate);
     }
   );
-
-  it('preserves an existing opening balance date as an ordinary account field', () => {
-    const [createdAccount] = makeCashAccount();
-    const [account] = ledgerAccountEntity.updateOpeningBalanceDate(
-      createdAccount,
-      new Date('2026-01-01T00:00:00Z')
-    );
-    const [updated] = ledgerAccountEntity.updateCode(account, '100009');
-    expect(updated.openingBalanceDate).toEqual(account.openingBalanceDate);
-    expect(updated.version).toBe(account.version + 1);
-  });
-
-  it.each(['100bad', '600001', '10001'])('rejects invalid code %s', (code) => {
-    const [createdAccount] = makeCashAccount();
-    expect(() => ledgerAccountEntity.updateCode(createdAccount, code)).toThrow(
-      ledgerAccountError.InvalidCode
-    );
-  });
-});
-
-describe('ledgerAccountEntity.assignNextCode', () => {
-  it('derives the next code from the latest account and preserves the created account parent path', () => {
-    const [createdAccount] = makeCashAccount();
-    const [account] = ledgerAccountEntity.make({
-      ...createdAccount,
-      materializedPath: '100000.100005.100001',
-    });
-    const [updated, events, audit] = ledgerAccountEntity.assignNextCode(
-      account,
-      { code: '100019' }
-    );
-    expect(updated).toMatchObject({
-      id: account.id,
-      code: '100020',
-      materializedPath: '100000.100005.100020',
-      version: account.version + 1,
-    });
-    expect(account.code).toBe('100001');
-    expect(events[0].data).toEqual(updated);
-    expect(audit.diff).toEqual({ before: account, after: updated });
-  });
-
-  it.each([
-    ['100999', ledgerAccountError.MaximumLimitReached],
-    ['102001', ledgerAccountError.InvalidPredecessorCode],
-    ['100bad', ledgerAccountError.InvalidCode],
-  ])('rejects an unavailable or invalid latest code %s', (code, error) => {
-    const [createdAccount] = makeCashAccount();
+  it.each([new Date('invalid'), new Date(Date.now() + 86400000)])(
+    'rejects invalid or future initial dates: %s',
+    (openingBalanceDate) => {
+      const [base] = makeCashAccount();
+      expect(() =>
+        ledgerAccountEntity.make({ ...base, openingBalanceDate })
+      ).toThrow(ledgerAccountError.InvalidOpeningBalanceDate);
+    }
+  );
+  it('forbids initial dates on control accounts', () => {
+    const [base] = makeCashAccount();
     expect(() =>
-      ledgerAccountEntity.assignNextCode(createdAccount, { code })
-    ).toThrow(error);
+      ledgerAccountEntity.make({
+        ...base,
+        isControlAccount: true,
+        openingBalanceDate: new Date('2026-01-01'),
+      })
+    ).toThrow(ledgerAccountError.ForbiddenControlAccountOpeningBalanceDate);
   });
 });

@@ -1,16 +1,17 @@
 import { EXPENSE_LEDGER_CODES } from '@domain/ledger/config/expense-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import rentAndUtilitiesControlAccountValidation from '@domain/ledger/services/validations/rent-and-utilities-control-account.validation';
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TRentUtilitiesLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -23,6 +24,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
+  ledgerCodeAllocationService: ILedgerCodeAllocationService;
 }
 const LEDGER_CODE = EXPENSE_LEDGER_CODES.RENT_AND_UTILITIES;
 
@@ -65,9 +67,25 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(): IRentAndUtilitiesAccountService['createSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+/** Prepares a final account under caller-owned family and parent locks; never writes. */
+function makeCreateSubAccount(
+  deps: IDependencies
+): IRentAndUtilitiesAccountService['createSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntityId,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.HEADER,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
+
     rentAndUtilitiesControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntityId
@@ -78,19 +96,23 @@ function makeCreateSubAccount(): IRentAndUtilitiesAccountService['createSubAccou
       subAccountCurrency: null,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TRentUtilitiesLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntityId,
+        type: ELedgerType.Expense,
+        subType: EExpenseSubType.RentAndUtilities,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
-    const materializedPath =
-      getLedgerAccountMaterializedPath<TRentUtilitiesLedgerCode>(
-        controlAccount.materializedPath as TRentUtilitiesLedgerCode,
-        code
-      );
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
+      code
+    );
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
-      code,
+      code: code as TRentUtilitiesLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Expense),
       type: ELedgerType.Expense,
@@ -100,7 +122,7 @@ function makeCreateSubAccount(): IRentAndUtilitiesAccountService['createSubAccou
       controlAccountId: controlAccount.id,
       currency: null,
       meta: null,
-      status: ELedgerAccountStatus.Active,
+      status: payload.status ?? ELedgerAccountStatus.Active,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
@@ -113,7 +135,7 @@ export default function makeRentAndUtilitiesAccountService(
 ) {
   const service: IRentAndUtilitiesAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(),
+    createSubAccount: makeCreateSubAccount(deps),
   };
   return Object.freeze(service);
 }

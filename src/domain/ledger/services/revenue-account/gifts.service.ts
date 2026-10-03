@@ -1,13 +1,14 @@
 import { REVENUE_LEDGER_CODES } from '@domain/ledger/config/revenue-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import giftsControlAccountValidation from '@domain/ledger/services/validations/gifts-control-account.validation';
 import { IGiftsAccountService } from '@domain/ledger/types/gifts.service.types';
+import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TGiftsLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -23,6 +24,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
+  ledgerCodeAllocationService: ILedgerCodeAllocationService;
 }
 
 const LEDGER_CODE = REVENUE_LEDGER_CODES.GIFTS;
@@ -68,9 +70,24 @@ function makeCreateHeader(
   };
 }
 
-function makeCreateSubAccount(): IGiftsAccountService['createSubAccount'] {
-  return (payload) => {
-    const { controlAccount } = payload;
+/** Prepares a final account under caller-owned family and parent locks; never writes. */
+function makeCreateSubAccount(
+  deps: IDependencies
+): IGiftsAccountService['createSubAccount'] {
+  return async (payload, repoOptions) => {
+    if (!repoOptions.tx)
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
+
+    const controlAccount = await getLockedControlAccountHelper(
+      deps.ledgerAccountRepo,
+      {
+        accountingEntityId: payload.accountingEntityId,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+        defaultControlAccountCode: LEDGER_CODE.HEADER,
+        controlAccountId: payload.controlAccountId,
+      },
+      repoOptions
+    );
 
     giftsControlAccountValidation.validate(
       controlAccount,
@@ -82,20 +99,25 @@ function makeCreateSubAccount(): IGiftsAccountService['createSubAccount'] {
       subAccountCurrency: null,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TGiftsLedgerCode
+    const code = await deps.ledgerCodeAllocationService.getNextCode(
+      {
+        accountingEntityId: payload.accountingEntityId,
+        type: ELedgerType.Revenue,
+        subType: ERevenueSubType.Gifts,
+        allocationHeaderCode: LEDGER_CODE.HEADER,
+      },
+      repoOptions
     );
 
-    const materializedPath = getLedgerAccountMaterializedPath<TGiftsLedgerCode>(
-      controlAccount.materializedPath as TGiftsLedgerCode,
+    const materializedPath = getLedgerAccountMaterializedPath(
+      controlAccount.materializedPath,
       code
     );
 
     return ledgerAccountEntity.make({
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
-      code,
+      code: code as TGiftsLedgerCode,
       materializedPath,
       normalBalance: getLedgerAccountNormalBalance(ELedgerType.Revenue),
       type: ELedgerType.Revenue,
@@ -105,7 +127,7 @@ function makeCreateSubAccount(): IGiftsAccountService['createSubAccount'] {
       controlAccountId: controlAccount.id,
       currency: null,
       meta: null,
-      status: ELedgerAccountStatus.Active,
+      status: payload.status ?? ELedgerAccountStatus.Active,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
@@ -116,7 +138,7 @@ function makeCreateSubAccount(): IGiftsAccountService['createSubAccount'] {
 export default function makeGiftsAccountService(deps: IDependencies) {
   const service: IGiftsAccountService = {
     createHeader: makeCreateHeader(deps),
-    createSubAccount: makeCreateSubAccount(),
+    createSubAccount: makeCreateSubAccount(deps),
   };
 
   return Object.freeze(service);

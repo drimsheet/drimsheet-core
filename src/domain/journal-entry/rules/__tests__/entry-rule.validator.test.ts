@@ -33,7 +33,15 @@ describe('journalEntryRuleValidator', () => {
     findLatestBySubType: jest.fn(),
     findAll: jest.fn(),
   };
-  const cashAccountService = makeCashAccountService({ ledgerAccountRepo });
+  const cashAccountService = makeCashAccountService({
+    ledgerAccountRepo: ledgerAccountRepo,
+    bankAccountRepo: {
+      findOne: jest.fn(),
+      findByLedgerAccountId: jest.fn(),
+      create: jest.fn(),
+    },
+    ledgerCodeAllocationService: { getNextCode: jest.fn() },
+  });
   let account: ILedgerAccount;
 
   beforeAll(async () => {

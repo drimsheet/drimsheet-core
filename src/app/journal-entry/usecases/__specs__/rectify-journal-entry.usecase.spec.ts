@@ -440,6 +440,43 @@ describe('makeRectifyJournalEntryUsecase', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['account', journalEntryError.DraftLedgerAccountNotAllowed],
+    ['counterparty', journalEntryError.DraftCounterpartyNotAllowed],
+  ] as const)(
+    'stops rectification writes when a draft %s blocks posting',
+    async (_, ErrorType) => {
+      const [originalEntry] = makeEntry(100);
+      const error = new ErrorType();
+      mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
+      mockJournalEntryRectificationPreparationService.prepare.mockRejectedValueOnce(
+        error
+      );
+
+      await expect(
+        getUsecase()(originalEntry.id, makePayload(originalEntry))
+      ).rejects.toBe(error);
+
+      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
+      expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistReversal
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistDisposition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
+
   it('propagates domain rejection of a source-type change without persisting', async () => {
     const [originalEntry] = makeEntry(100);
     const transferPayload = makePayload(originalEntry);

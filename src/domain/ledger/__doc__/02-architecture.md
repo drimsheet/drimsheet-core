@@ -26,7 +26,7 @@ Our Chart of Accounts follows a **6-digit** hierarchical coding structure: **A-B
 - **BB** (2 digits) represents the account group / sub-header (e.g. Cash and Cash Equivalents, Retained Earnings, etc.)
 - **CCC** (3 digits) represents the control account or sub-ledger (sequentially allocated)
 
-Codes are allocated through **Sequential Slotting** via the `getSubLedgerCode` function in `ledger-account.entity.ts`. Each new sub-ledger under a header receives the next available code (e.g., `100000` → `100001` → `100002`), with a 999-account limit per header.
+Domain creation services allocate codes through `ledgerCodeAllocationService.getNextCode` under the caller-owned transaction. The allocator locks the family root before reading the latest subtype code. Allocation spans behaviors, parents, and currencies within the accounting entity/type/subtype, with a 999-account limit per family.
 
 Power users can set a display code for accounts, but the internal code will always follow the above structure.
 
@@ -89,3 +89,9 @@ services/
 └── suspense-account.service.ts         ← 199xxx / 299xxx ✅
                                            101xxx (Short Term Investments) — not yet implemented
 ```
+
+## Domain Account Creation
+
+Child creation methods accept an optional `controlAccountId` and require a caller-owned transaction. They lock the allocation root before resolving and locking the selected parent, enforce the existing parent and currency rules, and create the account with its final code and materialized path. Omitted parent IDs retain the existing family-specific default parents. Trade/statutory receivables and payables share their respective root allocation sequences; direct-cost variants share theirs.
+
+Creation returns a version-1 entity and one complete creation event/audit. Bank and petty-cash opening dates are initialized during creation. Initial-opening journals own the posting-period check and Share lock. Use cases persist the prepared account/history and initial balance, commit, publish events, and submit any balance queue work after publication. Persistence never assigns codes or updates prepared domain entities. Existing historical audits and versions are unchanged.

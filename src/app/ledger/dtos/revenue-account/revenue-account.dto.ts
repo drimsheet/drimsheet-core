@@ -1,3 +1,5 @@
+import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types';
+
 type TSupportedRevenueAccountBehavior =
   | 'services'
   | 'employment_income'
@@ -8,6 +10,8 @@ type TSupportedRevenueAccountBehavior =
 
 export interface ICreateRevenueAccountDto {
   name: string;
+  /** Defaults to active when omitted. */
+  status?: ULedgerAccountCreationStatus;
   isControlAccount: boolean;
   /** @format uuid */
   controlAccountId?: string;

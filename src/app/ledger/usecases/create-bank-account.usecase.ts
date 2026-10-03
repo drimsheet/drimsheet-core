@@ -1,37 +1,25 @@
 import IEventBus from '@shared/contracts/event-bus.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
+import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
-import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
 import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
-import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
-import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
-import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
-import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import { IBankDetails } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
-import { TCashLedgerCode } from '@domain/ledger/types/ledger-code.types';
-import bankDetailsValue from '@domain/ledger/values/bank-details.vo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
-import ILedgerAccountPersistenceService, {
-  IAssignedLedgerAccount,
-} from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { IBankAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { bankAccountCreationReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
-import finalizeWithoutOpeningBalanceHelper from '@app/ledger/usecases/helpers/finalize-without-opening-balance.helper';
-import getControlAccountHelper from '@app/ledger/usecases/helpers/get-control-account.helper';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import openingBalanceExchangeRateGetter from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
 import openingBalanceExchangeRateValidationHelper from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-validation.helper';
@@ -43,10 +31,8 @@ import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.serv
 interface IDependencies {
   appContext: IAppContext;
   eventBus: IEventBus;
-  accountingPeriodService: IAccountingPeriodService;
   cashAccountService: ICashAccountService;
   bankAccountRepo: IBankAccountRepo;
-  ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryService: IJournalEntryService;
   journalEntryPersistenceService: IJournalEntryPersistenceService;
   outboxService: IOutboxService;
@@ -61,213 +47,178 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
   return async (
     payload: IBankAccountCreationReq
   ): Promise<ILedgerAccountDto> => {
+    zodValidationRunner(bankAccountCreationReqValidation, payload);
+
     const { correlationId, actor, accountingEntity } = deps.appContext.get([
       'actor',
       'accountingEntity',
     ]);
-    const repoOptions = { correlationId };
-
-    // Validate data
-    zodValidationRunner(bankAccountCreationReqValidation, payload);
-
+    const currency = currencyEntity.getByCode(payload.currencyCode);
     openingBalanceExchangeRateValidationHelper(
       accountingEntity.functionalCurrencyCode,
       payload.currencyCode,
       payload.openingBalance
     );
 
-    if (payload.openingBalance?.date) {
-      await deps.accountingPeriodService.validatePostingPeriod(
-        accountingEntity.id,
-        payload.openingBalance.date,
-        repoOptions
-      );
-    }
+    const repoOptions = { correlationId };
+    const transaction = await deps.repoService.createTransaction();
 
-    const existingBankAccount = await deps.bankAccountRepo.findOne(
-      payload.bankAccount.bankName,
-      payload.bankAccount.accountNumber,
-      repoOptions
-    );
-    if (existingBankAccount) {
-      throw new ledgerAccountError.DuplicateBankAccount({
-        details: payload.bankAccount,
-      });
-    }
+    try {
+      const transactionOptions = { ...repoOptions, tx: transaction.context };
 
-    const bankDetails = bankDetailsValue.make({
-      countryCode: accountingEntity.jurisdictionCode,
-      bankName: payload.bankAccount.bankName,
-      accountName: payload.bankAccount.accountName,
-      accountNumber: payload.bankAccount.accountNumber,
-    });
-
-    const controlAccount = await getControlAccountHelper<TCashLedgerCode>({
-      ledgerAccountRepo: deps.ledgerAccountRepo,
-      controlAccountId: payload.controlAccountId,
-      defaultControlAccountCode: ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
-      accountingEntityId: accountingEntity.id,
-      repoOptions,
-    });
-
-    const creationPayload = {
-      name: payload.name,
-      currency: currencyEntity.getByCode(payload.currencyCode),
-      isControlAccount: false,
-      createdBy: actor.id,
-      accountingEntity,
-      controlAccount,
-      bankDetails,
-    };
-
-    const auditedAccount =
-      deps.cashAccountService.createBankSubAccount(creationPayload);
-
-    if (!payload.openingBalance) {
-      return await finalizeWithoutOpeningBalanceHelper(deps, {
-        auditedAccount,
-        allocationHeaderCode: ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
+      const accountCreationInput = {
+        name: payload.name,
+        status: payload.status,
+        currency,
+        isControlAccount: false,
+        createdBy: actor.id,
         accountingEntity,
-        actor: actor.id,
-        repoOptions,
-        persistRelatedRecords: async (account, writeRepoOptions) => {
-          await deps.bankAccountRepo.create(
-            account.id,
-            accountingEntity.id,
-            bankDetails,
-            actor.id,
-            writeRepoOptions
-          );
+        controlAccountId: payload.controlAccountId as TEntityId | undefined,
+        openingBalanceDate: payload.openingBalance?.date,
+        bankDetails: {
+          countryCode: accountingEntity.jurisdictionCode,
+          bankName: payload.bankAccount.bankName,
+          accountName: payload.bankAccount.accountName,
+          accountNumber: payload.bankAccount.accountNumber,
         },
-      });
-    }
+      };
 
-    const exchangeRate = openingBalanceExchangeRateGetter(
-      payload.openingBalance
-    );
-
-    const [journalEntry, journalEvents, journalAudit] =
-      await deps.journalEntryService.createOpeningBalance(
-        {
-          accountingEntityId: accountingEntity.id,
-          functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
-          account: auditedAccount[0],
-          amount: moneyMapper.fromDto(payload.openingBalance.amount),
-          effectiveDate: payload.openingBalance.date,
-          exchangeRate,
-          createdBy: actor.id,
-        },
-        repoOptions
-      );
-    const shouldUpdateBalance =
-      journalEntry.status === EJournalEntryStatus.Posted;
-
-    const [updatedAccount, updatedAccountEvents, updatedAccountAudit] =
-      ledgerAccountEntity.updateOpeningBalanceDate(
-        auditedAccount[0],
-        payload.openingBalance.date
-      );
-
-    // Make histories
-    const initialAccountHistory = historyValue.make(
-      auditedAccount[2],
-      actor.id,
-      correlationId
-    );
-    const updatedAccountHistory = historyValue.make(
-      updatedAccountAudit,
-      actor.id,
-      correlationId
-    );
-    const accountHistory = [initialAccountHistory, updatedAccountHistory];
-    const journalHeaderHistory = historyValue.make(
-      journalAudit.header,
-      actor.id,
-      correlationId
-    );
-    const journalLineHistories = journalAudit.lines.map((lineAudit) =>
-      historyValue.make(lineAudit, actor.id, correlationId)
-    );
-
-    const fxResult = await deps.fxLotAppService.acquire(
-      { journalEntry, account: updatedAccount, actor: actor.id },
-      repoOptions
-    );
-
-    // Persist entities
-    const dbTransactionFn: TRepoTransactionFn<IAssignedLedgerAccount> = async (
-      tx
-    ) => {
-      const writeRepoOptions = { ...repoOptions, tx };
-
-      const assignedAccount =
-        await deps.ledgerAccountPersistenceService.createAndAssignCode(
-          {
-            account: updatedAccount,
-            allocationHeaderCode:
-              ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
-            actorId: actor.id,
-          },
-          accountingEntity.functionalCurrencyCode,
-          { ...writeRepoOptions, history: accountHistory }
+      const [account, accountEvents, accountAudit] =
+        await deps.cashAccountService.createBankSubAccount(
+          accountCreationInput,
+          transactionOptions
         );
 
-      await deps.bankAccountRepo.create(
-        assignedAccount.account.id,
-        accountingEntity.id,
-        bankDetails,
+      const accountHistory = historyValue.make(
+        accountAudit,
         actor.id,
-        writeRepoOptions
+        correlationId
+      );
+
+      if (!payload.openingBalance) {
+        await deps.ledgerAccountPersistenceService.create(
+          account,
+          accountingEntity.functionalCurrencyCode,
+          { ...transactionOptions, history: [accountHistory] }
+        );
+
+        await deps.bankAccountRepo.create(
+          account.id,
+          accountingEntity.id,
+          account.meta as IBankDetails,
+          actor.id,
+          transactionOptions
+        );
+
+        await transaction.commit();
+        await deps.eventBus.publish(
+          eventValue.enrichAll(accountEvents, repoOptions)
+        );
+
+        return ledgerAccountToDtoMapperHelper(
+          account,
+          null,
+          accountingEntity.functionalCurrencyCode
+        );
+      }
+
+      const journalEntryCreationInput = {
+        accountingEntityId: accountingEntity.id,
+        functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
+        account,
+        amount: moneyMapper.fromDto(payload.openingBalance.amount),
+        effectiveDate: payload.openingBalance.date,
+        exchangeRate: openingBalanceExchangeRateGetter(payload.openingBalance),
+        createdBy: actor.id,
+      };
+
+      const [journalEntry, journalEvents, journalAudit] =
+        await deps.journalEntryService.createInitialOpeningBalance(
+          journalEntryCreationInput,
+          transactionOptions
+        );
+
+      const postedJournal =
+        journalEntry.status === EJournalEntryStatus.Posted
+          ? journalEntry
+          : null;
+      const fxAcquisition = postedJournal
+        ? await deps.fxLotAppService.acquire(
+            { journalEntry: postedJournal, account, actor: actor.id },
+            transactionOptions
+          )
+        : null;
+
+      const journalHeaderHistory = historyValue.make(
+        journalAudit.header,
+        actor.id,
+        correlationId
+      );
+      const journalLineHistories = journalAudit.lines.map((audit) =>
+        historyValue.make(audit, actor.id, correlationId)
+      );
+
+      await deps.ledgerAccountPersistenceService.create(
+        account,
+        accountingEntity.functionalCurrencyCode,
+        { ...transactionOptions, history: [accountHistory] }
+      );
+
+      await deps.bankAccountRepo.create(
+        account.id,
+        accountingEntity.id,
+        account.meta as IBankDetails,
+        actor.id,
+        transactionOptions
       );
 
       await deps.journalEntryPersistenceService.create(
         journalEntry,
         journalHeaderHistory,
         journalLineHistories,
-        writeRepoOptions
+        transactionOptions
       );
 
-      if (fxResult) {
+      if (fxAcquisition) {
         await deps.fxCostBasisPersistenceService.persistAcquisition(
-          fxResult.records,
-          writeRepoOptions
+          fxAcquisition.records,
+          transactionOptions
         );
       }
 
-      if (shouldUpdateBalance) {
+      if (postedJournal) {
         await deps.outboxService.createBalancePropagation(
-          journalEntry.id,
-          writeRepoOptions
+          postedJournal.id,
+          transactionOptions
         );
       }
-      return assignedAccount;
-    };
 
-    const assignedAccount =
-      await deps.repoService.runInTransaction(dbTransactionFn);
+      await transaction.commit();
 
-    if (shouldUpdateBalance) {
-      await deps.ledgerBalanceAdjustmentQueue.add({
-        journalEntryId: journalEntry.id,
-        correlationId,
-      });
+      const events: IEvent<unknown>[] = [
+        ...accountEvents,
+        ...journalEvents,
+        ...(fxAcquisition?.events ?? []),
+      ];
+      await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
+
+      if (postedJournal) {
+        await deps.ledgerBalanceAdjustmentQueue.add({
+          journalEntryId: postedJournal.id,
+          correlationId,
+        });
+      }
+
+      return ledgerAccountToDtoMapperHelper(
+        account,
+        journalEntry,
+        accountingEntity.functionalCurrencyCode
+      );
+    } catch (error) {
+      // handleError rolls back only unfinished work; a successful commit is preserved.
+      return await transaction.handleError(error);
+    } finally {
+      await transaction.dispose();
     }
-
-    // Assemble events
-    const allEvents: IEvent<unknown>[] = [
-      ...auditedAccount[1],
-      ...updatedAccountEvents,
-      ...assignedAccount.events,
-      ...journalEvents,
-      ...(fxResult?.events ?? []),
-    ];
-
-    await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
-
-    return ledgerAccountToDtoMapperHelper(
-      assignedAccount.account,
-      journalEntry,
-      accountingEntity.functionalCurrencyCode
-    );
   };
 }

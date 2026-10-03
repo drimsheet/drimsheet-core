@@ -227,6 +227,27 @@ describe('POST /journal-entries/receipt', () => {
   });
 
   describe('400 Response', () => {
+    it('returns the draft-account posting error with the blocking accounts', async () => {
+      const cause = {
+        accounts: [
+          {
+            id: 'a1111111-1111-4111-8111-111111111111',
+            name: 'Draft ledger account',
+          },
+        ],
+      };
+      mockCreateReceiptUseCase.mockRejectedValueOnce(
+        new journalEntryError.DraftLedgerAccountNotAllowed(cause)
+      );
+      const response = await makeRequest();
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        errorKey:
+          'journal_entry_error_draft_ledger_account_not_allowed_invalid',
+        cause,
+      });
+    });
+
     it('returns the dedicated draft-counterparty posting error', async () => {
       mockCreateReceiptUseCase.mockRejectedValueOnce(
         new journalEntryError.DraftCounterpartyNotAllowed()

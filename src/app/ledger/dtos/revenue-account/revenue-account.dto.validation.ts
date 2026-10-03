@@ -3,8 +3,11 @@ import z from 'zod';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { ERevenueAccountBehavior } from '@domain/ledger/types/revenue-account.types';
 
+import { ledgerAccountCreationStatusValidation } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
+
 export const createRevenueAccountValidation = z
   .object({
+    status: ledgerAccountCreationStatusValidation.optional(),
     name: z
       .string()
       .min(2, new ledgerAccountError.InvalidName().errorKey)

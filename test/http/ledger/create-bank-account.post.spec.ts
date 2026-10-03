@@ -152,6 +152,22 @@ describe('POST /accounts/asset/bank', () => {
       .send(payload);
 
   describe('201 Response', () => {
+    it.each(['active', 'draft'] as const)(
+      'accepts %s creation and returns its status',
+      async (status) => {
+        mockCreateBankAccount.mockResolvedValueOnce({
+          ...createdAccount,
+          status,
+        });
+        const response = await makeRequest({ ...validPayload, status });
+        expect(response.status).toBe(201);
+        expect(response.body.status).toBe(status);
+        expect(mockCreateBankAccount).toHaveBeenCalledWith(
+          expect.objectContaining({ status })
+        );
+      }
+    );
+
     it('returns 201 with the created bank account DTO', async () => {
       const response = await makeRequest();
 
@@ -173,6 +189,21 @@ describe('POST /accounts/asset/bank', () => {
 
       expect(response.status).toBe(201);
       expect(mockCreateBankAccount).toHaveBeenCalledWith(payload);
+    });
+  });
+
+  describe('404 Response', () => {
+    it('maps the domain missing-control-account error to 404', async () => {
+      mockCreateBankAccount.mockRejectedValueOnce(
+        new ledgerAccountError.ControlAccountIdNotFound({
+          id: controlAccountId,
+        })
+      );
+      const response = await makeRequest({ ...validPayload, controlAccountId });
+      expect(response.status).toBe(404);
+      expect(response.body.errorKey).toBe(
+        'ledger_error_control_account_id_not_found'
+      );
     });
   });
 
@@ -238,6 +269,15 @@ describe('POST /accounts/asset/bank', () => {
   });
 
   describe('422 Response', () => {
+    it.each(['archived', 'invalid'])(
+      'rejects unsupported creation status %s',
+      async (status) => {
+        const response = await makeRequest({ ...validPayload, status });
+        expect(response.status).toBe(422);
+        expect(mockCreateBankAccount).not.toHaveBeenCalled();
+      }
+    );
+
     it('rejects invalid payload with extra fields', async () => {
       const invalidPayload = {
         ...validPayload,
