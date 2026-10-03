@@ -2,7 +2,10 @@ import z from 'zod';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 
-import { openingBalanceDtoValidation } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
+import {
+  openingBalanceDtoValidation,
+  openingBalanceJsonDtoValidation,
+} from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
 import { ledgerAccountCreationStatusValidation } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
 import { currencyCodeValidation } from '@app/money/dtos/currency/currency.dto.validation';
 
@@ -78,3 +81,39 @@ export const bankAccountCreationReqValidation = z
       path: ['openingBalance', 'amount', 'currencyCode'],
     }
   );
+
+export const bankAccountCreationJsonReqValidation = z
+  .strictObject({
+    ...bankAccountCreationReqValidation.shape,
+    openingBalance: openingBalanceJsonDtoValidation.nullable(),
+  })
+  .superRefine((input, ctx) => {
+    const validated = bankAccountCreationReqValidation.safeParse(input);
+    if (!validated.success) {
+      for (const issue of validated.error.issues) {
+        ctx.addIssue({
+          code: 'custom',
+          message: issue.message,
+          path: issue.path,
+        });
+      }
+    }
+  });
+
+export const pettyCashCreationJsonReqValidation = z
+  .object({
+    ...pettyCashCreationReqValidation.shape,
+    openingBalance: openingBalanceJsonDtoValidation.nullable(),
+  })
+  .superRefine((input, ctx) => {
+    const validated = pettyCashCreationReqValidation.safeParse(input);
+    if (!validated.success) {
+      for (const issue of validated.error.issues) {
+        ctx.addIssue({
+          code: 'custom',
+          message: issue.message,
+          path: issue.path,
+        });
+      }
+    }
+  });

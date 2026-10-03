@@ -4,7 +4,7 @@ import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
 import { RequestHandler } from 'express';
 
 interface IParams {
-  server: McpServer;
+  createServer: () => McpServer;
   appUrl: string;
   isLocal: boolean;
 }
@@ -18,7 +18,9 @@ export default function makeMcpRouteHandler(params: IParams): RequestHandler {
   }
 
   const validateHost = hostHeaderValidation(allowedHosts);
-  const handleRequest = toNodeHandler(createMcpHandler(() => params.server));
+  // The SDK connects and closes a server for each HTTP exchange. A shared
+  // instance lets overlapping requests overwrite each other's active transport.
+  const handleRequest = toNodeHandler(createMcpHandler(params.createServer));
 
   return (req, res, next) => {
     validateHost(req, res, () => {

@@ -9,16 +9,17 @@ import makeMcpRouteHandler from '@interface/http/handlers/mcp-route.handler';
 
 describe('MCP route handler', () => {
   it('rejects every host when no application host is configured outside local development', async () => {
-    const server = new McpServer({ name: 'test', version: '1' });
-    const connect = jest.spyOn(server, 'connect');
+    const createServer = jest.fn(
+      () => new McpServer({ name: 'test', version: '1' })
+    );
     const app = express();
     app.all(
       '/mcp',
-      makeMcpRouteHandler({ server, appUrl: '', isLocal: false })
+      makeMcpRouteHandler({ createServer, appUrl: '', isLocal: false })
     );
     const response = await request(app).post('/mcp').set('Host', 'localhost');
     expect(response.status).toBe(403);
-    expect(connect).not.toHaveBeenCalled();
+    expect(createServer).not.toHaveBeenCalled();
   });
 
   it('closes a request server when its client disconnects', async () => {
@@ -48,7 +49,7 @@ describe('MCP route handler', () => {
       makeMcpRouteHandler({
         appUrl: '',
         isLocal: true,
-        server,
+        createServer: () => server,
       })
     );
     const listener = app.listen(0, '127.0.0.1');

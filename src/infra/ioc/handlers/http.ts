@@ -14,9 +14,10 @@ export const healthHandlers = makeHealthHandlers({
 export const mcpRouteHandler = makeMcpRouteHandler({
   appUrl: vars.APP_URL,
   isLocal: vars.APP_ENV === 'local',
-  server: createMcpServer({
-    version: vars.APP_VERSION,
-  }),
+  createServer: () =>
+    createMcpServer({
+      version: vars.APP_VERSION,
+    }),
 });
 
 const httpHandlers = {

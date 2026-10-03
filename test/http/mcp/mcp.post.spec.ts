@@ -34,11 +34,37 @@ import makeErrorHandlerMiddleware from '@interface/http/middlewares/error-handle
 import makeRequestLoggerMiddleware from '@interface/http/middlewares/request-logger.middleware';
 import createMcpServer from '@interface/mcp/server';
 
+jest.mock('@infra/ioc/usecases/money', () => ({
+  getExchangeRateUseCase: jest.fn(),
+}));
+jest.mock('@infra/ioc/usecases/counterparty', () => ({
+  createCounterpartyUseCase: jest.fn(),
+  getCounterpartiesUseCase: jest.fn(),
+  getCounterpartyUseCase: jest.fn(),
+}));
+
 jest.mock('@infra/ioc/usecases/ledger', () => ({
+  createBankAccountUseCase: jest.fn(),
+  createExpenseAccountUseCase: jest.fn(),
+  createPettyCashAccountUseCase: jest.fn(),
+  createRevenueAccountUseCase: jest.fn(),
+  createStatutoryPayableAccountUseCase: jest.fn(),
+  createStatutoryReceivableAccountUseCase: jest.fn(),
+  createSuspenseAccountUseCase: jest.fn(),
+  createTradePayableAccountUseCase: jest.fn(),
+  createTradeReceivableAccountUseCase: jest.fn(),
+  getBanksUseCase: jest.fn(),
+  getLedgerAccountUseCase: jest.fn(),
   getLedgerAccountsUseCase: jest.fn(),
+  getPermittedPostingAccountsUseCase: jest.fn(),
 }));
 jest.mock('@infra/ioc/usecases/journal-entry', () => ({
+  createOpeningBalanceUseCase: jest.fn(),
+  createPaymentUseCase: jest.fn(),
+  createReceiptUseCase: jest.fn(),
+  createTransferUseCase: jest.fn(),
   getJournalEntriesUseCase: jest.fn(),
+  getJournalEntryUseCase: jest.fn(),
 }));
 jest.mock('@infra/observability', () => ({
   __esModule: true,
@@ -114,7 +140,8 @@ const meta = { page: 1, limit: 10, total: 0, totalPages: 0 };
 
 describe('POST /mcp', () => {
   let app: Express;
-  let server: ReturnType<typeof createMcpServer>;
+  let servers: ReturnType<typeof createMcpServer>[];
+  let createServer: jest.Mock<ReturnType<typeof createMcpServer>, []>;
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -161,14 +188,19 @@ describe('POST /mcp', () => {
       nodeEnv: 'test',
     });
     httpMiddlewares.errorHandler = makeErrorHandlerMiddleware();
-    server = createMcpServer({ version: 'test' });
-    jest.spyOn(server, 'connect');
-    jest.spyOn(server, 'close');
+    servers = [];
+    createServer = jest.fn(() => {
+      const server = createMcpServer({ version: 'test' });
+      jest.spyOn(server, 'connect');
+      jest.spyOn(server, 'close');
+      servers.push(server);
+      return server;
+    });
     jest.mocked(mcpRouteHandler).mockImplementation(
       makeMcpRouteHandler({
         appUrl: 'https://core.test',
         isLocal: false,
-        server,
+        createServer,
       })
     );
     app = createApplication();
@@ -176,9 +208,10 @@ describe('POST /mcp', () => {
 
   afterEach(async () => {
     await setImmediate();
-    if (jest.mocked(server.connect).mock.calls.length > 0)
+    for (const server of servers) {
       expect(server.close).toHaveBeenCalled();
-    await server.close();
+      await server.close();
+    }
   });
 
   function post(method: string, params?: object) {
@@ -198,14 +231,14 @@ describe('POST /mcp', () => {
   }
 
   describe('200 Response', () => {
-    it('discovers both tools through the assembled application and preserves correlation', async () => {
+    it('discovers the tools through the assembled application and preserves correlation', async () => {
       const response = await post('tools/list').set(
         'x-correlation-id',
         firstCorrelationId
       );
       expect(response.status).toBe(200);
       expect(response.headers['x-correlation-id']).toBe(firstCorrelationId);
-      expect(readResponse(response).result.tools).toHaveLength(2);
+      expect(readResponse(response).result.tools).toHaveLength(23);
       expect(response.headers['mcp-session-id']).toBeUndefined();
       expect(mockHttpMetrics.recordRequestCompleted).toHaveBeenCalledWith(
         expect.objectContaining({ statusCode: 200 })
@@ -307,6 +340,8 @@ describe('POST /mcp', () => {
           secondCorrelationId
         ),
       ]);
+      expect(createServer).toHaveBeenCalledTimes(2);
+      expect(servers[0]).not.toBe(servers[1]);
       expect(
         responses.map(
           (response) =>
@@ -352,7 +387,7 @@ describe('POST /mcp', () => {
     it('rejects unrecognized hosts before MCP dispatch', async () => {
       const response = await post('tools/list').set('Host', 'attacker.test');
       expect(response.status).toBe(403);
-      expect(server.connect).not.toHaveBeenCalled();
+      expect(createServer).not.toHaveBeenCalled();
     });
 
     it('preserves the existing Origin rejection', async () => {
@@ -361,7 +396,7 @@ describe('POST /mcp', () => {
         'https://attacker.test'
       );
       expect(response.status).toBe(403);
-      expect(server.connect).not.toHaveBeenCalled();
+      expect(createServer).not.toHaveBeenCalled();
     });
   });
 
@@ -380,7 +415,7 @@ describe('POST /mcp', () => {
       });
       // The current application error handler sanitizes parser failures as 500.
       expect(response.status).toBe(500);
-      expect(server.connect).not.toHaveBeenCalled();
+      expect(createServer).not.toHaveBeenCalled();
       expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
     });
   });

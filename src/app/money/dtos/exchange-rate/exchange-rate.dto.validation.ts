@@ -37,3 +37,18 @@ export const getExchangeRatesQueryValidationSchema = z.object({
   type: z.enum(EExchangeRateType).optional(),
   asOf: exchangeRateDtoValidation.shape.asOf.optional(),
 });
+
+export const exchangeRateJsonDtoValidation =
+  exchangeRateDtoValidation.safeExtend({
+    asOf: z.iso
+      .datetime({
+        offset: true,
+        error: new exchangeRateError.InvalidDate().errorKey,
+      })
+      .transform((value) => new Date(value)),
+  });
+
+export const getExchangeRatesJsonQueryValidationSchema =
+  getExchangeRatesQueryValidationSchema.safeExtend({
+    asOf: exchangeRateJsonDtoValidation.shape.asOf.optional(),
+  });

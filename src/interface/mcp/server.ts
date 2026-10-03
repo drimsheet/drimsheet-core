@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/server';
 
-import { mcpTools } from './tools';
+import { mcpTools } from '@interface/mcp/tools';
 
 interface IParams {
   version: string;

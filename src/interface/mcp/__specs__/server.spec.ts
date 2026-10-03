@@ -12,8 +12,8 @@ import { getLedgerAccountsUseCase } from '@infra/ioc/usecases/ledger';
 
 import toToolResultHelper from '@interface/mcp/helpers/to-tool-result.helper';
 import createMcpServer from '@interface/mcp/server';
-import getJournalEntriesTool from '@interface/mcp/tools/get-journal-entries.tool';
-import getLedgerAccountsTool from '@interface/mcp/tools/get-ledger-accounts.tool';
+import getJournalEntriesTool from '@interface/mcp/tools/journal-entries/get-journal-entries.tool';
+import getLedgerAccountsTool from '@interface/mcp/tools/ledger/get-ledger-accounts.tool';
 import IMcpTool from '@interface/mcp/types/mcp-tool.types';
 
 jest.mock('@infra/ioc/usecases/ledger', () => ({
@@ -149,7 +149,7 @@ describe('MCP server', () => {
     });
   });
 
-  it('advertises exactly two read tools with existing query constraints', async () => {
+  it('advertises the supplied read tools with existing query constraints', async () => {
     const response = await send('tools/list');
     expect(response.result.tools).toEqual([
       expect.objectContaining({

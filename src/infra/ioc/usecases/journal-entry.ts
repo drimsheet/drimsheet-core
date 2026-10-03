@@ -1,4 +1,5 @@
 import makeArchiveJournalEntryUsecase from '@app/journal-entry/usecases/archive-journal-entry.usecase';
+import makeCreateOpeningBalanceUseCase from '@app/journal-entry/usecases/create-opening-balance.usecase';
 import makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment.usecase';
 import makeCreateReceiptUsecase from '@app/journal-entry/usecases/create-receipt.usecase';
 import makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transfer.usecase';
@@ -28,6 +29,22 @@ import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import appContext from '@infra/runtime/app-context';
+
+export const createOpeningBalanceUseCase = makeTracedUseCase(
+  'journalEntry.createOpeningBalanceUseCase',
+  makeCreateOpeningBalanceUseCase({
+    appContext,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    eventBus: messaging.eventBus,
+    journalEntryService,
+    journalEntryPersistenceService,
+    outboxService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    repoService,
+    fxLotAppService,
+    fxCostBasisPersistenceService,
+  })
+);
 
 export const getJournalEntryUseCase = makeTracedUseCase(
   'journalEntry.getJournalEntryUseCase',
