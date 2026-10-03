@@ -1,6 +1,6 @@
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import express, { Router } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 import passport from 'passport';
 
@@ -8,23 +8,16 @@ import httpMiddlewares from '@infra/ioc/middlewares/http';
 import cors from '@infra/server/cors';
 import swagger from '@infra/server/swagger';
 
+import nonControllerRoutes from '@interface/http/routes';
+import healthRoute from '@interface/http/routes/health.route';
+
 import { RegisterRoutes } from '../../../generated/routes';
 
-interface IApplicationDependencies {
-  bullMqDashboardRouter?: Router;
-  healthRouter?: Router;
-  mcpRouter?: Router;
-}
-
-export default function createApplication(
-  dependencies: IApplicationDependencies = {}
-) {
+export default function createApplication() {
   const app = express();
   app.set('trust proxy', false);
 
-  if (dependencies.healthRouter) {
-    app.use(dependencies.healthRouter);
-  }
+  app.use(healthRoute);
 
   app.use(httpMiddlewares.appContextInit);
   app.use(httpMiddlewares.requestLogger);
@@ -39,10 +32,6 @@ export default function createApplication(
 
   app.use(express.static('public'));
 
-  if (dependencies.bullMqDashboardRouter) {
-    app.use('/bullmq-board-admin', dependencies.bullMqDashboardRouter);
-  }
-
   app.use(compression());
 
   app.use(cookieParser());
@@ -50,9 +39,7 @@ export default function createApplication(
 
   app.use(httpMiddlewares.appContextEnrichment);
 
-  if (dependencies.mcpRouter) {
-    app.use('/mcp', dependencies.mcpRouter);
-  }
+  app.use(...nonControllerRoutes);
 
   RegisterRoutes(app);
 

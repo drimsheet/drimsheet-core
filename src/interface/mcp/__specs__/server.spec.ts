@@ -1,24 +1,44 @@
 import { createMcpHandler } from '@modelcontextprotocol/server';
+import z from 'zod';
 
 import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
-import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
 import { IJournalEntryListDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 
+import { getJournalEntriesUseCase } from '@infra/ioc/usecases/journal-entry';
+import { getLedgerAccountsUseCase } from '@infra/ioc/usecases/ledger';
+
+import toToolResultHelper from '@interface/mcp/helpers/to-tool-result.helper';
 import createMcpServer from '@interface/mcp/server';
+import getJournalEntriesTool from '@interface/mcp/tools/journal-entries/get-journal-entries.tool';
+import getLedgerAccountsTool from '@interface/mcp/tools/ledger/get-ledger-accounts.tool';
+import IMcpTool from '@interface/mcp/types/mcp-tool.types';
 
-type TDependencies = Parameters<typeof createMcpServer>[0];
+jest.mock('@infra/ioc/usecases/ledger', () => ({
+  getLedgerAccountsUseCase: jest.fn(),
+}));
+jest.mock('@infra/ioc/usecases/journal-entry', () => ({
+  getJournalEntriesUseCase: jest.fn(),
+}));
+jest.mock('@infra/observability', () => ({
+  __esModule: true,
+  default: {
+    reporter: jest.requireActual<
+      typeof import('@shared/contracts/__mocks__/reporter.mock')
+    >('@shared/contracts/__mocks__/reporter.mock').default,
+  },
+}));
 
-const getLedgerAccounts = jest.fn<
-  ReturnType<TDependencies['getLedgerAccounts']>,
-  Parameters<TDependencies['getLedgerAccounts']>
->();
-const getJournalEntries = jest.fn<
-  ReturnType<TDependencies['getJournalEntries']>,
-  Parameters<TDependencies['getJournalEntries']>
->();
+jest.mock('@interface/mcp/tools', () => ({ mcpTools: [] }));
+
+const toolCatalogue = jest.requireMock<{ mcpTools: IMcpTool[] }>(
+  '@interface/mcp/tools'
+);
+
+const getLedgerAccounts = jest.mocked(getLedgerAccountsUseCase);
+const getJournalEntries = jest.mocked(getJournalEntriesUseCase);
 const meta = { page: 1, limit: 10, total: 0, totalPages: 0 };
 
 describe('MCP server', () => {
@@ -28,12 +48,10 @@ describe('MCP server', () => {
     jest.resetAllMocks();
     getLedgerAccounts.mockResolvedValue({ data: [], meta });
     getJournalEntries.mockResolvedValue({ data: [], meta });
+    toolCatalogue.mcpTools = [getLedgerAccountsTool, getJournalEntriesTool];
     handler = createMcpHandler(() =>
       createMcpServer({
         version: 'test',
-        getLedgerAccounts,
-        getJournalEntries,
-        reporter: mockReporter,
       })
     );
   });
@@ -61,7 +79,77 @@ describe('MCP server', () => {
     return JSON.parse(eventData ? eventData.slice(6) : body);
   }
 
-  it('advertises exactly two read tools with existing query constraints', async () => {
+  it('uses the supplied version in the server identity', async () => {
+    const response = await send('initialize', {
+      protocolVersion: '2025-06-18',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1' },
+    });
+
+    expect(response.result.serverInfo).toEqual({
+      name: 'drimsheet-core',
+      version: 'test',
+    });
+  });
+
+  it('omits the tools capability when the catalogue is empty', async () => {
+    await handler.close();
+    toolCatalogue.mcpTools = [];
+    handler = createMcpHandler(() => createMcpServer({ version: 'test' }));
+
+    const response = await send('initialize', {
+      protocolVersion: '2025-06-18',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1' },
+    });
+
+    expect(response.result.capabilities.tools).toBeUndefined();
+  });
+
+  it('registers a catalogue tool with parsed input and an output schema', async () => {
+    const inputSchema = z.object({
+      message: z.string().trim().default('hello'),
+    });
+    const outputSchema = z.object({ echoed: z.string() });
+    const echoTool: IMcpTool<typeof inputSchema, typeof outputSchema> = {
+      name: 'echo',
+      description: 'Echo the parsed message.',
+      inputSchema,
+      outputSchema,
+      func: (input) => toToolResultHelper({ echoed: input.message }),
+    };
+    await handler.close();
+    toolCatalogue.mcpTools = [echoTool];
+    handler = createMcpHandler(() => createMcpServer({ version: 'test' }));
+
+    const catalogue = await send('tools/list');
+    expect(catalogue.result.tools).toEqual([
+      expect.objectContaining({
+        name: 'echo',
+        description: echoTool.description,
+        outputSchema: expect.objectContaining({
+          properties: { echoed: { type: 'string' } },
+          required: ['echoed'],
+        }),
+      }),
+    ]);
+
+    const response = await send('tools/call', {
+      name: 'echo',
+      arguments: { message: '  custom  ' },
+    });
+    expect(response.result.structuredContent).toEqual({ echoed: 'custom' });
+
+    const defaultResponse = await send('tools/call', {
+      name: 'echo',
+      arguments: {},
+    });
+    expect(defaultResponse.result.structuredContent).toEqual({
+      echoed: 'hello',
+    });
+  });
+
+  it('advertises the supplied read tools with existing query constraints', async () => {
     const response = await send('tools/list');
     expect(response.result.tools).toEqual([
       expect.objectContaining({

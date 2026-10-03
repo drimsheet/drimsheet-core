@@ -6,6 +6,7 @@ import fileAppError from '@app/file/errors/file.error';
 import fileUploadPolicy from '@app/file/policies/file-upload.policy';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
+import { exchangeRateJsonDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 
 const invalidAttachmentReferenceKey = new fileAppError.InvalidUploadReference()
   .errorKey;
@@ -36,3 +37,35 @@ export const transferEntryReqValidation = z.object({
     .nullable(),
   memo: z.string(new journalEntryError.InvalidMemo().errorKey).nullable(),
 });
+
+const transferEntryLineJsonReqValidation =
+  transferEntryLineReqValidation.extend({
+    exchangeRate: exchangeRateJsonDtoValidation.nullable(),
+  });
+
+export const transferEntryJsonReqValidation = transferEntryReqValidation.extend(
+  {
+    effectiveDate: z.iso
+      .datetime({
+        offset: true,
+        error: new journalEntryError.InvalidEffectiveDate().errorKey,
+      })
+      .transform((value) => new Date(value))
+      .pipe(transferEntryReqValidation.shape.effectiveDate),
+    postedAt: z.iso
+      .datetime({
+        offset: true,
+        error: new journalEntryError.InvalidPostingDate().errorKey,
+      })
+      .transform((value) => new Date(value))
+      .pipe(transferEntryReqValidation.shape.postedAt.unwrap())
+      .nullable(),
+    sourceLine: transferEntryLineJsonReqValidation,
+    destinationLine: transferEntryLineJsonReqValidation,
+    chargeLines: z.array(
+      journalLineReqValidation.extend({
+        exchangeRate: exchangeRateJsonDtoValidation.nullable(),
+      })
+    ),
+  }
+);

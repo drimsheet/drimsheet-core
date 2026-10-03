@@ -4,20 +4,8 @@ import logger from '@infra/observability/logger';
 import setupServer, {
   createApplication as exportedCreateApplication,
 } from '@infra/server';
-import createBullMqServerAdapter from '@infra/server/bull-dashboard';
-import { makeRuntimeHealth } from '@infra/server/health';
 
 const mockListen = jest.fn();
-const mockDashboardRouter = { router: 'dashboard' };
-const mockHealthRouter = { router: 'health' };
-const mockMcpRouter = { router: 'mcp' };
-const mockMarkStartupComplete = jest.fn();
-const mockMarkStartupFailed = jest.fn();
-
-jest.mock('@infra/ioc/mcp', () => ({
-  __esModule: true,
-  default: { router: 'mcp' },
-}));
 
 jest.mock('@infra/integrations/oauth/google-oauth.strategy', () => ({
   __esModule: true,
@@ -26,7 +14,12 @@ jest.mock('@infra/integrations/oauth/google-oauth.strategy', () => ({
 
 jest.mock('../../config/vars.config', () => ({
   __esModule: true,
-  default: { PORT: 3_000 },
+  default: {
+    PORT: 3_000,
+    APP_URL: 'http://localhost:3000',
+    APP_ENV: 'local',
+    APP_VERSION: '1.2.3',
+  },
 }));
 
 jest.mock('../../observability/logger', () => ({
@@ -44,20 +37,17 @@ jest.mock('../../../interface/http/application', () => ({
   default: jest.fn(() => ({ listen: mockListen })),
 }));
 
-jest.mock('../bull-dashboard', () => ({
+jest.mock('@infra/server/health', () => ({
   __esModule: true,
-  default: jest.fn(() => ({
-    getRouter: jest.fn(() => mockDashboardRouter),
-  })),
+  default: {
+    markStartupComplete: jest.fn(),
+    markStartupFailed: jest.fn(),
+  },
 }));
 
-jest.mock('../health', () => ({
-  makeRuntimeHealth: jest.fn(() => ({
-    markStartupComplete: mockMarkStartupComplete,
-    markStartupFailed: mockMarkStartupFailed,
-    router: mockHealthRouter,
-  })),
-}));
+const runtimeHealth = jest.requireMock<typeof import('@infra/server/health')>(
+  '@infra/server/health'
+).default;
 
 function getListenCallback(): () => Promise<void> {
   const callback = mockListen.mock.calls[0][1];
@@ -74,27 +64,21 @@ describe('server setup', () => {
     jest.clearAllMocks();
   });
 
-  it('mounts runtime health and marks readiness after bootstrap', async () => {
+  it('creates the application and marks readiness after bootstrap', async () => {
     const bootstrap = jest.fn().mockResolvedValue(undefined);
 
     setupServer(bootstrap);
 
     expect(setupOAuth).toHaveBeenCalledTimes(1);
     expect(exportedCreateApplication).toBe(getMockCreateApplication());
-    expect(createBullMqServerAdapter).toHaveBeenCalledTimes(1);
-    expect(makeRuntimeHealth).toHaveBeenCalledTimes(1);
-    expect(getMockCreateApplication()).toHaveBeenCalledWith({
-      bullMqDashboardRouter: mockDashboardRouter,
-      healthRouter: mockHealthRouter,
-      mcpRouter: mockMcpRouter,
-    });
+    expect(getMockCreateApplication()).toHaveBeenCalledWith();
     expect(mockListen).toHaveBeenCalledWith(3_000, expect.any(Function));
 
     await getListenCallback()();
 
     expect(bootstrap).toHaveBeenCalledTimes(1);
-    expect(mockMarkStartupComplete).toHaveBeenCalledTimes(1);
-    expect(mockMarkStartupFailed).not.toHaveBeenCalled();
+    expect(runtimeHealth.markStartupComplete).toHaveBeenCalledTimes(1);
+    expect(runtimeHealth.markStartupFailed).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith('runtime.server.started', {
       port: 3_000,
       outcome: 'success',
@@ -107,8 +91,8 @@ describe('server setup', () => {
 
     await expect(getListenCallback()()).rejects.toBe(error);
 
-    expect(mockMarkStartupFailed).toHaveBeenCalledTimes(1);
-    expect(mockMarkStartupComplete).not.toHaveBeenCalled();
+    expect(runtimeHealth.markStartupFailed).toHaveBeenCalledTimes(1);
+    expect(runtimeHealth.markStartupComplete).not.toHaveBeenCalled();
     expect(reporter.report).toHaveBeenCalledWith(
       'runtime.startup.failed',
       error,
@@ -116,11 +100,27 @@ describe('server setup', () => {
     );
   });
 
+  it('waits for bootstrap to finish before marking startup complete', async () => {
+    let finishBootstrap: () => void = () => {};
+    const bootstrap = new Promise<void>((resolve) => {
+      finishBootstrap = resolve;
+    });
+    setupServer(() => bootstrap);
+
+    const startup = getListenCallback()();
+    expect(runtimeHealth.markStartupComplete).not.toHaveBeenCalled();
+
+    finishBootstrap();
+    await startup;
+
+    expect(runtimeHealth.markStartupComplete).toHaveBeenCalledTimes(1);
+  });
+
   it('can become ready when no bootstrap callback is supplied', async () => {
     setupServer();
 
     await getListenCallback()();
 
-    expect(mockMarkStartupComplete).toHaveBeenCalledTimes(1);
+    expect(runtimeHealth.markStartupComplete).toHaveBeenCalledTimes(1);
   });
 });

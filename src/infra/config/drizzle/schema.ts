@@ -23,8 +23,8 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 
-export const core = pgSchema('core');
 export const audit = pgSchema('audit');
+export const core = pgSchema('core');
 export const accountingEntityTypeInCore = core.enum('accounting_entity_type', [
   'individual',
   'sole_trader',
@@ -208,8 +208,8 @@ export const actorHistoryInAudit = audit.table(
     index().using(
       'btree',
       table.actorEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.asc().nullsLast().op('uuid_ops'),
-      table.id.asc().nullsLast().op('uuid_ops')
+      table.occurredAt.asc().nullsLast().op('timestamptz_ops'),
+      table.id.asc().nullsLast().op('int8_ops')
     ),
     index().using('btree', table.actorId.asc().nullsLast().op('uuid_ops')),
     index().using('btree', table.onBehalfOf.asc().nullsLast().op('uuid_ops')),
@@ -326,7 +326,7 @@ export const userSessionsInCore = core.table(
     uniqueIndex('user_sessions_user_id_refresh_token_unique_index').using(
       'btree',
       table.userId.asc().nullsLast().op('uuid_ops'),
-      table.refreshToken.asc().nullsLast().op('uuid_ops')
+      table.refreshToken.asc().nullsLast().op('text_ops')
     ),
     foreignKey({
       columns: [table.createdBy],
@@ -366,7 +366,7 @@ export const userProfileHistoryInAudit = audit.table(
     index('user_profile_history_timeline_idx').using(
       'btree',
       table.userProfileId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
       table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
@@ -580,7 +580,7 @@ export const accountingEntityHistoryInAudit = audit.table(
     index('accounting_entity_history_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
       table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
@@ -693,14 +693,14 @@ export const fiscalYearHistoryInAudit = audit.table(
     index('fiscal_year_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('fiscal_year_history_timeline_idx').using(
       'btree',
-      table.fiscalYearId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.fiscalYearId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -784,14 +784,14 @@ export const accountingPeriodHistoryInAudit = audit.table(
     index('accounting_period_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('accounting_period_history_timeline_idx').using(
       'btree',
-      table.accountingPeriodId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.accountingPeriodId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -888,14 +888,14 @@ export const accountingContextHistoryInAudit = audit.table(
     index('accounting_context_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('accounting_context_history_timeline_idx').using(
       'btree',
-      table.accountingContextId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.accountingContextId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -977,14 +977,14 @@ export const reportingPeriodHistoryInAudit = audit.table(
     index('reporting_period_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('reporting_period_history_timeline_idx').using(
       'btree',
-      table.reportingPeriodId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.reportingPeriodId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -1089,14 +1089,14 @@ export const reportingContextHistoryInAudit = audit.table(
     index('reporting_context_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('reporting_context_history_timeline_idx').using(
       'btree',
-      table.reportingContextId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.reportingContextId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -1151,6 +1151,16 @@ export const ledgerAccountsInCore = core.table(
     deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
   },
   (table) => [
+    uniqueIndex('ledger_accounts_suspense_entity_type_currency_uk')
+      .using(
+        'btree',
+        table.accountingEntityId.asc().nullsLast().op('text_ops'),
+        table.type.asc().nullsLast().op('uuid_ops'),
+        table.currencyCode.asc().nullsLast().op('text_ops')
+      )
+      .where(
+        sql`(((sub_type)::text = 'suspense'::text) AND (type = ANY (ARRAY['asset'::ledger_type, 'liability'::ledger_type])))`
+      ),
     foreignKey({
       columns: [table.accountingEntityId],
       foreignColumns: [accountingEntitiesInCore.id],
@@ -1178,6 +1188,10 @@ export const ledgerAccountsInCore = core.table(
     unique('ledger_accounts_path_accounting_entity_id_uk').on(
       table.materializedPath,
       table.accountingEntityId
+    ),
+    check(
+      'ledger_accounts_suspense_currency_required_ck',
+      sql`(NOT (((sub_type)::text = 'suspense'::text) AND (type = ANY (ARRAY['asset'::ledger_type, 'liability'::ledger_type])))) OR (currency_code IS NOT NULL)`
     ),
     check('ledger_accounts_version_positive_ck', sql`version > 0`),
   ]
@@ -1208,14 +1222,14 @@ export const ledgerAccountHistoryInAudit = audit.table(
     index('ledger_account_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('ledger_account_history_timeline_idx').using(
       'btree',
-      table.ledgerAccountId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.ledgerAccountId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -1306,7 +1320,7 @@ export const counterpartiesInCore = core.table(
     name: varchar({ length: 255 }).notNull(),
     status: counterPartyStatusInCore().notNull(),
     type: counterPartyTypeInCore().notNull(),
-    version: integer().default(1).notNull(),
+    version: integer().notNull(),
     meta: jsonb().default({}).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
@@ -1375,14 +1389,14 @@ export const counterpartyHistoryInAudit = audit.table(
     index('counterparty_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('counterparty_history_timeline_idx').using(
       'btree',
-      table.counterpartyId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.counterpartyId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -1468,14 +1482,14 @@ export const journalEntryHistoryInAudit = audit.table(
     index('journal_entry_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('journal_entry_history_timeline_idx').using(
       'btree',
-      table.journalEntryId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.journalEntryId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -1610,20 +1624,20 @@ export const journalLineHistoryInAudit = audit.table(
       'btree',
       table.journalEntryId.asc().nullsLast().op('int8_ops'),
       table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
-      table.id.desc().nullsFirst().op('timestamptz_ops')
+      table.id.desc().nullsFirst().op('uuid_ops')
     ),
     index().using('btree', table.onBehalfOf.asc().nullsLast().op('uuid_ops')),
     index('journal_line_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     index('journal_line_history_timeline_idx').using(
       'btree',
-      table.journalLineId.asc().nullsLast().op('uuid_ops'),
+      table.journalLineId.asc().nullsLast().op('timestamptz_ops'),
       table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('int8_ops')
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -1741,11 +1755,11 @@ export const subledgerFxCostBasisLotsInCore = core.table(
     index('subledger_fx_cost_basis_lots_fifo_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('timestamptz_ops'),
-      table.ledgerAccountId.asc().nullsLast().op('enum_ops'),
-      table.status.asc().nullsLast().op('uuid_ops'),
-      table.acquisitionDate.asc().nullsLast().op('uuid_ops'),
-      table.createdAt.asc().nullsLast().op('uuid_ops'),
-      table.id.asc().nullsLast().op('enum_ops')
+      table.ledgerAccountId.asc().nullsLast().op('timestamptz_ops'),
+      table.status.asc().nullsLast().op('timestamptz_ops'),
+      table.acquisitionDate.asc().nullsLast().op('timestamptz_ops'),
+      table.createdAt.asc().nullsLast().op('enum_ops'),
+      table.id.asc().nullsLast().op('uuid_ops')
     ),
     foreignKey({
       columns: [table.accountingEntityId],
@@ -1800,14 +1814,14 @@ export const subledgerFxCostBasisLotHistoryInAudit = audit.table(
     index('subledger_fx_cost_basis_lot_history_tenant_timeline_idx').using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('subledger_fx_cost_basis_lot_history_timeline_idx').using(
       'btree',
-      table.lotId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.lotId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.actorId],
@@ -1920,14 +1934,14 @@ export const subledgerFxCostBasisLotAcquisitionHistoryInAudit = audit.table(
     ).using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('subledger_fx_cost_basis_lot_acquisition_history_timeline_idx').using(
       'btree',
-      table.acquisitionId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.acquisitionId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.onBehalfOf],
@@ -2057,14 +2071,14 @@ export const subledgerFxCostBasisLotDispositionHistoryInAudit = audit.table(
     ).using(
       'btree',
       table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('int8_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
     ),
     index('subledger_fx_cost_basis_lot_disposition_history_timeline_idx').using(
       'btree',
-      table.dispositionId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('uuid_ops')
+      table.dispositionId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
       columns: [table.onBehalfOf],
@@ -2171,7 +2185,7 @@ export const outboxInCore = core.table(
     index('outbox_type_created_at_id_idx').using(
       'btree',
       table.type.asc().nullsLast().op('text_ops'),
-      table.createdAt.asc().nullsLast().op('text_ops'),
+      table.createdAt.asc().nullsLast().op('uuid_ops'),
       table.id.asc().nullsLast().op('text_ops')
     ),
   ]

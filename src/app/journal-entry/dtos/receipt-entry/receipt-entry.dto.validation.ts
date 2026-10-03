@@ -11,6 +11,7 @@ import fileAppError from '@app/file/errors/file.error';
 import fileUploadPolicy from '@app/file/policies/file-upload.policy';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
+import { exchangeRateJsonDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 
 const invalidAttachmentReferenceKey = new fileAppError.InvalidUploadReference()
   .errorKey;
@@ -47,4 +48,30 @@ export const receiptEntryReqValidation = z.object({
     .date(new journalEntryError.InvalidPostingDate().errorKey)
     .nullable(),
   memo: z.string(new journalEntryError.InvalidMemo().errorKey).nullable(),
+});
+
+const receiptEntryLineJsonReqValidation = receiptEntryLineReqValidation.extend({
+  exchangeRate: exchangeRateJsonDtoValidation.nullable(),
+});
+
+export const receiptEntryJsonReqValidation = receiptEntryReqValidation.extend({
+  effectiveDate: z.iso
+    .datetime({
+      offset: true,
+      error: new journalEntryError.InvalidEffectiveDate().errorKey,
+    })
+    .transform((value) => new Date(value))
+    .pipe(receiptEntryReqValidation.shape.effectiveDate),
+  postedAt: z.iso
+    .datetime({
+      offset: true,
+      error: new journalEntryError.InvalidPostingDate().errorKey,
+    })
+    .transform((value) => new Date(value))
+    .pipe(receiptEntryReqValidation.shape.postedAt.unwrap())
+    .nullable(),
+  sourceLines: z
+    .array(receiptEntryLineJsonReqValidation)
+    .min(1, new journalEntryError.InvalidLineItems().errorKey),
+  destinationLine: receiptEntryLineJsonReqValidation,
 });

@@ -1,9 +1,10 @@
-import { Router } from 'express';
 import { QueryConfig } from 'pg';
 
 import { postgres } from '@infra/config/postgres.config';
 
 const POSTGRES_PROBE_TIMEOUT_MS = 1_000;
+
+let startupState: 'starting' | 'ready' | 'failed' = 'starting';
 
 async function probePostgres(): Promise<void> {
   const query = {
@@ -15,38 +16,26 @@ async function probePostgres(): Promise<void> {
   await postgres.$client.query(query);
 }
 
-export function makeRuntimeHealth() {
-  let startupState: 'starting' | 'ready' | 'failed' = 'starting';
-  const router = Router();
+/** Require successful startup and a bounded database probe; failures are unready. */
+async function isReady(): Promise<boolean> {
+  if (startupState !== 'ready') return false;
 
-  router.get('/health/live', (_request, response) => {
-    response.set('Cache-Control', 'no-store');
-    response.status(200).json({ status: 'ok' });
-  });
-
-  router.get('/health/ready', async (_request, response) => {
-    response.set('Cache-Control', 'no-store');
-
-    if (startupState !== 'ready') {
-      response.status(503).json({ status: 'unavailable' });
-      return;
-    }
-
-    try {
-      await probePostgres();
-      response.status(200).json({ status: 'ok' });
-    } catch {
-      response.status(503).json({ status: 'unavailable' });
-    }
-  });
-
-  return Object.freeze({
-    markStartupComplete: () => {
-      startupState = 'ready';
-    },
-    markStartupFailed: () => {
-      startupState = 'failed';
-    },
-    router,
-  });
+  try {
+    await probePostgres();
+    return true;
+  } catch {
+    return false;
+  }
 }
+
+const runtimeHealth = Object.freeze({
+  markStartupComplete: () => {
+    startupState = 'ready';
+  },
+  markStartupFailed: () => {
+    startupState = 'failed';
+  },
+  isReady,
+});
+
+export default runtimeHealth;

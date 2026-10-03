@@ -1,66 +1,36 @@
-import express from 'express';
-import request from 'supertest';
+type TRuntimeHealth = typeof import('@infra/server/health').default;
+let runtimeHealth: TRuntimeHealth;
+let postgres: typeof import('@infra/config/postgres.config').postgres;
 
-import { postgres } from '@infra/config/postgres.config';
-import { makeRuntimeHealth } from '@infra/server/health';
-
-jest.mock('../../config/postgres.config', () => ({
-  postgres: {
-    $client: {
-      query: jest.fn(),
-    },
-  },
+jest.mock('@infra/config/postgres.config', () => ({
+  postgres: { $client: { query: jest.fn() } },
 }));
 
-function makeApplication(runtimeHealth: ReturnType<typeof makeRuntimeHealth>) {
-  return express().use(runtimeHealth.router);
-}
-
 describe('runtime health', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
+  beforeEach(async () => {
+    jest.resetModules();
+    ({ postgres } = await import('@infra/config/postgres.config'));
+    ({ default: runtimeHealth } = await import('@infra/server/health'));
   });
 
-  it('keeps liveness dependency-free and minimal', async () => {
-    const runtimeHealth = makeRuntimeHealth();
-
-    const response = await request(makeApplication(runtimeHealth)).get(
-      '/health/live'
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ status: 'ok' });
-    expect(response.headers['cache-control']).toBe('no-store');
+  it('does not probe PostgreSQL before startup completes', async () => {
+    await expect(runtimeHealth.isReady()).resolves.toBe(false);
     expect(postgres.$client.query).not.toHaveBeenCalled();
   });
 
-  it('stays unready before startup and after startup failure', async () => {
-    const runtimeHealth = makeRuntimeHealth();
-    const app = makeApplication(runtimeHealth);
-
-    const startingResponse = await request(app).get('/health/ready');
+  it('becomes unready after startup fails', async () => {
+    runtimeHealth.markStartupComplete();
     runtimeHealth.markStartupFailed();
-    const failedResponse = await request(app).get('/health/ready');
 
-    expect(startingResponse.status).toBe(503);
-    expect(failedResponse.status).toBe(503);
-    expect(startingResponse.body).toEqual({ status: 'unavailable' });
-    expect(failedResponse.body).toEqual({ status: 'unavailable' });
+    await expect(runtimeHealth.isReady()).resolves.toBe(false);
     expect(postgres.$client.query).not.toHaveBeenCalled();
   });
 
-  it('becomes ready only after startup and a bounded PostgreSQL probe', async () => {
+  it('requires completed startup and a bounded PostgreSQL probe', async () => {
     jest.mocked(postgres.$client.query).mockResolvedValueOnce({} as never);
-    const runtimeHealth = makeRuntimeHealth();
     runtimeHealth.markStartupComplete();
 
-    const response = await request(makeApplication(runtimeHealth)).get(
-      '/health/ready'
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ status: 'ok' });
-    expect(response.headers['cache-control']).toBe('no-store');
+    await expect(runtimeHealth.isReady()).resolves.toBe(true);
     expect(postgres.$client.query).toHaveBeenCalledWith({
       text: 'SELECT 1',
       query_timeout: 1_000,
@@ -68,19 +38,15 @@ describe('runtime health', () => {
     expect(Object.isFrozen(runtimeHealth)).toBe(true);
   });
 
-  it('returns minimal unavailability when PostgreSQL cannot be reached', async () => {
+  it('reports unready when PostgreSQL fails and recovers on the next probe', async () => {
     jest
       .mocked(postgres.$client.query)
-      .mockRejectedValueOnce(new Error('private') as never);
-    const runtimeHealth = makeRuntimeHealth();
+      .mockRejectedValueOnce(new Error('private') as never)
+      .mockResolvedValueOnce({} as never);
     runtimeHealth.markStartupComplete();
 
-    const response = await request(makeApplication(runtimeHealth)).get(
-      '/health/ready'
-    );
-
-    expect(response.status).toBe(503);
-    expect(response.body).toEqual({ status: 'unavailable' });
-    expect(JSON.stringify(response.body)).not.toContain('private');
+    await expect(runtimeHealth.isReady()).resolves.toBe(false);
+    await expect(runtimeHealth.isReady()).resolves.toBe(true);
+    expect(postgres.$client.query).toHaveBeenCalledTimes(2);
   });
 });
