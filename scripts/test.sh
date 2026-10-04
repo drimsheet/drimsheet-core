@@ -14,4 +14,4 @@ yarn test:db:reset
 echo "Starting test server..."
 npx cross-env NODE_ENV=test concurrently \
   "nodemon" \
-  "nodemon -x 'tsoa spec-and-routes -c tsoa.json'"
+  "nodemon -x 'npm run build:routes'"

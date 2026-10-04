@@ -10,8 +10,3 @@ export const mcpTools: IMcpTool[] = [
   ...ledgerTools,
   ...moneyTools,
 ];
-
-/**
-    accounting:
-        -
- */
