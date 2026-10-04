@@ -149,15 +149,6 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IUserPreferencesUpdateDto: {
-    dataType: 'refObject',
-    properties: {
-      theme: { ref: 'UAppThemePreference' },
-      appUsageMode: { ref: 'UAppUsageModePreference' },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IUserProfileDto: {
     dataType: 'refObject',
     properties: {
@@ -168,6 +159,15 @@ const models: TsoaRoute.Models = {
       lastName: { dataType: 'string', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUserPreferencesUpdateDto: {
+    dataType: 'refObject',
+    properties: {
+      theme: { ref: 'UAppThemePreference' },
+      appUsageMode: { ref: 'UAppUsageModePreference' },
     },
     additionalProperties: false,
   },
@@ -340,37 +340,6 @@ const models: TsoaRoute.Models = {
       deletedAt: { dataType: 'datetime' },
       balance: { ref: 'IMoneyDto', required: true },
       functionalBalance: { ref: 'IMoneyDto', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IHeaderAccountNameAliasesReq: {
-    dataType: 'refObject',
-    properties: {
-      cash_and_cash_equivalent: { dataType: 'string' },
-      receivables: { dataType: 'string' },
-      short_term_debt: { dataType: 'string' },
-      payable: { dataType: 'string' },
-      retained_earnings: { dataType: 'string' },
-      opening_balance: { dataType: 'string' },
-      services: { dataType: 'string' },
-      employment_income: { dataType: 'string' },
-      gain_on_asset_sale: { dataType: 'string' },
-      unrealized_gains: { dataType: 'string' },
-      grants: { dataType: 'string' },
-      gifts: { dataType: 'string' },
-      direct_costs: { dataType: 'string' },
-      rent_and_utilities: { dataType: 'string' },
-      bank_charge: { dataType: 'string' },
-      finance_cost: { dataType: 'string' },
-      interest: { dataType: 'string' },
-      income_tax_expense: { dataType: 'string' },
-      unrealized_loss: { dataType: 'string' },
-      loss_on_asset_disposal: { dataType: 'string' },
-      trade_receivables: { dataType: 'string' },
-      statutory_receivables: { dataType: 'string' },
-      trade_payables: { dataType: 'string' },
-      statutory_payables: { dataType: 'string' },
     },
     additionalProperties: false,
   },
@@ -549,81 +518,6 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ULedgerAccountCreationStatus: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['active'] },
-        { dataType: 'enum', enums: ['draft'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UExchangeRateType: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['official'] },
-        { dataType: 'enum', enums: ['negotiated'] },
-        { dataType: 'enum', enums: ['market'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IExchangeRateDto: {
-    dataType: 'refObject',
-    properties: {
-      baseCurrencyCode: { dataType: 'string', required: true },
-      targetCurrencyCode: { dataType: 'string', required: true },
-      rate: { dataType: 'double', required: true },
-      type: { ref: 'UExchangeRateType', required: true },
-      asOf: { dataType: 'datetime', required: true },
-      source: { dataType: 'string', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IOpeningBalanceDto: {
-    dataType: 'refObject',
-    properties: {
-      amount: { ref: 'IMoneyDto', required: true },
-      exchangeRate: {
-        dataType: 'union',
-        subSchemas: [
-          { ref: 'IExchangeRateDto' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      date: { dataType: 'datetime', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IPettyCashAccountCreationReq: {
-    dataType: 'refObject',
-    properties: {
-      name: { dataType: 'string', required: true },
-      status: { ref: 'ULedgerAccountCreationStatus' },
-      currencyCode: { dataType: 'string', required: true },
-      isControlAccount: { dataType: 'boolean', required: true },
-      controlAccountId: { dataType: 'string' },
-      openingBalance: {
-        dataType: 'union',
-        subSchemas: [
-          { ref: 'IOpeningBalanceDto' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ULedgerAccountBalanceEffect: {
     dataType: 'refAlias',
     type: {
@@ -695,6 +589,19 @@ const models: TsoaRoute.Models = {
       updatedAt: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UExchangeRateType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['official'] },
+        { dataType: 'enum', enums: ['negotiated'] },
+        { dataType: 'enum', enums: ['market'] },
+      ],
+      validators: {},
+    },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IExchangeRate: {
@@ -789,6 +696,99 @@ const models: TsoaRoute.Models = {
       sortDirection: { ref: 'UPaginationSortDirection' },
       search: { dataType: 'string' },
       page: { dataType: 'double' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IHeaderAccountNameAliasesReq: {
+    dataType: 'refObject',
+    properties: {
+      cash_and_cash_equivalent: { dataType: 'string' },
+      receivables: { dataType: 'string' },
+      short_term_debt: { dataType: 'string' },
+      payable: { dataType: 'string' },
+      retained_earnings: { dataType: 'string' },
+      opening_balance: { dataType: 'string' },
+      services: { dataType: 'string' },
+      employment_income: { dataType: 'string' },
+      gain_on_asset_sale: { dataType: 'string' },
+      unrealized_gains: { dataType: 'string' },
+      grants: { dataType: 'string' },
+      gifts: { dataType: 'string' },
+      direct_costs: { dataType: 'string' },
+      rent_and_utilities: { dataType: 'string' },
+      bank_charge: { dataType: 'string' },
+      finance_cost: { dataType: 'string' },
+      interest: { dataType: 'string' },
+      income_tax_expense: { dataType: 'string' },
+      unrealized_loss: { dataType: 'string' },
+      loss_on_asset_disposal: { dataType: 'string' },
+      trade_receivables: { dataType: 'string' },
+      statutory_receivables: { dataType: 'string' },
+      trade_payables: { dataType: 'string' },
+      statutory_payables: { dataType: 'string' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountCreationStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['active'] },
+        { dataType: 'enum', enums: ['draft'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IExchangeRateDto: {
+    dataType: 'refObject',
+    properties: {
+      baseCurrencyCode: { dataType: 'string', required: true },
+      targetCurrencyCode: { dataType: 'string', required: true },
+      rate: { dataType: 'double', required: true },
+      type: { ref: 'UExchangeRateType', required: true },
+      asOf: { dataType: 'datetime', required: true },
+      source: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IOpeningBalanceDto: {
+    dataType: 'refObject',
+    properties: {
+      amount: { ref: 'IMoneyDto', required: true },
+      exchangeRate: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IExchangeRateDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      date: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IPettyCashAccountCreationReq: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
+      currencyCode: { dataType: 'string', required: true },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountId: { dataType: 'string' },
+      openingBalance: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IOpeningBalanceDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
     },
     additionalProperties: false,
   },
@@ -1315,22 +1315,6 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryArchiveReq: {
-    dataType: 'refObject',
-    properties: {
-      expectedVersion: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryDeletionReq: {
-    dataType: 'refObject',
-    properties: {
-      expectedVersion: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UJournalEntryRectificationMode: {
     dataType: 'refAlias',
     type: {
@@ -1599,6 +1583,22 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJournalEntryArchiveReq: {
+    dataType: 'refObject',
+    properties: {
+      expectedVersion: { dataType: 'double', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJournalEntryDeletionReq: {
+    dataType: 'refObject',
+    properties: {
+      expectedVersion: { dataType: 'double', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   'Readonly_Record_string.string__': {
     dataType: 'refAlias',
     type: {
@@ -1763,10 +1763,45 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICounterpartyArchiveReq: {
+  IPaginatedResponse_ICounterpartyDto_: {
     dataType: 'refObject',
     properties: {
-      expectedVersion: { dataType: 'double', required: true },
+      data: {
+        dataType: 'array',
+        array: { dataType: 'refObject', ref: 'ICounterpartyDto' },
+        required: true,
+      },
+      meta: { ref: 'IPaginationResponseMeta', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UCounterpartySortBy: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['createdAt'] },
+        { dataType: 'enum', enums: ['name'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetCounterpartiesQuery: {
+    dataType: 'refObject',
+    properties: {
+      limit: { dataType: 'double' },
+      orderBy: { ref: 'UCounterpartySortBy' },
+      sortDirection: { ref: 'UPaginationSortDirection' },
+      search: { dataType: 'string' },
+      page: { dataType: 'double' },
+      roles: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'UCounterpartyRole' },
+      },
+      type: { ref: 'UCounterpartyType' },
+      status: { ref: 'UCounterpartyStatus' },
     },
     additionalProperties: false,
   },
@@ -1807,6 +1842,17 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICounterpartyCreateReq: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      status: { ref: 'UCounterpartyStatus', required: true },
+      type: { ref: 'UCounterpartyType', required: true },
+      meta: { ref: 'ICounterpartyCreateMetaReq' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ICounterpartyUpdateReq: {
     dataType: 'refObject',
     properties: {
@@ -1819,56 +1865,10 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICounterpartyCreateReq: {
+  ICounterpartyArchiveReq: {
     dataType: 'refObject',
     properties: {
-      name: { dataType: 'string', required: true },
-      status: { ref: 'UCounterpartyStatus', required: true },
-      type: { ref: 'UCounterpartyType', required: true },
-      meta: { ref: 'ICounterpartyCreateMetaReq' },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IPaginatedResponse_ICounterpartyDto_: {
-    dataType: 'refObject',
-    properties: {
-      data: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'ICounterpartyDto' },
-        required: true,
-      },
-      meta: { ref: 'IPaginationResponseMeta', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UCounterpartySortBy: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['createdAt'] },
-        { dataType: 'enum', enums: ['name'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetCounterpartiesQuery: {
-    dataType: 'refObject',
-    properties: {
-      limit: { dataType: 'double' },
-      orderBy: { ref: 'UCounterpartySortBy' },
-      sortDirection: { ref: 'UPaginationSortDirection' },
-      search: { dataType: 'string' },
-      page: { dataType: 'double' },
-      roles: {
-        dataType: 'array',
-        array: { dataType: 'refAlias', ref: 'UCounterpartyRole' },
-      },
-      type: { ref: 'UCounterpartyType' },
-      status: { ref: 'UCounterpartyStatus' },
+      expectedVersion: { dataType: 'double', required: true },
     },
     additionalProperties: false,
   },
@@ -2037,30 +2037,26 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  TSupportedRevenueAccountBehavior: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['services'] },
-        { dataType: 'enum', enums: ['employment_income'] },
-        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
-        { dataType: 'enum', enums: ['unrealized_gains'] },
-        { dataType: 'enum', enums: ['grants'] },
-        { dataType: 'enum', enums: ['gifts'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICreateRevenueAccountDto: {
+  ICreateStatutoryReceivableAccountDto: {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
       status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
-      behavior: { ref: 'TSupportedRevenueAccountBehavior', required: true },
+      currencyCode: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICreateTradeReceivableAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountCreationStatus' },
+      isControlAccount: { dataType: 'boolean', required: true },
+      controlAccountId: { dataType: 'string' },
+      currencyCode: { dataType: 'string', required: true },
     },
     additionalProperties: false,
   },
@@ -2098,19 +2094,16 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICreateTradeReceivableAccountDto: {
+  IStatutoryPayableAccountMeta: {
     dataType: 'refObject',
     properties: {
-      name: { dataType: 'string', required: true },
-      status: { ref: 'ULedgerAccountCreationStatus' },
-      isControlAccount: { dataType: 'boolean', required: true },
-      controlAccountId: { dataType: 'string' },
-      currencyCode: { dataType: 'string', required: true },
+      taxAuthority: { dataType: 'string', required: true },
+      taxType: { dataType: 'string', required: true },
     },
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICreateStatutoryReceivableAccountDto: {
+  ICreateStatutoryPayableAccountDto: {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
@@ -2118,6 +2111,13 @@ const models: TsoaRoute.Models = {
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
       currencyCode: { dataType: 'string', required: true },
+      meta: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IStatutoryPayableAccountMeta' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
     },
     additionalProperties: false,
   },
@@ -2146,30 +2146,30 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IStatutoryPayableAccountMeta: {
-    dataType: 'refObject',
-    properties: {
-      taxAuthority: { dataType: 'string', required: true },
-      taxType: { dataType: 'string', required: true },
+  TSupportedRevenueAccountBehavior: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['services'] },
+        { dataType: 'enum', enums: ['employment_income'] },
+        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
+        { dataType: 'enum', enums: ['unrealized_gains'] },
+        { dataType: 'enum', enums: ['grants'] },
+        { dataType: 'enum', enums: ['gifts'] },
+      ],
+      validators: {},
     },
-    additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICreateStatutoryPayableAccountDto: {
+  ICreateRevenueAccountDto: {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
       status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
-      currencyCode: { dataType: 'string', required: true },
-      meta: {
-        dataType: 'union',
-        subSchemas: [
-          { ref: 'IStatutoryPayableAccountMeta' },
-          { dataType: 'enum', enums: [null] },
-        ],
-      },
+      behavior: { ref: 'TSupportedRevenueAccountBehavior', required: true },
     },
     additionalProperties: false,
   },
@@ -2366,6 +2366,40 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingStandardDto: {
+    dataType: 'refObject',
+    properties: {
+      individual: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+        required: true,
+      },
+      sole_trader: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+        required: true,
+      },
+      private_company: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJurisdictionDto: {
+    dataType: 'refObject',
+    properties: {
+      code: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      currencyCode: { dataType: 'string', required: true },
+      maxFiscalMonths: { dataType: 'double', required: true },
+      accountingStandards: { ref: 'IAccountingStandardDto', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UAccountingStandardCode: {
     dataType: 'refAlias',
     type: {
@@ -2475,40 +2509,6 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingStandardDto: {
-    dataType: 'refObject',
-    properties: {
-      individual: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-        required: true,
-      },
-      sole_trader: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-        required: true,
-      },
-      private_company: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-        required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJurisdictionDto: {
-    dataType: 'refObject',
-    properties: {
-      code: { dataType: 'string', required: true },
-      name: { dataType: 'string', required: true },
-      currencyCode: { dataType: 'string', required: true },
-      maxFiscalMonths: { dataType: 'double', required: true },
-      accountingStandards: { ref: 'IAccountingStandardDto', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 };
 const templateService = new ExpressTemplateService(models, {
   noImplicitAdditionalProperties: 'throw-on-extras',
@@ -2566,56 +2566,6 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsUserController_updateUserPreferences: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'IUserPreferencesUpdateDto',
-    },
-  };
-  app.patch(
-    '/api/v1/users/preferences',
-    authenticateMiddleware([{ bearerAuth: [] }]),
-    ...fetchMiddlewares<RequestHandler>(UserController),
-    ...fetchMiddlewares<RequestHandler>(
-      UserController.prototype.updateUserPreferences
-    ),
-
-    async function UserController_updateUserPreferences(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsUserController_updateUserPreferences,
-          request,
-          response,
-        });
-
-        const controller = new UserController();
-
-        await templateService.apiHandler({
-          methodName: 'updateUserPreferences',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsUserController_getAuthUserProfile: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -2659,20 +2609,26 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsLedgerController_setupHeaderAccounts: Record<
+  const argsUserController_updateUserPreferences: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
-    body: { in: 'body', name: 'body', ref: 'IHeaderAccountNameAliasesReq' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IUserPreferencesUpdateDto',
+    },
   };
-  app.post(
-    '/api/v1/ledger/header-accounts/setup',
-    ...fetchMiddlewares<RequestHandler>(LedgerController),
+  app.patch(
+    '/api/v1/users/preferences',
+    authenticateMiddleware([{ bearerAuth: [] }]),
+    ...fetchMiddlewares<RequestHandler>(UserController),
     ...fetchMiddlewares<RequestHandler>(
-      LedgerController.prototype.setupHeaderAccounts
+      UserController.prototype.updateUserPreferences
     ),
 
-    async function LedgerController_setupHeaderAccounts(
+    async function UserController_updateUserPreferences(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -2682,20 +2638,20 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsLedgerController_setupHeaderAccounts,
+          args: argsUserController_updateUserPreferences,
           request,
           response,
         });
 
-        const controller = new LedgerController();
+        const controller = new UserController();
 
         await templateService.apiHandler({
-          methodName: 'setupHeaderAccounts',
+          methodName: 'updateUserPreferences',
           controller,
           response,
           next,
           validatedArgs,
-          successStatus: 201,
+          successStatus: 200,
         });
       } catch (err) {
         return next(err);
@@ -2801,55 +2757,6 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsLedgerController_createPettyCashAccount: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'IPettyCashAccountCreationReq',
-    },
-  };
-  app.post(
-    '/api/v1/ledger/asset/petty-cash',
-    ...fetchMiddlewares<RequestHandler>(LedgerController),
-    ...fetchMiddlewares<RequestHandler>(
-      LedgerController.prototype.createPettyCashAccount
-    ),
-
-    async function LedgerController_createPettyCashAccount(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsLedgerController_createPettyCashAccount,
-          request,
-          response,
-        });
-
-        const controller = new LedgerController();
-
-        await templateService.apiHandler({
-          methodName: 'createPettyCashAccount',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 201,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsLedgerController_getLedgerAccount: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -2947,6 +2854,99 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_setupHeaderAccounts: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: { in: 'body', name: 'body', ref: 'IHeaderAccountNameAliasesReq' },
+  };
+  app.post(
+    '/api/v1/ledger/header-accounts/setup',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.setupHeaderAccounts
+    ),
+
+    async function LedgerController_setupHeaderAccounts(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_setupHeaderAccounts,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'setupHeaderAccounts',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_createPettyCashAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IPettyCashAccountCreationReq',
+    },
+  };
+  app.post(
+    '/api/v1/ledger/asset/petty-cash',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.createPettyCashAccount
+    ),
+
+    async function LedgerController_createPettyCashAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_createPettyCashAccount,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'createPettyCashAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
         });
       } catch (err) {
         return next(err);
@@ -3184,6 +3184,56 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_rectifyJournalEntry: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'TJournalEntryRectificationReq',
+    },
+  };
+  app.post(
+    '/api/v1/journal-entries/:id/rectify',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.rectifyJournalEntry
+    ),
+
+    async function JournalEntryController_rectifyJournalEntry(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_rectifyJournalEntry,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'rectifyJournalEntry',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsJournalEntryController_archiveJournalEntry: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -3277,56 +3327,6 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 204,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsJournalEntryController_rectifyJournalEntry: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'TJournalEntryRectificationReq',
-    },
-  };
-  app.post(
-    '/api/v1/journal-entries/:id/rectify',
-    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
-    ...fetchMiddlewares<RequestHandler>(
-      JournalEntryController.prototype.rectifyJournalEntry
-    ),
-
-    async function JournalEntryController_rectifyJournalEntry(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsJournalEntryController_rectifyJournalEntry,
-          request,
-          response,
-        });
-
-        const controller = new JournalEntryController();
-
-        await templateService.apiHandler({
-          methodName: 'rectifyJournalEntry',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
         });
       } catch (err) {
         return next(err);
@@ -3475,155 +3475,6 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsCounterpartyController_archiveCounterparty: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'ICounterpartyArchiveReq',
-    },
-  };
-  app.post(
-    '/api/v1/counterparties/:id/archive',
-    ...fetchMiddlewares<RequestHandler>(CounterpartyController),
-    ...fetchMiddlewares<RequestHandler>(
-      CounterpartyController.prototype.archiveCounterparty
-    ),
-
-    async function CounterpartyController_archiveCounterparty(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsCounterpartyController_archiveCounterparty,
-          request,
-          response,
-        });
-
-        const controller = new CounterpartyController();
-
-        await templateService.apiHandler({
-          methodName: 'archiveCounterparty',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsCounterpartyController_updateCounterparty: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'ICounterpartyUpdateReq',
-    },
-  };
-  app.patch(
-    '/api/v1/counterparties/:id',
-    ...fetchMiddlewares<RequestHandler>(CounterpartyController),
-    ...fetchMiddlewares<RequestHandler>(
-      CounterpartyController.prototype.updateCounterparty
-    ),
-
-    async function CounterpartyController_updateCounterparty(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsCounterpartyController_updateCounterparty,
-          request,
-          response,
-        });
-
-        const controller = new CounterpartyController();
-
-        await templateService.apiHandler({
-          methodName: 'updateCounterparty',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsCounterpartyController_createCounterparty: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'ICounterpartyCreateReq',
-    },
-  };
-  app.post(
-    '/api/v1/counterparties',
-    ...fetchMiddlewares<RequestHandler>(CounterpartyController),
-    ...fetchMiddlewares<RequestHandler>(
-      CounterpartyController.prototype.createCounterparty
-    ),
-
-    async function CounterpartyController_createCounterparty(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsCounterpartyController_createCounterparty,
-          request,
-          response,
-        });
-
-        const controller = new CounterpartyController();
-
-        await templateService.apiHandler({
-          methodName: 'createCounterparty',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 201,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsCounterpartyController_getCounterparties: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -3705,6 +3556,155 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getCounterparty',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsCounterpartyController_createCounterparty: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICounterpartyCreateReq',
+    },
+  };
+  app.post(
+    '/api/v1/counterparties',
+    ...fetchMiddlewares<RequestHandler>(CounterpartyController),
+    ...fetchMiddlewares<RequestHandler>(
+      CounterpartyController.prototype.createCounterparty
+    ),
+
+    async function CounterpartyController_createCounterparty(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsCounterpartyController_createCounterparty,
+          request,
+          response,
+        });
+
+        const controller = new CounterpartyController();
+
+        await templateService.apiHandler({
+          methodName: 'createCounterparty',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsCounterpartyController_updateCounterparty: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICounterpartyUpdateReq',
+    },
+  };
+  app.patch(
+    '/api/v1/counterparties/:id',
+    ...fetchMiddlewares<RequestHandler>(CounterpartyController),
+    ...fetchMiddlewares<RequestHandler>(
+      CounterpartyController.prototype.updateCounterparty
+    ),
+
+    async function CounterpartyController_updateCounterparty(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsCounterpartyController_updateCounterparty,
+          request,
+          response,
+        });
+
+        const controller = new CounterpartyController();
+
+        await templateService.apiHandler({
+          methodName: 'updateCounterparty',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsCounterpartyController_archiveCounterparty: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICounterpartyArchiveReq',
+    },
+  };
+  app.post(
+    '/api/v1/counterparties/:id/archive',
+    ...fetchMiddlewares<RequestHandler>(CounterpartyController),
+    ...fetchMiddlewares<RequestHandler>(
+      CounterpartyController.prototype.archiveCounterparty
+    ),
+
+    async function CounterpartyController_archiveCounterparty(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsCounterpartyController_archiveCounterparty,
+          request,
+          response,
+        });
+
+        const controller = new CounterpartyController();
+
+        await templateService.apiHandler({
+          methodName: 'archiveCounterparty',
           controller,
           response,
           next,
@@ -3897,102 +3897,6 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAuthController_getPasswordResetLink: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    payload: {
-      in: 'body',
-      name: 'payload',
-      required: true,
-      ref: 'IRequestPasswordResetReq',
-    },
-  };
-  app.post(
-    '/api/v1/auth/get-password-reset-link',
-    ...fetchMiddlewares<RequestHandler>(AuthController),
-    ...fetchMiddlewares<RequestHandler>(
-      AuthController.prototype.getPasswordResetLink
-    ),
-
-    async function AuthController_getPasswordResetLink(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAuthController_getPasswordResetLink,
-          request,
-          response,
-        });
-
-        const controller = new AuthController();
-
-        await templateService.apiHandler({
-          methodName: 'getPasswordResetLink',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAuthController_resetPassword: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    payload: {
-      in: 'body',
-      name: 'payload',
-      required: true,
-      ref: 'IResetPasswordReq',
-    },
-  };
-  app.post(
-    '/api/v1/auth/reset-password',
-    ...fetchMiddlewares<RequestHandler>(AuthController),
-    ...fetchMiddlewares<RequestHandler>(AuthController.prototype.resetPassword),
-
-    async function AuthController_resetPassword(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAuthController_resetPassword,
-          request,
-          response,
-        });
-
-        const controller = new AuthController();
-
-        await templateService.apiHandler({
-          methodName: 'resetPassword',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsAuthController_loginWithGoogle: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -4157,6 +4061,102 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAuthController_getPasswordResetLink: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    payload: {
+      in: 'body',
+      name: 'payload',
+      required: true,
+      ref: 'IRequestPasswordResetReq',
+    },
+  };
+  app.post(
+    '/api/v1/auth/get-password-reset-link',
+    ...fetchMiddlewares<RequestHandler>(AuthController),
+    ...fetchMiddlewares<RequestHandler>(
+      AuthController.prototype.getPasswordResetLink
+    ),
+
+    async function AuthController_getPasswordResetLink(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAuthController_getPasswordResetLink,
+          request,
+          response,
+        });
+
+        const controller = new AuthController();
+
+        await templateService.apiHandler({
+          methodName: 'getPasswordResetLink',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAuthController_resetPassword: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    payload: {
+      in: 'body',
+      name: 'payload',
+      required: true,
+      ref: 'IResetPasswordReq',
+    },
+  };
+  app.post(
+    '/api/v1/auth/reset-password',
+    ...fetchMiddlewares<RequestHandler>(AuthController),
+    ...fetchMiddlewares<RequestHandler>(AuthController.prototype.resetPassword),
+
+    async function AuthController_resetPassword(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAuthController_resetPassword,
+          request,
+          response,
+        });
+
+        const controller = new AuthController();
+
+        await templateService.apiHandler({
+          methodName: 'resetPassword',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsAccountsController_getRecommendedBootstrap: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -4248,7 +4248,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountsController_createRevenueAccount: Record<
+  const argsAccountsController_createStatutoryReceivableAccount: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -4256,17 +4256,17 @@ export function RegisterRoutes(app: Router) {
       in: 'body',
       name: 'body',
       required: true,
-      ref: 'ICreateRevenueAccountDto',
+      ref: 'ICreateStatutoryReceivableAccountDto',
     },
   };
   app.post(
-    '/api/v1/accounts/revenues',
+    '/api/v1/accounts/asset/receivables/statutory',
     ...fetchMiddlewares<RequestHandler>(AccountsController),
     ...fetchMiddlewares<RequestHandler>(
-      AccountsController.prototype.createRevenueAccount
+      AccountsController.prototype.createStatutoryReceivableAccount
     ),
 
-    async function AccountsController_createRevenueAccount(
+    async function AccountsController_createStatutoryReceivableAccount(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -4276,7 +4276,7 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountsController_createRevenueAccount,
+          args: argsAccountsController_createStatutoryReceivableAccount,
           request,
           response,
         });
@@ -4284,56 +4284,7 @@ export function RegisterRoutes(app: Router) {
         const controller = new AccountsController();
 
         await templateService.apiHandler({
-          methodName: 'createRevenueAccount',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 201,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountsController_createExpenseAccount: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'ICreateExpenseAccountDto',
-    },
-  };
-  app.post(
-    '/api/v1/accounts/expenses',
-    ...fetchMiddlewares<RequestHandler>(AccountsController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountsController.prototype.createExpenseAccount
-    ),
-
-    async function AccountsController_createExpenseAccount(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountsController_createExpenseAccount,
-          request,
-          response,
-        });
-
-        const controller = new AccountsController();
-
-        await templateService.apiHandler({
-          methodName: 'createExpenseAccount',
+          methodName: 'createStatutoryReceivableAccount',
           controller,
           response,
           next,
@@ -4395,7 +4346,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountsController_createStatutoryReceivableAccount: Record<
+  const argsAccountsController_createExpenseAccount: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -4403,17 +4354,17 @@ export function RegisterRoutes(app: Router) {
       in: 'body',
       name: 'body',
       required: true,
-      ref: 'ICreateStatutoryReceivableAccountDto',
+      ref: 'ICreateExpenseAccountDto',
     },
   };
   app.post(
-    '/api/v1/accounts/asset/receivables/statutory',
+    '/api/v1/accounts/expenses',
     ...fetchMiddlewares<RequestHandler>(AccountsController),
     ...fetchMiddlewares<RequestHandler>(
-      AccountsController.prototype.createStatutoryReceivableAccount
+      AccountsController.prototype.createExpenseAccount
     ),
 
-    async function AccountsController_createStatutoryReceivableAccount(
+    async function AccountsController_createExpenseAccount(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -4423,7 +4374,7 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountsController_createStatutoryReceivableAccount,
+          args: argsAccountsController_createExpenseAccount,
           request,
           response,
         });
@@ -4431,56 +4382,7 @@ export function RegisterRoutes(app: Router) {
         const controller = new AccountsController();
 
         await templateService.apiHandler({
-          methodName: 'createStatutoryReceivableAccount',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 201,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountsController_createTradePayableAccount: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'ICreateTradePayableAccountDto',
-    },
-  };
-  app.post(
-    '/api/v1/accounts/liability/payables/trade',
-    ...fetchMiddlewares<RequestHandler>(AccountsController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountsController.prototype.createTradePayableAccount
-    ),
-
-    async function AccountsController_createTradePayableAccount(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountsController_createTradePayableAccount,
-          request,
-          response,
-        });
-
-        const controller = new AccountsController();
-
-        await templateService.apiHandler({
-          methodName: 'createTradePayableAccount',
+          methodName: 'createExpenseAccount',
           controller,
           response,
           next,
@@ -4542,6 +4444,104 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createTradePayableAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateTradePayableAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/liability/payables/trade',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createTradePayableAccount
+    ),
+
+    async function AccountsController_createTradePayableAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createTradePayableAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createTradePayableAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_createRevenueAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICreateRevenueAccountDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounts/revenues',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.createRevenueAccount
+    ),
+
+    async function AccountsController_createRevenueAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_createRevenueAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'createRevenueAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsAccountsController_createSuspenseAccount: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -4584,6 +4584,132 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_getUserAccountingEntities: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.get(
+    '/api/v1/accounting/accounting-entities',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.getUserAccountingEntities
+    ),
+
+    async function AccountingController_getUserAccountingEntities(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_getUserAccountingEntities,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'getUserAccountingEntities',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_getActiveAccountingEntity: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.get(
+    '/api/v1/accounting/accounting-entity',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.getActiveAccountingEntity
+    ),
+
+    async function AccountingController_getActiveAccountingEntity(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_getActiveAccountingEntity,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'getActiveAccountingEntity',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_getJurisdictions: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.get(
+    '/api/v1/accounting/jurisdictions',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.getJurisdictions
+    ),
+
+    async function AccountingController_getJurisdictions(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_getJurisdictions,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'getJurisdictions',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
         });
       } catch (err) {
         return next(err);
@@ -4677,132 +4803,6 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'switchAccountingEntity',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_getJurisdictions: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {};
-  app.get(
-    '/api/v1/accounting/jurisdictions',
-    ...fetchMiddlewares<RequestHandler>(AccountingController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.getJurisdictions
-    ),
-
-    async function AccountingController_getJurisdictions(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_getJurisdictions,
-          request,
-          response,
-        });
-
-        const controller = new AccountingController();
-
-        await templateService.apiHandler({
-          methodName: 'getJurisdictions',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_getUserAccountingEntities: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {};
-  app.get(
-    '/api/v1/accounting/accounting-entities',
-    ...fetchMiddlewares<RequestHandler>(AccountingController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.getUserAccountingEntities
-    ),
-
-    async function AccountingController_getUserAccountingEntities(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_getUserAccountingEntities,
-          request,
-          response,
-        });
-
-        const controller = new AccountingController();
-
-        await templateService.apiHandler({
-          methodName: 'getUserAccountingEntities',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_getActiveAccountingEntity: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {};
-  app.get(
-    '/api/v1/accounting/accounting-entity',
-    ...fetchMiddlewares<RequestHandler>(AccountingController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.getActiveAccountingEntity
-    ),
-
-    async function AccountingController_getActiveAccountingEntity(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_getActiveAccountingEntity,
-          request,
-          response,
-        });
-
-        const controller = new AccountingController();
-
-        await templateService.apiHandler({
-          methodName: 'getActiveAccountingEntity',
           controller,
           response,
           next,

@@ -41,6 +41,19 @@ export class UserController extends Controller {
   }
 
   /**
+   * Get authenticated user profile
+   */
+  @Get('/profile')
+  @OperationId('getAuthUserProfile')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('401')
+  @Security('bearerAuth')
+  @Middlewares(middlewares.isAuthenticatedUser)
+  public async getAuthUserProfile() {
+    return getAuthUserProfileUseCase();
+  }
+
+  /**
    * Update user preferences
    */
   @Patch('/preferences')
@@ -53,18 +66,5 @@ export class UserController extends Controller {
   @Middlewares(middlewares.isAuthenticatedUser)
   public async updateUserPreferences(@Body() body: IUserPreferencesUpdateDto) {
     return updateUserPreferencesUseCase(body);
-  }
-
-  /**
-   * Get authenticated user profile
-   */
-  @Get('/profile')
-  @OperationId('getAuthUserProfile')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('401')
-  @Security('bearerAuth')
-  @Middlewares(middlewares.isAuthenticatedUser)
-  public async getAuthUserProfile() {
-    return getAuthUserProfileUseCase();
   }
 }

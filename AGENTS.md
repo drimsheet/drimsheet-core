@@ -16,6 +16,8 @@ Read this before changing the repository.
 9. Follow `.agents/rules/testing/general.md` when adding or renaming tests.
 10. Follow `.agents/rules/observability.md` when creating or changing logger or
     reporter events.
+11. Follow `.agents/rules/controller-ordering.md` when adding, changing, or
+    reviewing controller endpoints.
 
 ## Planning
 

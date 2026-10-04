@@ -82,10 +82,10 @@ export class AccountsController extends Controller {
     return await createBankAccountUseCase(body);
   }
 
-  /** Create an Active or Draft revenue subaccount; status defaults to Active. */
-  @Tags('Revenue Accounts')
-  @Post('/revenues')
-  @OperationId('createRevenueAccount')
+  /** Create an Active or Draft statutory receivable subaccount; status defaults to Active. */
+  @Tags('Asset Accounts')
+  @Post('/asset/receivables/statutory')
+  @OperationId('createStatutoryReceivableAccount')
   @SuccessResponse('201')
   @Response<IHttpErrorDto>('400')
   @Response<IHttpErrorDto>('401')
@@ -98,34 +98,11 @@ export class AccountsController extends Controller {
     middlewares.featureFlagAccess.canAccessAlpha1,
     middlewares.accountingEntityAccess
   )
-  public async createRevenueAccount(
-    @Body() body: ICreateRevenueAccountDto
+  public async createStatutoryReceivableAccount(
+    @Body() body: ICreateStatutoryReceivableAccountDto
   ): Promise<ILedgerAccountDto> {
     this.setStatus(201);
-    return createRevenueAccountUseCase(body);
-  }
-
-  /** Create an Active or Draft expense subaccount; status defaults to Active. */
-  @Tags('Expense Accounts')
-  @Post('/expenses')
-  @OperationId('createExpenseAccount')
-  @SuccessResponse('201')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('404')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async createExpenseAccount(
-    @Body() body: ICreateExpenseAccountDto
-  ): Promise<ILedgerAccountDto> {
-    this.setStatus(201);
-    return createExpenseAccountUseCase(body);
+    return createStatutoryReceivableAccountUseCase(body);
   }
 
   /** Create an Active or Draft trade receivable subaccount; status defaults to Active. */
@@ -151,10 +128,10 @@ export class AccountsController extends Controller {
     return createTradeReceivableAccountUseCase(body);
   }
 
-  /** Create an Active or Draft statutory receivable subaccount; status defaults to Active. */
-  @Tags('Asset Accounts')
-  @Post('/asset/receivables/statutory')
-  @OperationId('createStatutoryReceivableAccount')
+  /** Create an Active or Draft expense subaccount; status defaults to Active. */
+  @Tags('Expense Accounts')
+  @Post('/expenses')
+  @OperationId('createExpenseAccount')
   @SuccessResponse('201')
   @Response<IHttpErrorDto>('400')
   @Response<IHttpErrorDto>('401')
@@ -167,11 +144,34 @@ export class AccountsController extends Controller {
     middlewares.featureFlagAccess.canAccessAlpha1,
     middlewares.accountingEntityAccess
   )
-  public async createStatutoryReceivableAccount(
-    @Body() body: ICreateStatutoryReceivableAccountDto
+  public async createExpenseAccount(
+    @Body() body: ICreateExpenseAccountDto
   ): Promise<ILedgerAccountDto> {
     this.setStatus(201);
-    return createStatutoryReceivableAccountUseCase(body);
+    return createExpenseAccountUseCase(body);
+  }
+
+  /** Create an Active or Draft statutory payable subaccount; status defaults to Active. */
+  @Tags('Liability Accounts')
+  @Post('/liability/payables/statutory')
+  @OperationId('createStatutoryPayableAccount')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createStatutoryPayableAccount(
+    @Body() body: ICreateStatutoryPayableAccountDto
+  ): Promise<ILedgerAccountDto> {
+    this.setStatus(201);
+    return createStatutoryPayableAccountUseCase(body);
   }
 
   /** Create an Active or Draft trade payable subaccount; status defaults to Active. */
@@ -197,10 +197,10 @@ export class AccountsController extends Controller {
     return createTradePayableAccountUseCase(body);
   }
 
-  /** Create an Active or Draft statutory payable subaccount; status defaults to Active. */
-  @Tags('Liability Accounts')
-  @Post('/liability/payables/statutory')
-  @OperationId('createStatutoryPayableAccount')
+  /** Create an Active or Draft revenue subaccount; status defaults to Active. */
+  @Tags('Revenue Accounts')
+  @Post('/revenues')
+  @OperationId('createRevenueAccount')
   @SuccessResponse('201')
   @Response<IHttpErrorDto>('400')
   @Response<IHttpErrorDto>('401')
@@ -213,11 +213,11 @@ export class AccountsController extends Controller {
     middlewares.featureFlagAccess.canAccessAlpha1,
     middlewares.accountingEntityAccess
   )
-  public async createStatutoryPayableAccount(
-    @Body() body: ICreateStatutoryPayableAccountDto
+  public async createRevenueAccount(
+    @Body() body: ICreateRevenueAccountDto
   ): Promise<ILedgerAccountDto> {
     this.setStatus(201);
-    return createStatutoryPayableAccountUseCase(body);
+    return createRevenueAccountUseCase(body);
   }
 
   /** Create one asset or liability suspense account for the selected currency. */
