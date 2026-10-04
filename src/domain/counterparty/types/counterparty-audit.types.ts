@@ -9,6 +9,7 @@ export const ECounterpartyEntityActions = {
   Created: 'created',
   Updated: 'updated',
   Activated: 'activated',
+  Archived: 'archived',
   RoleAdded: 'role-added',
 } as const;
 

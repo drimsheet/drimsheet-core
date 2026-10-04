@@ -16,6 +16,7 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
+import { ICounterpartyArchiveReq } from '@app/counterparty/dtos/counterparty-archive/counterparty-archive.dto';
 import {
   ICounterpartyCreateReq,
   ICounterpartyDto,
@@ -25,6 +26,7 @@ import {
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
+  archiveCounterpartyUseCase,
   createCounterpartyUseCase,
   getCounterpartiesUseCase,
   getCounterpartyUseCase,
@@ -34,6 +36,32 @@ import {
 @Route('counterparties')
 @Tags('Counterparty')
 export class CounterpartyController extends Controller {
+  /**
+   * Archive a counterparty while retaining its details and transaction references.
+   * An already archived counterparty returns unchanged without another history or event.
+   */
+  @Post('/{id}/archive')
+  @OperationId('archiveCounterparty')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async archiveCounterparty(
+    @Path() id: string,
+    @Body() body: ICounterpartyArchiveReq
+  ): Promise<ICounterpartyDto> {
+    return await archiveCounterpartyUseCase(id, body);
+  }
+
   /**
    * Update details and optionally activate a Draft. Supplied metadata replaces all roles.
    * A type change after transaction use returns 409 with field=type,

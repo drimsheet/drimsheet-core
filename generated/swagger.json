@@ -2313,6 +2313,18 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ICounterpartyArchiveReq": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number",
+            "format": "double",
+            "description": "Version returned by the last read; stale writes fail with HTTP 409."
+          }
+        },
+        "required": ["expectedVersion"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "ICounterpartyCreateMetaReq": {
         "properties": {
           "employer": {
@@ -4991,6 +5003,116 @@
             }
           }
         ]
+      }
+    },
+    "/counterparties/{id}/archive": {
+      "post": {
+        "operationId": "archiveCounterparty",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Archive a counterparty while retaining its details and transaction references.\nAn already archived counterparty returns unchanged without another history or event.",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICounterpartyArchiveReq"
+              }
+            }
+          }
+        }
       }
     },
     "/counterparties/{id}": {

@@ -2,6 +2,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import historyError from '@shared/values/history/history.error';
 
+import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import {
   ECounterpartyEntityActions,
@@ -58,6 +59,27 @@ describe('counterpartyAuditValue', () => {
           payload as unknown as IMakeCounterpartyAuditPayload
         )
       ).toThrow(counterpartyError.InvalidCounterpartyPayload);
+    });
+
+    it('accepts the archived action for a counterparty transition', () => {
+      const [before] = counterpartyEntity.make({
+        createdBy: generateUUID(),
+        accountingEntityId: generateUUID(),
+        name: 'Archive audit',
+        type: 'individual',
+      });
+      const [after] = counterpartyEntity.archive(before);
+      const audit = counterpartyAuditValue.make({
+        before,
+        after,
+        action: ECounterpartyEntityActions.Archived,
+      });
+      expect(audit.action).toBe('archived');
+      expect(audit.entityVersion).toBe(after.version);
+      expect(audit.diff).toMatchObject({
+        before: { status: 'active' },
+        after: { status: 'archived' },
+      });
     });
 
     it('uses the resulting entity version in the audit', () => {
