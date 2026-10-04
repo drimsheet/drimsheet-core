@@ -35,27 +35,6 @@ import {
 @Route('ledger')
 @Tags('Ledger')
 export class LedgerController extends Controller {
-  /** Set up all 24 header, equity, and standard receivable/payable control accounts atomically, with optional translated names. */
-  @Post('/header-accounts/setup')
-  @OperationId('setupHeaderAccounts')
-  @SuccessResponse('201')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('409')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async setupHeaderAccounts(
-    @Body() body?: IHeaderAccountNameAliasesReq
-  ) {
-    return setupHeaderAccountsUseCase(body);
-  }
-
   /**
    * Get paginated ledger accounts with optional filters
    */
@@ -95,29 +74,6 @@ export class LedgerController extends Controller {
   }
 
   /**
-   * Create an Active or Draft petty-cash subaccount; status defaults to Active.
-   */
-  @Tags('Asset Accounts')
-  @Post('/asset/petty-cash')
-  @OperationId('createPettyCashAccount')
-  @SuccessResponse('201')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async createPettyCashAccount(
-    @Body() body: IPettyCashAccountCreationReq
-  ) {
-    return createPettyCashAccountUseCase(body);
-  }
-
-  /**
    * Get a single ledger account by id
    */
   @Get('/:accountId')
@@ -152,5 +108,49 @@ export class LedgerController extends Controller {
     @Queries() pagination: IPaginationDto
   ) {
     return getAccountTransactionsUseCase(accountId as TEntityId, pagination);
+  }
+
+  /** Set up all 24 header, equity, and standard receivable/payable control accounts atomically, with optional translated names. */
+  @Post('/header-accounts/setup')
+  @OperationId('setupHeaderAccounts')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async setupHeaderAccounts(
+    @Body() body?: IHeaderAccountNameAliasesReq
+  ) {
+    return setupHeaderAccountsUseCase(body);
+  }
+
+  /**
+   * Create an Active or Draft petty-cash subaccount; status defaults to Active.
+   */
+  @Tags('Asset Accounts')
+  @Post('/asset/petty-cash')
+  @OperationId('createPettyCashAccount')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createPettyCashAccount(
+    @Body() body: IPettyCashAccountCreationReq
+  ) {
+    return createPettyCashAccountUseCase(body);
   }
 }

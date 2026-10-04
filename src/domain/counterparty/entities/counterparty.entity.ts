@@ -2,13 +2,19 @@ import deepFreeze from '@shared/utils/deep-freeze';
 import generateDiff from '@shared/utils/diff-generator';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
-import { TAuditedEntity } from '@shared/values/events/types/event.types';
+import {
+  IEvent,
+  TAuditedEntity,
+} from '@shared/values/events/types/event.types';
 
 import getCounterpartyRolesHelper from '@domain/counterparty/entities/helpers/get-counterparty-roles.helper';
 import counterpartyValidation from '@domain/counterparty/entities/validations/counterparty.validation';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import counterpartyEvents from '@domain/counterparty/events/counterparty.events';
-import { ECounterpartyEntityActions } from '@domain/counterparty/types/counterparty-audit.types';
+import {
+  ECounterpartyEntityActions,
+  ICounterpartyAudit,
+} from '@domain/counterparty/types/counterparty-audit.types';
 import {
   ECounterpartyStatus,
   ICounterparty,
@@ -168,10 +174,44 @@ function update(
   return [updatedCounterparty, [event], audit];
 }
 
+/** Archives once; an Archived source is returned unchanged without events or an audit. */
+function archive(
+  counterparty: ICounterparty
+): [ICounterparty, IEvent<ICounterparty>[], ICounterpartyAudit | null] {
+  counterpartyValidation.validateCounterparty(counterparty);
+  if (counterparty.status === ECounterpartyStatus.Archived) {
+    return [counterparty, [], null];
+  }
+
+  const archivedCounterparty: ICounterparty = deepFreeze({
+    id: counterparty.id,
+    createdBy: counterparty.createdBy,
+    accountingEntityId: counterparty.accountingEntityId,
+    name: counterparty.name,
+    type: counterparty.type,
+    status: ECounterpartyStatus.Archived,
+    roles: counterparty.roles,
+    meta: counterparty.meta,
+    version: counterparty.version + 1,
+    createdAt: counterparty.createdAt,
+    updatedAt: new Date(),
+  });
+
+  const event = counterpartyEvents.archived(archivedCounterparty);
+  const audit = counterpartyAuditValue.make({
+    before: counterparty,
+    after: archivedCounterparty,
+    action: ECounterpartyEntityActions.Archived,
+  });
+
+  return [archivedCounterparty, [event], audit];
+}
+
 const counterpartyEntity = deepFreeze({
   make,
   addRole,
   update,
+  archive,
   ...counterpartyValidation,
 });
 

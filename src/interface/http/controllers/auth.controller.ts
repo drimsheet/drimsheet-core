@@ -83,46 +83,6 @@ export class AuthController extends Controller {
   }
 
   /**
-   *
-   * Get password reset link
-   */
-  @Post('/get-password-reset-link')
-  @OperationId('getPasswordResetLink')
-  @Middlewares(
-    middlewares.authRateLimiters.getPasswordResetLink,
-    middlewares.authRateLimiters.getPasswordResetLinkByIp
-  )
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('429')
-  public async getPasswordResetLink(@Body() payload: IRequestPasswordResetReq) {
-    this.setHeader('Cache-Control', 'no-store');
-    return await getPasswordResetLinkUseCase(payload.email);
-  }
-
-  /**
-   *
-   * Reset password
-   */
-  @Post('reset-password')
-  @OperationId('resetPassword')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('429')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.authRateLimiters.resetPassword,
-    middlewares.authRateLimiters.resetPasswordByIp
-  )
-  public async resetPassword(@Body() payload: IResetPasswordReq) {
-    this.setHeader('Cache-Control', 'no-store');
-    return await resetPasswordUseCase(payload);
-  }
-
-  /**
    * Start the Google OAuth flow.
    * Redirects the user to Google for authentication.
    */
@@ -174,5 +134,45 @@ export class AuthController extends Controller {
   public async logout() {
     this.setHeader('Cache-Control', 'no-store');
     return await logoutUseCase();
+  }
+
+  /**
+   *
+   * Get password reset link
+   */
+  @Post('/get-password-reset-link')
+  @OperationId('getPasswordResetLink')
+  @Middlewares(
+    middlewares.authRateLimiters.getPasswordResetLink,
+    middlewares.authRateLimiters.getPasswordResetLinkByIp
+  )
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('429')
+  public async getPasswordResetLink(@Body() payload: IRequestPasswordResetReq) {
+    this.setHeader('Cache-Control', 'no-store');
+    return await getPasswordResetLinkUseCase(payload.email);
+  }
+
+  /**
+   *
+   * Reset password
+   */
+  @Post('reset-password')
+  @OperationId('resetPassword')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('429')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.authRateLimiters.resetPassword,
+    middlewares.authRateLimiters.resetPasswordByIp
+  )
+  public async resetPassword(@Body() payload: IResetPasswordReq) {
+    this.setHeader('Cache-Control', 'no-store');
+    return await resetPasswordUseCase(payload);
   }
 }

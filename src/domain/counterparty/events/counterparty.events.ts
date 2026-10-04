@@ -6,6 +6,7 @@ export const ECounterpartyEvents = {
   Created: 'domain:counterparty:created',
   Updated: 'domain:counterparty:updated',
   Activated: 'domain:counterparty:activated',
+  Archived: 'domain:counterparty:archived',
   RoleAdded: 'domain:counterparty:role-added',
 } as const;
 
@@ -36,6 +37,11 @@ const counterpartyEvents = Object.freeze({
       data: counterparty,
     }),
   roleAdded: makeRoleAddedEvent,
+  archived: (counterparty: ICounterparty) =>
+    eventValue.make<ICounterparty>({
+      type: ECounterpartyEvents.Archived,
+      data: counterparty,
+    }),
 });
 
 export default counterpartyEvents;

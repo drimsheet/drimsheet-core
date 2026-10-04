@@ -192,6 +192,107 @@ describe('Counterparty Entity', () => {
   });
 });
 
+describe('counterparty archive transition', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-04T10:00:00.000Z'));
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it.each(['draft', 'active'] as const)(
+    'archives a %s counterparty without changing its details',
+    (status) => {
+      const [initial] = counterpartyEntity.make({
+        createdBy: generateUUID(),
+        accountingEntityId: generateUUID(),
+        name: 'Supplier',
+        type: 'organization',
+        status,
+      });
+      const [before] = counterpartyEntity.addRole(initial, {
+        role: 'vendor',
+        meta: { address: null },
+      });
+      const timestamp = new Date('2026-10-04T11:00:00.000Z');
+      jest.setSystemTime(timestamp);
+
+      const [after, events, audit] = counterpartyEntity.archive(before);
+
+      expect(after).toEqual({
+        ...before,
+        status: 'archived',
+        version: before.version + 1,
+        updatedAt: timestamp,
+      });
+      expect(after).not.toBe(before);
+      expect(before.status).toBe(status);
+      expect(before.version).toBe(2);
+      expect(before.updatedAt).toEqual(initial.updatedAt);
+      expect(Object.isFrozen(after)).toBe(true);
+      expect(Object.isFrozen(after.roles)).toBe(true);
+      expect(Object.isFrozen(after.meta)).toBe(true);
+      expect(Object.isFrozen(after.meta.vendor)).toBe(true);
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'domain:counterparty:archived',
+        data: after,
+      });
+      expect(audit).toMatchObject({
+        entityId: before.id,
+        entityVersion: after.version,
+        action: 'archived',
+        occurredAt: timestamp,
+        diff: {
+          before: {
+            status,
+            version: before.version,
+            updatedAt: before.updatedAt,
+          },
+          after: {
+            status: 'archived',
+            version: after.version,
+            updatedAt: timestamp,
+          },
+        },
+      });
+      expect(audit!.diff.before).toEqual(before);
+      expect(audit!.diff.after).toEqual(after);
+      jest.setSystemTime(new Date('2026-10-04T12:00:00.000Z'));
+      const [unchanged, repeatedEvents, repeatedAudit] =
+        counterpartyEntity.archive(after);
+      expect(unchanged).toBe(after);
+      expect(unchanged.version).toBe(after.version);
+      expect(unchanged.updatedAt).toEqual(timestamp);
+      expect(repeatedEvents).toEqual([]);
+      expect(repeatedAudit).toBeNull();
+      expect(() =>
+        counterpartyEntity.update(after, { name: 'Changed' })
+      ).toThrow(counterpartyError.Archived);
+    }
+  );
+
+  it('rejects an invalid source before constructing a transition', () => {
+    expect(() => counterpartyEntity.archive(null as never)).toThrow(
+      counterpartyError.InvalidCounterpartyEntity
+    );
+    const [before] = counterpartyEntity.make({
+      createdBy: generateUUID(),
+      accountingEntityId: generateUUID(),
+      name: 'Supplier',
+      type: 'individual',
+    });
+    expect(() => counterpartyEntity.archive({ ...before, version: 0 })).toThrow(
+      counterpartyError.InvalidVersion
+    );
+    expect(() =>
+      counterpartyEntity.archive({ ...before, status: 'unknown' as never })
+    ).toThrow(counterpartyError.InvalidStatus);
+    expect(before.status).toBe('active');
+    expect(before.version).toBe(1);
+  });
+});
+
 describe('Counterparty role metadata transitions', () => {
   const [generic] = counterpartyEntity.make({
     createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,

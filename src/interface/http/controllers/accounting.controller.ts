@@ -31,6 +31,54 @@ import {
 @Tags('Accounting')
 export class AccountingController extends Controller {
   /**
+   * Get user accounting entities
+   */
+  @Get('/accounting-entities')
+  @OperationId('getUserAccountingEntities')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async getUserAccountingEntities() {
+    return await getUserAccountingEntitiesUseCase();
+  }
+
+  /**
+   * Get active accounting entity
+   */
+  @Get('/accounting-entity')
+  @OperationId('getActiveAccountingEntity')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async getActiveAccountingEntity() {
+    return await getActiveAccountingEntityUseCase();
+  }
+
+  /**
+   * Get jurisdictions
+   */
+  @Get('/jurisdictions')
+  @OperationId('getJurisdictions')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('500')
+  public async getJurisdictions() {
+    return await getJurisdictionsUseCase();
+  }
+
+  /**
    * Create a new accounting entity
    */
   @Post('/accounting-entity')
@@ -70,53 +118,5 @@ export class AccountingController extends Controller {
     @Body() body: IAccountingEntitySwitchReq
   ) {
     return await switchAccountingEntityUseCase(body);
-  }
-
-  /**
-   * Get jurisdictions
-   */
-  @Get('/jurisdictions')
-  @OperationId('getJurisdictions')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('500')
-  public async getJurisdictions() {
-    return await getJurisdictionsUseCase();
-  }
-
-  /**
-   * Get user accounting entities
-   */
-  @Get('/accounting-entities')
-  @OperationId('getUserAccountingEntities')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1
-  )
-  public async getUserAccountingEntities() {
-    return await getUserAccountingEntitiesUseCase();
-  }
-
-  /**
-   * Get active accounting entity
-   */
-  @Get('/accounting-entity')
-  @OperationId('getActiveAccountingEntity')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('404')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1
-  )
-  public async getActiveAccountingEntity() {
-    return await getActiveAccountingEntityUseCase();
   }
 }

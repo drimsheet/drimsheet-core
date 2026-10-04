@@ -1,3 +1,4 @@
+import makeArchiveCounterpartyUsecase from '@app/counterparty/usecases/archive-counterparty.usecase';
 import makeCreateCounterpartyUsecase from '@app/counterparty/usecases/create-counterparty.usecase';
 import makeGetCounterpartiesUsecase from '@app/counterparty/usecases/get-counterparties.usecase';
 import makeGetCounterpartyUsecase from '@app/counterparty/usecases/get-counterparty.usecase';
@@ -9,6 +10,15 @@ import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import appContext from '@infra/runtime/app-context';
 import repoService from '@infra/services/repo.service';
+
+export const archiveCounterpartyUseCase = makeTracedUseCase(
+  'counterparty.archiveCounterpartyUseCase',
+  makeArchiveCounterpartyUsecase({
+    appContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    eventBus: messaging.eventBus,
+  })
+);
 
 export const createCounterpartyUseCase = makeTracedUseCase(
   'counterparty.createCounterpartyUseCase',

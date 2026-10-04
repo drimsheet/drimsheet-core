@@ -129,18 +129,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IUserPreferencesUpdateDto": {
-        "properties": {
-          "theme": {
-            "$ref": "#/components/schemas/UAppThemePreference"
-          },
-          "appUsageMode": {
-            "$ref": "#/components/schemas/UAppUsageModePreference"
-          }
-        },
-        "type": "object",
-        "additionalProperties": false
-      },
       "IUserProfileDto": {
         "properties": {
           "id": {
@@ -176,6 +164,18 @@
           "createdAt",
           "updatedAt"
         ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IUserPreferencesUpdateDto": {
+        "properties": {
+          "theme": {
+            "$ref": "#/components/schemas/UAppThemePreference"
+          },
+          "appUsageMode": {
+            "$ref": "#/components/schemas/UAppUsageModePreference"
+          }
+        },
         "type": "object",
         "additionalProperties": false
       },
@@ -370,84 +370,6 @@
           "balance",
           "functionalBalance"
         ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IHeaderAccountNameAliasesReq": {
-        "properties": {
-          "cash_and_cash_equivalent": {
-            "type": "string"
-          },
-          "receivables": {
-            "type": "string"
-          },
-          "short_term_debt": {
-            "type": "string"
-          },
-          "payable": {
-            "type": "string"
-          },
-          "retained_earnings": {
-            "type": "string"
-          },
-          "opening_balance": {
-            "type": "string"
-          },
-          "services": {
-            "type": "string"
-          },
-          "employment_income": {
-            "type": "string"
-          },
-          "gain_on_asset_sale": {
-            "type": "string"
-          },
-          "unrealized_gains": {
-            "type": "string"
-          },
-          "grants": {
-            "type": "string"
-          },
-          "gifts": {
-            "type": "string"
-          },
-          "direct_costs": {
-            "type": "string"
-          },
-          "rent_and_utilities": {
-            "type": "string"
-          },
-          "bank_charge": {
-            "type": "string"
-          },
-          "finance_cost": {
-            "type": "string"
-          },
-          "interest": {
-            "type": "string"
-          },
-          "income_tax_expense": {
-            "type": "string"
-          },
-          "unrealized_loss": {
-            "type": "string"
-          },
-          "loss_on_asset_disposal": {
-            "type": "string"
-          },
-          "trade_receivables": {
-            "type": "string"
-          },
-          "statutory_receivables": {
-            "type": "string"
-          },
-          "trade_payables": {
-            "type": "string"
-          },
-          "statutory_payables": {
-            "type": "string"
-          }
-        },
         "type": "object",
         "additionalProperties": false
       },
@@ -649,107 +571,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "ULedgerAccountCreationStatus": {
-        "type": "string",
-        "enum": ["active", "draft"],
-        "description": "Status accepted when proposing or creating a ledger subaccount."
-      },
-      "UExchangeRateType": {
-        "type": "string",
-        "enum": ["official", "negotiated", "market"]
-      },
-      "IExchangeRateDto": {
-        "properties": {
-          "baseCurrencyCode": {
-            "type": "string"
-          },
-          "targetCurrencyCode": {
-            "type": "string"
-          },
-          "rate": {
-            "type": "number",
-            "format": "double"
-          },
-          "type": {
-            "$ref": "#/components/schemas/UExchangeRateType"
-          },
-          "asOf": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "source": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "baseCurrencyCode",
-          "targetCurrencyCode",
-          "rate",
-          "type",
-          "asOf",
-          "source"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IOpeningBalanceDto": {
-        "properties": {
-          "amount": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          },
-          "exchangeRate": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IExchangeRateDto"
-              }
-            ],
-            "nullable": true
-          },
-          "date": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": ["amount", "exchangeRate", "date"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IPettyCashAccountCreationReq": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "currencyCode": {
-            "type": "string"
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string"
-          },
-          "openingBalance": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IOpeningBalanceDto"
-              }
-            ],
-            "nullable": true
-          }
-        },
-        "required": [
-          "name",
-          "currencyCode",
-          "isControlAccount",
-          "openingBalance"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
       "ULedgerAccountBalanceEffect": {
         "type": "string",
         "enum": ["increase", "decrease", "noop"]
@@ -819,6 +640,10 @@
         ],
         "type": "object",
         "additionalProperties": false
+      },
+      "UExchangeRateType": {
+        "type": "string",
+        "enum": ["official", "negotiated", "market"]
       },
       "IExchangeRate": {
         "properties": {
@@ -986,6 +811,181 @@
             "format": "double"
           }
         },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IHeaderAccountNameAliasesReq": {
+        "properties": {
+          "cash_and_cash_equivalent": {
+            "type": "string"
+          },
+          "receivables": {
+            "type": "string"
+          },
+          "short_term_debt": {
+            "type": "string"
+          },
+          "payable": {
+            "type": "string"
+          },
+          "retained_earnings": {
+            "type": "string"
+          },
+          "opening_balance": {
+            "type": "string"
+          },
+          "services": {
+            "type": "string"
+          },
+          "employment_income": {
+            "type": "string"
+          },
+          "gain_on_asset_sale": {
+            "type": "string"
+          },
+          "unrealized_gains": {
+            "type": "string"
+          },
+          "grants": {
+            "type": "string"
+          },
+          "gifts": {
+            "type": "string"
+          },
+          "direct_costs": {
+            "type": "string"
+          },
+          "rent_and_utilities": {
+            "type": "string"
+          },
+          "bank_charge": {
+            "type": "string"
+          },
+          "finance_cost": {
+            "type": "string"
+          },
+          "interest": {
+            "type": "string"
+          },
+          "income_tax_expense": {
+            "type": "string"
+          },
+          "unrealized_loss": {
+            "type": "string"
+          },
+          "loss_on_asset_disposal": {
+            "type": "string"
+          },
+          "trade_receivables": {
+            "type": "string"
+          },
+          "statutory_receivables": {
+            "type": "string"
+          },
+          "trade_payables": {
+            "type": "string"
+          },
+          "statutory_payables": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ULedgerAccountCreationStatus": {
+        "type": "string",
+        "enum": ["active", "draft"],
+        "description": "Status accepted when proposing or creating a ledger subaccount."
+      },
+      "IExchangeRateDto": {
+        "properties": {
+          "baseCurrencyCode": {
+            "type": "string"
+          },
+          "targetCurrencyCode": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "type": {
+            "$ref": "#/components/schemas/UExchangeRateType"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseCurrencyCode",
+          "targetCurrencyCode",
+          "rate",
+          "type",
+          "asOf",
+          "source"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IOpeningBalanceDto": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "exchangeRate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IExchangeRateDto"
+              }
+            ],
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["amount", "exchangeRate", "date"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPettyCashAccountCreationReq": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string"
+          },
+          "openingBalance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IOpeningBalanceDto"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "currencyCode",
+          "isControlAccount",
+          "openingBalance"
+        ],
         "type": "object",
         "additionalProperties": false
       },
@@ -1708,28 +1708,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IJournalEntryArchiveReq": {
-        "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "required": ["expectedVersion"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IJournalEntryDeletionReq": {
-        "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "required": ["expectedVersion"],
-        "type": "object",
-        "additionalProperties": false
-      },
       "UJournalEntryRectificationMode": {
         "type": "string",
         "enum": ["update_draft", "update_meta", "void_and_replace"]
@@ -2066,6 +2044,28 @@
           }
         ]
       },
+      "IJournalEntryArchiveReq": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": ["expectedVersion"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IJournalEntryDeletionReq": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": ["expectedVersion"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "Readonly_Record_string.string__": {
         "properties": {},
         "additionalProperties": {
@@ -2313,94 +2313,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "ICounterpartyCreateMetaReq": {
-        "properties": {
-          "employer": {
-            "properties": {
-              "address": {
-                "$ref": "#/components/schemas/IAddressDto"
-              },
-              "displayName": {
-                "type": "string",
-                "nullable": true
-              }
-            },
-            "required": ["address"],
-            "type": "object"
-          },
-          "vendor": {
-            "properties": {
-              "address": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/IAddressDto"
-                  }
-                ],
-                "nullable": true
-              }
-            },
-            "type": "object"
-          },
-          "contractor": {
-            "properties": {
-              "address": {
-                "$ref": "#/components/schemas/IAddressDto"
-              }
-            },
-            "required": ["address"],
-            "type": "object"
-          }
-        },
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICounterpartyUpdateReq": {
-        "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double",
-            "description": "Version returned by the last read; stale writes fail with HTTP 409."
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "$ref": "#/components/schemas/UCounterpartyType"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["active"],
-            "nullable": false,
-            "description": "Omit for ordinary edits; Active explicitly requests Draft activation."
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ICounterpartyCreateMetaReq",
-            "description": "Complete role replacement when supplied; {} clears all roles."
-          }
-        },
-        "required": ["expectedVersion"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICounterpartyCreateReq": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/UCounterpartyStatus"
-          },
-          "type": {
-            "$ref": "#/components/schemas/UCounterpartyType"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ICounterpartyCreateMetaReq"
-          }
-        },
-        "required": ["name", "status", "type"],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IPaginatedResponse_ICounterpartyDto_": {
         "properties": {
           "data": {
@@ -2453,6 +2365,106 @@
             "$ref": "#/components/schemas/UCounterpartyStatus"
           }
         },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICounterpartyCreateMetaReq": {
+        "properties": {
+          "employer": {
+            "properties": {
+              "address": {
+                "$ref": "#/components/schemas/IAddressDto"
+              },
+              "displayName": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["address"],
+            "type": "object"
+          },
+          "vendor": {
+            "properties": {
+              "address": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/IAddressDto"
+                  }
+                ],
+                "nullable": true
+              }
+            },
+            "type": "object"
+          },
+          "contractor": {
+            "properties": {
+              "address": {
+                "$ref": "#/components/schemas/IAddressDto"
+              }
+            },
+            "required": ["address"],
+            "type": "object"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICounterpartyCreateReq": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UCounterpartyStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/UCounterpartyType"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ICounterpartyCreateMetaReq"
+          }
+        },
+        "required": ["name", "status", "type"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICounterpartyUpdateReq": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number",
+            "format": "double",
+            "description": "Version returned by the last read; stale writes fail with HTTP 409."
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/UCounterpartyType"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active"],
+            "nullable": false,
+            "description": "Omit for ordinary edits; Active explicitly requests Draft activation."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ICounterpartyCreateMetaReq",
+            "description": "Complete role replacement when supplied; {} clears all roles."
+          }
+        },
+        "required": ["expectedVersion"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICounterpartyArchiveReq": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number",
+            "format": "double",
+            "description": "Version returned by the last read; stale writes fail with HTTP 409."
+          }
+        },
+        "required": ["expectedVersion"],
         "type": "object",
         "additionalProperties": false
       },
@@ -2690,18 +2702,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "TSupportedRevenueAccountBehavior": {
-        "type": "string",
-        "enum": [
-          "services",
-          "employment_income",
-          "gain_on_asset_sale",
-          "unrealized_gains",
-          "grants",
-          "gifts"
-        ]
-      },
-      "ICreateRevenueAccountDto": {
+      "ICreateStatutoryReceivableAccountDto": {
         "properties": {
           "name": {
             "type": "string"
@@ -2717,11 +2718,35 @@
             "type": "string",
             "format": "uuid"
           },
-          "behavior": {
-            "$ref": "#/components/schemas/TSupportedRevenueAccountBehavior"
+          "currencyCode": {
+            "type": "string"
           }
         },
-        "required": ["name", "isControlAccount", "behavior"],
+        "required": ["name", "isControlAccount", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateTradeReceivableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "isControlAccount", "currencyCode"],
         "type": "object",
         "additionalProperties": false
       },
@@ -2762,90 +2787,6 @@
           }
         },
         "required": ["name", "isControlAccount", "behavior"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICreateTradeReceivableAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "currencyCode": {
-            "type": "string"
-          }
-        },
-        "required": ["name", "isControlAccount", "currencyCode"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICreateStatutoryReceivableAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "currencyCode": {
-            "type": "string"
-          }
-        },
-        "required": ["name", "isControlAccount", "currencyCode"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICreateTradePayableAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "meta": {
-            "properties": {
-              "invoiceId": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "counterpartyId": {
-                "type": "string",
-                "format": "uuid"
-              }
-            },
-            "required": ["invoiceId", "counterpartyId"],
-            "type": "object",
-            "nullable": true
-          }
-        },
-        "required": ["name", "isControlAccount"],
         "type": "object",
         "additionalProperties": false
       },
@@ -2891,6 +2832,77 @@
           }
         },
         "required": ["name", "isControlAccount", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateTradePayableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "meta": {
+            "properties": {
+              "invoiceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "counterpartyId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": ["invoiceId", "counterpartyId"],
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": ["name", "isControlAccount"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "TSupportedRevenueAccountBehavior": {
+        "type": "string",
+        "enum": [
+          "services",
+          "employment_income",
+          "gain_on_asset_sale",
+          "unrealized_gains",
+          "grants",
+          "gifts"
+        ]
+      },
+      "ICreateRevenueAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "behavior": {
+            "$ref": "#/components/schemas/TSupportedRevenueAccountBehavior"
+          }
+        },
+        "required": ["name", "isControlAccount", "behavior"],
         "type": "object",
         "additionalProperties": false
       },
@@ -3099,6 +3111,60 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IAccountingStandardDto": {
+        "properties": {
+          "individual": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sole_trader": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "private_company": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["individual", "sole_trader", "private_company"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IJurisdictionDto": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "maxFiscalMonths": {
+            "type": "number",
+            "format": "double"
+          },
+          "accountingStandards": {
+            "$ref": "#/components/schemas/IAccountingStandardDto"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "currencyCode",
+          "maxFiscalMonths",
+          "accountingStandards"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "UAccountingStandardCode": {
         "type": "string",
         "enum": [
@@ -3231,60 +3297,6 @@
           }
         },
         "required": ["accountingEntityId"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IAccountingStandardDto": {
-        "properties": {
-          "individual": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "sole_trader": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "private_company": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": ["individual", "sole_trader", "private_company"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IJurisdictionDto": {
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "currencyCode": {
-            "type": "string"
-          },
-          "maxFiscalMonths": {
-            "type": "number",
-            "format": "double"
-          },
-          "accountingStandards": {
-            "$ref": "#/components/schemas/IAccountingStandardDto"
-          }
-        },
-        "required": [
-          "code",
-          "name",
-          "currencyCode",
-          "maxFiscalMonths",
-          "accountingStandards"
-        ],
         "type": "object",
         "additionalProperties": false
       }
@@ -3449,100 +3461,6 @@
           }
         ],
         "parameters": []
-      }
-    },
-    "/ledger/header-accounts/setup": {
-      "post": {
-        "operationId": "setupHeaderAccounts",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ILedgerAccountDto"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Set up all 24 header, equity, and standard receivable/payable control accounts atomically, with optional translated names.",
-        "tags": ["Ledger"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IHeaderAccountNameAliasesReq"
-              }
-            }
-          }
-        }
       }
     },
     "/ledger": {
@@ -3792,87 +3710,6 @@
         ]
       }
     },
-    "/ledger/asset/petty-cash": {
-      "post": {
-        "operationId": "createPettyCashAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft petty-cash subaccount; status defaults to Active.",
-        "tags": ["Asset Accounts", "Ledger"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IPettyCashAccountCreationReq"
-              }
-            }
-          }
-        }
-      }
-    },
     "/ledger/{accountId}": {
       "get": {
         "operationId": "getLedgerAccount",
@@ -4023,6 +3860,181 @@
             }
           }
         ]
+      }
+    },
+    "/ledger/header-accounts/setup": {
+      "post": {
+        "operationId": "setupHeaderAccounts",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ILedgerAccountDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Set up all 24 header, equity, and standard receivable/payable control accounts atomically, with optional translated names.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IHeaderAccountNameAliasesReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/asset/petty-cash": {
+      "post": {
+        "operationId": "createPettyCashAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft petty-cash subaccount; status defaults to Active.",
+        "tags": ["Asset Accounts", "Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IPettyCashAccountCreationReq"
+              }
+            }
+          }
+        }
       }
     },
     "/journal-entries": {
@@ -4596,116 +4608,6 @@
         }
       }
     },
-    "/journal-entries/{id}/archive": {
-      "post": {
-        "operationId": "archiveJournalEntry",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IJournalEntryDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Archive a journal entry without changing its financial effect.",
-        "tags": ["Journal Entry"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IJournalEntryArchiveReq"
-              }
-            }
-          }
-        }
-      }
-    },
     "/journal-entries/{id}/rectify": {
       "post": {
         "operationId": "rectifyJournalEntry",
@@ -4810,6 +4712,116 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TJournalEntryRectificationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/journal-entries/{id}/archive": {
+      "post": {
+        "operationId": "archiveJournalEntry",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Archive a journal entry without changing its financial effect.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IJournalEntryArchiveReq"
               }
             }
           }
@@ -4993,284 +5005,7 @@
         ]
       }
     },
-    "/counterparties/{id}": {
-      "patch": {
-        "operationId": "updateCounterparty",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ICounterpartyDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Update details and optionally activate a Draft. Supplied metadata replaces all roles.\nA type change after transaction use returns 409 with field=type,\nreason=transaction_usage and nextAction=create_counterparty.\nThis counterparty's type cannot be changed because it has been used in a\ntransaction. Create a new counterparty if a different type is required.",
-        "tags": ["Counterparty"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICounterpartyUpdateReq"
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "operationId": "getCounterparty",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ICounterpartyDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Get a counterparty by id",
-        "tags": ["Counterparty"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
     "/counterparties": {
-      "post": {
-        "operationId": "createCounterparty",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ICounterpartyDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create a new counterparty",
-        "tags": ["Counterparty"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICounterpartyCreateReq"
-              }
-            }
-          }
-        }
-      },
       "get": {
         "operationId": "getCounterparties",
         "responses": {
@@ -5417,6 +5152,393 @@
             }
           }
         ]
+      },
+      "post": {
+        "operationId": "createCounterparty",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a new counterparty",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICounterpartyCreateReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/counterparties/{id}": {
+      "get": {
+        "operationId": "getCounterparty",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get a counterparty by id",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "updateCounterparty",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update details and optionally activate a Draft. Supplied metadata replaces all roles.\nA type change after transaction use returns 409 with field=type,\nreason=transaction_usage and nextAction=create_counterparty.\nThis counterparty's type cannot be changed because it has been used in a\ntransaction. Create a new counterparty if a different type is required.",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICounterpartyUpdateReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/counterparties/{id}/archive": {
+      "post": {
+        "operationId": "archiveCounterparty",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Archive a counterparty while retaining its details and transaction references.\nAn already archived counterparty returns unchanged without another history or event.",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICounterpartyArchiveReq"
+              }
+            }
+          }
+        }
       }
     },
     "/banks": {
@@ -5678,141 +5800,6 @@
         }
       }
     },
-    "/auth/get-password-reset-link": {
-      "post": {
-        "operationId": "getPasswordResetLink",
-        "responses": {
-          "200": {
-            "description": ""
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "\nGet password reset link",
-        "tags": ["Auth"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IRequestPasswordResetReq"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/reset-password": {
-      "post": {
-        "operationId": "resetPassword",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IAccessToken"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "\nReset password",
-        "tags": ["Auth"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IResetPasswordReq"
-              }
-            }
-          }
-        }
-      }
-    },
     "/auth/google": {
       "get": {
         "operationId": "loginWithGoogle",
@@ -5950,6 +5937,141 @@
         "tags": ["Auth"],
         "security": [],
         "parameters": []
+      }
+    },
+    "/auth/get-password-reset-link": {
+      "post": {
+        "operationId": "getPasswordResetLink",
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "\nGet password reset link",
+        "tags": ["Auth"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IRequestPasswordResetReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "resetPassword",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccessToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "\nReset password",
+        "tags": ["Auth"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IResetPasswordReq"
+              }
+            }
+          }
+        }
       }
     },
     "/accounts/recommended-bootstrap": {
@@ -6094,9 +6216,9 @@
         }
       }
     },
-    "/accounts/revenues": {
+    "/accounts/asset/receivables/statutory": {
       "post": {
-        "operationId": "createRevenueAccount",
+        "operationId": "createStatutoryReceivableAccount",
         "responses": {
           "201": {
             "description": "",
@@ -6169,8 +6291,8 @@
             }
           }
         },
-        "description": "Create an Active or Draft revenue subaccount; status defaults to Active.",
-        "tags": ["Revenue Accounts", "Accounts"],
+        "description": "Create an Active or Draft statutory receivable subaccount; status defaults to Active.",
+        "tags": ["Asset Accounts", "Accounts"],
         "security": [],
         "parameters": [],
         "requestBody": {
@@ -6178,98 +6300,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ICreateRevenueAccountDto"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/expenses": {
-      "post": {
-        "operationId": "createExpenseAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft expense subaccount; status defaults to Active.",
-        "tags": ["Expense Accounts", "Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICreateExpenseAccountDto"
+                "$ref": "#/components/schemas/ICreateStatutoryReceivableAccountDto"
               }
             }
           }
@@ -6367,9 +6398,9 @@
         }
       }
     },
-    "/accounts/asset/receivables/statutory": {
+    "/accounts/expenses": {
       "post": {
-        "operationId": "createStatutoryReceivableAccount",
+        "operationId": "createExpenseAccount",
         "responses": {
           "201": {
             "description": "",
@@ -6442,8 +6473,8 @@
             }
           }
         },
-        "description": "Create an Active or Draft statutory receivable subaccount; status defaults to Active.",
-        "tags": ["Asset Accounts", "Accounts"],
+        "description": "Create an Active or Draft expense subaccount; status defaults to Active.",
+        "tags": ["Expense Accounts", "Accounts"],
         "security": [],
         "parameters": [],
         "requestBody": {
@@ -6451,7 +6482,98 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ICreateStatutoryReceivableAccountDto"
+                "$ref": "#/components/schemas/ICreateExpenseAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/liability/payables/statutory": {
+      "post": {
+        "operationId": "createStatutoryPayableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft statutory payable subaccount; status defaults to Active.",
+        "tags": ["Liability Accounts", "Accounts"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateStatutoryPayableAccountDto"
               }
             }
           }
@@ -6549,9 +6671,9 @@
         }
       }
     },
-    "/accounts/liability/payables/statutory": {
+    "/accounts/revenues": {
       "post": {
-        "operationId": "createStatutoryPayableAccount",
+        "operationId": "createRevenueAccount",
         "responses": {
           "201": {
             "description": "",
@@ -6624,8 +6746,8 @@
             }
           }
         },
-        "description": "Create an Active or Draft statutory payable subaccount; status defaults to Active.",
-        "tags": ["Liability Accounts", "Accounts"],
+        "description": "Create an Active or Draft revenue subaccount; status defaults to Active.",
+        "tags": ["Revenue Accounts", "Accounts"],
         "security": [],
         "parameters": [],
         "requestBody": {
@@ -6633,7 +6755,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ICreateStatutoryPayableAccountDto"
+                "$ref": "#/components/schemas/ICreateRevenueAccountDto"
               }
             }
           }
@@ -6741,7 +6863,140 @@
         }
       }
     },
+    "/accounting/accounting-entities": {
+      "get": {
+        "operationId": "getUserAccountingEntities",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IAccountingEntity"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get user accounting entities",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": []
+      }
+    },
     "/accounting/accounting-entity": {
+      "get": {
+        "operationId": "getActiveAccountingEntity",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountingEntity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get active accounting entity",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": []
+      },
       "post": {
         "operationId": "createAccountingEntity",
         "responses": {
@@ -6820,56 +7075,21 @@
             }
           }
         }
-      },
+      }
+    },
+    "/accounting/jurisdictions": {
       "get": {
-        "operationId": "getActiveAccountingEntity",
+        "operationId": "getJurisdictions",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IAccountingEntity"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
+                  "items": {
+                    "$ref": "#/components/schemas/IJurisdictionDto"
+                  },
+                  "type": "array"
                 }
               }
             }
@@ -6885,7 +7105,7 @@
             }
           }
         },
-        "description": "Get active accounting entity",
+        "description": "Get jurisdictions",
         "tags": ["Accounting"],
         "security": [],
         "parameters": []
@@ -6970,104 +7190,6 @@
             }
           }
         }
-      }
-    },
-    "/accounting/jurisdictions": {
-      "get": {
-        "operationId": "getJurisdictions",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IJurisdictionDto"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Get jurisdictions",
-        "tags": ["Accounting"],
-        "security": [],
-        "parameters": []
-      }
-    },
-    "/accounting/accounting-entities": {
-      "get": {
-        "operationId": "getUserAccountingEntities",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IAccountingEntity"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Get user accounting entities",
-        "tags": ["Accounting"],
-        "security": [],
-        "parameters": []
       }
     }
   },

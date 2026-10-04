@@ -13,4 +13,4 @@ fi
 # separately via drimsheet-platforms: bash bin/start.sh
 npx concurrently \
   "nodemon" \
-  "nodemon -x 'tsoa spec-and-routes -c tsoa.json'"
+  "nodemon -x 'npm run build:routes'"
