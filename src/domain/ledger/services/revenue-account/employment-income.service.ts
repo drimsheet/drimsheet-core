@@ -6,6 +6,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import employmentIncomeControlAccountValidation from '@domain/ledger/services/validations/employment-income-control-account.validation';
 import { IEmploymentIncomeAccountService } from '@domain/ledger/types/employment-income.service.types';
 import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
@@ -88,6 +89,8 @@ function makeCreateSubAccount(
       },
       repoOptions
     );
+
+    controlAccountAvailabilityValidation.validate(controlAccount);
 
     employmentIncomeControlAccountValidation.validate(
       controlAccount,

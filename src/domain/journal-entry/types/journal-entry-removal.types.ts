@@ -1,3 +1,4 @@
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import { IJournalEntryReversalResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
@@ -24,6 +25,7 @@ export type TJournalEntryRemovalPreparation =
 export interface IJournalEntryRemovalService {
   prepare(
     entry: IJournalEntry,
-    actorId: TEntityId
-  ): TJournalEntryRemovalPreparation;
+    actorId: TEntityId,
+    repoOptions: IReadRepoOptions
+  ): Promise<TJournalEntryRemovalPreparation>;
 }

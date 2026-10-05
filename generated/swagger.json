@@ -282,6 +282,10 @@
       },
       "ILedgerAccountDto": {
         "properties": {
+          "version": {
+            "type": "number",
+            "format": "double"
+          },
           "id": {
             "$ref": "#/components/schemas/TEntityId"
           },
@@ -350,6 +354,7 @@
           }
         },
         "required": [
+          "version",
           "id",
           "code",
           "materializedPath",
@@ -509,6 +514,9 @@
           "page": {
             "type": "number",
             "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountStatus"
           },
           "type": {
             "$ref": "#/components/schemas/ULedgerType"
@@ -3568,6 +3576,14 @@
           },
           {
             "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ULedgerAccountStatus"
+            }
+          },
+          {
+            "in": "query",
             "name": "type",
             "required": false,
             "schema": {
@@ -4049,6 +4065,89 @@
         }
       }
     },
+    "/ledger/{accountId}/archive": {
+      "post": {
+        "operationId": "archiveLedgerAccount",
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Archives a non-header account and all control-account descendants, retaining history. Already archived accounts are no-ops. Header accounts return 400. Archived accounts cannot appear in new journals, including reversals.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/journal-entries": {
       "get": {
         "operationId": "getJournalEntries",
@@ -4352,7 +4451,7 @@
             }
           }
         },
-        "description": "Delete a never-posted journal entry or reverse a previously-posted entry.",
+        "description": "Delete a never-posted journal entry or reverse a previously-posted entry.\nReversing deletion is rejected when an original ledger account is archived.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -4705,7 +4804,7 @@
             }
           }
         },
-        "description": "Correct a journal entry while preserving its accounting audit trail.",
+        "description": "Correct a journal entry while preserving its accounting audit trail.\nArchived ledger accounts cannot be used in corrected or reversing entries.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [

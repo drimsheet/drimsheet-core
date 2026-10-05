@@ -6,6 +6,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import receivablesControlAccountValidation from '@domain/ledger/services/validations/receivables-control-account.validation';
 import {
   EAssetAccountBehavior,
@@ -96,6 +97,8 @@ function makeCreateStatutoryReceivableSubAccount(
       repoOptions
     );
 
+    controlAccountAvailabilityValidation.validate(controlAccount);
+
     receivablesControlAccountValidation.validateStatutoryReceivableSubAccount(
       controlAccount,
       payload.accountingEntity.id
@@ -160,6 +163,8 @@ function makeCreateTradeReceivableSubAccount(
       },
       repoOptions
     );
+
+    controlAccountAvailabilityValidation.validate(controlAccount);
 
     receivablesControlAccountValidation.validateTradeReceivableSubAccount(
       controlAccount,

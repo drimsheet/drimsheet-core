@@ -36,6 +36,7 @@ import {
 } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
+import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import {
@@ -66,7 +67,9 @@ describe('makeRectifyJournalEntryUsecase', () => {
   } as ILedgerAccount;
   const effectiveDate = new Date('2026-09-01T00:00:00.000Z');
   const now = new Date('2026-09-21T10:00:00.000Z');
-  const rectificationService = makeJournalEntryRectificationService();
+  const rectificationService = makeJournalEntryRectificationService({
+    ledgerAccountRepo: mockLedgerAccountRepo,
+  });
 
   function makeEntry(
     amountValue: number,
@@ -167,6 +170,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
   }
 
   beforeEach(() => {
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValue([]);
     jest.useFakeTimers();
     jest.setSystemTime(now);
     jest.clearAllMocks();
@@ -194,6 +198,20 @@ describe('makeRectifyJournalEntryUsecase', () => {
 
   afterEach(() => jest.useRealTimers());
 
+  it('blocks a correction when a persisted original account is archived', async () => {
+    const [originalEntry] = makeEntry(100);
+    mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
+    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
+    mockJournalEntryRectificationPreparationService.prepare.mockRejectedValueOnce(
+      failure
+    );
+    await expect(
+      getUsecase()(originalEntry.id, makePayload(originalEntry))
+    ).rejects.toBe(failure);
+    expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
+    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
   it('persists and propagates a reversing and corrected journal entry', async () => {
     const [originalEntry] = makeEntry(100);
     const newEntryResult = makeEntry(150);
@@ -204,11 +222,14 @@ describe('makeRectifyJournalEntryUsecase', () => {
         id: originalEntry.lines[index].id,
       })),
     };
-    const result = rectificationService.rectify({
-      actorId: actor.id,
-      originalEntry,
-      newEntry,
-    });
+    const result = await rectificationService.rectify(
+      {
+        actorId: actor.id,
+        originalEntry,
+        newEntry,
+      },
+      { correlationId }
+    );
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
     const counterparty = counterpartyEntity.make({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -311,11 +332,14 @@ describe('makeRectifyJournalEntryUsecase', () => {
         id: originalEntry.lines[index].id,
       })),
     };
-    const result = rectificationService.rectify({
-      actorId: actor.id,
-      originalEntry,
-      newEntry,
-    });
+    const result = await rectificationService.rectify(
+      {
+        actorId: actor.id,
+        originalEntry,
+        newEntry,
+      },
+      { correlationId }
+    );
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
     const existingCounterparty = counterpartyEntity.make({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -369,11 +393,14 @@ describe('makeRectifyJournalEntryUsecase', () => {
         id: originalEntry.lines[index].id,
       })),
     };
-    const result = rectificationService.rectify({
-      actorId: actor.id,
-      originalEntry,
-      newEntry: candidate,
-    });
+    const result = await rectificationService.rectify(
+      {
+        actorId: actor.id,
+        originalEntry,
+        newEntry: candidate,
+      },
+      { correlationId }
+    );
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
     mockJournalEntryRectificationPreparationService.prepare.mockResolvedValue({
       rectification: result,

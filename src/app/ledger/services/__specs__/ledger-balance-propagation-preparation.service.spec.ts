@@ -9,7 +9,10 @@ import {
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import { ILedgerAccountBalanceDelta } from '@domain/ledger/types/ledger-account-balance-adjustment.service.types';
-import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import {
+  ELedgerAccountStatus,
+  ILedgerAccount,
+} from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
@@ -124,6 +127,34 @@ describe('makeLedgerBalancePropagationPreparationService', () => {
     ]);
   });
 
+  it('prepares pending historical propagation for archived direct accounts and ancestors', async () => {
+    const archivedChild = {
+      ...childAccount,
+      status: ELedgerAccountStatus.Archived,
+    };
+    const archivedParent = {
+      ...parentAccount,
+      status: ELedgerAccountStatus.Archived,
+    };
+    mockLedgerAccountRepo.findAll.mockResolvedValue(page([archivedChild]));
+    mockLedgerAccountRepo.findAllByMaterializedPath.mockResolvedValue([
+      archivedParent,
+      archivedChild,
+    ]);
+    const adjustments = await service.prepare(journalEntryId, repoOptions);
+    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+      accountingEntityId,
+      { ...repoOptions, ids: [childAccountId], limit: 1 }
+    );
+    expect(
+      mockLedgerAccountBalanceAdjustmentService.calculate
+    ).toHaveBeenCalledWith(journalEntry, [archivedParent, archivedChild]);
+    expect(
+      adjustments.map(
+        (change) => change.balanceAdjustment.newBalance.ledgerAccountId
+      )
+    ).toEqual([parentAccountId, childAccountId]);
+  });
   it('prepares ordered versioned adjustments from the journal and account hierarchy', async () => {
     const preparedAdjustments = await service.prepare(
       journalEntryId,

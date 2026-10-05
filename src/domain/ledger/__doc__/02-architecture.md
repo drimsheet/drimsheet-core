@@ -18,6 +18,39 @@ for derived balances or for bubbling adjustments through the account hierarchy.
 An adjustment or propagation failure can leave displayed balances stale, but it
 does not change the authoritative journal entry.
 
+## Account Archiving
+
+`POST /ledger/{accountId}/archive` accepts only the account ID, requires no request
+body, and returns HTTP 204 with no content. It retains the account and all historical
+journal references. Header accounts (`controlAccountId === null`) cannot be
+archived. Repeating archive is a no-op; stale repository writes conflict.
+Control-account archive includes every descendant in one transaction with one
+actor-attributed archive audit and event per changed account.
+
+The archive domain service accepts the supplied account, queries descendants by
+its complete materialized path, and returns audited tuples. It does not re-fetch
+the target, resolve the allocation root, or compare an expected version.
+
+Archived accounts cannot be associated with new journals, whether draft or
+posted, including generated reversals. Consequently corrections and reversing
+deletions that reference archived original accounts are rejected. Existing
+journals, historical transactions, and reporting inputs remain readable.
+
+The public ledger list defaults to `status=active`; explicit `status=draft` and
+`status=archived` queries expose those states. Posting-account discovery includes
+active/draft candidates and excludes archived accounts. Repository reads without
+a status filter remain unfiltered so pending propagation for existing posted
+journals still includes archived accounts and control ancestors. Report totals
+must use these historical inputs rather than the public active-list default.
+
+Journal creation checks account status internally, including unposted entries
+and implicit opening-balance equity accounts. Rectification and reversal domain
+operations read the referenced accounts and reject archived accounts before
+preparing new associations. Use cases persist the prepared results without a
+separate account-validation call. These preparation checks do not hold account
+locks through journal persistence. The archive workflow never changes journals,
+balances, FX records, or propagation work.
+
 ## Chart of Accounts Structure
 
 Our Chart of Accounts follows a **6-digit** hierarchical coding structure: **A-BB-CCC**. Where:

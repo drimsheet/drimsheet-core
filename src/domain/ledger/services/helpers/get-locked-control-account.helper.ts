@@ -19,7 +19,7 @@ interface IControlAccountLookup {
 /**
  * Returns the selected control account under Update locks, locking the allocation root first.
  * Reuses the root when it is the default; reports missing explicit IDs separately from missing configured codes.
- * The caller owns the transaction and retains both locks through insertion and completion.
+ * The caller owns eligibility validation and the transaction, retaining both locks through completion.
  */
 export default async function getLockedControlAccountHelper(
   ledgerAccountRepo: ILedgerAccountRepo,

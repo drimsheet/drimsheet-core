@@ -92,6 +92,7 @@ const valid: ICreateSuspenseAccountDto = {
   currencyCode: 'NGN',
 };
 const created: ILedgerAccountDto = {
+  version: 1,
   id: accountId,
   code: '199000',
   materializedPath: '199000',

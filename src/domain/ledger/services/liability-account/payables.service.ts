@@ -6,6 +6,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import payablesControlAccountValidation from '@domain/ledger/services/validations/payables-control-account.validation';
 import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TPayablesLedgerCode } from '@domain/ledger/types/ledger-code.types';
@@ -99,6 +100,8 @@ function makeCreateStatutoryPayableSubAccount(
       repoOptions
     );
 
+    controlAccountAvailabilityValidation.validate(controlAccount);
+
     payablesControlAccountValidation.validateStatutoryPayableSubAccount(
       controlAccount,
       payload.accountingEntity.id
@@ -165,6 +168,8 @@ function makeCreateTradePayableAccount(
       },
       repoOptions
     );
+
+    controlAccountAvailabilityValidation.validate(controlAccount);
 
     payablesControlAccountValidation.validateTradePayableSubAccount(
       controlAccount,

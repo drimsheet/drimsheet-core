@@ -288,6 +288,16 @@ describe('makeCreateTransferUsecase', () => {
     mockFxLotCostBasisService.persistence.persistAcquisition.mockResolvedValue();
   });
 
+  it('does not persist when journal creation rejects an archived account', async () => {
+    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
+    mockJournalEntryService.createTransfer.mockRejectedValueOnce(failure);
+    await expect(getUseCase()(makePayload())).rejects.toBe(failure);
+    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
   it('orchestrates a posted transfer with attachments and returns its DTO', async () => {
     const payload = makePayload();
 

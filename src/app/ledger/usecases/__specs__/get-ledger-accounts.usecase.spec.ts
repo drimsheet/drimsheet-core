@@ -156,6 +156,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
       accountingEntity.id,
       {
         ...validQuery,
+        status: 'active',
         offset: 0,
         correlationId,
       }
@@ -170,4 +171,18 @@ describe('makeGetLedgerAccountsUsecase', () => {
       meta: { page: 1, limit: 10, total: 2, totalPages: 1 },
     });
   });
+  it.each(['active', 'draft', 'archived'] as const)(
+    'honors explicit %s lifecycle selection',
+    async (status) => {
+      mockLedgerAccountRepo.findAll.mockResolvedValue({
+        data: [],
+        meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+      });
+      await getUseCase()({ ...validQuery, status });
+      expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+        accountingEntity.id,
+        expect.objectContaining({ status })
+      );
+    }
+  );
 });

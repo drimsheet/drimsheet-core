@@ -7,6 +7,7 @@ import {
   ilike,
   inArray,
   isNull,
+  like,
   or,
   sql,
 } from 'drizzle-orm';
@@ -123,8 +124,11 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
     return result.map(ledgerAccountMapper.toDomain)[0] ?? null;
   },
 
-  findAllByIds: async (isDate, options) => {
-    const result = await getDbQuery(options)
+  findAllByIds: async (ids, options) => {
+    if (ids.length === 0) {
+      return [];
+    }
+    const baseQuery = getDbQuery(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),
@@ -134,7 +138,15 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
         currenciesInCore,
         eq(ledgerAccountsInCore.currencyCode, currenciesInCore.code)
       )
-      .where(inArray(ledgerAccountsInCore.id, isDate));
+      .where(inArray(ledgerAccountsInCore.id, ids))
+      .orderBy(ledgerAccountsInCore.materializedPath);
+
+    const query = options.lock
+      ? baseQuery.for(options.lock, {
+          of: alias(ledgerAccountsInCore, getTableName(ledgerAccountsInCore)),
+        })
+      : baseQuery;
+    const result = await query;
 
     return result.map(ledgerAccountMapper.toDomain);
   },
@@ -164,6 +176,33 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
       );
 
     return result.map(ledgerAccountMapper.toDomain);
+  },
+
+  findDescendants: async (accountingEntityId, materializedPath, options) => {
+    const baseQuery = getDbQuery(options)
+      .select({
+        ...getTableColumns(ledgerAccountsInCore),
+        currency: getTableColumns(currenciesInCore),
+      })
+      .from(ledgerAccountsInCore)
+      .leftJoin(
+        currenciesInCore,
+        eq(ledgerAccountsInCore.currencyCode, currenciesInCore.code)
+      )
+      .where(
+        and(
+          eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId),
+          like(ledgerAccountsInCore.materializedPath, `${materializedPath}.%`)
+        )
+      )
+      .orderBy(ledgerAccountsInCore.materializedPath);
+    const query = options.lock
+      ? baseQuery.for(options.lock, {
+          of: alias(ledgerAccountsInCore, getTableName(ledgerAccountsInCore)),
+        })
+      : baseQuery;
+    const rows = await query;
+    return rows.map(ledgerAccountMapper.toDomain);
   },
 
   findByCode: async (code, accountingEntityId, options) => {
@@ -270,6 +309,13 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
     const conditions = [
       eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId),
     ];
+
+    if (options.status) {
+      conditions.push(eq(ledgerAccountsInCore.status, options.status));
+    }
+    if (options.statuses && options.statuses.length > 0) {
+      conditions.push(inArray(ledgerAccountsInCore.status, options.statuses));
+    }
 
     if (options.ids && options.ids.length > 0) {
       conditions.push(inArray(ledgerAccountsInCore.id, options.ids));

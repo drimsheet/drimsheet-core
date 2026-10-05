@@ -3,6 +3,9 @@ import errorUtils from '@shared/utils/error';
 import DomainError from '@shared/values/errors/domain.error';
 
 const EErrorKeys = {
+  AccountNotFound: 'ledger_error_ledger_account_not_found',
+  HeaderAccountNotArchivable: 'ledger_error_header_account_archive_invalid',
+  ArchivedControlAccount: 'ledger_error_archived_control_account_invalid',
   CodeAllocationTransactionRequired:
     'ledger_error_code_allocation_transaction_required_unexpected',
   BankCreationTransactionRequired:

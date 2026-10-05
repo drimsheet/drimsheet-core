@@ -3,6 +3,7 @@ import { ERepoLock } from '@shared/types/repo.types';
 import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 
 interface IDependencies {
@@ -26,6 +27,8 @@ function makeGetNextCode(
       throw new ledgerAccountError.ControlAccountNotFound({
         controlAccountLedgerCode: payload.allocationHeaderCode,
       });
+
+    controlAccountAvailabilityValidation.validate(header);
 
     // A separate Read Committed statement sees the preceding lock holder's insert.
     const latest = await deps.ledgerAccountRepo.findLatestBySubType(

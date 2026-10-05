@@ -13,7 +13,11 @@ import { UEquitySubType } from '@domain/ledger/types/equity-account.types';
 import { UExpenseSubType } from '@domain/ledger/types/expense-account.types';
 import { ILedgerAccountHistory } from '@domain/ledger/types/ledger-account-audit.types';
 import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
-import { ILedgerAccount, ULedgerType } from '@domain/ledger/types/ledger.types';
+import {
+  ILedgerAccount,
+  ULedgerAccountStatus,
+  ULedgerType,
+} from '@domain/ledger/types/ledger.types';
 import { ULiabilitySubType } from '@domain/ledger/types/liability-account.types';
 import { URevenueSubType } from '@domain/ledger/types/revenue-account.types';
 
@@ -26,11 +30,17 @@ export const ELedgerAccountSortBy = {
 export type ULedgerAccountSortBy =
   (typeof ELedgerAccountSortBy)[keyof typeof ELedgerAccountSortBy];
 
+// TODO: move this to a query repo
 export interface IFindAllLedgerAccountsOptions extends Omit<
   IPaginatedReadRepoOptions,
   'orderBy'
 > {
   ids?: TEntityId[];
+  /**
+   * @deprecated use "statuses" instead
+   */
+  status?: ULedgerAccountStatus;
+  statuses?: ULedgerAccountStatus[];
   type?: ULedgerType;
   types?: ULedgerType[];
   subType?:
@@ -66,6 +76,13 @@ export default interface ILedgerAccountRepo {
 
   findAllByIds(
     ids: TEntityId[],
+    options: IReadRepoOptions
+  ): Promise<ILedgerAccount[]>;
+
+  /** Retrieves the complete subtree, ordered by path; lock reads require a caller-owned transaction. */
+  findDescendants(
+    accountingEntityId: TEntityId,
+    materializedPath: string,
     options: IReadRepoOptions
   ): Promise<ILedgerAccount[]>;
 

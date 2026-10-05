@@ -1,14 +1,24 @@
 import { TCreationOmits } from '@shared/types/creation-omits.types';
 import dateUtils from '@shared/utils/date';
+import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
-import { TAuditedEntity } from '@shared/values/events/types/event.types';
+import {
+  IEvent,
+  TAuditedEntity,
+} from '@shared/values/events/types/event.types';
 
 import ledgerAccountValidation from '@domain/ledger/entities/validations/ledger-account.validation';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ledgerAccountEvents from '@domain/ledger/events/ledger-account.events';
-import { ELedgerAccountAuditAction } from '@domain/ledger/types/ledger-account-audit.types';
-import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import {
+  ELedgerAccountAuditAction,
+  ILedgerAccountAudit,
+} from '@domain/ledger/types/ledger-account-audit.types';
+import {
+  ELedgerAccountStatus,
+  ILedgerAccount,
+} from '@domain/ledger/types/ledger.types';
 import ledgerAccountAudit from '@domain/ledger/values/ledger-account-audit.vo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
@@ -164,6 +174,51 @@ function updateOpeningBalanceDate<T extends ILedgerAccount>(
   return [entity, [event], audit];
 }
 
+/** Archives lifecycle state without changing identity or accounting references. */
+function archive(
+  account: ILedgerAccount
+): [ILedgerAccount, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null] {
+  ledgerAccountValidation.validateStatus(account.status);
+  if (account.status === ELedgerAccountStatus.Archived) {
+    return [account, [], null];
+  }
+
+  const archivedAccount: ILedgerAccount = deepFreeze({
+    id: account.id,
+    code: account.code,
+    materializedPath: account.materializedPath,
+    accountingEntityId: account.accountingEntityId,
+    type: account.type,
+    normalBalance: account.normalBalance,
+    subType: account.subType,
+    behavior: account.behavior,
+    isControlAccount: account.isControlAccount,
+    controlAccountId: account.controlAccountId,
+    name: account.name,
+    currency: account.currency,
+    status: ELedgerAccountStatus.Archived,
+    contraAccountRule: account.contraAccountRule,
+    adjunctAccountRule: account.adjunctAccountRule,
+    meta: account.meta,
+    openingBalanceDate: account.openingBalanceDate,
+    version: account.version + 1,
+    createdBy: account.createdBy,
+    createdAt: account.createdAt,
+    updatedAt: new Date(),
+    deletedAt: account.deletedAt,
+  });
+  const audit = ledgerAccountAudit.make({
+    before: account,
+    after: archivedAccount,
+    action: ELedgerAccountAuditAction.Archived,
+  });
+  return [
+    archivedAccount,
+    [ledgerAccountEvents.archived(archivedAccount)],
+    audit,
+  ];
+}
+
 /** Returns each account path and all of its ancestor paths without duplicates. */
 function getMaterializedPaths(
   accounts: Pick<ILedgerAccount, 'materializedPath'>[]
@@ -179,6 +234,7 @@ function getMaterializedPaths(
 
 const ledgerAccountEntity = Object.freeze({
   make,
+  archive,
   updateOpeningBalanceDate,
   getMaterializedPaths,
   ...ledgerAccountValidation,

@@ -27,6 +27,17 @@ const invalid = (body, messageId = 'cleanup') => ({
 
 tester.run(ruleName, rule, {
   valid: [
+    example(`
+      const tx = await repo.createTransaction();
+      try {
+        const accounts = await archive(tx.context);
+        for (const account of accounts) {
+          const history = makeHistory(account);
+          await repo.update(account, { tx: tx.context, history });
+        }
+        await tx.commit();
+      } catch (error) { return await tx.handleError(error); }
+    `),
     example('await repo.findById(id);'),
     example('await getService()();'),
     example(`
@@ -103,6 +114,9 @@ tester.run(ruleName, rule, {
       'await tx.commit({ dispose: shouldDispose });',
       'if (done) return; await tx.commit();',
       'if (ready) await tx.commit();',
+      'for (const account of accounts) { return account; } await tx.commit();',
+      'for (const account of accounts) { if (done) return; } await tx.commit();',
+      'for (const account of accounts) { break; } await tx.commit();',
       'tx.commit();',
       'await tx.commit({ dispose: true, ...options });',
       'await tx.commit({ dispose: true, dispose: false });',

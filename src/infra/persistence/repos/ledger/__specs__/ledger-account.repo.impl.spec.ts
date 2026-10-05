@@ -1,4 +1,4 @@
-import { eq, inArray, isNull, or } from 'drizzle-orm';
+import { eq, inArray, isNull, like, or } from 'drizzle-orm';
 
 import { ERepoLock, ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
@@ -26,6 +26,7 @@ jest.mock('drizzle-orm', () => {
   return {
     ...drizzle,
     eq: jest.fn(drizzle.eq),
+    like: jest.fn(drizzle.like),
     inArray: jest.fn(drizzle.inArray),
     isNull: jest.fn(drizzle.isNull),
     or: jest.fn(drizzle.or),
@@ -140,6 +141,128 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
     return { countWhere, dataWhere, limit, offset, select };
   }
 
+  it.each([undefined, ERepoLock.Share])(
+    'orders and optionally locks batch accounts: %s',
+    async (lock) => {
+      const row = { id: 'account-row' };
+      const account = { id: 'account-domain' } as ILedgerAccount;
+      const locked = jest.fn().mockResolvedValue([row]);
+      const awaitable = { ...makeAwaitable([row]), for: locked };
+      const orderBy = jest.fn().mockReturnValue(awaitable);
+      const where = jest.fn().mockReturnValue({ orderBy });
+      const leftJoin = jest.fn().mockReturnValue({ where });
+      jest.mocked(getDbQuery).mockReturnValue({
+        select: jest
+          .fn()
+          .mockReturnValue({ from: jest.fn().mockReturnValue({ leftJoin }) }),
+      } as unknown as ReturnType<typeof getDbQuery>);
+      jest.mocked(ledgerAccountMapper.toDomain).mockReturnValue(account);
+      expect(
+        await ledgerAccountRepo.findAllByIds([account.id], {
+          correlationId: 'batch',
+          tx: {},
+          lock,
+        })
+      ).toEqual([account]);
+      expect(orderBy).toHaveBeenCalledWith(
+        ledgerAccountsInCore.materializedPath
+      );
+      if (lock) {
+        expect(locked).toHaveBeenCalledWith(
+          lock,
+          expect.objectContaining({ of: expect.any(Object) })
+        );
+      } else {
+        expect(locked).not.toHaveBeenCalled();
+      }
+    }
+  );
+  it('does not execute an empty ID query', async () => {
+    expect(
+      await ledgerAccountRepo.findAllByIds([], { correlationId: 'batch' })
+    ).toEqual([]);
+    expect(getDbQuery).not.toHaveBeenCalled();
+  });
+  it.each([undefined, ERepoLock.Update])(
+    'reads the complete tenant-scoped descendant subtree with lock %s',
+    async (lock) => {
+      const rows = Array.from({ length: 60 }, (_, id) => ({ id }));
+      const locked = jest.fn().mockResolvedValue(rows);
+      const orderBy = jest
+        .fn()
+        .mockReturnValue({ ...makeAwaitable(rows), for: locked });
+      const where = jest.fn().mockReturnValue({ orderBy });
+      const leftJoin = jest.fn().mockReturnValue({ where });
+      jest.mocked(getDbQuery).mockReturnValue({
+        select: jest
+          .fn()
+          .mockReturnValue({ from: jest.fn().mockReturnValue({ leftJoin }) }),
+      } as unknown as ReturnType<typeof getDbQuery>);
+      jest
+        .mocked(ledgerAccountMapper.toDomain)
+        .mockImplementation((row) => row as unknown as ILedgerAccount);
+      expect(
+        await ledgerAccountRepo.findDescendants(
+          accountingEntityId,
+          '100000.100001',
+          { correlationId: 'cascade', tx: {}, lock }
+        )
+      ).toHaveLength(60);
+      expect(eq).toHaveBeenCalledWith(
+        ledgerAccountsInCore.accountingEntityId,
+        accountingEntityId
+      );
+      expect(like).toHaveBeenCalledWith(
+        ledgerAccountsInCore.materializedPath,
+        '100000.100001.%'
+      );
+      expect(orderBy).toHaveBeenCalledWith(
+        ledgerAccountsInCore.materializedPath
+      );
+      if (lock) {
+        expect(locked).toHaveBeenCalledWith(
+          lock,
+          expect.objectContaining({ of: expect.any(Object) })
+        );
+      } else {
+        expect(locked).not.toHaveBeenCalled();
+      }
+    }
+  );
+  it.each(['active', 'draft', 'archived'] as const)(
+    'filters paginated counts by status %s',
+    async (status) => {
+      mockFindAllQuery(0);
+      await ledgerAccountRepo.findAll(accountingEntityId, {
+        correlationId: 'filtered',
+        status,
+      });
+      expect(eq).toHaveBeenCalledWith(ledgerAccountsInCore.status, status);
+    }
+  );
+  it('filters posting candidates by active and draft without changing status-neutral historical reads', async () => {
+    mockFindAllQuery(0);
+    await ledgerAccountRepo.findAll(accountingEntityId, {
+      correlationId: 'filtered',
+      statuses: ['active', 'draft'],
+    });
+    expect(inArray).toHaveBeenCalledWith(ledgerAccountsInCore.status, [
+      'active',
+      'draft',
+    ]);
+    jest.clearAllMocks();
+    mockFindAllQuery(0);
+    await ledgerAccountRepo.findAll(accountingEntityId, {
+      correlationId: 'historical',
+      statuses: [],
+    });
+    expect(inArray).not.toHaveBeenCalled();
+    expect(eq).not.toHaveBeenCalledWith(
+      ledgerAccountsInCore.status,
+      expect.anything()
+    );
+  });
+
   it('findByCode maps an allocation read', async () => {
     const row = { id: 'account-row' };
     const account = {
@@ -230,7 +353,11 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
       id: 'account-domain',
       currency: null,
     } as ILedgerAccount;
-    const where = jest.fn().mockResolvedValue([row]);
+    const orderBy = jest.fn().mockResolvedValue([row]);
+    const where = jest.fn().mockReturnValue({
+      then: (resolve: (rows: unknown[]) => void) => resolve([row]),
+      orderBy,
+    });
     const leftJoin = jest.fn().mockReturnValue({ where });
     const from = jest.fn().mockReturnValue({ leftJoin });
     const select = jest.fn().mockReturnValue({ from });
@@ -242,6 +369,12 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
     expect(leftJoin).toHaveBeenCalled();
     expect(ledgerAccountMapper.toDomain).toHaveBeenCalledWith(row, 0, [row]);
     expect(result).toEqual(_name === 'findById' ? account : [account]);
+    if (_name === 'findById') {
+      expect(eq).toHaveBeenCalledWith(
+        ledgerAccountsInCore.accountingEntityId,
+        accountingEntityId
+      );
+    }
   });
 
   it('findAll retains a paginated row without a currency relation', async () => {
@@ -380,7 +513,11 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
       id: 'account-domain',
       currency: null,
     } as ILedgerAccount;
-    const where = jest.fn().mockResolvedValue([row]);
+    const orderBy = jest.fn().mockResolvedValue([row]);
+    const where = jest.fn().mockReturnValue({
+      then: (resolve: (rows: unknown[]) => void) => resolve([row]),
+      orderBy,
+    });
     const leftJoin = jest.fn().mockReturnValue({ where });
     const from = jest.fn().mockReturnValue({ leftJoin });
     const select = jest.fn().mockReturnValue({ from });

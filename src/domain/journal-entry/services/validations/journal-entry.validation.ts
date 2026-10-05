@@ -1,3 +1,4 @@
+// TODO: audit validations to remove unnecessary groups
 import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 
@@ -65,6 +66,8 @@ function validateAccounts(
       accounts: wrongAccountingEntities,
     });
   }
+
+  validateArchivedAccounts(allAccounts);
 
   // Assert that no account is a posting account
   const controlAccounts = allAccounts.filter((acc) => acc.isControlAccount);
@@ -241,6 +244,7 @@ function isTransferAssetAccount(account: ILedgerAccount) {
 }
 
 const journalEntryValidation = Object.freeze({
+  validateArchivedAccounts,
   isTransferAssetAccount,
   validateAccounts,
   validateAccountsAgainstRule,
@@ -248,5 +252,20 @@ const journalEntryValidation = Object.freeze({
   validateSourceAccountBalance,
   validateTransferAccountComposition,
 });
+
+/** Archived accounts cannot acquire journal associations, including unposted entries and reversals. */
+function validateArchivedAccounts(accounts: ILedgerAccount[]) {
+  const archivedAccounts = accounts.filter(
+    (account) => account.status === ELedgerAccountStatus.Archived
+  );
+  if (archivedAccounts.length) {
+    throw new journalEntryError.ArchivedLedgerAccountNotAllowed({
+      accounts: archivedAccounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+      })),
+    });
+  }
+}
 
 export default journalEntryValidation;

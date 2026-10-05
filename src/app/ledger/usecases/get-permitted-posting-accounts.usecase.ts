@@ -18,6 +18,7 @@ import {
   ELedgerAccountSubType,
   ULedgerAccountSubType,
 } from '@domain/ledger/types/ledger-aggregate.types';
+import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
@@ -87,6 +88,7 @@ export default function makeGetPermittedPostingAccountsUsecase(
     const behaviors = getPermittedValues(permits.permittedBehaviors);
 
     const accountRepoOptions: IFindAllLedgerAccountsOptions = {
+      statuses: [ELedgerAccountStatus.Active, ELedgerAccountStatus.Draft],
       types,
       subTypes: query.filterSuspense ? filterSuspense(subTypes) : subTypes,
       behaviors,

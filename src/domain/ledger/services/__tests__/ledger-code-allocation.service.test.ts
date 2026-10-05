@@ -13,6 +13,7 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findById: jest.fn(),
   findAllByIds: jest.fn(),
   findAllByMaterializedPath: jest.fn(),
+  findDescendants: jest.fn(),
   findByCode: jest.fn(),
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
@@ -88,6 +89,14 @@ describe('ledger code allocation', () => {
   it('falls back to the header when no latest account exists', async () => {
     mockLedgerAccountRepo.findLatestBySubType.mockResolvedValue(null);
     await expect(service.getNextCode(payload, options)).resolves.toBe('100001');
+  });
+  it('rejects an archived allocation header before selecting another child code', async () => {
+    const [archived] = ledgerAccountEntity.archive(header);
+    mockLedgerAccountRepo.findByCode.mockResolvedValue(archived);
+    await expect(service.getNextCode(payload, options)).rejects.toBeInstanceOf(
+      ledgerAccountError.ArchivedControlAccount
+    );
+    expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
   });
   it('rejects a missing transaction before reading', async () => {
     await expect(

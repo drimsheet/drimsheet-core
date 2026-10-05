@@ -92,6 +92,7 @@ const valid: ICreateTradeReceivableAccountDto = {
   currencyCode: 'NGN',
 };
 const created: ILedgerAccountDto = {
+  version: 1,
   id: accountId,
   code: '102003',
   materializedPath: 'parent.102003',

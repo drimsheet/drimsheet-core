@@ -51,6 +51,7 @@ describe('Ledger Account DTO Mapper', () => {
       );
 
       expect(dto).toEqual({
+        version: mockAccount.version,
         id: 'acc-id-123',
         code: '1000',
         materializedPath: '1000',

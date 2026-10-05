@@ -30,6 +30,7 @@ import { mockJournalEntryRemovalService } from '@app/journal-entry/contracts/__m
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
 import mockLedgerBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
+import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
@@ -48,7 +49,9 @@ describe('makeDeleteJournalEntryUsecase', () => {
   const accountingEntityId = generateUUID();
   const userId = generateUUID();
   const now = new Date('2026-09-22T10:00:00.000Z');
-  const rectificationService = makeJournalEntryRectificationService();
+  const rectificationService = makeJournalEntryRectificationService({
+    ledgerAccountRepo: mockLedgerAccountRepo,
+  });
   const usecase = makeDeleteJournalEntryUsecase({
     accountingEntityService: mockAccountingEntityService,
     appContext: mockAppContext,
@@ -107,17 +110,19 @@ describe('makeDeleteJournalEntryUsecase', () => {
     } as const;
   }
 
-  function prepareReversal(entry: IJournalEntry) {
+  async function prepareReversal(entry: IJournalEntry) {
     return {
       mode: EJournalEntryRemovalMode.Reverse,
-      ...rectificationService.reverse(
+      ...(await rectificationService.reverse(
         entry,
-        'a1111111-1111-4111-8111-111111111111' as TEntityId
-      ),
+        'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        { correlationId }
+      )),
     } as const;
   }
 
   beforeEach(() => {
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValue([]);
     jest.useFakeTimers();
     jest.setSystemTime(now);
     jest.clearAllMocks();
@@ -146,6 +151,19 @@ describe('makeDeleteJournalEntryUsecase', () => {
 
   afterEach(() => jest.useRealTimers());
 
+  it('blocks reversing deletion when an original account is archived', async () => {
+    const entry = makeEntry(now);
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
+    mockJournalEntryRemovalService.prepare.mockRejectedValueOnce(failure);
+    await expect(
+      usecase(entry.id, { expectedVersion: entry.version })
+    ).rejects.toBe(failure);
+    expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceService.delete).not.toHaveBeenCalled();
+    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
   it.each([
     ['draft', makeEntry(null)],
     [
@@ -156,7 +174,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     'totally deletes a %s entry without accounting side effects',
     async (_, entry) => {
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
-      mockJournalEntryRemovalService.prepare.mockReturnValue(
+      mockJournalEntryRemovalService.prepare.mockResolvedValue(
         prepareDeletion(entry)
       );
 
@@ -187,9 +205,9 @@ describe('makeDeleteJournalEntryUsecase', () => {
       { ...makeEntry(now), status: EJournalEntryStatus.Archived },
     ],
   ])('reverses a %s entry atomically before propagation', async (_, entry) => {
-    const removal = prepareReversal(entry);
+    const removal = await prepareReversal(entry);
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockReturnValue(removal);
+    mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
 
     await expect(
       usecase(entry.id, { expectedVersion: entry.version })
@@ -237,10 +255,10 @@ describe('makeDeleteJournalEntryUsecase', () => {
 
   it('persists an optional FX reversal in the journal transaction', async () => {
     const entry = makeEntry(now);
-    const removal = prepareReversal(entry);
+    const removal = await prepareReversal(entry);
     const fxReversal = { records: { lots: [] }, events: [] };
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockReturnValue(removal);
+    mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
     mockFxLotAppService.reverse.mockResolvedValue(fxReversal);
 
     await usecase(entry.id, { expectedVersion: entry.version });
@@ -314,8 +332,8 @@ describe('makeDeleteJournalEntryUsecase', () => {
     const entry = makeEntry(now);
     const failure = new Error('journal persistence failed');
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockReturnValue(
-      prepareReversal(entry)
+    mockJournalEntryRemovalService.prepare.mockResolvedValue(
+      await prepareReversal(entry)
     );
     mockJournalEntryPersistenceService.rectify.mockRejectedValueOnce(failure);
 
