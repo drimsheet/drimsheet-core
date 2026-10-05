@@ -29,6 +29,7 @@ const ledgerAccountMapper = {
       adjunctAccountRule: payload.adjunctAccountRule,
       openingBalanceDate: payload.openingBalanceDate ?? null,
       createdBy: payload.createdBy,
+      version: payload.version,
       createdAt: payload.createdAt,
       updatedAt: payload.updatedAt,
       deletedAt: payload.deletedAt ?? undefined,

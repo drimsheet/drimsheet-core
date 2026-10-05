@@ -15,6 +15,7 @@ import {
 import { IMoneyDto } from '@app/money/dtos/money/money.dto';
 
 export interface IGetLedgerAccountsQuery extends IPaginationDto {
+  status?: ULedgerAccountStatus;
   type?: ULedgerType;
   subType?: ULedgerAccountSubType;
   behavior?: string;
@@ -39,6 +40,7 @@ export interface ILedgerAccountDto {
   adjunctAccountRule: UAdjunctAccountRule;
   openingBalanceDate: Date | null;
   createdBy: TEntityId;
+  version: number;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;

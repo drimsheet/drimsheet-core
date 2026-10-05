@@ -14,10 +14,12 @@ import moneyValue from '@domain/money/values/money.vo';
 
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import helpers from '@app/journal-entry/usecases/helpers/rectify-journal-entry.usecase.helpers';
+import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 
 describe('rectifyJournalEntryUseCaseHelpers', () => {
   const actor = generateUUID();
   const correlationId = 'correlation-id';
+  beforeEach(() => mockLedgerAccountRepo.findAllByIds.mockResolvedValue([]));
 
   function makeEntry(amountValue = 100, postedAt: Date | null = null) {
     const amount = moneyValue.make(amountValue, SYSTEM_CURRENCIES.USD, false);
@@ -53,23 +55,28 @@ describe('rectifyJournalEntryUseCaseHelpers', () => {
     });
   }
 
-  it('maps histories for created entries and an entry update', () => {
+  it('maps histories for created entries and an entry update', async () => {
     const [originalEntry] = makeEntry();
     const [newEntry] = makeEntry(125);
-    const rectification = makeJournalEntryRectificationService().rectify({
-      actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      originalEntry,
-      newEntry: {
-        ...newEntry,
-        accountingEntityId: originalEntry.accountingEntityId,
-        sourceType: originalEntry.sourceType,
-        createdBy: originalEntry.createdBy,
-        lines: newEntry.lines.map((line, index) => ({
-          ...line,
-          id: originalEntry.lines[index].id,
-        })),
+    const rectification = await makeJournalEntryRectificationService({
+      ledgerAccountRepo: mockLedgerAccountRepo,
+    }).rectify(
+      {
+        actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        originalEntry,
+        newEntry: {
+          ...newEntry,
+          accountingEntityId: originalEntry.accountingEntityId,
+          sourceType: originalEntry.sourceType,
+          createdBy: originalEntry.createdBy,
+          lines: newEntry.lines.map((line, index) => ({
+            ...line,
+            id: originalEntry.lines[index].id,
+          })),
+        },
       },
-    });
+      { correlationId: 'test-correlation-id' }
+    );
 
     const payload = getJournalEntryPersistencePayloadHelper(
       rectification,

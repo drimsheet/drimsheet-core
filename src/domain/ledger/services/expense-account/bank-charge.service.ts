@@ -7,6 +7,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import bankChargeControlAccountValidation from '@domain/ledger/services/validations/bank-charge-control-account.validation';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import { IBankChargeAccountService } from '@domain/ledger/types/bank-charge.service.types';
 import {
   EExpenseAccountBehavior,
@@ -85,6 +86,8 @@ function makeCreateSubAccount(
       },
       repoOptions
     );
+
+    controlAccountAvailabilityValidation.validate(controlAccount);
 
     bankChargeControlAccountValidation.validate(
       controlAccount,

@@ -118,6 +118,37 @@ describe('journalEntryServiceValidation', () => {
     );
     const amount = moneyValue.make(100n, SYSTEM_CURRENCIES.NGN, true);
 
+    it.each([
+      ['source', null],
+      ['destination', null],
+      ['source', effectiveDate],
+      ['destination', effectiveDate],
+    ] as const)(
+      'rejects an archived %s for posting date %s',
+      (side, postedAt) => {
+        const archived = ledgerAccountEntity.archive(
+          side === 'source' ? activeSource : activeDestination
+        )[0];
+        const lines = [
+          { account: side === 'source' ? archived : activeSource, amount },
+          {
+            account: side === 'destination' ? archived : activeDestination,
+            amount,
+          },
+        ];
+        expect(() =>
+          journalEntryServiceValidation.validateAccounts(
+            { ...header, postedAt },
+            lines
+          )
+        ).toThrow(
+          new journalEntryError.ArchivedLedgerAccountNotAllowed({
+            accounts: [{ id: archived.id, name: archived.name }],
+          })
+        );
+      }
+    );
+
     it.each(['source', 'destination'] as const)(
       'allows a draft %s account only when preparing a draft journal',
       (side) => {

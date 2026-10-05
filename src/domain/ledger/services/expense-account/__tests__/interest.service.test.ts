@@ -29,6 +29,7 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findById: jest.fn(),
   findAllByIds: jest.fn(),
   findAllByMaterializedPath: jest.fn(),
+  findDescendants: jest.fn(),
   findByCode: jest.fn(),
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
@@ -106,6 +107,30 @@ describe('interestAccountService', () => {
       { correlationId: 'creation-test', tx: {} }
     );
   }
+
+  it.each([true, false])(
+    'rejects an archived parent with explicit selection %s before allocating a code',
+    async (explicit) => {
+      const header = makeControlAccount();
+      const [archivedParent] =
+        ledgerAccountEntity.archive(makeControlAccount());
+      mockLedgerAccountRepo.findByCode.mockResolvedValue(
+        explicit ? header : archivedParent
+      );
+      mockLedgerAccountRepo.findById.mockResolvedValue(archivedParent);
+
+      await expect(
+        service.createSubAccount(
+          {
+            ...subAccountPayload,
+            controlAccountId: explicit ? archivedParent.id : undefined,
+          },
+          { correlationId: 'archived-parent', tx: {} }
+        )
+      ).rejects.toBeInstanceOf(ledgerAccountError.ArchivedControlAccount);
+      expect(allocation.getNextCode).not.toHaveBeenCalled();
+    }
+  );
 
   afterEach(() => {
     expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();

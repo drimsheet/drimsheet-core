@@ -126,9 +126,20 @@ const requireTransactionDisposal = {
         referencesVariable(errorVariable, handled.arguments[0]);
       if (!handlesCaughtError) return false;
 
-      // A linear prefix cannot return/break/continue around the disposing commit.
+      // Sequential statements and simple write loops cannot skip the commit.
       // Keep finally disposal for more complex control flow instead of guessing.
       for (const step of statement.block.body) {
+        if (
+          step.type === 'ForOfStatement' &&
+          step.body.type === 'BlockStatement' &&
+          step.body.body.every((bodyStep) =>
+            ['VariableDeclaration', 'ExpressionStatement'].includes(
+              bodyStep.type
+            )
+          )
+        ) {
+          continue;
+        }
         if (
           !['VariableDeclaration', 'ExpressionStatement'].includes(step.type)
         ) {

@@ -1,3 +1,5 @@
+// TODO: audit this service; it feels like it's not doing enough to justify being a service
+
 import journalEntryRemovalValidation from '@domain/journal-entry/services/validations/journal-entry-removal.validation';
 import { IJournalEntryRectificationService } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
@@ -17,7 +19,7 @@ interface IDependencies {
 function makePrepare(
   deps: IDependencies
 ): IJournalEntryRemovalService['prepare'] {
-  return (entry, actorId) => {
+  return async (entry, actorId, repoOptions) => {
     journalEntryRemovalValidation.validateSourceType(entry);
     journalEntryRemovalValidation.validateState(entry);
 
@@ -29,7 +31,11 @@ function makePrepare(
     if (shouldReverse) {
       return Object.freeze({
         mode: EJournalEntryRemovalMode.Reverse,
-        ...deps.journalEntryRectificationService.reverse(entry, actorId),
+        ...(await deps.journalEntryRectificationService.reverse(
+          entry,
+          actorId,
+          repoOptions
+        )),
       });
     }
 
@@ -44,6 +50,7 @@ export default function makeJournalEntryRemovalService(
   deps: IDependencies
 ): IJournalEntryRemovalService {
   return Object.freeze({
+    // TODO: reevaluate this method's name
     prepare: makePrepare(deps),
   });
 }

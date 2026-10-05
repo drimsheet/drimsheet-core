@@ -8,6 +8,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import cashControlAccountValidation from '@domain/ledger/services/validations/cash-control-account.validation';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -99,6 +100,8 @@ function makeCreatePettyCashSubAccount(
       repoOptions
     );
 
+    controlAccountAvailabilityValidation.validate(controlAccount);
+
     cashControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntity.id,
@@ -183,6 +186,8 @@ function makeCreateBankSubAccount(
       },
       repoOptions
     );
+
+    controlAccountAvailabilityValidation.validate(controlAccount);
 
     cashControlAccountValidation.validate(
       controlAccount,

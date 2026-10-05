@@ -92,6 +92,7 @@ const valid: ICreateExpenseAccountDto = {
   behavior: 'bank_charge',
 };
 const created: ILedgerAccountDto = {
+  version: 1,
   id: accountId,
   code: '507001',
   materializedPath: 'parent.507001',

@@ -1,3 +1,4 @@
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { IEvent } from '@shared/values/events/types/event.types';
 
@@ -55,11 +56,13 @@ export interface IJournalEntryReversalResult {
 
 export interface IJournalEntryRectificationService {
   rectify(
-    payload: IJournalEntryRectificationPayload
-  ): IJournalEntryRectificationResult;
+    payload: IJournalEntryRectificationPayload,
+    repoOptions: IReadRepoOptions
+  ): Promise<IJournalEntryRectificationResult>;
 
   reverse(
     originalEntry: IJournalEntry,
-    actorId: TEntityId
-  ): IJournalEntryReversalResult;
+    actorId: TEntityId,
+    repoOptions: IReadRepoOptions
+  ): Promise<IJournalEntryReversalResult>;
 }

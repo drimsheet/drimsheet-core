@@ -24,6 +24,7 @@ import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-po
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
+  archiveLedgerAccountUseCase,
   createPettyCashAccountUseCase,
   getAccountTransactionsUseCase,
   getLedgerAccountsUseCase,
@@ -152,5 +153,24 @@ export class LedgerController extends Controller {
     @Body() body: IPettyCashAccountCreationReq
   ) {
     return createPettyCashAccountUseCase(body);
+  }
+
+  /** Archives a non-header account and all control-account descendants, retaining history. Already archived accounts are no-ops. Header accounts return 400. Archived accounts cannot appear in new journals, including reversals. */
+  @Post('/{accountId}/archive')
+  @OperationId('archiveLedgerAccount')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async archiveLedgerAccount(@Path() accountId: string): Promise<void> {
+    return archiveLedgerAccountUseCase(accountId);
   }
 }

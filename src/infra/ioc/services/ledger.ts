@@ -9,6 +9,7 @@ import makeInterestAccountService from '@domain/ledger/services/expense-account/
 import makeRentAndUtilitiesAccountService from '@domain/ledger/services/expense-account/rent-and-utilities.service';
 import makeTaxExpenseAccountService from '@domain/ledger/services/expense-account/tax-expense.service';
 import makeUnrealizedLossAccountService from '@domain/ledger/services/expense-account/unrealized-loss.service';
+import makeLedgerAccountArchiveService from '@domain/ledger/services/ledger-account-archive.service';
 import ledgerAccountBalanceAdjustmentDomainService from '@domain/ledger/services/ledger-account-balance-adjustment.service';
 import makeLedgerCodeAllocationService from '@domain/ledger/services/ledger-code-allocation.service';
 import makePayablesAccountService from '@domain/ledger/services/liability-account/payables.service';
@@ -32,6 +33,10 @@ import ledgerRepos from '@infra/persistence/repos/ledger';
 import { repoService } from './repo';
 
 const ledgerCodeAllocationService = makeLedgerCodeAllocationService({
+  ledgerAccountRepo: ledgerRepos.ledgerAccount,
+});
+
+export const ledgerAccountArchiveService = makeLedgerAccountArchiveService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });
 

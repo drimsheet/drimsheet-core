@@ -525,11 +525,14 @@ function makePrepare(
       repoOptions
     );
     const { createdBy: _creator, ...newEntry } = sourcePreparation.journalEntry;
-    const rectification = deps.journalEntryRectificationService.rectify({
-      actorId: preparation.actor,
-      originalEntry: preparation.originalEntry,
-      newEntry,
-    });
+    const rectification = await deps.journalEntryRectificationService.rectify(
+      {
+        actorId: preparation.actor,
+        originalEntry: preparation.originalEntry,
+        newEntry,
+      },
+      repoOptions
+    );
     const fxRectification = await prepareFxRectification(
       deps,
       preparation.originalEntry,

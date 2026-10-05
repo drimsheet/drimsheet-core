@@ -7,6 +7,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import assetDisposalLossControlAccountValidation from '@domain/ledger/services/validations/asset-disposal-loss-control-account.validation';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import { IAssetDisposalLossAccountService } from '@domain/ledger/types/asset-disposal-loss.service.types';
 import {
   EExpenseAccountBehavior,
@@ -95,6 +96,8 @@ function makeCreateSubAccount(
       },
       repoOptions
     );
+
+    controlAccountAvailabilityValidation.validate(controlAccount);
 
     assetDisposalLossControlAccountValidation.validate(
       controlAccount,

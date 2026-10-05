@@ -69,9 +69,10 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
       expectedVersion: payload.expectedVersion,
     });
 
-    const removal = deps.journalEntryRemovalService.prepare(
+    const removal = await deps.journalEntryRemovalService.prepare(
       originalEntry,
-      actor.id
+      actor.id,
+      repoOptions
     );
 
     if (removal.mode === EJournalEntryRemovalMode.Delete) {

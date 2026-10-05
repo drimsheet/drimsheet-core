@@ -1,8 +1,10 @@
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import getOppositeJournalSide from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryRectificationValidation from '@domain/journal-entry/services/validations/journal-entry-rectification.validation';
+import journalEntryValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
 import {
   EJournalEntryRectificationMode,
   IJournalEntryRectificationPayload,
@@ -15,6 +17,25 @@ import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
 } from '@domain/journal-entry/types/journal-entry.types';
+import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+
+interface IDependencies {
+  ledgerAccountRepo: ILedgerAccountRepo;
+}
+
+/** Reads current account status before preparing new journal associations. */
+async function validateAccounts(
+  deps: IDependencies,
+  accountIds: TEntityId[],
+  repoOptions: IReadRepoOptions
+) {
+  const accounts = await deps.ledgerAccountRepo.findAllByIds(
+    [...new Set(accountIds)],
+    repoOptions
+  );
+
+  journalEntryValidation.validateArchivedAccounts(accounts);
+}
 
 function determineAction(
   payload: IJournalEntryRectificationPayload
@@ -173,17 +194,37 @@ function reverseEntry(
 
 /**
  * Selects and prepares the invariant-preserving rectification for a journal
- * entry without performing persistence or publishing events.
+ * entry, rejecting archived accounts before preparing new associations.
+ * Performs no persistence or event publication.
  */
-function makeRectify(): IJournalEntryRectificationService['rectify'] {
-  return (payload) => {
+function makeRectify(
+  deps: IDependencies
+): IJournalEntryRectificationService['rectify'] {
+  return async (payload, repoOptions) => {
     journalEntryRectificationValidation.validatePayload(payload);
     journalEntryRectificationValidation.validateHasChanges(payload);
 
     const action = determineAction(payload);
 
     if (action === EJournalEntryRectificationMode.VoidAndReplace) {
+      await validateAccounts(
+        deps,
+        [...payload.originalEntry.lines, ...(payload.newEntry.lines ?? [])].map(
+          (line) => line.accountId
+        ),
+        repoOptions
+      );
       return voidAndReplace(payload);
+    }
+
+    if (action === EJournalEntryRectificationMode.UpdateDraft) {
+      await validateAccounts(
+        deps,
+        (payload.newEntry.lines ?? payload.originalEntry.lines).map(
+          (line) => line.accountId
+        ),
+        repoOptions
+      );
     }
 
     return updateEntry(payload, action);
@@ -192,16 +233,28 @@ function makeRectify(): IJournalEntryRectificationService['rectify'] {
 
 /**
  * Prepares a balanced reversing entry and the original entry's Voided
- * transition without performing persistence or publishing events.
+ * transition after rejecting archived accounts. Performs no persistence or
+ * event publication.
  */
-function makeReverse(): IJournalEntryRectificationService['reverse'] {
-  return (originalEntry, actorId) =>
-    reverseEntry(originalEntry, new Date(), actorId);
+function makeReverse(
+  deps: IDependencies
+): IJournalEntryRectificationService['reverse'] {
+  return async (originalEntry, actorId, repoOptions) => {
+    await validateAccounts(
+      deps,
+      originalEntry.lines.map((line) => line.accountId),
+      repoOptions
+    );
+
+    return reverseEntry(originalEntry, new Date(), actorId);
+  };
 }
 
-export default function makeJournalEntryRectificationService(): IJournalEntryRectificationService {
+export default function makeJournalEntryRectificationService(
+  deps: IDependencies
+): IJournalEntryRectificationService {
   return Object.freeze({
-    rectify: makeRectify(),
-    reverse: makeReverse(),
+    rectify: makeRectify(deps),
+    reverse: makeReverse(deps),
   });
 }

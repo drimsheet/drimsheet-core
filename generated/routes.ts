@@ -312,6 +312,7 @@ const models: TsoaRoute.Models = {
   ILedgerAccountDto: {
     dataType: 'refObject',
     properties: {
+      version: { dataType: 'double', required: true },
       id: { ref: 'TEntityId', required: true },
       code: { dataType: 'string', required: true },
       materializedPath: { dataType: 'string', required: true },
@@ -472,6 +473,7 @@ const models: TsoaRoute.Models = {
       sortDirection: { ref: 'UPaginationSortDirection' },
       search: { dataType: 'string' },
       page: { dataType: 'double' },
+      status: { ref: 'ULedgerAccountStatus' },
       type: { ref: 'ULedgerType' },
       subType: { ref: 'ULedgerAccountSubType' },
       behavior: { dataType: 'string' },
@@ -2955,6 +2957,55 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_archiveLedgerAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+  };
+  app.post(
+    '/api/v1/ledger/:accountId/archive',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.archiveLedgerAccount
+    ),
+
+    async function LedgerController_archiveLedgerAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_archiveLedgerAccount,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'archiveLedgerAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 204,
         });
       } catch (err) {
         return next(err);

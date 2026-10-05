@@ -7,6 +7,7 @@ import { TEntityId } from '@shared/types/uuid';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import periodError from '@domain/accounting/errors/period.error';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { ICashAndCashEquivalentAccount } from '@domain/ledger/types/asset-account.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -346,6 +347,20 @@ describe('petty cash account creation workflow', () => {
       expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
     }
   );
+  it('rolls back account creation when opening journal creation rejects an archived account', async () => {
+    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
+    mockJournalEntryService.createInitialOpeningBalance.mockRejectedValueOnce(
+      failure
+    );
+    await expect(
+      makeCreatePettyCashAccountUseCase(deps)(openingPayload)
+    ).rejects.toBe(failure);
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
   it('passes domain creation facts including optional ID and initial date', async () => {
     await makeCreatePettyCashAccountUseCase(deps)({
       ...openingPayload,

@@ -13,6 +13,7 @@ const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findById: jest.fn(),
   findAllByIds: jest.fn(),
   findAllByMaterializedPath: jest.fn(),
+  findDescendants: jest.fn(),
   findByCode: jest.fn(),
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
@@ -189,6 +190,45 @@ describe('getLockedControlAccountHelper', () => {
       ).rejects.toBe(failure);
       expect(ledgerAccountRepo.create).not.toHaveBeenCalled();
       expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
+    }
+  );
+  it('returns an archived root when it is the selected default parent', async () => {
+    const [archivedHeader] = ledgerAccountEntity.archive(header);
+    ledgerAccountRepo.findByCode.mockResolvedValue(archivedHeader);
+
+    await expect(
+      getLockedControlAccountHelper(ledgerAccountRepo, payload, repoOptions)
+    ).resolves.toBe(archivedHeader);
+  });
+
+  it('resolves the selected parent even when the allocation root is archived', async () => {
+    const [archivedHeader] = ledgerAccountEntity.archive(header);
+    ledgerAccountRepo.findByCode.mockResolvedValue(archivedHeader);
+
+    await expect(
+      getLockedControlAccountHelper(
+        ledgerAccountRepo,
+        { ...payload, controlAccountId: parent.id },
+        repoOptions
+      )
+    ).resolves.toBe(parent);
+  });
+
+  it.each([true, false])(
+    'returns an archived selected parent with explicit ID %s for the caller to validate',
+    async (explicit) => {
+      const [archivedParent] = ledgerAccountEntity.archive(parent);
+      ledgerAccountRepo.findById.mockResolvedValue(archivedParent);
+      ledgerAccountRepo.findByCode
+        .mockResolvedValueOnce(header)
+        .mockResolvedValueOnce(archivedParent);
+      const lookup = explicit
+        ? { ...payload, controlAccountId: parent.id }
+        : { ...payload, defaultControlAccountCode: parent.code };
+
+      await expect(
+        getLockedControlAccountHelper(ledgerAccountRepo, lookup, repoOptions)
+      ).resolves.toBe(archivedParent);
     }
   );
 });

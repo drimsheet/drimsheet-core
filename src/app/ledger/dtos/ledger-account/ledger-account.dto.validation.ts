@@ -65,6 +65,12 @@ export const ledgerAccountBehaviorValidation = z.enum(
 );
 
 export const getLedgerAccountQueryValidationSchema = z.object({
+  status: z
+    .enum(
+      Object.values(ELedgerAccountStatus),
+      new ledgerAccountError.InvalidStatus().errorKey
+    )
+    .optional(),
   ...omit(paginationDtoValidation.shape, ['orderBy']),
   type: ledgerAccountTypeValidation.optional(),
   subType: ledgerAccountSubTypeValidation.optional(),

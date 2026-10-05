@@ -5,6 +5,7 @@ import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.t
 import ILedgerAccountRepo, {
   IFindAllLedgerAccountsOptions,
 } from '@domain/ledger/repos/ledger-account.repo';
+import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import ILedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
@@ -33,6 +34,7 @@ export default function makeGetLedgerAccountsUsecase(deps: IDependencies) {
     const offset = paginationValue.pageToOffset(query.page, query.limit);
     const accountRepoOptions: IFindAllLedgerAccountsOptions = {
       ...query,
+      status: query.status ?? ELedgerAccountStatus.Active,
       offset,
       ...repoOptions,
     };

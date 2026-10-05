@@ -28,6 +28,7 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findById: jest.fn(),
   findAllByIds: jest.fn(),
   findAllByMaterializedPath: jest.fn(),
+  findDescendants: jest.fn(),
   findByCode: jest.fn(),
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
@@ -149,6 +150,28 @@ describe('cashAccountService', () => {
       isControlAccount: false,
       bankDetails,
     });
+    it.each([true, false])(
+      'rejects an archived parent with explicit selection %s before allocating a code',
+      async (explicit) => {
+        const [archivedParent] = ledgerAccountEntity.archive(parent);
+        mockLedgerAccountRepo.findByCode.mockResolvedValue(
+          explicit ? parent : archivedParent
+        );
+        mockLedgerAccountRepo.findById.mockResolvedValue(archivedParent);
+
+        await expect(
+          service.createBankSubAccount(
+            {
+              ...payload(),
+              controlAccountId: explicit ? archivedParent.id : undefined,
+            },
+            options
+          )
+        ).rejects.toBeInstanceOf(ledgerAccountError.ArchivedControlAccount);
+        expect(allocation.getNextCode).not.toHaveBeenCalled();
+      }
+    );
+
     it.each(
       [
         undefined,
@@ -390,6 +413,28 @@ describe('cashAccountService', () => {
         .mockReset()
         .mockResolvedValue(header.code.slice(0, 3) + '042');
     });
+    it.each([true, false])(
+      'rejects an archived parent with explicit selection %s before allocating a code',
+      async (explicit) => {
+        const [archivedParent] = ledgerAccountEntity.archive(header);
+        mockLedgerAccountRepo.findByCode.mockResolvedValue(
+          explicit ? header : archivedParent
+        );
+        mockLedgerAccountRepo.findById.mockResolvedValue(archivedParent);
+
+        await expect(
+          service.createPettyCashSubAccount(
+            {
+              ...payload,
+              controlAccountId: explicit ? archivedParent.id : undefined,
+            },
+            options
+          )
+        ).rejects.toBeInstanceOf(ledgerAccountError.ArchivedControlAccount);
+        expect(allocation.getNextCode).not.toHaveBeenCalled();
+      }
+    );
+
     it.each([
       undefined,
       ELedgerAccountStatus.Active,

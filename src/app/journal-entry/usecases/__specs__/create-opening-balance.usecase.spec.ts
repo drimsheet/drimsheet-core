@@ -6,6 +6,7 @@ import { TEntityId } from '@shared/types/uuid';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
@@ -209,6 +210,23 @@ describe('createOpeningBalanceUseCase', () => {
       fxLotAppService: mockFxLotAppService,
       fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
     });
+
+  it('does not persist when opening journal creation rejects an archived account', async () => {
+    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
+    mockJournalEntryService.createOpeningBalance.mockRejectedValueOnce(failure);
+    await expect(
+      getUseCase()({
+        accountId: mockAssetAccount.id,
+        amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+        exchangeRate: null,
+        date: new Date('2026-04-24T00:00:00Z'),
+      })
+    ).rejects.toBe(failure);
+    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
 
   it('should successfully record opening balance and update account openingBalanceDate', async () => {
     const fxRecords = {

@@ -276,6 +276,40 @@ describe('makeCreateReceiptUsecase', () => {
       fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
     });
 
+  it('does not persist when journal creation rejects an archived account', async () => {
+    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
+    mockJournalEntryService.createReceipt.mockRejectedValueOnce(failure);
+    await expect(
+      getUseCase()({
+        sourceLines: [
+          {
+            accountId: sourceAccount.id,
+            counterparty: { name: 'Jane Doe' },
+            amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+            exchangeRate: null,
+            description: 'Revenue',
+            sequenceOrder: 1,
+          },
+        ],
+        destinationLine: {
+          accountId: destinationAccount.id,
+          counterparty: { name: 'Jane Doe' },
+          amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+          exchangeRate: null,
+          description: 'Cash',
+          sequenceOrder: 2,
+        },
+        effectiveDate: new Date('2026-08-06T00:00:00Z'),
+        postedAt: new Date('2026-08-06T00:00:00Z'),
+        memo: 'Receipt',
+      })
+    ).rejects.toBe(failure);
+    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
   it('successfully orchestrates receipt creation, persists changes, propagates balances and returns DTO', async () => {
     const usecase = getUseCase();
     const fxRecords = {

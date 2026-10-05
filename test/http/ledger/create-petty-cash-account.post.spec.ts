@@ -89,6 +89,7 @@ const accountingEntity = {
 } as IAccountingEntity;
 
 const createdAccount: ILedgerAccountDto = {
+  version: 1,
   id: accountId,
   code: '100001',
   materializedPath: '100000.100001',

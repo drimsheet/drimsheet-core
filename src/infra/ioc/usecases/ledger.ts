@@ -1,4 +1,5 @@
 import makeAdjustLedgerAccountBalanceUseCase from '@app/ledger/usecases/adjust-ledger-account-balance.usecase';
+import makeArchiveLedgerAccountUsecase from '@app/ledger/usecases/archive-ledger-account.usecase';
 import makeCreateBankAccountUseCase from '@app/ledger/usecases/create-bank-account.usecase';
 import makeCreateExpenseAccountUsecase from '@app/ledger/usecases/create-expense-account.usecase';
 import makeCreatePettyCashAccountUseCase from '@app/ledger/usecases/create-petty-cash-account.usecase';
@@ -37,6 +38,7 @@ import {
   giftsAccountService,
   grantsAccountService,
   interestAccountService,
+  ledgerAccountArchiveService,
   ledgerAccountBalanceEnrichmentService,
   ledgerAccountPersistenceService,
   ledgerBalancePropagationPreparationService,
@@ -63,6 +65,17 @@ import appContext from '@infra/runtime/app-context';
 export const getBanksUseCase = makeTracedUseCase(
   'ledger.getBanksUseCase',
   makeGetBanksUseCase()
+);
+
+export const archiveLedgerAccountUseCase = makeTracedUseCase(
+  'ledger.archiveLedgerAccountUseCase',
+  makeArchiveLedgerAccountUsecase({
+    appContext,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    archiveService: ledgerAccountArchiveService,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
 );
 
 export const getRecommendedBootstrapUseCase = makeTracedUseCase(

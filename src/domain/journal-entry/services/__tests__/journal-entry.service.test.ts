@@ -87,6 +87,7 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findById: jest.fn(),
   findAllByIds: jest.fn(),
   findAllByMaterializedPath: jest.fn(),
+  findDescendants: jest.fn(),
   findByCode: jest.fn(),
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
@@ -695,6 +696,55 @@ describe('journalEntryService', () => {
   afterEach(() => {
     jest.useRealTimers();
   });
+
+  it.each([
+    ['payment', false],
+    ['payment', true],
+    ['receipt', false],
+    ['receipt', true],
+    ['transfer', false],
+    ['transfer', true],
+  ] as const)(
+    'rejects archived accounts inside %s creation (posted: %s)',
+    async (kind, posted) => {
+      const postedAt = posted ? effectiveDate : null;
+
+      if (kind === 'receipt') {
+        const { payload } = await makeReceiptFixture(postedAt);
+        payload.sourceLines[0].account = ledgerAccountEntity.archive(
+          payload.sourceLines[0].account
+        )[0];
+
+        await expect(
+          service.createReceipt(payload, repoOptions)
+        ).rejects.toBeInstanceOf(journalEntryError.Base);
+      } else if (kind === 'payment') {
+        const { payload } = makePaymentFixture(postedAt);
+        payload.sourceLine.account = ledgerAccountEntity.archive(
+          payload.sourceLine.account
+        )[0];
+
+        await expect(
+          service.createPayment(payload, repoOptions)
+        ).rejects.toBeInstanceOf(journalEntryError.Base);
+      } else {
+        const { payload, bankChargeAccount } = makeTransferFixture(postedAt);
+        payload.destinationLines.push({
+          ...payload.destinationLines[0],
+          account: ledgerAccountEntity.archive(bankChargeAccount)[0],
+          amount: moneyValue.make(100n, SYSTEM_CURRENCIES.NGN, true),
+          sequenceOrder: 3,
+        });
+
+        await expect(
+          service.createTransfer(payload, repoOptions)
+        ).rejects.toBeInstanceOf(journalEntryError.Base);
+      }
+
+      expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+      expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+    }
+  );
 
   it.each(['payment', 'receipt', 'transfer'] as const)(
     'permits draft counterparties only before posting a %s',
@@ -1891,6 +1941,27 @@ describe('journalEntryService', () => {
         createdBy: fixture.user.actorId,
       };
     }
+
+    it.each(['target', 'equity'] as const)(
+      'rejects an archived %s account inside opening-balance creation',
+      async (kind) => {
+        const fixture = await makeOpeningBalanceFixture();
+        const payload: Parameters<typeof service.createOpeningBalance>[0] =
+          makeOpeningBalancePayload(fixture);
+        const equityAccount =
+          kind === 'equity'
+            ? ledgerAccountEntity.archive(fixture.equityAccount)[0]
+            : fixture.equityAccount;
+        mockLedgerAccountRepo.findBySubType.mockResolvedValue([equityAccount]);
+        if (kind === 'target') {
+          payload.account = ledgerAccountEntity.archive(payload.account)[0];
+        }
+
+        await expect(
+          service.createOpeningBalance(payload, repoOptions)
+        ).rejects.toBeInstanceOf(journalEntryError.Base);
+      }
+    );
 
     describe('initial opening balance for a newly created dated account', () => {
       const transactionOptions = { ...repoOptions, tx: {} };

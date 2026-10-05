@@ -20,7 +20,9 @@ export const journalEntryService = makeJournalEntryService({
 });
 
 export const journalEntryRectificationService =
-  makeJournalEntryRectificationService();
+  makeJournalEntryRectificationService({
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+  });
 
 export const journalEntryRemovalService = makeJournalEntryRemovalService({
   journalEntryRectificationService,

@@ -145,7 +145,7 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     mockCounterpartyAppService.findOrCreateMany.mockResolvedValue(new Map());
     mockCounterpartyAppService.getFoundOrCreated.mockReturnValue(undefined);
     mockJournalEntryRectificationService.rectify.mockImplementation(
-      ({ originalEntry, newEntry }) =>
+      async ({ originalEntry, newEntry }) =>
         makeRectificationResult(originalEntry, newEntry as IJournalEntry)
     );
     mockFxLotAppService.reverse.mockResolvedValue(null);
@@ -497,7 +497,7 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     };
     mockJournalEntryService.createReceipt.mockResolvedValue(candidate);
     mockJournalEntryRectificationService.rectify.mockImplementation(
-      ({ originalEntry: entryToReplace, newEntry }) =>
+      async ({ originalEntry: entryToReplace, newEntry }) =>
         makeRectificationResult(
           entryToReplace,
           newEntry as IJournalEntry,
@@ -575,7 +575,7 @@ describe('makeJournalEntryRectificationPreparationService', () => {
       destinationAssetAccount: destinationAccount,
     });
     mockJournalEntryRectificationService.rectify.mockImplementation(
-      ({ originalEntry: entryToReplace, newEntry }) =>
+      async ({ originalEntry: entryToReplace, newEntry }) =>
         makeRectificationResult(
           entryToReplace,
           newEntry as IJournalEntry,
@@ -668,7 +668,9 @@ describe('makeJournalEntryRectificationPreparationService', () => {
       [],
       { header: {} as never, lines: [] },
     ]);
-    mockJournalEntryRectificationService.rectify.mockReturnValue(rectification);
+    mockJournalEntryRectificationService.rectify.mockResolvedValue(
+      rectification
+    );
 
     await expect(
       service.prepare(
@@ -735,7 +737,7 @@ describe('makeJournalEntryRectificationPreparationService', () => {
       [],
       { header: {} as never, lines: [] },
     ]);
-    mockJournalEntryRectificationService.rectify.mockReturnValue(
+    mockJournalEntryRectificationService.rectify.mockResolvedValue(
       makeRectificationResult(
         originalEntry,
         correctedEntry,
@@ -805,7 +807,9 @@ describe('makeJournalEntryRectificationPreparationService', () => {
       [],
       { header: {} as never, lines: [] },
     ]);
-    mockJournalEntryRectificationService.rectify.mockReturnValue(rectification);
+    mockJournalEntryRectificationService.rectify.mockResolvedValue(
+      rectification
+    );
 
     await service.prepare(
       {
@@ -863,7 +867,7 @@ describe('makeJournalEntryRectificationPreparationService', () => {
       [],
       { header: {} as never, lines: [] },
     ]);
-    mockJournalEntryRectificationService.rectify.mockReturnValue(
+    mockJournalEntryRectificationService.rectify.mockResolvedValue(
       makeRectificationResult(
         originalEntry,
         unsupportedEntry,

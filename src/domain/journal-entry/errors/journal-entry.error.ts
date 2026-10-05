@@ -12,6 +12,8 @@ class JournalEntryError<K extends TErrorPrefix> extends DomainError<K> {
 }
 
 const EErrorKeys = {
+  ArchivedLedgerAccountNotAllowed:
+    'journal_entry_error_archived_ledger_account_not_allowed_invalid',
   InitialOpeningBalanceTransactionRequired:
     'journal_entry_error_initial_opening_balance_transaction_required_unexpected',
   InitialOpeningBalanceAccountAlreadyExists:

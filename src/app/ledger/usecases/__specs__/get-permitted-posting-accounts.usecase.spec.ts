@@ -147,6 +147,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
       accountingEntityId,
       {
+        statuses: ['active', 'draft'],
         types: [ELedgerType.Revenue, ELedgerType.Liability],
         subTypes: undefined,
         behaviors: undefined,

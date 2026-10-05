@@ -91,6 +91,7 @@ const valid: ICreateTradePayableAccountDto = {
   isControlAccount: false,
 };
 const created: ILedgerAccountDto = {
+  version: 1,
   id: accountId,
   code: '201003',
   materializedPath: 'parent.201003',

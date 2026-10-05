@@ -6,6 +6,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import unrealizedGainControlAccountValidation from '@domain/ledger/services/validations/unrealized-gain-control-account.validation';
 import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TUnrealizedGainLedgerCode } from '@domain/ledger/types/ledger-code.types';
@@ -88,6 +89,8 @@ function makeCreateSubAccount(
       },
       repoOptions
     );
+
+    controlAccountAvailabilityValidation.validate(controlAccount);
 
     unrealizedGainControlAccountValidation.validate(
       controlAccount,

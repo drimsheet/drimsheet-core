@@ -20,13 +20,11 @@ describe('makeJournalEntryRemovalService', () => {
   const postedAt = new Date('2026-09-22T10:00:00.000Z');
   const reversalResult = {
     originalJournalEntryId: generateUUID(),
-  } as ReturnType<IJournalEntryRectificationService['reverse']>;
+  } as Awaited<ReturnType<IJournalEntryRectificationService['reverse']>>;
   const journalEntryRectificationService: jest.Mocked<IJournalEntryRectificationService> =
     {
       rectify: jest.fn(),
-      reverse: jest.fn(
-        (_originalEntry: IJournalEntry, _actorId: TEntityId) => reversalResult
-      ),
+      reverse: jest.fn(),
     };
   const service = makeJournalEntryRemovalService({
     journalEntryRectificationService,
@@ -71,12 +69,28 @@ describe('makeJournalEntryRemovalService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    journalEntryRectificationService.reverse.mockReturnValue(reversalResult);
+    journalEntryRectificationService.reverse.mockResolvedValue(reversalResult);
   });
 
   it('exposes an immutable prepare capability', () => {
     expect(Object.keys(service)).toEqual(['prepare']);
     expect(Object.isFrozen(service)).toBe(true);
+  });
+
+  it('propagates an archived-account rejection from reversal preparation', async () => {
+    const entry = makeEntry(EJournalEntrySourceType.Expense, postedAt);
+    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
+    const repoOptions = { correlationId: 'removal-account-check' };
+    journalEntryRectificationService.reverse.mockRejectedValueOnce(failure);
+
+    await expect(
+      service.prepare(entry, entry.createdBy, repoOptions)
+    ).rejects.toBe(failure);
+    expect(journalEntryRectificationService.reverse).toHaveBeenCalledWith(
+      entry,
+      entry.createdBy,
+      repoOptions
+    );
   });
 
   it.each([
@@ -88,11 +102,12 @@ describe('makeJournalEntryRemovalService', () => {
         status: EJournalEntryStatus.Archived,
       },
     ],
-  ])('selects total deletion for a %s entry', (_, entry) => {
+  ])('selects total deletion for a %s entry', async (_, entry) => {
     expect(
-      service.prepare(
+      await service.prepare(
         entry,
-        'a1111111-1111-4111-8111-111111111111' as TEntityId
+        'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        { correlationId: 'test-correlation-id' }
       )
     ).toEqual({
       mode: EJournalEntryRemovalMode.Delete,
@@ -110,11 +125,12 @@ describe('makeJournalEntryRemovalService', () => {
         status: EJournalEntryStatus.Archived,
       },
     ],
-  ])('prepares reversal for a %s entry', (_, entry) => {
+  ])('prepares reversal for a %s entry', async (_, entry) => {
     expect(
-      service.prepare(
+      await service.prepare(
         entry,
-        'a1111111-1111-4111-8111-111111111111' as TEntityId
+        'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        { correlationId: 'test-correlation-id' }
       )
     ).toEqual({
       mode: EJournalEntryRemovalMode.Reverse,
@@ -122,7 +138,8 @@ describe('makeJournalEntryRemovalService', () => {
     });
     expect(journalEntryRectificationService.reverse).toHaveBeenCalledWith(
       entry,
-      'a1111111-1111-4111-8111-111111111111' as TEntityId
+      'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      { correlationId: 'test-correlation-id' }
     );
   });
 
@@ -133,13 +150,14 @@ describe('makeJournalEntryRemovalService', () => {
       status: EJournalEntryStatus.Archived,
     },
     makeEntry(EJournalEntrySourceType.Reversal, null),
-  ])('rejects reversal source type before mode selection', (entry) => {
-    expect(() =>
+  ])('rejects reversal source type before mode selection', async (entry) => {
+    await expect(
       service.prepare(
         entry,
-        'a1111111-1111-4111-8111-111111111111' as TEntityId
+        'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        { correlationId: 'test-correlation-id' }
       )
-    ).toThrow(journalEntryError.DeletionNotPermitted);
+    ).rejects.toThrow(journalEntryError.DeletionNotPermitted);
     expect(journalEntryRectificationService.reverse).not.toHaveBeenCalled();
   });
 
@@ -156,13 +174,17 @@ describe('makeJournalEntryRemovalService', () => {
       ...makeEntry(EJournalEntrySourceType.Expense, postedAt),
       postedAt: null,
     },
-  ] satisfies IJournalEntry[])('rejects an invalid removal state', (entry) => {
-    expect(() =>
-      service.prepare(
-        entry,
-        'a1111111-1111-4111-8111-111111111111' as TEntityId
-      )
-    ).toThrow(journalEntryError.DeletionNotPermitted);
-    expect(journalEntryRectificationService.reverse).not.toHaveBeenCalled();
-  });
+  ] satisfies IJournalEntry[])(
+    'rejects an invalid removal state',
+    async (entry) => {
+      await expect(
+        service.prepare(
+          entry,
+          'a1111111-1111-4111-8111-111111111111' as TEntityId,
+          { correlationId: 'test-correlation-id' }
+        )
+      ).rejects.toThrow(journalEntryError.DeletionNotPermitted);
+      expect(journalEntryRectificationService.reverse).not.toHaveBeenCalled();
+    }
+  );
 });

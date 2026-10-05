@@ -602,3 +602,47 @@ describe('initial ledger opening balance date', () => {
     ).toThrow(ledgerAccountError.ForbiddenControlAccountOpeningBalanceDate);
   });
 });
+
+describe('ledger account archive', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it.each(['active', 'draft'] as const)(
+    'archives a %s account without changing accounting fields',
+    (status) => {
+      const [account] = makeCashAccount(status);
+      jest
+        .useFakeTimers()
+        .setSystemTime(new Date(account.updatedAt.getTime() + 1000));
+      const [archived, events, audit] = ledgerAccountEntity.archive(account);
+      expect(archived).toEqual({
+        ...account,
+        status: 'archived',
+        version: account.version + 1,
+        updatedAt: new Date(),
+      });
+      expect(account.status).toBe(status);
+      expect(Object.isFrozen(archived)).toBe(true);
+      expect(events).toEqual([
+        expect.objectContaining({
+          type: ELedgerAccountEvent.Archived,
+          data: archived,
+        }),
+      ]);
+      expect(audit).toEqual(
+        expect.objectContaining({
+          action: ELedgerAccountAuditAction.Archived,
+          entityVersion: archived.version,
+          diff: { before: account, after: archived },
+        })
+      );
+    }
+  );
+
+  it('returns an archived account unchanged without another audit or event', () => {
+    const [account] = makeCashAccount('archived');
+    const [archived, events, audit] = ledgerAccountEntity.archive(account);
+    expect(archived).toBe(account);
+    expect(events).toEqual([]);
+    expect(audit).toBeNull();
+  });
+});

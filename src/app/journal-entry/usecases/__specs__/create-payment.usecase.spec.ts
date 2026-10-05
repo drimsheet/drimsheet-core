@@ -293,6 +293,16 @@ describe('makeCreatePaymentUsecase', () => {
     mockEventBus.publish.mockResolvedValue();
   });
 
+  it('does not persist when journal creation rejects an archived account', async () => {
+    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
+    mockJournalEntryService.createPayment.mockRejectedValueOnce(failure);
+    await expect(getUseCase()(makePayload())).rejects.toBe(failure);
+    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
   it('orchestrates a posted payment and returns its DTO', async () => {
     const payload = makePayload();
     const attachmentReferences = ['123e4567-e89b-12d3-a456-426614174010'];
