@@ -1,5 +1,6 @@
 import makeArchiveCounterpartyUsecase from '@app/counterparty/usecases/archive-counterparty.usecase';
 import makeCreateCounterpartyUsecase from '@app/counterparty/usecases/create-counterparty.usecase';
+import makeDeleteCounterpartyUsecase from '@app/counterparty/usecases/delete-counterparty.usecase';
 import makeGetCounterpartiesUsecase from '@app/counterparty/usecases/get-counterparties.usecase';
 import makeGetCounterpartyUsecase from '@app/counterparty/usecases/get-counterparty.usecase';
 import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
@@ -8,6 +9,7 @@ import { counterpartyService } from '@infra/ioc/services/counterparty';
 import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import counterpartyRepos from '@infra/persistence/repos/counterparty';
+import journalRepos from '@infra/persistence/repos/journal-entry';
 import appContext from '@infra/runtime/app-context';
 import repoService from '@infra/services/repo.service';
 
@@ -27,6 +29,16 @@ export const createCounterpartyUseCase = makeTracedUseCase(
     appContext,
     counterpartyService,
     eventBus: messaging.eventBus,
+  })
+);
+
+export const deleteCounterpartyUseCase = makeTracedUseCase(
+  'counterparty.deleteCounterpartyUseCase',
+  makeDeleteCounterpartyUsecase({
+    repoService,
+    appContext,
+    journalLineRepo: journalRepos.journalLine,
+    counterpartyRepo: counterpartyRepos.counterparty,
   })
 );
 

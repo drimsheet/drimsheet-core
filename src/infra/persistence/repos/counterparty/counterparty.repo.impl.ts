@@ -17,6 +17,24 @@ import counterpartyMapper from '@infra/persistence/repos/counterparty/mappers/co
 import counterpartyHistoryRepo from './counterparty-history.repo.impl';
 
 const counterpartyRepo: ICounterpartyRepo = {
+  delete: async (id, accountingEntityId, options) => {
+    const deleted = await getDbQuery(options)
+      .delete(counterpartiesInCore)
+      .where(
+        and(
+          eq(counterpartiesInCore.id, id),
+          eq(counterpartiesInCore.accountingEntityId, accountingEntityId),
+          eq(counterpartiesInCore.version, options.expectedVersion)
+        )
+      );
+
+    if (deleted.rowCount === 0)
+      throw new repoError.VersionNotFound({
+        id,
+        version: options.expectedVersion,
+      });
+  },
+
   update: async (counterparty, options) => {
     validateVersionInRepo(counterparty, options);
 

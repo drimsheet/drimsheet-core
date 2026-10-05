@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Middlewares,
   OperationId,
@@ -17,6 +18,7 @@ import {
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import { ICounterpartyArchiveReq } from '@app/counterparty/dtos/counterparty-archive/counterparty-archive.dto';
+import { ICounterpartyDeletionReq } from '@app/counterparty/dtos/counterparty-deletion/counterparty-deletion.dto';
 import {
   ICounterpartyCreateReq,
   ICounterpartyDto,
@@ -28,6 +30,7 @@ import middlewares from '@infra/ioc/middlewares/http';
 import {
   archiveCounterpartyUseCase,
   createCounterpartyUseCase,
+  deleteCounterpartyUseCase,
   getCounterpartiesUseCase,
   getCounterpartyUseCase,
   updateCounterpartyUseCase,
@@ -150,5 +153,33 @@ export class CounterpartyController extends Controller {
     @Body() body: ICounterpartyArchiveReq
   ): Promise<ICounterpartyDto> {
     return await archiveCounterpartyUseCase(id, body);
+  }
+
+  /**
+   * Permanently delete a counterparty with no remaining transaction references.
+   * References in archived transactions also block deletion. Returns 409 with
+   * reason=transaction_usage and nextAction=archive_counterparty; retain the
+   * counterparty and use POST /counterparties/{id}/archive instead.
+   */
+  @Delete('/{id}')
+  @OperationId('deleteCounterparty')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async deleteCounterparty(
+    @Path() id: string,
+    @Body() body: ICounterpartyDeletionReq
+  ): Promise<void> {
+    await deleteCounterpartyUseCase(id, body);
   }
 }

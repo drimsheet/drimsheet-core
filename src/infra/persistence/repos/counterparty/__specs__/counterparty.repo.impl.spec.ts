@@ -76,6 +76,80 @@ function makeWriteQuery() {
   return { query, tx, values };
 }
 
+describe('conditional counterparty deletion', () => {
+  beforeEach(() => jest.resetAllMocks());
+
+  function deleteQuery(rowCount = 1) {
+    const where = jest.fn().mockResolvedValue({ rowCount });
+    const query = { delete: jest.fn().mockReturnValue({ where }) };
+    useQuery(query);
+    return { query, where };
+  }
+
+  it('deletes only the ID/tenant/version-matching parent in the supplied transaction', async () => {
+    const { query, where } = deleteQuery();
+    const options = {
+      correlationId: 'delete',
+      expectedVersion: counterparty.version,
+      tx: { _brand: 'DrimsheetTransactionContext' as const },
+    };
+    await counterpartyRepo.delete(
+      counterparty.id,
+      counterparty.accountingEntityId,
+      options
+    );
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(query.delete).toHaveBeenCalledTimes(1);
+    expect(query.delete).toHaveBeenCalledWith(counterpartiesInCore);
+    const statement = new PgDialect().sqlToQuery(where.mock.calls[0][0] as SQL);
+    expect(statement.params).toEqual([
+      counterparty.id,
+      counterparty.accountingEntityId,
+      counterparty.version,
+    ]);
+    expect(statement.sql).toContain(
+      '"core"."counterparties"."accounting_entity_id"'
+    );
+    expect(statement.sql).toContain('"core"."counterparties"."version"');
+    expect(counterpartyHistoryRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a zero-row deletion as a version conflict', async () => {
+    deleteQuery(0);
+    await expect(
+      counterpartyRepo.delete(
+        counterparty.id,
+        counterparty.accountingEntityId,
+        {
+          correlationId: 'delete',
+          expectedVersion: counterparty.version,
+        }
+      )
+    ).rejects.toMatchObject({
+      errorKey: 'repo_error_version_conflict',
+      cause: { id: counterparty.id, version: counterparty.version },
+    });
+    expect(counterpartyHistoryRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('propagates delete failures for caller rollback', async () => {
+    const { where } = deleteQuery();
+    const failure = new Error('delete failed');
+    where.mockRejectedValue(failure);
+    await expect(
+      counterpartyRepo.delete(
+        counterparty.id,
+        counterparty.accountingEntityId,
+        {
+          correlationId: 'delete',
+          expectedVersion: counterparty.version,
+        }
+      )
+    ).rejects.toBe(failure);
+    expect(counterpartyHistoryRepo.save).not.toHaveBeenCalled();
+  });
+});
+
 describe('Counterparty repository', () => {
   beforeEach(() => jest.resetAllMocks());
 
