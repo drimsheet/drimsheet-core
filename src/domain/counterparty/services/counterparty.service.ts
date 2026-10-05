@@ -74,8 +74,10 @@ function makeUpdate(
   return async (counterparty, payload, options: IReadRepoOptions) => {
     counterpartyEntity.validateCounterparty(counterparty);
 
-    if (payload.type !== undefined)
+    if (payload.type !== undefined) {
       counterpartyEntity.validateType(payload.type);
+    }
+
     counterpartyEntity.validateUpdateStatus(
       counterparty.status,
       payload.status

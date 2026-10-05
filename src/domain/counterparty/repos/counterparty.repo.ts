@@ -34,6 +34,13 @@ export interface IFindAllCounterpartiesOptions extends Omit<
 }
 
 export default interface ICounterpartyRepo {
+  /** Deletes only the tenant/version-matching counterparty; preserves audit records. */
+  delete(
+    id: TEntityId,
+    accountingEntityId: TEntityId,
+    options: IVersionedRepoWriteOptions
+  ): Promise<void>;
+
   /** Saves a conditional versioned update and its history atomically. */
   update(
     counterparty: ICounterparty,

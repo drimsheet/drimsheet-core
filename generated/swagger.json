@@ -2468,6 +2468,18 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ICounterpartyDeletionReq": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number",
+            "format": "double",
+            "description": "Version returned by the last read; stale deletes fail with HTTP 409."
+          }
+        },
+        "required": ["expectedVersion"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IBankDirectoryDto": {
         "properties": {
           "countryCode": {
@@ -5425,6 +5437,107 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ICounterpartyUpdateReq"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCounterparty",
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Permanently delete a counterparty with no remaining transaction references.\nReferences in archived transactions also block deletion. Returns 409 with\nreason=transaction_usage and nextAction=archive_counterparty; retain the\ncounterparty and use POST /counterparties/{id}/archive instead.",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICounterpartyDeletionReq"
               }
             }
           }

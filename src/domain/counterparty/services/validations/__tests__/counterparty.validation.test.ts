@@ -29,27 +29,30 @@ describe('counterparty service validation', () => {
     expect(Object.isFrozen(counterpartyServiceValidation)).toBe(true);
   });
 
-  it('returns no value for unused counterparties and preserves scoped read options', async () => {
-    journalLineRepo.findAllByCounterpartyId.mockResolvedValue([]);
+  it.each(['validateTypeChangeAllowed', 'validateDeletionAllowed'] as const)(
+    '%s returns no value for unused counterparties and preserves scoped read options',
+    async (method) => {
+      journalLineRepo.findAllByCounterpartyId.mockResolvedValue([]);
 
-    await expect(
-      counterpartyServiceValidation.validateTypeChangeAllowed(
-        journalLineRepo,
+      await expect(
+        counterpartyServiceValidation[method](
+          journalLineRepo,
+          counterpartyId,
+          accountingEntityId,
+          options
+        )
+      ).resolves.toBeUndefined();
+
+      expect(journalLineRepo.findAllByCounterpartyId).toHaveBeenCalledWith(
         counterpartyId,
         accountingEntityId,
         options
-      )
-    ).resolves.toBeUndefined();
-
-    expect(journalLineRepo.findAllByCounterpartyId).toHaveBeenCalledWith(
-      counterpartyId,
-      accountingEntityId,
-      options
-    );
-    expect(journalLineRepo.findAllByCounterpartyId.mock.calls[0][2].tx).toBe(
-      options.tx
-    );
-  });
+      );
+      expect(journalLineRepo.findAllByCounterpartyId.mock.calls[0][2].tx).toBe(
+        options.tx
+      );
+    }
+  );
 
   it('rejects transaction usage with type and replacement guidance', async () => {
     const [line] = journalLineEntity.make(
@@ -89,17 +92,57 @@ describe('counterparty service validation', () => {
     });
   });
 
-  it('propagates lookup failure rather than treating it as no usage', async () => {
-    const failure = new Error('usage lookup failed');
-    journalLineRepo.findAllByCounterpartyId.mockRejectedValue(failure);
+  it.each(['validateTypeChangeAllowed', 'validateDeletionAllowed'] as const)(
+    '%s propagates lookup failure rather than treating it as no usage',
+    async (method) => {
+      const failure = new Error('usage lookup failed');
+      journalLineRepo.findAllByCounterpartyId.mockRejectedValue(failure);
 
+      await expect(
+        counterpartyServiceValidation[method](
+          journalLineRepo,
+          counterpartyId,
+          accountingEntityId,
+          options
+        )
+      ).rejects.toBe(failure);
+    }
+  );
+
+  it('rejects deletion when a remaining transaction reference exists', async () => {
+    const [line] = journalLineEntity.make(
+      {
+        id: generateUUID(),
+        createdBy: generateUUID(),
+        memo: null,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      },
+      {
+        accountId: generateUUID(),
+        counterpartyId,
+        sequenceOrder: 1,
+        amount: moneyValue.make(1000, SYSTEM_CURRENCIES.NGN, true),
+        exchangeRate: null,
+        side: 'debit',
+        description: null,
+        functionalCurrency: SYSTEM_CURRENCIES.NGN,
+      }
+    );
+    journalLineRepo.findAllByCounterpartyId.mockResolvedValue([line]);
     await expect(
-      counterpartyServiceValidation.validateTypeChangeAllowed(
+      counterpartyServiceValidation.validateDeletionAllowed(
         journalLineRepo,
         counterpartyId,
         accountingEntityId,
         options
       )
-    ).rejects.toBe(failure);
+    ).rejects.toMatchObject({
+      errorKey:
+        'counterparty_error_deletion_with_transaction_references_conflict',
+      cause: {
+        reason: 'transaction_usage',
+        nextAction: 'archive_counterparty',
+      },
+    });
   });
 });

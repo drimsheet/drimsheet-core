@@ -112,6 +112,7 @@
   "counterparty_error_counterparty_payload_invalid",
   "counterparty_error_created_by_invalid",
   "counterparty_error_date_invalid",
+  "counterparty_error_deletion_with_transaction_references_conflict",
   "counterparty_error_meta_invalid",
   "counterparty_error_name_invalid",
   "counterparty_error_role_already_assigned_conflict",

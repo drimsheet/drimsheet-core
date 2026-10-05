@@ -5,6 +5,8 @@ import DomainError from '@shared/values/errors/domain.error';
 type TErrorPrefix = TErrorKey<'counterparty_error'>;
 
 const EErrorKeys = {
+  DeletionWithTransactionReferences:
+    'counterparty_error_deletion_with_transaction_references_conflict',
   TypeChangeAfterTransactionUse:
     'counterparty_error_type_change_after_transaction_use_conflict',
   AlreadyActive: 'counterparty_error_already_active_conflict',

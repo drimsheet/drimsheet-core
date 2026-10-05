@@ -27,8 +27,31 @@ async function validateTypeChangeAllowed(
     });
 }
 
+/** Rejects remaining references across every journal status in the caller's locked transaction. */
+async function validateDeletionAllowed(
+  journalLineRepo: IJournalLineRepo,
+  counterpartyId: TEntityId,
+  accountingEntityId: TEntityId,
+  options: IReadRepoOptions
+): Promise<void> {
+  const journalLines = await journalLineRepo.findAllByCounterpartyId(
+    counterpartyId,
+    accountingEntityId,
+    options
+  );
+
+  const hasTransactionReferences = journalLines.length > 0;
+
+  if (hasTransactionReferences)
+    throw new counterpartyError.DeletionWithTransactionReferences({
+      reason: 'transaction_usage',
+      nextAction: 'archive_counterparty',
+    });
+}
+
 const counterpartyServiceValidation = Object.freeze({
   validateTypeChangeAllowed,
+  validateDeletionAllowed,
 });
 
 export default counterpartyServiceValidation;
