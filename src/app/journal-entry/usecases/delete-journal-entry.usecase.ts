@@ -8,7 +8,6 @@ import stringUtils from '@shared/utils/string';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 
-import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import {
@@ -26,7 +25,6 @@ import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contrac
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
-  accountingEntityService: IAccountingEntityService;
   appContext: IAppContext;
   eventBus: IEventBus;
   fxCostBasisPersistenceService: IFxCostBasisPersistenceService;
@@ -43,10 +41,8 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
   return async (id: string): Promise<void> => {
     stringUtils.validateUUID(id, journalEntryError.InvalidJournalEntry);
 
-    const { correlationId, idempotencyKey, accountingEntity, user, actor } =
-      deps.appContext.get(['user', 'actor', 'accountingEntity']);
-
-    deps.accountingEntityService.validateAccess(accountingEntity, user.id);
+    const { correlationId, idempotencyKey, accountingEntity, actor } =
+      deps.appContext.get(['actor', 'accountingEntity']);
 
     const repoOptions = { correlationId, idempotencyKey };
 
