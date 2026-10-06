@@ -68,7 +68,6 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
       id,
       entry: storedEntry,
       accountingEntityId: accountingEntity.id,
-      expectedVersion: payload.expectedVersion,
     });
 
     const preparationPayload = {

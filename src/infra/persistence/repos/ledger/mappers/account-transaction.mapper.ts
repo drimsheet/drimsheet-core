@@ -48,7 +48,6 @@ const accountTransactionMapper = {
         postedAt: payload.header.postedAt,
         voidedAt: payload.header.voidedAt,
         voidingEntryId: payload.header.voidingEntryId,
-        version: payload.header.version,
         createdBy: payload.header.createdBy,
         createdAt: payload.header.createdAt,
         updatedAt: payload.header.updatedAt,

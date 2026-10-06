@@ -117,10 +117,10 @@ describe('makeCreateCounterpartyUsecase', () => {
       type: 'individual',
       meta: {},
       roles: [],
-      version: 1,
       createdAt: expect.any(Date),
       updatedAt: expect.any(Date),
     });
+    expect(result).not.toHaveProperty('version');
   });
 
   it.each([

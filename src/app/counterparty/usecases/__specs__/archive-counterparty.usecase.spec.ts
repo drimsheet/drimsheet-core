@@ -45,9 +45,7 @@ describe('archive counterparty use case', () => {
   });
 
   it('saves an archive and attributed history before publishing and mapping the DTO', async () => {
-    const response = await usecase(before.id, {
-      expectedVersion: before.version,
-    });
+    const response = await usecase(before.id);
 
     expect(mockAppContext.get).toHaveBeenCalledWith([
       'actor',
@@ -109,46 +107,26 @@ describe('archive counterparty use case', () => {
     'hides a missing or foreign counterparty before checking its version',
     async (stored) => {
       mockCounterpartyRepo.findById.mockResolvedValue(stored);
-      await expect(
-        usecase(before.id, { expectedVersion: before.version })
-      ).rejects.toThrow(appError.ResourceNotFound);
+      await expect(usecase(before.id)).rejects.toThrow(
+        appError.ResourceNotFound
+      );
       expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
 
-  it('rejects stale versions before persistence', async () => {
-    await expect(
-      usecase(before.id, { expectedVersion: before.version + 1 })
-    ).rejects.toThrow(appError.Conflict);
-    expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-
-  it('returns an already archived counterparty unchanged with a matching version', async () => {
+  it('returns an already archived counterparty unchanged', async () => {
     const [archived] = counterpartyEntity.archive(before);
     mockCounterpartyRepo.findById.mockResolvedValue(archived);
-    await expect(
-      usecase(before.id, {
-        expectedVersion: archived.version,
-      })
-    ).resolves.toEqual(counterpartyDtoMapper.toDto(archived));
-    expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-
-  it('rejects a stale version for an already archived counterparty', async () => {
-    const [archived] = counterpartyEntity.archive(before);
-    mockCounterpartyRepo.findById.mockResolvedValue(archived);
-    await expect(
-      usecase(before.id, { expectedVersion: before.version })
-    ).rejects.toThrow(appError.Conflict);
+    await expect(usecase(before.id)).resolves.toEqual(
+      counterpartyDtoMapper.toDto(archived)
+    );
     expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('rejects malformed IDs before reading context', async () => {
-    await expect(usecase('invalid', { expectedVersion: 1 })).rejects.toThrow(
+    await expect(usecase('invalid')).rejects.toThrow(
       counterpartyError.InvalidCounterpartyId
     );
     expect(mockAppContext.get).not.toHaveBeenCalled();
@@ -161,36 +139,17 @@ describe('archive counterparty use case', () => {
       ...archived,
       name: '',
     });
-    await expect(
-      usecase(before.id, { expectedVersion: archived.version })
-    ).rejects.toThrow(counterpartyError.InvalidName);
+    await expect(usecase(before.id)).rejects.toThrow(
+      counterpartyError.InvalidName
+    );
     expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it.each([
-    {},
-    { expectedVersion: 0 },
-    { expectedVersion: 1, status: 'archived' },
-  ])(
-    'rejects invalid body %j before context and repository access',
-    async (body) => {
-      await expect(usecase(before.id, body as never)).rejects.toThrow(
-        appError.UnprocessableEntity
-      );
-      expect(mockAppContext.get).not.toHaveBeenCalled();
-      expect(mockCounterpartyRepo.findById).not.toHaveBeenCalled();
-      expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-    }
-  );
-
   it('propagates a concurrent repository version conflict without publishing', async () => {
     const failure = new repoError.VersionNotFound();
     mockCounterpartyRepo.update.mockRejectedValue(failure);
-    await expect(
-      usecase(before.id, { expectedVersion: before.version })
-    ).rejects.toBe(failure);
+    await expect(usecase(before.id)).rejects.toBe(failure);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -203,9 +162,7 @@ describe('archive counterparty use case', () => {
       if (stage === 'write')
         mockCounterpartyRepo.update.mockRejectedValue(failure);
       if (stage === 'publish') mockEventBus.publish.mockRejectedValue(failure);
-      await expect(
-        usecase(before.id, { expectedVersion: before.version })
-      ).rejects.toBe(failure);
+      await expect(usecase(before.id)).rejects.toBe(failure);
       if (stage === 'read')
         expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
       if (stage === 'publish')

@@ -141,15 +141,11 @@ describe('DELETE /counterparties/{id}', () => {
     app = createApplication();
   });
 
-  const deleteRequest = (
-    body: object = { expectedVersion: counterparty.version },
-    url = endpoint
-  ) =>
+  const deleteRequest = (url = endpoint) =>
     request(app)
       .delete(url)
       .set('Authorization', 'Bearer valid-token')
-      .set('x-accounting-entity-id', accountingEntityId)
-      .send(body);
+      .set('x-accounting-entity-id', accountingEntityId);
 
   describe('204 Response', () => {
     it.each(['draft', 'active', 'archived'] as const)(
@@ -164,15 +160,12 @@ describe('DELETE /counterparties/{id}', () => {
         });
         mockCounterpartyRepo.findById.mockResolvedValue(current);
         const response = await deleteRequest(
-          { expectedVersion: current.version },
           `/api/v1/counterparties/${current.id}`
         );
         expect(response.status).toBe(204);
         expect(response.text).toBe('');
         expect(response.headers['content-type']).toBeUndefined();
-        expect(remove).toHaveBeenCalledWith(current.id, {
-          expectedVersion: current.version,
-        });
+        expect(remove).toHaveBeenCalledWith(current.id);
         expect(mockCounterpartyRepo.delete).toHaveBeenCalledWith(
           current.id,
           accountingEntityId,
@@ -202,10 +195,7 @@ describe('DELETE /counterparties/{id}', () => {
 
   describe('400 Response', () => {
     it('rejects malformed IDs before transaction access', async () => {
-      const response = await deleteRequest(
-        { expectedVersion: 1 },
-        '/api/v1/counterparties/invalid'
-      );
+      const response = await deleteRequest('/api/v1/counterparties/invalid');
       expect(response.status).toBe(400);
       expect(response.body.errorKey).toBe(
         'counterparty_error_counterparty_id_invalid'
@@ -217,9 +207,7 @@ describe('DELETE /counterparties/{id}', () => {
 
   describe('401 Response', () => {
     it('rejects unauthenticated callers before feature/access checks or orchestration', async () => {
-      const response = await request(app)
-        .delete(endpoint)
-        .send({ expectedVersion: 1 });
+      const response = await request(app).delete(endpoint);
       expect(response.status).toBe(401);
       expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
       expect(remove).not.toHaveBeenCalled();
@@ -298,18 +286,6 @@ describe('DELETE /counterparties/{id}', () => {
       expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
     });
 
-    it('rejects stale versions before reading usage', async () => {
-      const response = await deleteRequest({
-        expectedVersion: counterparty.version + 1,
-      });
-      expect(response.status).toBe(409);
-      expect(response.body.errorKey).toBe('app_error_conflict');
-      expect(
-        mockJournalLineRepo.findAllByCounterpartyId
-      ).not.toHaveBeenCalled();
-      expect(mockCounterpartyRepo.delete).not.toHaveBeenCalled();
-    });
-
     it('maps conditional repository deletion conflicts', async () => {
       mockCounterpartyRepo.delete.mockRejectedValue(
         new repoError.VersionNotFound()
@@ -318,26 +294,6 @@ describe('DELETE /counterparties/{id}', () => {
       expect(response.status).toBe(409);
       expect(response.body.errorKey).toBe('repo_error_version_conflict');
       expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('422 Response', () => {
-    it.each([
-      {},
-      { expectedVersion: null },
-      { expectedVersion: 0 },
-      { expectedVersion: -1 },
-      { expectedVersion: 1.5 },
-      { expectedVersion: 'invalid' },
-      { expectedVersion: 1, confirmed: true },
-      { expectedVersion: 1, name: 'Changed' },
-      { expectedVersion: 1, actorId: 'forged' },
-      { expectedVersion: 1, accountingEntityId },
-    ])('rejects malformed or extra-field body %j', async (body) => {
-      const response = await deleteRequest(body);
-      expect(response.status).toBe(422);
-      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
-      expect(mockCounterpartyRepo.delete).not.toHaveBeenCalled();
     });
   });
 

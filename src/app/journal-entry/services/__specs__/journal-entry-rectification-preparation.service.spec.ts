@@ -179,7 +179,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
       );
       const requestedEntry: IPaymentJournalEntryRectificationReq = {
         sourceType: EJournalEntrySourceType.Payment,
-        expectedVersion: originalEntry.version,
         attachments: [],
         effectiveDate,
         postedAt: requestedPostedAt,
@@ -263,7 +262,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
       const postedAt = originalPostedAt ?? requestedPostedAt;
       const candidate = makeEntry(sourceType, 100, postedAt);
       const base = {
-        expectedVersion: 1,
         attachments: [],
         effectiveDate,
         postedAt: requestedPostedAt,
@@ -409,7 +407,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
         const [originalEntry] = makeEntry('payment', 100, originalPostedAt);
         const requestedEntry: IPaymentJournalEntryRectificationReq = {
           sourceType: 'payment',
-          expectedVersion: originalEntry.version,
           attachments: [],
           effectiveDate,
           postedAt: requestedPostedAt,
@@ -464,7 +461,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     const candidate = makeEntry(EJournalEntrySourceType.Receipt);
     const requestedEntry: IReceiptJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Receipt,
-      expectedVersion: originalEntry.version,
       attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
@@ -532,7 +528,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     const candidate = makeEntry(EJournalEntrySourceType.Transfer);
     const requestedEntry: ITransferJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Transfer,
-      expectedVersion: originalEntry.version,
       attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
@@ -634,7 +629,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     const [correctedEntry] = makeEntry(EJournalEntrySourceType.Payment, 200);
     const requestedEntry: IPaymentJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      expectedVersion: originalEntry.version,
       attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
@@ -708,7 +702,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     const [correctedEntry] = makeEntry(EJournalEntrySourceType.Payment, 200);
     const requestedEntry: IPaymentJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      expectedVersion: originalEntry.version,
       attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
@@ -773,7 +766,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     const [postedEntry] = makeEntry(EJournalEntrySourceType.Payment);
     const requestedEntry: IPaymentJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      expectedVersion: originalEntry.version,
       attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
@@ -838,7 +830,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
     const [unsupportedEntry] = makeEntry(EJournalEntrySourceType.Reversal);
     const requestedEntry: IPaymentJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      expectedVersion: originalEntry.version,
       attachments: [],
       effectiveDate,
       postedAt: effectiveDate,

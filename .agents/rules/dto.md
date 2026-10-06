@@ -21,6 +21,7 @@ DTOs define application input/output shapes.
 - Provide `fromDto` / `toDto` helpers in the DTO mapper when conversion is
   needed.
 - Do not use `any`.
+- Do not expose persistence versions or accept expected versions in delivery DTOs without an accepted stale-view contract.
 
 DTO validation is for transport shape and primitive constraints. Business validity belongs in domain/app logic.
 

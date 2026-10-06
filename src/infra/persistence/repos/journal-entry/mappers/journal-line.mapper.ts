@@ -85,7 +85,6 @@ const journalLineMapper = {
       functionalAmount: moneyMapper.toDto(payload.functionalAmount),
       side: payload.side,
       description: payload.description,
-      version: payload.version,
       createdAt: payload.createdAt,
       updatedAt: payload.updatedAt,
     };

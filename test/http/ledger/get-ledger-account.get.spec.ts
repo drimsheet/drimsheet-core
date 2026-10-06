@@ -79,7 +79,6 @@ const user = {
 } satisfies IUser;
 
 const account = {
-  version: 1,
   id: accountId,
   code: '100001',
   materializedPath: '100000.100001',

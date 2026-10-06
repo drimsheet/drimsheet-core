@@ -20,6 +20,7 @@
   application service.
 - Own the outer workflow transaction and pass it to every persistence call that
   must commit or roll back with the request.
+- Derive `expectedVersion` from the workflow's repository read.
 - Do not hide business rules in the use case body.
 - Move non-trivial decisions to domain entities, values, domain services, app services, or app policies.
 - Do not extract a service only to shorten the use case.
@@ -44,6 +45,7 @@
 - Keep a read inside the transaction only when a named invariant requires a
   transaction-scoped snapshot, lock, or claim. Document that requirement in the
   use case or its owning architecture decision.
+- Use row locks only for such a named invariant.
 - Do not put request validation, event publication, post-commit side effects,
   unrelated external calls, or large domain/history assembly blocks inside the
   persistence function.

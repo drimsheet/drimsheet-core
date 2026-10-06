@@ -79,7 +79,9 @@ describe('Journal Entry DTO Mapper', () => {
         ],
       };
 
-      expect(journalEntryDtoMapper.toDto(entry)).toEqual({
+      const dto = journalEntryDtoMapper.toDto(entry);
+
+      expect(dto).toEqual({
         id: 'entry-id',
         accountingEntityId: 'accounting-entity-id',
         sourceType: 'transfer',
@@ -89,7 +91,6 @@ describe('Journal Entry DTO Mapper', () => {
         postedAt,
         voidedAt: null,
         voidingEntryId: null,
-        version: 2,
         createdBy: 'user-id',
         createdAt,
         updatedAt,
@@ -131,12 +132,13 @@ describe('Journal Entry DTO Mapper', () => {
             },
             side: 'debit',
             description: 'Savings transfer',
-            version: 1,
             createdAt,
             updatedAt,
           },
         ],
       });
+      expect(dto).not.toHaveProperty('version');
+      expect(dto.lines[0]).not.toHaveProperty('version');
     });
   });
 
@@ -230,7 +232,6 @@ describe('Journal Entry DTO Mapper', () => {
         postedAt: createdAt,
         voidedAt: null,
         voidingEntryId: null,
-        version: 1,
         createdBy: entry.createdBy,
         createdAt,
         updatedAt,
@@ -260,7 +261,6 @@ describe('Journal Entry DTO Mapper', () => {
             },
             side: EJournalSide.Debit,
             description: 'Cash received',
-            version: 1,
             createdAt,
             updatedAt,
           },
@@ -284,12 +284,14 @@ describe('Journal Entry DTO Mapper', () => {
             },
             side: EJournalSide.Credit,
             description: null,
-            version: 1,
             createdAt,
             updatedAt,
           },
         ],
       });
+      expect(result).not.toHaveProperty('version');
+      for (const line of result.lines)
+        expect(line).not.toHaveProperty('version');
       expect(result.lines[0]).not.toHaveProperty('accountId');
       expect(result.lines[0]).not.toHaveProperty('counterpartyId');
       expect(result.lines[0]).not.toHaveProperty('meta');

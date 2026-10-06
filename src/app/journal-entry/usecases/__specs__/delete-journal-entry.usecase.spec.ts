@@ -156,9 +156,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
     const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
     mockJournalEntryRemovalService.prepare.mockRejectedValueOnce(failure);
-    await expect(
-      usecase(entry.id, { expectedVersion: entry.version })
-    ).rejects.toBe(failure);
+    await expect(usecase(entry.id)).rejects.toBe(failure);
     expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceService.delete).not.toHaveBeenCalled();
     expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
@@ -178,9 +176,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
         prepareDeletion(entry)
       );
 
-      await expect(
-        usecase(entry.id, { expectedVersion: entry.version })
-      ).resolves.toBeUndefined();
+      await expect(usecase(entry.id)).resolves.toBeUndefined();
 
       expect(mockJournalEntryPersistenceService.delete).toHaveBeenCalledWith(
         {
@@ -209,9 +205,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
     mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
 
-    await expect(
-      usecase(entry.id, { expectedVersion: entry.version })
-    ).resolves.toBeUndefined();
+    await expect(usecase(entry.id)).resolves.toBeUndefined();
 
     expect(mockFxLotAppService.reverse).toHaveBeenCalledWith(
       entry.id,
@@ -261,7 +255,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
     mockFxLotAppService.reverse.mockResolvedValue(fxReversal);
 
-    await usecase(entry.id, { expectedVersion: entry.version });
+    await usecase(entry.id);
 
     expect(
       mockFxLotCostBasisService.persistence.persistReversal
@@ -286,22 +280,19 @@ describe('makeDeleteJournalEntryUsecase', () => {
       throw new journalEntryError.DeletionNotPermitted();
     });
 
-    await expect(
-      usecase(entry.id, { expectedVersion: entry.version })
-    ).rejects.toThrow(journalEntryError.DeletionNotPermitted);
+    await expect(usecase(entry.id)).rejects.toThrow(
+      journalEntryError.DeletionNotPermitted
+    );
 
     expect(mockJournalEntryPersistenceService.delete).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
     expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
   });
 
-  it('validates id and body before reading context', async () => {
-    await expect(usecase('not-a-uuid', { expectedVersion: 0 })).rejects.toThrow(
+  it('validates the id before reading context', async () => {
+    await expect(usecase('not-a-uuid')).rejects.toThrow(
       journalEntryError.InvalidJournalEntry
     );
-    await expect(
-      usecase(generateUUID(), { expectedVersion: 0 })
-    ).rejects.toThrow();
 
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockJournalEntryRepo.findById).not.toHaveBeenCalled();
@@ -314,15 +305,14 @@ describe('makeDeleteJournalEntryUsecase', () => {
       { ...makeEntry(null), accountingEntityId: generateUUID() },
       appError.ResourceNotFound,
     ],
-    ['stale', { ...makeEntry(null), version: 2 }, appError.Conflict],
   ])(
     'rejects a %s entry before preparing removal',
     async (_, entry, ErrorType) => {
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
 
-      await expect(
-        usecase(entry?.id ?? generateUUID(), { expectedVersion: 1 })
-      ).rejects.toThrow(ErrorType);
+      await expect(usecase(entry?.id ?? generateUUID())).rejects.toThrow(
+        ErrorType
+      );
 
       expect(mockJournalEntryRemovalService.prepare).not.toHaveBeenCalled();
     }
@@ -337,9 +327,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     );
     mockJournalEntryPersistenceService.rectify.mockRejectedValueOnce(failure);
 
-    await expect(
-      usecase(entry.id, { expectedVersion: entry.version })
-    ).rejects.toBe(failure);
+    await expect(usecase(entry.id)).rejects.toBe(failure);
 
     expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();

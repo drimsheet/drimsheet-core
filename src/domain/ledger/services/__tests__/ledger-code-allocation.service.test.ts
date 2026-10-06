@@ -1,4 +1,3 @@
-import { ERepoLock } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
@@ -52,7 +51,6 @@ describe('ledger code allocation', () => {
   const options = { correlationId: 'allocation', tx: {} };
   beforeEach(() => {
     jest.resetAllMocks();
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(header);
     mockLedgerAccountRepo.findLatestBySubType.mockResolvedValue({
       id: header.id,
       code: '100041',
@@ -61,11 +59,7 @@ describe('ledger code allocation', () => {
   });
   it('selects the next family code without reserving or writing it', async () => {
     await expect(service.getNextCode(payload, options)).resolves.toBe('100042');
-    expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
-      '100000',
-      header.accountingEntityId,
-      { ...options, lock: ERepoLock.Update }
-    );
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findLatestBySubType).toHaveBeenCalledWith(
       header.accountingEntityId,
       header.type,
@@ -74,29 +68,9 @@ describe('ledger code allocation', () => {
     );
     expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
   });
-  it('waits for the allocation lock before querying the predecessor', async () => {
-    let release!: (value: typeof header) => void;
-    mockLedgerAccountRepo.findByCode.mockReturnValue(
-      new Promise((resolve) => {
-        release = resolve;
-      })
-    );
-    const code = service.getNextCode(payload, options);
-    expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
-    release(header);
-    await expect(code).resolves.toBe('100042');
-  });
   it('falls back to the header when no latest account exists', async () => {
     mockLedgerAccountRepo.findLatestBySubType.mockResolvedValue(null);
     await expect(service.getNextCode(payload, options)).resolves.toBe('100001');
-  });
-  it('rejects an archived allocation header before selecting another child code', async () => {
-    const [archived] = ledgerAccountEntity.archive(header);
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(archived);
-    await expect(service.getNextCode(payload, options)).rejects.toBeInstanceOf(
-      ledgerAccountError.ArchivedControlAccount
-    );
-    expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
   });
   it('rejects a missing transaction before reading', async () => {
     await expect(
@@ -104,13 +78,6 @@ describe('ledger code allocation', () => {
       service.getNextCode(payload, { correlationId: 'allocation' })
     ).rejects.toBeInstanceOf(
       ledgerAccountError.CodeAllocationTransactionRequired
-    );
-    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
-  });
-  it('rejects missing header configuration', async () => {
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
-    await expect(service.getNextCode(payload, options)).rejects.toBeInstanceOf(
-      ledgerAccountError.ControlAccountNotFound
     );
     expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
   });
@@ -131,12 +98,9 @@ describe('ledger code allocation', () => {
       );
     }
   );
-  it.each(['findByCode', 'findLatestBySubType'] as const)(
-    'propagates %s failure',
-    async (method) => {
-      const failure = new Error('database unavailable');
-      mockLedgerAccountRepo[method].mockRejectedValue(failure);
-      await expect(service.getNextCode(payload, options)).rejects.toBe(failure);
-    }
-  );
+  it('propagates predecessor lookup failure', async () => {
+    const failure = new Error('database unavailable');
+    mockLedgerAccountRepo.findLatestBySubType.mockRejectedValue(failure);
+    await expect(service.getNextCode(payload, options)).rejects.toBe(failure);
+  });
 });

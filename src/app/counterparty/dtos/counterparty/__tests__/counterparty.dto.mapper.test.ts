@@ -34,10 +34,10 @@ describe('Counterparty DTO Mapper', () => {
         type: 'individual',
         meta: {},
         roles: [],
-        version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
         updatedAt: new Date('2026-08-01T08:00:00Z'),
       });
+      expect(dto).not.toHaveProperty('version');
     });
 
     it('should preserve roles list', () => {

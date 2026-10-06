@@ -312,7 +312,6 @@ const models: TsoaRoute.Models = {
   ILedgerAccountDto: {
     dataType: 'refObject',
     properties: {
-      version: { dataType: 'double', required: true },
       id: { ref: 'TEntityId', required: true },
       code: { dataType: 'string', required: true },
       materializedPath: { dataType: 'string', required: true },
@@ -585,7 +584,6 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      version: { dataType: 'double', required: true },
       createdBy: { ref: 'TEntityId', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
@@ -668,7 +666,6 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      version: { dataType: 'double', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
       header: { ref: 'IJournalHeaderDto', required: true },
@@ -867,7 +864,6 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      version: { dataType: 'double', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
     },
@@ -912,7 +908,6 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      version: { dataType: 'double', required: true },
       createdBy: { ref: 'TEntityId', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
@@ -1013,7 +1008,6 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      version: { dataType: 'double', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
     },
@@ -1058,7 +1052,6 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      version: { dataType: 'double', required: true },
       createdBy: { ref: 'TEntityId', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
@@ -1380,7 +1373,6 @@ const models: TsoaRoute.Models = {
   IPaymentJournalEntryRectificationReq: {
     dataType: 'refObject',
     properties: {
-      expectedVersion: { dataType: 'double', required: true },
       attachments: {
         dataType: 'array',
         array: { dataType: 'refObject', ref: 'IFileAttachment' },
@@ -1423,7 +1415,6 @@ const models: TsoaRoute.Models = {
   IReceiptJournalEntryRectificationReq: {
     dataType: 'refObject',
     properties: {
-      expectedVersion: { dataType: 'double', required: true },
       attachments: {
         dataType: 'array',
         array: { dataType: 'refObject', ref: 'IFileAttachment' },
@@ -1528,7 +1519,6 @@ const models: TsoaRoute.Models = {
   ITransferJournalEntryRectificationReq: {
     dataType: 'refObject',
     properties: {
-      expectedVersion: { dataType: 'double', required: true },
       attachments: {
         dataType: 'array',
         array: { dataType: 'refObject', ref: 'IFileAttachment' },
@@ -1583,22 +1573,6 @@ const models: TsoaRoute.Models = {
       ],
       validators: {},
     },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryArchiveReq: {
-    dataType: 'refObject',
-    properties: {
-      expectedVersion: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryDeletionReq: {
-    dataType: 'refObject',
-    properties: {
-      expectedVersion: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   'Readonly_Record_string.string__': {
@@ -1746,7 +1720,6 @@ const models: TsoaRoute.Models = {
   ICounterpartyDto: {
     dataType: 'refObject',
     properties: {
-      version: { dataType: 'double', required: true },
       createdBy: { dataType: 'string', required: true },
       id: { dataType: 'string', required: true },
       accountingEntityId: { dataType: 'string', required: true },
@@ -1858,27 +1831,10 @@ const models: TsoaRoute.Models = {
   ICounterpartyUpdateReq: {
     dataType: 'refObject',
     properties: {
-      expectedVersion: { dataType: 'double', required: true },
       name: { dataType: 'string' },
       type: { ref: 'UCounterpartyType' },
       status: { dataType: 'enum', enums: ['active'] },
       meta: { ref: 'ICounterpartyCreateMetaReq' },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICounterpartyArchiveReq: {
-    dataType: 'refObject',
-    properties: {
-      expectedVersion: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICounterpartyDeletionReq: {
-    dataType: 'refObject',
-    properties: {
-      expectedVersion: { dataType: 'double', required: true },
     },
     additionalProperties: false,
   },
@@ -3298,12 +3254,6 @@ export function RegisterRoutes(app: Router) {
     TsoaRoute.ParameterSchema
   > = {
     id: { in: 'path', name: 'id', required: true, dataType: 'string' },
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'IJournalEntryArchiveReq',
-    },
   };
   app.post(
     '/api/v1/journal-entries/:id/archive',
@@ -3348,12 +3298,6 @@ export function RegisterRoutes(app: Router) {
     TsoaRoute.ParameterSchema
   > = {
     id: { in: 'path', name: 'id', required: true, dataType: 'string' },
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'IJournalEntryDeletionReq',
-    },
   };
   app.delete(
     '/api/v1/journal-entries/:id',
@@ -3731,12 +3675,6 @@ export function RegisterRoutes(app: Router) {
     TsoaRoute.ParameterSchema
   > = {
     id: { in: 'path', name: 'id', required: true, dataType: 'string' },
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'ICounterpartyArchiveReq',
-    },
   };
   app.post(
     '/api/v1/counterparties/:id/archive',
@@ -3781,12 +3719,6 @@ export function RegisterRoutes(app: Router) {
     TsoaRoute.ParameterSchema
   > = {
     id: { in: 'path', name: 'id', required: true, dataType: 'string' },
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'ICounterpartyDeletionReq',
-    },
   };
   app.delete(
     '/api/v1/counterparties/:id',

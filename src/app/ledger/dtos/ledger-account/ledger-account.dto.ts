@@ -40,7 +40,6 @@ export interface ILedgerAccountDto {
   adjunctAccountRule: UAdjunctAccountRule;
   openingBalanceDate: Date | null;
   createdBy: TEntityId;
-  version: number;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;

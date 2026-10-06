@@ -1,5 +1,6 @@
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
+import { ERepoLock } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 import eventValue from '@shared/values/events/event.vo';
@@ -28,22 +29,51 @@ export default function makeArchiveLedgerAccountUsecase(deps: IDependencies) {
 
     const repoOptions = { correlationId };
 
-    const account = await deps.ledgerAccountRepo.findById(
+    const accountReference = await deps.ledgerAccountRepo.findById(
       id as TEntityId,
       accountingEntity.id,
       repoOptions
     );
 
-    if (!account) {
+    if (!accountReference) {
       throw new ledgerAccountError.AccountNotFound({ id });
     }
+    const allocationHeaderCode =
+      accountReference.materializedPath.split('.')[0];
 
     const transaction = await deps.repoService.createTransaction();
     try {
       const transactionOptions = { ...repoOptions, tx: transaction.context };
+      const lockedReadOptions = {
+        ...transactionOptions,
+        lock: ERepoLock.Update,
+      };
+      const allocationHeader = await deps.ledgerAccountRepo.findByCode(
+        allocationHeaderCode,
+        accountingEntity.id,
+        lockedReadOptions
+      );
+      if (!allocationHeader) {
+        throw new ledgerAccountError.AccountNotFound({
+          id: accountReference.id,
+        });
+      }
+
+      const account =
+        allocationHeader.id === accountReference.id
+          ? allocationHeader
+          : await deps.ledgerAccountRepo.findById(
+              id as TEntityId,
+              accountingEntity.id,
+              lockedReadOptions
+            );
+      if (!account) {
+        throw new ledgerAccountError.AccountNotFound({ id });
+      }
+
       const archivedAccounts = await deps.archiveService.archive(
         account,
-        transactionOptions
+        lockedReadOptions
       );
 
       // All account/history writes commit together; no accounting records are rewritten.
@@ -70,6 +100,8 @@ export default function makeArchiveLedgerAccountUsecase(deps: IDependencies) {
       );
     } catch (error) {
       return await transaction.handleError(error);
+    } finally {
+      await transaction.dispose();
     }
   };
 }

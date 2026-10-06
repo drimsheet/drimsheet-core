@@ -17,8 +17,6 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
-import { ICounterpartyArchiveReq } from '@app/counterparty/dtos/counterparty-archive/counterparty-archive.dto';
-import { ICounterpartyDeletionReq } from '@app/counterparty/dtos/counterparty-deletion/counterparty-deletion.dto';
 import {
   ICounterpartyCreateReq,
   ICounterpartyDto,
@@ -141,7 +139,6 @@ export class CounterpartyController extends Controller {
   @Response<IHttpErrorDto>('403')
   @Response<IHttpErrorDto>('404')
   @Response<IHttpErrorDto>('409')
-  @Response<IHttpErrorDto>('422')
   @Response<IHttpErrorDto>('500')
   @Middlewares(
     middlewares.isAuthenticatedUser,
@@ -149,10 +146,9 @@ export class CounterpartyController extends Controller {
     middlewares.accountingEntityAccess
   )
   public async archiveCounterparty(
-    @Path() id: string,
-    @Body() body: ICounterpartyArchiveReq
+    @Path() id: string
   ): Promise<ICounterpartyDto> {
-    return await archiveCounterpartyUseCase(id, body);
+    return await archiveCounterpartyUseCase(id);
   }
 
   /**
@@ -169,17 +165,13 @@ export class CounterpartyController extends Controller {
   @Response<IHttpErrorDto>('403')
   @Response<IHttpErrorDto>('404')
   @Response<IHttpErrorDto>('409')
-  @Response<IHttpErrorDto>('422')
   @Response<IHttpErrorDto>('500')
   @Middlewares(
     middlewares.isAuthenticatedUser,
     middlewares.featureFlagAccess.canAccessAlpha1,
     middlewares.accountingEntityAccess
   )
-  public async deleteCounterparty(
-    @Path() id: string,
-    @Body() body: ICounterpartyDeletionReq
-  ): Promise<void> {
-    await deleteCounterpartyUseCase(id, body);
+  public async deleteCounterparty(@Path() id: string): Promise<void> {
+    await deleteCounterpartyUseCase(id);
   }
 }

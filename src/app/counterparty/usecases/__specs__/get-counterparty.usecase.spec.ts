@@ -99,10 +99,10 @@ describe('makeGetCounterpartyUsecase', () => {
         },
       },
       roles: ['vendor', 'contractor'],
-      version: 1,
       createdAt: counterparty.createdAt,
       updatedAt: counterparty.updatedAt,
     });
+    expect(counterpartyDto).not.toHaveProperty('version');
     expect(counterpartyDto.roles).not.toBe(counterparty.roles);
   });
 

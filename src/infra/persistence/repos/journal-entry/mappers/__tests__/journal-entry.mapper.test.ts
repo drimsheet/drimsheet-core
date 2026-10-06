@@ -258,17 +258,19 @@ describe('Journal Entry Mapper', () => {
   describe('toDto', () => {
     it('maps a journal entry to a DTO', async () => {
       const entry = await makeEntry();
+      const dto = journalEntryMapper.toDto(entry);
 
-      expect(journalEntryMapper.toDto(entry)).toMatchObject({
+      expect(dto).toMatchObject({
         id: entry.id,
         accountingEntityId: entry.accountingEntityId,
         sourceType: EJournalEntrySourceType.Transfer,
         memo: 'Cash transfer',
         status: EJournalEntryStatus.Posted,
-        version: 1,
         createdBy: entry.createdBy,
       });
-      expect(journalEntryMapper.toDto(entry).lines).toHaveLength(2);
+      expect(dto).not.toHaveProperty('version');
+      expect(dto.lines).toHaveLength(2);
+      for (const line of dto.lines) expect(line).not.toHaveProperty('version');
     });
   });
 });

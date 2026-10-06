@@ -162,7 +162,7 @@ describe('PATCH /counterparties/{id}', () => {
       .patch(`${ENDPOINT}/${id}`)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId)
-      .send({ expectedVersion: draft.version, ...body });
+      .send(body);
 
   describe('200 Response', () => {
     it('allows an unused counterparty to change type', async () => {
@@ -197,8 +197,8 @@ describe('PATCH /counterparties/{id}', () => {
         status: 'active',
         createdBy: actor.id,
         roles: ['vendor'],
-        version: draft.version + 1,
       });
+      expect(response.body).not.toHaveProperty('version');
       expect(response.body.createdAt).toBe(draft.createdAt.toISOString());
       expect(mockCounterpartyRepo.update).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'active' }),
@@ -235,10 +235,7 @@ describe('PATCH /counterparties/{id}', () => {
         { correlationId: 'http-fixture' }
       );
       mockCounterpartyRepo.findById.mockResolvedValue(active);
-      expect(
-        (await patch({ name: 'Edited', expectedVersion: active.version }))
-          .status
-      ).toBe(200);
+      expect((await patch({ name: 'Edited' })).status).toBe(200);
     });
   });
   describe('401 Response', () => {
@@ -304,16 +301,6 @@ describe('PATCH /counterparties/{id}', () => {
       expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
-    it('rejects stale versions before preparing an update', async () => {
-      mockCounterpartyRepo.findById.mockResolvedValue({
-        ...draft,
-        version: draft.version + 1,
-      });
-      const response = await patch({ name: 'Stale edit' });
-      expect(response.status).toBe(409);
-      expect(response.body.errorKey).toBe('app_error_conflict');
-      expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-    });
     it('returns a conflict if another writer wins after the read', async () => {
       mockCounterpartyRepo.update.mockRejectedValue(
         new repoError.VersionNotFound()
@@ -333,7 +320,7 @@ describe('PATCH /counterparties/{id}', () => {
             status,
           })[0]
         );
-        const response = await patch({ status: 'active', expectedVersion: 1 });
+        const response = await patch({ status: 'active' });
         expect(response.status).toBe(409);
         expect(response.body.errorKey).toBe(
           status === 'active'
@@ -355,19 +342,11 @@ describe('PATCH /counterparties/{id}', () => {
       { meta: { vendor: null } },
       { accountingEntityId },
       { createdBy: actor.id },
+      { expectedVersion: draft.version, name: 'Changed' },
     ])('rejects invalid update %j', async (payload) => {
       expect((await patch(payload)).status).toBe(422);
       expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
     });
-    it.each([undefined, null, 0, -1, 1.5, 'invalid'])(
-      'rejects invalid expectedVersion %p',
-      async (expectedVersion) => {
-        expect((await patch({ expectedVersion, name: 'Changed' })).status).toBe(
-          422
-        );
-        expect(mockCounterpartyRepo.findById).not.toHaveBeenCalled();
-      }
-    );
     it('identifies the missing nested field and preserves Draft', async () => {
       const response = await patch({
         status: 'active',

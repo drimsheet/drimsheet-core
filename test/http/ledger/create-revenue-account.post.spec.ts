@@ -92,7 +92,6 @@ const valid: ICreateRevenueAccountDto = {
   behavior: 'services',
 };
 const created: ILedgerAccountDto = {
-  version: 1,
   id: accountId,
   code: '401001',
   materializedPath: 'parent.401001',

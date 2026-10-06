@@ -7,7 +7,6 @@ interface IValidateJournalEntryMutationPayload {
   id: string;
   entry: IJournalEntry | null;
   accountingEntityId: TEntityId;
-  expectedVersion: number;
 }
 
 // TODO: Rename this value-returning validation to a check; reserve validate
@@ -15,17 +14,10 @@ interface IValidateJournalEntryMutationPayload {
 function validate(
   payload: IValidateJournalEntryMutationPayload
 ): IJournalEntry {
-  const { id, entry, accountingEntityId, expectedVersion } = payload;
+  const { id, entry, accountingEntityId } = payload;
 
   if (entry?.accountingEntityId !== accountingEntityId) {
     throw new appError.ResourceNotFound({ id });
-  }
-
-  if (entry.version !== expectedVersion) {
-    throw new appError.Conflict({
-      expectedVersion,
-      actualVersion: entry.version,
-    });
   }
 
   return entry;

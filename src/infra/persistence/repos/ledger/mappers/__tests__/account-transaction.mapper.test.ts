@@ -136,7 +136,9 @@ describe('Account Transaction Mapper', () => {
 
   describe('toDto', () => {
     it('maps an account transaction to a DTO', () => {
-      expect(accountTransactionMapper.toDto(transaction)).toEqual({
+      const dto = accountTransactionMapper.toDto(transaction);
+
+      expect(dto).toEqual({
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
         id,
         entryId,
@@ -156,7 +158,6 @@ describe('Account Transaction Mapper', () => {
         },
         side: EJournalSide.Debit,
         description: 'Debit cash',
-        version: 1,
         createdAt,
         updatedAt,
         header: {
@@ -167,12 +168,13 @@ describe('Account Transaction Mapper', () => {
           postedAt,
           voidedAt,
           voidingEntryId: null,
-          version: transaction.header.version,
           createdBy: createdBy,
           createdAt,
           updatedAt,
         },
       });
+      expect(dto).not.toHaveProperty('version');
+      expect(dto.header).not.toHaveProperty('version');
     });
 
     it('maps nullable journal fields to DTO nulls', () => {

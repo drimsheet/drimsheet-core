@@ -119,7 +119,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
   ): ITransferJournalEntryRectificationReq {
     return {
       sourceType: 'transfer',
-      expectedVersion: originalEntry.version,
       attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
@@ -368,21 +367,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });
 
-  it('rejects a stale expected version before preparing a correction', async () => {
-    const [originalEntry] = makeEntry(100);
-    const payload = makePayload(originalEntry);
-    payload.expectedVersion += 1;
-    mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-
-    await expect(
-      getUsecase()(originalEntry.id, payload)
-    ).rejects.toBeInstanceOf(appError.Conflict);
-
-    expect(
-      mockJournalEntryRectificationPreparationService.prepare
-    ).not.toHaveBeenCalled();
-  });
-
   it('prepares current FX effects when a draft rectification is posted', async () => {
     const [originalEntry] = makeEntry(100, 'Transfer', null);
     const candidateResult = makeEntry(100);
@@ -509,7 +493,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
     const transferPayload = makePayload(originalEntry);
     const payload: TJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      expectedVersion: transferPayload.expectedVersion,
       attachments: transferPayload.attachments,
       effectiveDate: transferPayload.effectiveDate,
       postedAt: transferPayload.postedAt,

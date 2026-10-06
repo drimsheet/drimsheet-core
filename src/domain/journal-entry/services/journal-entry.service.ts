@@ -1,4 +1,4 @@
-import { ERepoLock, IReadRepoOptions } from '@shared/types/repo.types';
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import dateUtils from '@shared/utils/date';
 
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
@@ -180,11 +180,10 @@ function makeCreateInitialOpeningBalance(
         accountId: account.id,
       });
 
-    // Keep the posting period open until the caller inserts and commits this journal.
     await deps.accountingPeriodService.validatePostingPeriod(
       payload.accountingEntityId,
       payload.effectiveDate,
-      { ...repoOptions, lock: ERepoLock.Share }
+      repoOptions
     );
 
     return prepareOpeningBalance(deps, payload, repoOptions);

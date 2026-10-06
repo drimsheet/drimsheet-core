@@ -120,29 +120,26 @@ describe('POST /counterparties/{id}/archive', () => {
     app = createApplication();
   });
 
-  const post = (
-    body: object = { expectedVersion: counterparty.version },
-    url = endpoint
-  ) =>
+  const post = (url = endpoint) =>
     request(app)
       .post(url)
       .set('Authorization', 'Bearer valid-token')
-      .set('x-accounting-entity-id', accountingEntityId)
-      .send(body);
+      .set('x-accounting-entity-id', accountingEntityId);
 
   describe('200 Response', () => {
-    it('returns an already archived record unchanged with a matching version', async () => {
+    it('returns an already archived record unchanged', async () => {
       const [archived] = counterpartyEntity.archive(counterparty);
       mockCounterpartyRepo.findById.mockResolvedValue(archived);
-      const response = await post({
-        expectedVersion: archived.version,
-      });
+      const response = await post();
+      const expectedBody = { ...archived } as Partial<typeof archived>;
+      delete expectedBody.version;
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
-        ...archived,
+        ...expectedBody,
         createdAt: archived.createdAt.toISOString(),
         updatedAt: archived.updatedAt.toISOString(),
       });
+      expect(response.body).not.toHaveProperty('version');
       expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
@@ -154,23 +151,20 @@ describe('POST /counterparties/{id}/archive', () => {
             ? counterparty
             : counterpartyEntity.update(counterparty, { status: 'active' })[0];
         mockCounterpartyRepo.findById.mockResolvedValue(current);
-        const response = await post({ expectedVersion: current.version }).set(
-          'x-actor-id',
-          'forged'
-        );
+        const response = await post().set('x-actor-id', 'forged');
+        const expectedBody = { ...current } as Partial<typeof current>;
+        delete expectedBody.version;
         expect(response.status).toBe(200);
         expect(response.type).toBe('application/json');
         expect(response.body).toEqual({
-          ...current,
+          ...expectedBody,
           status: 'archived',
-          version: current.version + 1,
           createdAt: current.createdAt.toISOString(),
           updatedAt: expect.any(String),
         });
+        expect(response.body).not.toHaveProperty('version');
         expect(Number.isNaN(Date.parse(response.body.updatedAt))).toBe(false);
-        expect(archive).toHaveBeenCalledWith(counterparty.id, {
-          expectedVersion: current.version,
-        });
+        expect(archive).toHaveBeenCalledWith(counterparty.id);
         expect(mockCounterpartyRepo.update).toHaveBeenCalledWith(
           expect.objectContaining({ status: 'archived' }),
           expect.objectContaining({
@@ -188,10 +182,7 @@ describe('POST /counterparties/{id}/archive', () => {
 
   describe('400 Response', () => {
     it('rejects malformed IDs without reading or writing a counterparty', async () => {
-      const response = await post(
-        { expectedVersion: counterparty.version },
-        '/api/v1/counterparties/invalid/archive'
-      );
+      const response = await post('/api/v1/counterparties/invalid/archive');
       expect(response.status).toBe(400);
       expect(response.body.errorKey).toBe(
         'counterparty_error_counterparty_id_invalid'
@@ -209,9 +200,7 @@ describe('POST /counterparties/{id}/archive', () => {
           ...counterparty,
           status,
         });
-        const response = await request(app)
-          .post(endpoint)
-          .send({ expectedVersion: counterparty.version });
+        const response = await request(app).post(endpoint);
         expect(response.status).toBe(401);
         expect(archive).not.toHaveBeenCalled();
       }
@@ -269,24 +258,6 @@ describe('POST /counterparties/{id}/archive', () => {
   });
 
   describe('409 Response', () => {
-    it('rejects a stale version for an already archived record', async () => {
-      const [archived] = counterpartyEntity.archive(counterparty);
-      mockCounterpartyRepo.findById.mockResolvedValue(archived);
-      const response = await post({ expectedVersion: counterparty.version });
-      expect(response.status).toBe(409);
-      expect(response.body.errorKey).toBe('app_error_conflict');
-      expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-    });
-    it('rejects a stale version', async () => {
-      const response = await post({
-        expectedVersion: counterparty.version + 1,
-      });
-      expect(response.status).toBe(409);
-      expect(response.body.errorKey).toBe('app_error_conflict');
-      expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-    });
     it('maps a concurrent repository write conflict', async () => {
       mockCounterpartyRepo.update.mockRejectedValue(
         new repoError.VersionNotFound()
@@ -294,26 +265,6 @@ describe('POST /counterparties/{id}/archive', () => {
       const response = await post();
       expect(response.status).toBe(409);
       expect(response.body.errorKey).toBe('repo_error_version_conflict');
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('422 Response', () => {
-    it.each([
-      {},
-      { expectedVersion: null },
-      { expectedVersion: 0 },
-      { expectedVersion: -1 },
-      { expectedVersion: 1.5 },
-      { expectedVersion: 'invalid' },
-      { expectedVersion: counterparty.version, name: 'Changed' },
-      { expectedVersion: counterparty.version, status: 'archived' },
-      { expectedVersion: counterparty.version, actorId: 'forged' },
-      { expectedVersion: counterparty.version, accountingEntityId },
-    ])('rejects invalid or extra-field body %j', async (body) => {
-      expect((await post(body)).status).toBe(422);
-      expect(mockCounterpartyRepo.findById).not.toHaveBeenCalled();
-      expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
   });
