@@ -104,7 +104,6 @@ const createdCounterparty: ICounterpartyDto = {
   type: validPayload.type,
   meta: {},
   roles: [],
-  version: 1,
   createdAt: new Date('2026-08-01T08:00:00.000Z'),
   updatedAt: new Date('2026-08-01T08:00:00.000Z'),
 };
@@ -206,7 +205,6 @@ describe('POST /counterparties', () => {
       expect(response.type).toBe('application/json');
       expect(response.body).toEqual({
         ...createdCounterparty,
-        version: 1,
         createdAt: createdCounterparty.createdAt.toISOString(),
         updatedAt: createdCounterparty.updatedAt.toISOString(),
       });

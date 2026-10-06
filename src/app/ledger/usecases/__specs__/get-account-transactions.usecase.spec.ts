@@ -209,7 +209,6 @@ describe('getAccountTransactionsUseCase', () => {
           },
           side: EJournalSide.Debit,
           description: 'Debit cash',
-          version: 1,
           createdAt: journalEntry.createdAt,
           updatedAt: journalEntry.updatedAt,
           header: {
@@ -220,7 +219,6 @@ describe('getAccountTransactionsUseCase', () => {
             postedAt: journalEntry.postedAt,
             voidedAt: journalEntry.voidedAt,
             voidingEntryId: journalEntry.voidingEntryId,
-            version: journalEntry.version,
             createdBy: journalEntry.createdBy,
             createdAt: journalEntry.createdAt,
             updatedAt: journalEntry.updatedAt,
@@ -235,6 +233,8 @@ describe('getAccountTransactionsUseCase', () => {
         totalPages: 1,
       },
     });
+    expect(result.data[0]).not.toHaveProperty('version');
+    expect(result.data[0].header).not.toHaveProperty('version');
   });
 
   it('throws AccountNotFound when the account does not exist', async () => {

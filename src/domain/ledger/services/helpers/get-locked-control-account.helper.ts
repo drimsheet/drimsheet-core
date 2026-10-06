@@ -7,6 +7,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
 interface IControlAccountLookup {
@@ -36,6 +37,7 @@ export default async function getLockedControlAccountHelper(
     throw new ledgerAccountError.ControlAccountNotFound({
       controlAccountLedgerCode: payload.allocationHeaderCode,
     });
+  controlAccountAvailabilityValidation.validate(header);
 
   if (payload.controlAccountId) {
     const controlAccount = await ledgerAccountRepo.findById(

@@ -69,7 +69,6 @@ describe('Account Transaction DTO Mapper', () => {
         },
         side: 'debit',
         description: 'Test description',
-        version: 1,
         createdAt: new Date('2026-07-13T18:00:00Z'),
         updatedAt: new Date('2026-07-13T18:00:00Z'),
         header: {
@@ -80,12 +79,13 @@ describe('Account Transaction DTO Mapper', () => {
           postedAt: new Date('2026-07-13T18:00:00Z'),
           voidedAt: null,
           voidingEntryId: null,
-          version: 1,
           createdBy: 'user-id-555',
           createdAt: new Date('2026-07-13T18:00:00Z'),
           updatedAt: new Date('2026-07-13T18:00:00Z'),
         },
       });
+      expect(dto).not.toHaveProperty('version');
+      expect(dto.header).not.toHaveProperty('version');
     });
   });
 });

@@ -18,12 +18,9 @@ describe('counterparty update DTO', () => {
       },
     },
   ])('accepts partial update %j', (payload) => {
-    expect(
-      counterpartyUpdateReqValidation.safeParse({
-        expectedVersion: 1,
-        ...payload,
-      }).success
-    ).toBe(true);
+    expect(counterpartyUpdateReqValidation.safeParse(payload).success).toBe(
+      true
+    );
   });
   it.each([
     {},
@@ -34,6 +31,7 @@ describe('counterparty update DTO', () => {
     { roles: [] },
     { createdBy: 'forged' },
     { accountingEntityId: 'forged' },
+    { expectedVersion: 1, name: 'Changed' },
     { updatedAt: new Date() },
     { meta: null },
     { meta: { vendor: null } },
@@ -41,27 +39,12 @@ describe('counterparty update DTO', () => {
     { meta: { contractor: { address: null } } },
     { meta: { vendor: { unexpected: true } } },
   ])('rejects %j', (payload) => {
-    expect(
-      counterpartyUpdateReqValidation.safeParse({
-        expectedVersion: 1,
-        ...payload,
-      }).success
-    ).toBe(false);
+    expect(counterpartyUpdateReqValidation.safeParse(payload).success).toBe(
+      false
+    );
   });
-  it.each([undefined, null, 0, -1, 1.5, '1', NaN, Infinity])(
-    'rejects invalid expectedVersion %p',
-    (expectedVersion) => {
-      const result = counterpartyUpdateReqValidation.safeParse({
-        expectedVersion,
-        name: 'Changed',
-      });
-      expect(result.success).toBe(false);
-      expect(result.error?.issues[0].path).toEqual(['expectedVersion']);
-    }
-  );
   it('reports the nested field needing correction', () => {
     const result = counterpartyUpdateReqValidation.safeParse({
-      expectedVersion: 1,
       status: 'active',
       meta: { contractor: { address: { ...address, city: '' } } },
     });
@@ -74,24 +57,16 @@ describe('counterparty update DTO', () => {
     ]);
   });
   it('distinguishes omitted metadata from a complete empty replacement', () => {
-    expect(
-      counterpartyDtoMapper.fromUpdateDto({
-        expectedVersion: 1,
-        name: 'Changed',
-      })
-    ).toEqual({
+    expect(counterpartyDtoMapper.fromUpdateDto({ name: 'Changed' })).toEqual({
       name: 'Changed',
       type: undefined,
       status: undefined,
       meta: undefined,
     });
-    expect(
-      counterpartyDtoMapper.fromUpdateDto({ expectedVersion: 1, meta: {} }).meta
-    ).toEqual({});
+    expect(counterpartyDtoMapper.fromUpdateDto({ meta: {} }).meta).toEqual({});
   });
   it('maps complete role details without synthesizing omitted roles', () => {
     const payload = {
-      expectedVersion: 1,
       meta: {
         employer: { address, displayName: 'Name' },
         contractor: { address },
@@ -104,12 +79,10 @@ describe('counterparty update DTO', () => {
       meta: payload.meta,
       status: payload.status,
     });
-    expect(mapped).not.toHaveProperty('expectedVersion');
     expect(mapped.meta).not.toBe(payload.meta);
     expect(mapped.meta?.contractor?.address).not.toBe(address);
     expect(
       counterpartyDtoMapper.fromUpdateDto({
-        expectedVersion: 1,
         meta: { vendor: {} },
       }).meta
     ).toEqual({ vendor: { address: undefined } });

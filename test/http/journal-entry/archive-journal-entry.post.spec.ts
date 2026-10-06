@@ -72,7 +72,6 @@ const archivedEntry = {
   postedAt: now,
   voidedAt: null,
   voidingEntryId: null,
-  version: 2,
   createdBy: userId,
   createdAt: now,
   updatedAt: now,
@@ -109,12 +108,11 @@ describe('POST /journal-entries/{id}/archive', () => {
     app = createApplication();
   });
 
-  const makeRequest = (payload: object = { expectedVersion: 1 }) =>
+  const makeRequest = () =>
     request(app)
       .post(`/api/v1/journal-entries/${journalEntryId}/archive`)
       .set('Authorization', 'Bearer valid-token')
-      .set('x-accounting-entity-id', accountingEntityId)
-      .send(payload);
+      .set('x-accounting-entity-id', accountingEntityId);
 
   describe('200 Response', () => {
     it('returns the archived journal entry', async () => {
@@ -124,11 +122,10 @@ describe('POST /journal-entries/{id}/archive', () => {
       expect(response.body).toMatchObject({
         id: journalEntryId,
         status: 'archived',
-        version: 2,
       });
+      expect(response.body).not.toHaveProperty('version');
       expect(mockArchiveJournalEntryUseCase).toHaveBeenCalledWith(
-        journalEntryId,
-        { expectedVersion: 1 }
+        journalEntryId
       );
     });
   });
@@ -137,8 +134,7 @@ describe('POST /journal-entries/{id}/archive', () => {
     it('rejects an unauthenticated request before orchestration', async () => {
       const response = await request(app)
         .post(`/api/v1/journal-entries/${journalEntryId}/archive`)
-        .set('x-accounting-entity-id', accountingEntityId)
-        .send({ expectedVersion: 1 });
+        .set('x-accounting-entity-id', accountingEntityId);
 
       expect(response.status).toBe(401);
       expect(mockArchiveJournalEntryUseCase).not.toHaveBeenCalled();
@@ -146,21 +142,12 @@ describe('POST /journal-entries/{id}/archive', () => {
   });
 
   describe('409 Response', () => {
-    it('maps a stale version conflict', async () => {
+    it('maps a concurrent write conflict', async () => {
       mockArchiveJournalEntryUseCase.mockRejectedValueOnce(
         new appError.Conflict()
       );
 
       expect((await makeRequest()).status).toBe(409);
-    });
-  });
-
-  describe('422 Response', () => {
-    it('rejects an invalid request body before orchestration', async () => {
-      const response = await makeRequest({ expectedVersion: 'invalid' });
-
-      expect(response.status).toBe(422);
-      expect(mockArchiveJournalEntryUseCase).not.toHaveBeenCalled();
     });
   });
 

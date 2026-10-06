@@ -109,7 +109,6 @@ const counterpartyDtoMapper = {
       };
     return {
       id: counterparty.id,
-      version: counterparty.version,
       createdBy: counterparty.createdBy,
       accountingEntityId: counterparty.accountingEntityId,
       name: counterparty.name,

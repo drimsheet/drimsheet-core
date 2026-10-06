@@ -88,12 +88,11 @@ describe('DELETE /journal-entries/{id}', () => {
     app = createApplication();
   });
 
-  const makeRequest = (payload: object = { expectedVersion: 1 }) =>
+  const makeRequest = () =>
     request(app)
       .delete(`/api/v1/journal-entries/${journalEntryId}`)
       .set('Authorization', 'Bearer valid-token')
-      .set('x-accounting-entity-id', accountingEntityId)
-      .send(payload);
+      .set('x-accounting-entity-id', accountingEntityId);
 
   describe('204 Response', () => {
     it('returns no content after successful removal', async () => {
@@ -102,8 +101,7 @@ describe('DELETE /journal-entries/{id}', () => {
       expect(response.status).toBe(204);
       expect(response.text).toBe('');
       expect(mockDeleteJournalEntryUseCase).toHaveBeenCalledWith(
-        journalEntryId,
-        { expectedVersion: 1 }
+        journalEntryId
       );
     });
   });
@@ -122,8 +120,7 @@ describe('DELETE /journal-entries/{id}', () => {
     it('rejects an unauthenticated request before orchestration', async () => {
       const response = await request(app)
         .delete(`/api/v1/journal-entries/${journalEntryId}`)
-        .set('x-accounting-entity-id', accountingEntityId)
-        .send({ expectedVersion: 1 });
+        .set('x-accounting-entity-id', accountingEntityId);
 
       expect(response.status).toBe(401);
       expect(mockDeleteJournalEntryUseCase).not.toHaveBeenCalled();
@@ -151,21 +148,12 @@ describe('DELETE /journal-entries/{id}', () => {
   });
 
   describe('409 Response', () => {
-    it('maps a stale version conflict', async () => {
+    it('maps a concurrent write conflict', async () => {
       mockDeleteJournalEntryUseCase.mockRejectedValueOnce(
         new appError.Conflict()
       );
 
       expect((await makeRequest()).status).toBe(409);
-    });
-  });
-
-  describe('422 Response', () => {
-    it('rejects an invalid request body before orchestration', async () => {
-      const response = await makeRequest({ expectedVersion: 'invalid' });
-
-      expect(response.status).toBe(422);
-      expect(mockDeleteJournalEntryUseCase).not.toHaveBeenCalled();
     });
   });
 

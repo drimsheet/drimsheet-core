@@ -88,7 +88,6 @@ const journalEntryMapper = {
       postedAt: payload.postedAt,
       voidedAt: payload.voidedAt,
       voidingEntryId: payload.voidingEntryId,
-      version: payload.version,
       createdBy: payload.createdBy,
       createdAt: payload.createdAt,
       updatedAt: payload.updatedAt,

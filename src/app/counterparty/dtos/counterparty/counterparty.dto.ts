@@ -16,8 +16,6 @@ export interface ICounterpartyCreateReq {
 }
 
 export interface ICounterpartyUpdateReq {
-  /** Version returned by the last read; stale writes fail with HTTP 409. */
-  expectedVersion: number;
   name?: string;
   type?: UCounterpartyType;
   /** Omit for ordinary edits; Active explicitly requests Draft activation. */
@@ -39,7 +37,6 @@ interface ICounterpartyMetaDto {
 }
 
 export interface ICounterpartyDto {
-  version: number;
   createdBy: string;
   id: string;
   accountingEntityId: string;

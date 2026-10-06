@@ -72,7 +72,7 @@ interface ICreateOpeningBalancePayload {
 }
 
 export interface IJournalEntryService {
-  /** Prepares the initial journal for an unpersisted, dated account and locks its open posting period in the caller's transaction. */
+  /** Prepares the initial journal for an unpersisted, dated account in the caller's transaction. */
   createInitialOpeningBalance(
     payload: ICreateOpeningBalancePayload,
     repoOptions: IReadRepoOptions & { tx: ITransactionContext }

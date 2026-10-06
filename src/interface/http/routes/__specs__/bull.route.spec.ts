@@ -1,6 +1,9 @@
 import express from 'express';
 import request from 'supertest';
 
+import { getLedgerAccountBalanceAdjustmentQueue } from '@infra/messaging/queues/ledger-account-balance.queue';
+import { getTransactionalEmailQueue } from '@infra/messaging/queues/transactional-email.queue';
+
 import routes from '@interface/http/routes';
 
 jest.mock('@infra/ioc/handlers/http', () => ({
@@ -8,19 +11,24 @@ jest.mock('@infra/ioc/handlers/http', () => ({
 }));
 
 jest.mock('@infra/messaging/queues/transactional-email.queue', () => ({
-  getTransactionalEmailQueue: () => ({
+  getTransactionalEmailQueue: jest.fn(() => ({
     name: 'transactional-email',
     metaValues: { version: 'bullmq:test' },
-  }),
+  })),
 }));
 jest.mock('@infra/messaging/queues/ledger-account-balance.queue', () => ({
-  getLedgerAccountBalanceAdjustmentQueue: () => ({
+  getLedgerAccountBalanceAdjustmentQueue: jest.fn(() => ({
     name: 'ledger-balance',
     metaValues: { version: 'bullmq:test' },
-  }),
+  })),
 }));
 
 describe('BullMQ dashboard route', () => {
+  it('does not initialize queues while assembling HTTP routes', () => {
+    expect(getTransactionalEmailQueue).not.toHaveBeenCalled();
+    expect(getLedgerAccountBalanceAdjustmentQueue).not.toHaveBeenCalled();
+  });
+
   it('serves the dashboard beneath its declared path', async () => {
     const response = await request(express().use(...routes)).get(
       '/bullmq-board-admin/'
@@ -29,6 +37,8 @@ describe('BullMQ dashboard route', () => {
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
     expect(response.text).toContain('/bullmq-board-admin');
+    expect(getTransactionalEmailQueue).toHaveBeenCalledTimes(1);
+    expect(getLedgerAccountBalanceAdjustmentQueue).toHaveBeenCalledTimes(1);
   });
 
   it('leaves other paths to the remaining routes', async () => {

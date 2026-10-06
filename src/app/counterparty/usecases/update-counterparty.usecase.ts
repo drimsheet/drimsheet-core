@@ -49,20 +49,33 @@ export default function makeUpdateCounterpartyUsecase(
     try {
       const readOptions = { correlationId, tx: transaction.context };
 
-      const existing = await deps.counterpartyRepo.findById(
+      let existing = await deps.counterpartyRepo.findById(
         id as TEntityId,
         accountingEntity.id,
-        { ...readOptions, lock: ERepoLock.Update }
+        readOptions
       );
 
-      const current = counterpartyMutationPolicy.validate({
+      let current = counterpartyMutationPolicy.validate({
         id,
         counterparty: existing,
         accountingEntityId: accountingEntity.id,
-        expectedVersion: payload.expectedVersion,
       });
 
-      // Read usage after acquiring the parent lock so committed associations are visible.
+      const isTypeChange =
+        changes.type !== undefined && changes.type !== current.type;
+      if (isTypeChange) {
+        existing = await deps.counterpartyRepo.findById(
+          id as TEntityId,
+          accountingEntity.id,
+          { ...readOptions, lock: ERepoLock.Update }
+        );
+        current = counterpartyMutationPolicy.validate({
+          id,
+          counterparty: existing,
+          accountingEntityId: accountingEntity.id,
+        });
+      }
+
       const [counterparty, events, audit] =
         await deps.counterpartyService.update(current, changes, readOptions);
 
@@ -70,7 +83,7 @@ export default function makeUpdateCounterpartyUsecase(
 
       await deps.counterpartyRepo.update(counterparty, {
         ...readOptions,
-        expectedVersion: payload.expectedVersion,
+        expectedVersion: current.version,
         history,
       });
 
@@ -81,6 +94,8 @@ export default function makeUpdateCounterpartyUsecase(
       return counterpartyDtoMapper.toDto(counterparty);
     } catch (error) {
       return transaction.handleError(error);
+    } finally {
+      await transaction.dispose();
     }
   };
 }

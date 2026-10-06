@@ -1,4 +1,4 @@
-import { ERepoLock, IReadRepoOptions } from '@shared/types/repo.types';
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
@@ -2008,7 +2008,7 @@ describe('journalEntryService', () => {
           ).toHaveBeenCalledWith(
             payload.accountingEntityId,
             payload.effectiveDate,
-            { ...transactionOptions, lock: ERepoLock.Share }
+            transactionOptions
           );
           expect(
             mockAccountingPeriodService.validatePostingPeriod.mock
@@ -2048,7 +2048,7 @@ describe('journalEntryService', () => {
           ).toHaveBeenCalledWith(
             payload.accountingEntityId,
             payload.effectiveDate,
-            { ...transactionOptions, lock: ERepoLock.Share }
+            transactionOptions
           );
           expect(
             mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId

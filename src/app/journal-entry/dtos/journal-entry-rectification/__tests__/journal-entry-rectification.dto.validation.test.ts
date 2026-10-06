@@ -16,7 +16,6 @@ describe('journalEntryRectificationReqValidation', () => {
     sequenceOrder: 1,
   };
   const base = {
-    expectedVersion: 1,
     attachments: [
       {
         url: 'https://files.example.com/receipt.pdf',

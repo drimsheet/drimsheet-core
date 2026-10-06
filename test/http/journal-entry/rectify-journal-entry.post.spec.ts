@@ -70,7 +70,6 @@ const effectiveDate = new Date('2026-09-01T00:00:00.000Z');
 
 const validPayload = {
   sourceType: 'transfer',
-  expectedVersion: 1,
   attachments: [],
   sourceLine: {
     id: sourceLineId,
@@ -109,7 +108,6 @@ const rectification: IJournalEntryRectificationDto = {
     postedAt: effectiveDate,
     voidedAt: null,
     voidingEntryId: null,
-    version: 1,
     createdBy: userId,
     createdAt: effectiveDate,
     updatedAt: effectiveDate,

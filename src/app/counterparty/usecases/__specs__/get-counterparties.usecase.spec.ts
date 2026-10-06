@@ -100,10 +100,10 @@ describe('makeGetCounterpartiesUsecase', () => {
       type: 'organization',
       meta: { vendor: { address: null } },
       roles: ['vendor'],
-      version: 1,
       createdAt: mockCounterparty.createdAt,
       updatedAt: mockCounterparty.updatedAt,
     });
+    expect(result.data[0]).not.toHaveProperty('version');
     expect(result.meta.total).toBe(1);
   });
 

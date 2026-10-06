@@ -111,14 +111,11 @@ describe('makeArchiveJournalEntryUsecase', () => {
       const entry = makeEntry(postedAt);
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
 
-      const response = await usecase(entry.id, {
-        expectedVersion: entry.version,
-      });
+      const response = await usecase(entry.id);
 
       expect(response).toMatchObject({
         id: entry.id,
         status: EJournalEntryStatus.Archived,
-        version: entry.version + 1,
         postedAt,
       });
       expect(mockJournalEntryRepo.update).toHaveBeenCalledWith(
@@ -143,25 +140,13 @@ describe('makeArchiveJournalEntryUsecase', () => {
   );
 
   it('rejects invalid input before reading context or persistence', async () => {
-    await expect(usecase('not-a-uuid', { expectedVersion: 0 })).rejects.toThrow(
+    await expect(usecase('not-a-uuid')).rejects.toThrow(
       journalEntryError.InvalidJournalEntry
     );
 
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockJournalEntryRepo.findById).not.toHaveBeenCalled();
     expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects a stale version without persisting or publishing', async () => {
-    const entry = makeEntry();
-    mockJournalEntryRepo.findById.mockResolvedValue(entry);
-
-    await expect(
-      usecase(entry.id, { expectedVersion: entry.version + 1 })
-    ).rejects.toThrow(appError.Conflict);
-
-    expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -186,15 +171,15 @@ describe('makeArchiveJournalEntryUsecase', () => {
       : null;
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
 
-    await expect(
-      usecase(generateUUID(), { expectedVersion: 1 })
-    ).rejects.toThrow(appError.ResourceNotFound);
+    await expect(usecase(generateUUID())).rejects.toThrow(
+      appError.ResourceNotFound
+    );
 
     expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('rejects a user without accounting ownership before checking the expected version', async () => {
+  it('rejects a user without accounting ownership before reading the entry', async () => {
     mockAccountingEntityService.validateAccess.mockImplementationOnce(() => {
       throw new appError.Forbidden();
     });
@@ -204,9 +189,7 @@ describe('makeArchiveJournalEntryUsecase', () => {
     };
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
 
-    await expect(
-      usecase(entry.id, { expectedVersion: entry.version + 1 })
-    ).rejects.toThrow(appError.Forbidden);
+    await expect(usecase(entry.id)).rejects.toThrow(appError.Forbidden);
 
     expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -218,9 +201,7 @@ describe('makeArchiveJournalEntryUsecase', () => {
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
     mockJournalEntryRepo.update.mockRejectedValueOnce(failure);
 
-    await expect(
-      usecase(entry.id, { expectedVersion: entry.version })
-    ).rejects.toBe(failure);
+    await expect(usecase(entry.id)).rejects.toBe(failure);
 
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -231,8 +212,6 @@ describe('makeArchiveJournalEntryUsecase', () => {
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
     mockJournalEntryRepo.update.mockRejectedValueOnce(conflict);
 
-    await expect(
-      usecase(entry.id, { expectedVersion: entry.version })
-    ).rejects.toBe(conflict);
+    await expect(usecase(entry.id)).rejects.toBe(conflict);
   });
 });

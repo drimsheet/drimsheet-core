@@ -24,7 +24,6 @@ const invalidTypeKey = new counterpartyError.InvalidType().errorKey;
 const invalidStatusKey = new counterpartyError.InvalidStatus().errorKey;
 const invalidRoleKey = new counterpartyError.InvalidRole().errorKey;
 const invalidOrderByKey = new paginationError.InvalidOrderBy().errorKey;
-const invalidVersionKey = new counterpartyError.InvalidVersion().errorKey;
 const invalidMetaKey = new counterpartyError.InvalidMeta().errorKey;
 
 const counterpartyStatusValidation = z.enum(
@@ -126,10 +125,6 @@ export const counterpartyCreateReqValidation = z.strictObject(
 export const counterpartyUpdateReqValidation = z
   .strictObject(
     {
-      expectedVersion: z
-        .number(invalidVersionKey)
-        .int(invalidVersionKey)
-        .positive(invalidVersionKey),
       name: counterpartyNameValidation.optional(),
       type: counterpartyTypeValidation.optional(),
       status: z.literal('active', invalidStatusKey).optional(),

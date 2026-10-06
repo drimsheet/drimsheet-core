@@ -24,7 +24,6 @@ const [counterparty] = counterpartyEntity.make({
   type: 'individual',
   status: 'active',
 });
-const payload = { expectedVersion: counterparty.version };
 const usecase = makeDeleteCounterpartyUsecase({
   appContext: mockAppContext,
   repoService: mockRepoService,
@@ -59,7 +58,7 @@ describe('delete counterparty use case', () => {
         status,
       });
       mockCounterpartyRepo.findById.mockResolvedValue(current);
-      await expect(usecase(current.id, payload)).resolves.toBeUndefined();
+      await expect(usecase(current.id)).resolves.toBeUndefined();
       expect(mockCounterpartyRepo.findById).toHaveBeenCalledWith(
         current.id,
         current.accountingEntityId,
@@ -108,34 +107,18 @@ describe('delete counterparty use case', () => {
   );
 
   it('rejects invalid IDs before context or transaction access', async () => {
-    await expect(usecase('invalid', payload)).rejects.toThrow(
+    await expect(usecase('invalid')).rejects.toThrow(
       counterpartyError.InvalidCounterpartyId
     );
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
 
-  it.each([
-    {},
-    { expectedVersion: 0 },
-    { expectedVersion: 1.5 },
-    { expectedVersion: 1, confirmed: true },
-  ])(
-    'rejects invalid payload %j before acquiring a transaction',
-    async (body) => {
-      await expect(usecase(counterparty.id, body as never)).rejects.toThrow(
-        appError.UnprocessableEntity
-      );
-      expect(mockAppContext.get).not.toHaveBeenCalled();
-      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
-    }
-  );
-
   it.each([null, { ...counterparty, accountingEntityId: generateUUID() }])(
     'hides missing/foreign records %p',
     async (stored) => {
       mockCounterpartyRepo.findById.mockResolvedValue(stored);
-      await expect(usecase(counterparty.id, payload)).rejects.toThrow(
+      await expect(usecase(counterparty.id)).rejects.toThrow(
         appError.ResourceNotFound
       );
       expect(
@@ -145,14 +128,6 @@ describe('delete counterparty use case', () => {
       expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
     }
   );
-
-  it('rejects a stale version before eligibility or deletion', async () => {
-    await expect(
-      usecase(counterparty.id, { expectedVersion: counterparty.version + 1 })
-    ).rejects.toThrow(appError.Conflict);
-    expect(mockJournalLineRepo.findAllByCounterpartyId).not.toHaveBeenCalled();
-    expect(mockCounterpartyRepo.delete).not.toHaveBeenCalled();
-  });
 
   it('rejects remaining transaction references without deleting', async () => {
     const [line] = journalLineEntity.make(
@@ -174,7 +149,7 @@ describe('delete counterparty use case', () => {
       }
     );
     mockJournalLineRepo.findAllByCounterpartyId.mockResolvedValue([line]);
-    await expect(usecase(counterparty.id, payload)).rejects.toMatchObject({
+    await expect(usecase(counterparty.id)).rejects.toMatchObject({
       errorKey:
         'counterparty_error_deletion_with_transaction_references_conflict',
       cause: {
@@ -207,7 +182,7 @@ describe('delete counterparty use case', () => {
         mockCounterpartyRepo.delete.mockRejectedValue(failure);
       if (stage === 'commit')
         mockRepoTransaction.commit.mockRejectedValue(failure);
-      await expect(usecase(counterparty.id, payload)).rejects.toBe(failure);
+      await expect(usecase(counterparty.id)).rejects.toBe(failure);
       if (['context', 'acquire'].includes(stage))
         expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
       else
@@ -222,7 +197,7 @@ describe('delete counterparty use case', () => {
   it('propagates conditional delete conflicts', async () => {
     const failure = new repoError.VersionNotFound();
     mockCounterpartyRepo.delete.mockRejectedValue(failure);
-    await expect(usecase(counterparty.id, payload)).rejects.toBe(failure);
+    await expect(usecase(counterparty.id)).rejects.toBe(failure);
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
   });
@@ -236,7 +211,7 @@ describe('delete counterparty use case', () => {
     });
     mockCounterpartyRepo.delete.mockRejectedValue(operationError);
     mockRepoTransaction.handleError.mockRejectedValue(failure);
-    await expect(usecase(counterparty.id, payload)).rejects.toBe(failure);
+    await expect(usecase(counterparty.id)).rejects.toBe(failure);
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
       operationError
     );
@@ -268,7 +243,7 @@ describe('delete counterparty use case', () => {
         });
       }
       let settled = false;
-      const request = usecase(counterparty.id, payload).then(
+      const request = usecase(counterparty.id).then(
         () => {
           settled = true;
         },

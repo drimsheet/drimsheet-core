@@ -22,8 +22,6 @@ describe('journalEntryMutationPolicy', () => {
       id: entry.id,
       entry: candidate,
       accountingEntityId,
-
-      expectedVersion: entry.version,
     });
 
   it('returns an entry authorized for mutation', () => {
@@ -45,18 +43,6 @@ describe('journalEntryMutationPolicy', () => {
     expect(() => validate(candidate)).toThrow(appError.ResourceNotFound);
   });
 
-  it('checks versions independently of the original creator', () => {
-    expect(() =>
-      journalEntryMutationPolicy.validate({
-        id: entry.id,
-        entry: { ...entry, createdBy: otherUserId },
-        accountingEntityId,
-
-        expectedVersion: entry.version + 1,
-      })
-    ).toThrow(appError.Conflict);
-  });
-
   it.each([
     userId,
     'b2222222-2222-4222-8222-222222222222' as TEntityId,
@@ -67,16 +53,4 @@ describe('journalEntryMutationPolicy', () => {
       expect(validate({ ...entry, createdBy }).createdBy).toBe(createdBy);
     }
   );
-
-  it('rejects a stale expected version', () => {
-    expect(() =>
-      journalEntryMutationPolicy.validate({
-        id: entry.id,
-        entry,
-        accountingEntityId,
-
-        expectedVersion: entry.version - 1,
-      })
-    ).toThrow(appError.Conflict);
-  });
 });

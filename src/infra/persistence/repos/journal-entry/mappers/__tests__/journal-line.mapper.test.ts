@@ -137,7 +137,9 @@ describe('Journal Line Mapper', () => {
 
   describe('toDto', () => {
     it('maps a journal line to a DTO', () => {
-      expect(journalLineMapper.toDto(line)).toEqual({
+      const dto = journalLineMapper.toDto(line);
+
+      expect(dto).toEqual({
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
         id,
         entryId,
@@ -157,10 +159,10 @@ describe('Journal Line Mapper', () => {
         },
         side: EJournalSide.Debit,
         description: 'Line description',
-        version: 1,
         createdAt,
         updatedAt,
       });
+      expect(dto).not.toHaveProperty('version');
     });
   });
 });

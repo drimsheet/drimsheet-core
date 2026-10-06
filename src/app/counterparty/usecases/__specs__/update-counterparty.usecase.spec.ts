@@ -67,19 +67,17 @@ describe('update counterparty use case', () => {
       expect(mockRepoTransaction.commit).toHaveBeenCalledWith();
     });
     const response = await usecase(before.id, {
-      expectedVersion: before.version,
       name: 'Completed',
       status: 'active',
     });
     expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
-    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
     expect(mockCounterpartyRepo.findById).toHaveBeenCalledWith(
       before.id,
       before.accountingEntityId,
       {
         correlationId: 'update',
         tx: mockRepoTransaction.context,
-        lock: 'update',
       }
     );
     expect(mockCounterpartyService.update).toHaveBeenCalledWith(
@@ -113,7 +111,6 @@ describe('update counterparty use case', () => {
       id: before.id,
       name: 'Completed',
       status: 'active',
-      version: before.version + 1,
     });
     expect(mockEventBus.publish).toHaveBeenCalledWith([
       expect.objectContaining({
@@ -131,25 +128,45 @@ describe('update counterparty use case', () => {
 
   it('maps missing or foreign-tenant records to not found without mutation', async () => {
     mockCounterpartyRepo.findById.mockResolvedValue(null);
-    await expect(
-      usecase(before.id, { status: 'active', expectedVersion: before.version })
-    ).rejects.toThrow(appError.ResourceNotFound);
+    await expect(usecase(before.id, { status: 'active' })).rejects.toThrow(
+      appError.ResourceNotFound
+    );
     expect(mockCounterpartyService.update).not.toHaveBeenCalled();
     expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('rejects a stale client version before domain preparation', async () => {
-    mockCounterpartyRepo.findById.mockResolvedValue({
+  it('uses the version read by the server for optimistic persistence', async () => {
+    const current = {
       ...before,
       version: before.version + 1,
-    });
-    await expect(
-      usecase(before.id, { expectedVersion: before.version, name: 'Stale' })
-    ).rejects.toThrow(appError.Conflict);
-    expect(mockCounterpartyService.update).not.toHaveBeenCalled();
-    expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    };
+    mockCounterpartyRepo.findById.mockResolvedValue(current);
+
+    await usecase(before.id, { name: 'Current' });
+
+    expect(mockCounterpartyRepo.update).toHaveBeenCalledWith(
+      expect.objectContaining({ version: current.version + 1 }),
+      expect.objectContaining({ expectedVersion: current.version })
+    );
+  });
+
+  it('locks and re-reads before checking an actual type change', async () => {
+    mockCounterpartyRepo.findById.mockResolvedValue(before);
+
+    await usecase(before.id, { type: 'organization' });
+
+    expect(mockCounterpartyRepo.findById).toHaveBeenCalledTimes(2);
+    expect(mockCounterpartyRepo.findById).toHaveBeenNthCalledWith(
+      2,
+      before.id,
+      before.accountingEntityId,
+      {
+        correlationId: 'update',
+        tx: mockRepoTransaction.context,
+        lock: 'update',
+      }
+    );
   });
 
   it('rejects a foreign record even if the read adapter returns it', async () => {
@@ -157,9 +174,9 @@ describe('update counterparty use case', () => {
       ...before,
       accountingEntityId: generateUUID(),
     });
-    await expect(
-      usecase(before.id, { expectedVersion: before.version, name: 'Foreign' })
-    ).rejects.toThrow(appError.ResourceNotFound);
+    await expect(usecase(before.id, { name: 'Foreign' })).rejects.toThrow(
+      appError.ResourceNotFound
+    );
     expect(mockCounterpartyService.update).not.toHaveBeenCalled();
     expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
   });
@@ -173,20 +190,17 @@ describe('update counterparty use case', () => {
   ])(
     'rejects invalid DTO %j before reading the counterparty',
     async (payload) => {
-      await expect(
-        usecase(before.id, {
-          expectedVersion: before.version,
-          ...payload,
-        } as never)
-      ).rejects.toThrow(appError.UnprocessableEntity);
+      await expect(usecase(before.id, payload as never)).rejects.toThrow(
+        appError.UnprocessableEntity
+      );
       expect(mockCounterpartyRepo.findById).not.toHaveBeenCalled();
     }
   );
 
   it('rejects malformed IDs before context or repository access', async () => {
-    await expect(
-      usecase('invalid', { status: 'active', expectedVersion: before.version })
-    ).rejects.toThrow(counterpartyError.InvalidCounterpartyId);
+    await expect(usecase('invalid', { status: 'active' })).rejects.toThrow(
+      counterpartyError.InvalidCounterpartyId
+    );
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockCounterpartyRepo.findById).not.toHaveBeenCalled();
   });
@@ -220,10 +234,7 @@ describe('update counterparty use case', () => {
         mockRepoTransaction.commit.mockRejectedValue(failure);
       if (stage === 'publish') mockEventBus.publish.mockRejectedValue(failure);
 
-      const result = usecase(before.id, {
-        status: 'active',
-        expectedVersion: before.version,
-      });
+      const result = usecase(before.id, { status: 'active' });
       if (stage === 'history') await expect(result).rejects.toThrow();
       else await expect(result).rejects.toBe(failure);
 
@@ -255,9 +266,7 @@ describe('update counterparty use case', () => {
     mockCounterpartyRepo.update.mockRejectedValue(operationError);
     mockRepoTransaction.handleError.mockRejectedValue(failure);
 
-    await expect(
-      usecase(before.id, { expectedVersion: before.version, name: 'Changed' })
-    ).rejects.toBe(failure);
+    await expect(usecase(before.id, { name: 'Changed' })).rejects.toBe(failure);
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
       operationError
     );
@@ -269,9 +278,7 @@ describe('update counterparty use case', () => {
   it('does not publish when disposing commit rejects', async () => {
     const failure = new Error('release failed');
     mockRepoTransaction.commit.mockRejectedValue(failure);
-    await expect(
-      usecase(before.id, { expectedVersion: before.version, name: 'Changed' })
-    ).rejects.toBe(failure);
+    await expect(usecase(before.id, { name: 'Changed' })).rejects.toBe(failure);
     expect(mockRepoTransaction.commit).toHaveBeenCalledWith();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
@@ -304,7 +311,6 @@ describe('update counterparty use case', () => {
       }
       let settled = false;
       const result = usecase(before.id, {
-        expectedVersion: before.version,
         name: 'Changed',
       }).then(
         (response) => {

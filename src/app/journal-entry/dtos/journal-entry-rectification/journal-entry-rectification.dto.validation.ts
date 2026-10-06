@@ -49,7 +49,6 @@ const attachmentValidation = z
   .strict();
 
 const baseShape = {
-  expectedVersion: z.number().int().positive(),
   attachments: z.array(attachmentValidation),
   effectiveDate: z.date(new journalEntryError.InvalidEffectiveDate().errorKey),
   postedAt: z

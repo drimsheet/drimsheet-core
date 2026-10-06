@@ -28,7 +28,6 @@ interface ITransferJournalEntryRectificationLineReq {
 }
 
 interface IBaseJournalEntryRectificationReq {
-  expectedVersion: number;
   attachments: IFileAttachment[];
   effectiveDate: Date;
   postedAt: Date | null;

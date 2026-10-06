@@ -26,9 +26,10 @@ The following architectural decision records (ADRs) capture the critical technic
 | [ADR-0010](./adrs/0010-system-bound-category-taxonomy.md)                      | System-Bound Category Taxonomy                           | Accepted               |
 | [ADR-0011](./adrs/0011-automated-adr-management.md)                            | Automated ADR Management                                 | Accepted               |
 | [ADR-0012](./adrs/0012-relational-contra-adjunct-accounts.md)                  | Relational Contra & Adjunct Accounts                     | Accepted               |
-| [ADR-0013](./adrs/0013-optimistic-concurrency-control.md)                      | Optimistic Concurrency Control                           | Accepted               |
+| [ADR-0013](./adrs/0013-optimistic-concurrency-control.md)                      | Optimistic Concurrency Control                           | Superseded by ADR 0019 |
 | [ADR-0014](./adrs/0014-first-class-observability-metrics.md)                   | First-Class Observability Metrics                        | Superseded by ADR 0016 |
 | [ADR-0015](./adrs/0015-transactional-outbox-for-ledger-balance-propagation.md) | Transactional outbox for ledger balance propagation      | Accepted               |
 | [ADR-0016](./adrs/0016-direct-better-stack-observability.md)                   | Direct Better Stack Observability                        | Accepted               |
 | [ADR-0017](./adrs/0017-infrastructure-integration-adapters.md)                 | Infrastructure Integration Adapters                      | Accepted               |
 | [ADR-0018](./adrs/0018-first-class-domain-validations.md)                      | First-Class Domain Validations                           | Accepted               |
+| [ADR-0019](./adrs/0019-internal-concurrency-tokens.md)                         | Internal Concurrency Tokens                              | Accepted               |

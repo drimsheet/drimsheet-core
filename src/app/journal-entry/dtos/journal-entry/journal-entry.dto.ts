@@ -51,7 +51,6 @@ export interface IJournalLineDto {
   functionalAmount: IMoneyDto;
   side: UJournalSide;
   description: string | null;
-  version: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,7 +63,6 @@ export interface IJournalHeaderDto {
   postedAt: Date | null;
   voidedAt: Date | null;
   voidingEntryId: string | null;
-  version: number;
   createdBy: TEntityId;
   createdAt: Date;
   updatedAt: Date;
@@ -95,7 +93,6 @@ interface IJournalLineListDto {
   functionalAmount: IMoneyDto;
   side: UJournalSide;
   description: string | null;
-  version: number;
   createdAt: Date;
   updatedAt: Date;
 }

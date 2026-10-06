@@ -5,7 +5,6 @@ import {
 } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
-import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 
@@ -19,8 +18,6 @@ import {
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
-import { IJournalEntryDeletionReq } from '@app/journal-entry/dtos/journal-entry-deletion/journal-entry-deletion.dto';
-import { journalEntryDeletionReqValidation } from '@app/journal-entry/dtos/journal-entry-deletion/journal-entry-deletion.dto.validation';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
@@ -43,12 +40,8 @@ interface IDependencies {
 }
 
 export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
-  return async (
-    id: string,
-    payload: IJournalEntryDeletionReq
-  ): Promise<void> => {
+  return async (id: string): Promise<void> => {
     stringUtils.validateUUID(id, journalEntryError.InvalidJournalEntry);
-    zodValidationRunner(journalEntryDeletionReqValidation, payload);
 
     const { correlationId, idempotencyKey, accountingEntity, user, actor } =
       deps.appContext.get(['user', 'actor', 'accountingEntity']);
@@ -66,7 +59,6 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
       id,
       entry: storedEntry,
       accountingEntityId: accountingEntity.id,
-      expectedVersion: payload.expectedVersion,
     });
 
     const removal = await deps.journalEntryRemovalService.prepare(
@@ -79,7 +71,7 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
       await deps.journalEntryPersistenceService.delete(
         {
           journalEntryId: originalEntry.id,
-          expectedVersion: payload.expectedVersion,
+          expectedVersion: originalEntry.version,
         },
         repoOptions
       );

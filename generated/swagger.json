@@ -282,10 +282,6 @@
       },
       "ILedgerAccountDto": {
         "properties": {
-          "version": {
-            "type": "number",
-            "format": "double"
-          },
           "id": {
             "$ref": "#/components/schemas/TEntityId"
           },
@@ -354,7 +350,6 @@
           }
         },
         "required": [
-          "version",
           "id",
           "code",
           "materializedPath",
@@ -617,10 +612,6 @@
             "type": "string",
             "nullable": true
           },
-          "version": {
-            "type": "number",
-            "format": "double"
-          },
           "createdBy": {
             "$ref": "#/components/schemas/TEntityId"
           },
@@ -641,7 +632,6 @@
           "postedAt",
           "voidedAt",
           "voidingEntryId",
-          "version",
           "createdBy",
           "createdAt",
           "updatedAt"
@@ -743,10 +733,6 @@
             "type": "string",
             "nullable": true
           },
-          "version": {
-            "type": "number",
-            "format": "double"
-          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -774,7 +760,6 @@
           "functionalAmount",
           "side",
           "description",
-          "version",
           "createdAt",
           "updatedAt",
           "header",
@@ -1082,10 +1067,6 @@
             "type": "string",
             "nullable": true
           },
-          "version": {
-            "type": "number",
-            "format": "double"
-          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1106,7 +1087,6 @@
           "functionalAmount",
           "side",
           "description",
-          "version",
           "createdAt",
           "updatedAt"
         ],
@@ -1142,10 +1122,6 @@
           "voidingEntryId": {
             "type": "string",
             "nullable": true
-          },
-          "version": {
-            "type": "number",
-            "format": "double"
           },
           "createdBy": {
             "$ref": "#/components/schemas/TEntityId"
@@ -1185,7 +1161,6 @@
           "postedAt",
           "voidedAt",
           "voidingEntryId",
-          "version",
           "createdBy",
           "createdAt",
           "updatedAt",
@@ -1293,10 +1268,6 @@
             "type": "string",
             "nullable": true
           },
-          "version": {
-            "type": "number",
-            "format": "double"
-          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1318,7 +1289,6 @@
           "functionalAmount",
           "side",
           "description",
-          "version",
           "createdAt",
           "updatedAt"
         ],
@@ -1354,10 +1324,6 @@
           "voidingEntryId": {
             "type": "string",
             "nullable": true
-          },
-          "version": {
-            "type": "number",
-            "format": "double"
           },
           "createdBy": {
             "$ref": "#/components/schemas/TEntityId"
@@ -1397,7 +1363,6 @@
           "postedAt",
           "voidedAt",
           "voidingEntryId",
-          "version",
           "createdBy",
           "createdAt",
           "updatedAt",
@@ -1793,10 +1758,6 @@
       },
       "IPaymentJournalEntryRectificationReq": {
         "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double"
-          },
           "attachments": {
             "items": {
               "$ref": "#/components/schemas/IFileAttachment"
@@ -1832,7 +1793,6 @@
           }
         },
         "required": [
-          "expectedVersion",
           "attachments",
           "effectiveDate",
           "postedAt",
@@ -1846,10 +1806,6 @@
       },
       "IReceiptJournalEntryRectificationReq": {
         "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double"
-          },
           "attachments": {
             "items": {
               "$ref": "#/components/schemas/IFileAttachment"
@@ -1885,7 +1841,6 @@
           }
         },
         "required": [
-          "expectedVersion",
           "attachments",
           "effectiveDate",
           "postedAt",
@@ -1984,10 +1939,6 @@
       },
       "ITransferJournalEntryRectificationReq": {
         "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double"
-          },
           "attachments": {
             "items": {
               "$ref": "#/components/schemas/IFileAttachment"
@@ -2026,7 +1977,6 @@
           }
         },
         "required": [
-          "expectedVersion",
           "attachments",
           "effectiveDate",
           "postedAt",
@@ -2051,28 +2001,6 @@
             "$ref": "#/components/schemas/ITransferJournalEntryRectificationReq"
           }
         ]
-      },
-      "IJournalEntryArchiveReq": {
-        "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "required": ["expectedVersion"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IJournalEntryDeletionReq": {
-        "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "required": ["expectedVersion"],
-        "type": "object",
-        "additionalProperties": false
       },
       "Readonly_Record_string.string__": {
         "properties": {},
@@ -2265,10 +2193,6 @@
       },
       "ICounterpartyDto": {
         "properties": {
-          "version": {
-            "type": "number",
-            "format": "double"
-          },
           "createdBy": {
             "type": "string"
           },
@@ -2306,7 +2230,6 @@
           }
         },
         "required": [
-          "version",
           "createdBy",
           "id",
           "accountingEntityId",
@@ -2438,11 +2361,6 @@
       },
       "ICounterpartyUpdateReq": {
         "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double",
-            "description": "Version returned by the last read; stale writes fail with HTTP 409."
-          },
           "name": {
             "type": "string"
           },
@@ -2460,31 +2378,6 @@
             "description": "Complete role replacement when supplied; {} clears all roles."
           }
         },
-        "required": ["expectedVersion"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICounterpartyArchiveReq": {
-        "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double",
-            "description": "Version returned by the last read; stale writes fail with HTTP 409."
-          }
-        },
-        "required": ["expectedVersion"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICounterpartyDeletionReq": {
-        "properties": {
-          "expectedVersion": {
-            "type": "number",
-            "format": "double",
-            "description": "Version returned by the last read; stale deletes fail with HTTP 409."
-          }
-        },
-        "required": ["expectedVersion"],
         "type": "object",
         "additionalProperties": false
       },
@@ -4430,16 +4323,6 @@
               }
             }
           },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
           "500": {
             "description": "",
             "content": {
@@ -4451,7 +4334,7 @@
             }
           }
         },
-        "description": "Delete a never-posted journal entry or reverse a previously-posted entry.\nReversing deletion is rejected when an original ledger account is archived.",
+        "description": "Delete a never-posted journal entry or reverse a previously-posted entry.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -4463,17 +4346,7 @@
               "type": "string"
             }
           }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IJournalEntryDeletionReq"
-              }
-            }
-          }
-        }
+        ]
       }
     },
     "/journal-entries/payment": {
@@ -4804,7 +4677,7 @@
             }
           }
         },
-        "description": "Correct a journal entry while preserving its accounting audit trail.\nArchived ledger accounts cannot be used in corrected or reversing entries.",
+        "description": "Correct a journal entry while preserving its accounting audit trail.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -4893,16 +4766,6 @@
               }
             }
           },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
           "500": {
             "description": "",
             "content": {
@@ -4926,17 +4789,7 @@
               "type": "string"
             }
           }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IJournalEntryArchiveReq"
-              }
-            }
-          }
-        }
+        ]
       }
     },
     "/files/upload": {
@@ -5597,16 +5450,6 @@
               }
             }
           },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
           "500": {
             "description": "",
             "content": {
@@ -5630,17 +5473,7 @@
               "type": "string"
             }
           }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICounterpartyDeletionReq"
-              }
-            }
-          }
-        }
+        ]
       }
     },
     "/counterparties/{id}/archive": {
@@ -5707,16 +5540,6 @@
               }
             }
           },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
           "500": {
             "description": "",
             "content": {
@@ -5740,17 +5563,7 @@
               "type": "string"
             }
           }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICounterpartyArchiveReq"
-              }
-            }
-          }
-        }
+        ]
       }
     },
     "/banks": {

@@ -192,16 +192,16 @@ describe('getLockedControlAccountHelper', () => {
       expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
     }
   );
-  it('returns an archived root when it is the selected default parent', async () => {
+  it('rejects an archived allocation root before resolving a parent', async () => {
     const [archivedHeader] = ledgerAccountEntity.archive(header);
     ledgerAccountRepo.findByCode.mockResolvedValue(archivedHeader);
 
     await expect(
       getLockedControlAccountHelper(ledgerAccountRepo, payload, repoOptions)
-    ).resolves.toBe(archivedHeader);
+    ).rejects.toBeInstanceOf(ledgerAccountError.ArchivedControlAccount);
   });
 
-  it('resolves the selected parent even when the allocation root is archived', async () => {
+  it('does not resolve an explicit parent when the allocation root is archived', async () => {
     const [archivedHeader] = ledgerAccountEntity.archive(header);
     ledgerAccountRepo.findByCode.mockResolvedValue(archivedHeader);
 
@@ -211,7 +211,8 @@ describe('getLockedControlAccountHelper', () => {
         { ...payload, controlAccountId: parent.id },
         repoOptions
       )
-    ).resolves.toBe(parent);
+    ).rejects.toBeInstanceOf(ledgerAccountError.ArchivedControlAccount);
+    expect(ledgerAccountRepo.findById).not.toHaveBeenCalled();
   });
 
   it.each([true, false])(
