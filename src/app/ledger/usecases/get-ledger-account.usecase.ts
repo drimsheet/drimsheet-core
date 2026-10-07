@@ -1,7 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 
-import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
@@ -11,7 +10,6 @@ import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-accoun
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 
 interface IDependencies {
-  accountingEntityService: IAccountingEntityService;
   appContext: IAppContext;
   ledgerAccountRepo: ILedgerAccountRepo;
   balanceEnrichmentService: ILedgerAccountBalanceEnrichmentService;
@@ -21,12 +19,9 @@ export default function makeGetLedgerAccountUseCase(deps: IDependencies) {
   return async (accountId: TEntityId): Promise<ILedgerAccountDto> => {
     stringUtils.validateUUID(accountId, ledgerAccountError.InvalidId);
 
-    const { correlationId, accountingEntity, user } = deps.appContext.get([
-      'user',
+    const { correlationId, accountingEntity } = deps.appContext.get([
       'accountingEntity',
     ]);
-
-    deps.accountingEntityService.validateAccess(accountingEntity, user.id);
 
     const repoOptions = { correlationId };
 

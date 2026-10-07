@@ -20,7 +20,6 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 
-import { mockAccountingEntityService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
@@ -53,7 +52,6 @@ describe('makeDeleteJournalEntryUsecase', () => {
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
   const usecase = makeDeleteJournalEntryUsecase({
-    accountingEntityService: mockAccountingEntityService,
     appContext: mockAppContext,
     eventBus: mockEventBus,
     fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
@@ -130,10 +128,6 @@ describe('makeDeleteJournalEntryUsecase', () => {
       actor,
       correlationId,
       idempotencyKey,
-      user: {
-        id: userId,
-        actorId: 'b2222222-2222-4222-8222-222222222222' as TEntityId,
-      },
       accountingEntity: { id: accountingEntityId },
       clientSession: mockClientSession,
     } as unknown as IAppContextData);

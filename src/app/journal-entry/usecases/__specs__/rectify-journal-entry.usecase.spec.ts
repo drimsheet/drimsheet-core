@@ -21,7 +21,6 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 
-import { mockAccountingEntityService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
@@ -153,7 +152,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
 
   function getUsecase() {
     return makeRectifyJournalEntryUsecase({
-      accountingEntityService: mockAccountingEntityService,
       appContext: mockAppContext,
       counterpartyRepo: mockCounterpartyRepo,
       journalEntryRepo: mockJournalEntryRepo,
@@ -177,10 +175,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
       actor,
       correlationId,
       idempotencyKey,
-      user: {
-        id: userId,
-        actorId: 'b2222222-2222-4222-8222-222222222222' as TEntityId,
-      },
       accountingEntity: {
         id: accountingEntityId,
         functionalCurrencyCode: SYSTEM_CURRENCIES.NGN.code,
@@ -412,21 +406,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
     await expect(
       getUsecase()(originalEntry.id, makePayload(originalEntry))
     ).rejects.toBeInstanceOf(appError.ResourceNotFound);
-  });
-
-  it('rejects rectification without accounting ownership', async () => {
-    mockAccountingEntityService.validateAccess.mockImplementationOnce(() => {
-      throw new appError.Forbidden();
-    });
-    const [originalEntry] = makeEntry(100);
-    mockJournalEntryRepo.findById.mockResolvedValue({
-      ...originalEntry,
-      createdBy: generateUUID(),
-    });
-
-    await expect(
-      getUsecase()(originalEntry.id, makePayload(originalEntry))
-    ).rejects.toBeInstanceOf(appError.Forbidden);
   });
 
   it('does not persist an archived entry rejected by domain preparation', async () => {

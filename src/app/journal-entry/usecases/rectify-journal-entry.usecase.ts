@@ -9,7 +9,6 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 
-import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
@@ -32,7 +31,6 @@ import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 
 interface IDependencies {
-  accountingEntityService: IAccountingEntityService;
   appContext: IAppContext;
   counterpartyRepo: ICounterpartyRepo;
   journalEntryRepo: IJournalEntryRepo;
@@ -53,9 +51,8 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
     stringUtils.validateUUID(id, journalEntryError.InvalidJournalEntry);
     zodValidationRunner(journalEntryRectificationReqValidation, payload);
 
-    const { correlationId, idempotencyKey, accountingEntity, user, actor } =
-      deps.appContext.get(['user', 'actor', 'accountingEntity']);
-    deps.accountingEntityService.validateAccess(accountingEntity, user.id);
+    const { correlationId, idempotencyKey, accountingEntity, actor } =
+      deps.appContext.get(['actor', 'accountingEntity']);
 
     const repoOptions = { correlationId, idempotencyKey };
 

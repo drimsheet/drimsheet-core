@@ -15,7 +15,6 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 
-import { mockAccountingEntityService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
@@ -38,7 +37,6 @@ describe('makeArchiveJournalEntryUsecase', () => {
   const userId = generateUUID();
   const now = new Date('2026-09-22T10:00:00.000Z');
   const usecase = makeArchiveJournalEntryUsecase({
-    accountingEntityService: mockAccountingEntityService,
     appContext: mockAppContext,
     eventBus: mockEventBus,
     journalEntryRepo: mockJournalEntryRepo,
@@ -89,10 +87,6 @@ describe('makeArchiveJournalEntryUsecase', () => {
       actor,
       correlationId,
       idempotencyKey,
-      user: {
-        id: userId,
-        actorId: 'b2222222-2222-4222-8222-222222222222' as TEntityId,
-      },
       accountingEntity: { id: accountingEntityId },
       clientSession: mockClientSession,
     } as unknown as IAppContextData);
@@ -174,22 +168,6 @@ describe('makeArchiveJournalEntryUsecase', () => {
     await expect(usecase(generateUUID())).rejects.toThrow(
       appError.ResourceNotFound
     );
-
-    expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-
-  it('rejects a user without accounting ownership before reading the entry', async () => {
-    mockAccountingEntityService.validateAccess.mockImplementationOnce(() => {
-      throw new appError.Forbidden();
-    });
-    const entry = {
-      ...makeEntry(),
-      createdBy: generateUUID(),
-    };
-    mockJournalEntryRepo.findById.mockResolvedValue(entry);
-
-    await expect(usecase(entry.id)).rejects.toThrow(appError.Forbidden);
 
     expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();

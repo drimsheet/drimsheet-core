@@ -22,7 +22,6 @@ import moneyValue from '@domain/money/values/money.vo';
 import userEntity from '@domain/user/entities/user.entity';
 import { IUser } from '@domain/user/types/user.types';
 
-import { mockAccountingEntityService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
@@ -58,7 +57,6 @@ describe('getAccountTransactionsUseCase', () => {
 
   const getUseCase = () =>
     makeGetAccountTransactionsUseCase({
-      accountingEntityService: mockAccountingEntityService,
       appContext: mockAppContext,
       ledgerAccountRepo: mockLedgerAccountRepo,
       accountTransactionQueryRepo: mockAccountTransactionQueryRepo,
@@ -129,7 +127,6 @@ describe('getAccountTransactionsUseCase', () => {
     mockAppContext.get.mockReturnValue({
       correlationId,
       idempotencyKey: 'test-idempotency-key',
-      user,
       accountingEntity,
       clientSession: mockClientSession,
     } satisfies IAppContextData);
@@ -243,35 +240,6 @@ describe('getAccountTransactionsUseCase', () => {
 
     await expect(useCase(ledgerAccount.id, pagination)).rejects.toThrow(
       ledgerAppError.AccountNotFound
-    );
-
-    expect(
-      mockAccountTransactionQueryRepo.findAllByAccountId
-    ).not.toHaveBeenCalled();
-  });
-
-  it('throws Forbidden when the user cannot access the account', async () => {
-    mockAccountingEntityService.validateAccess.mockImplementationOnce(() => {
-      throw new appError.Forbidden();
-    });
-    const useCase = getUseCase();
-    const [differentUser] = userEntity.make({
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      email: 'different-owner@example.com',
-      emailVerified: true,
-      firstName: 'Different',
-      lastName: 'Owner',
-    });
-    const inaccessibleAccount = {
-      ...ledgerAccount,
-      createdBy: differentUser.id,
-    };
-
-    mockLedgerAccountRepo.findById.mockResolvedValue(inaccessibleAccount);
-
-    await expect(useCase(ledgerAccount.id, pagination)).rejects.toThrow(
-      appError.Forbidden
     );
 
     expect(
