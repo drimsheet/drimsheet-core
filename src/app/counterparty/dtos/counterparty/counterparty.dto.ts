@@ -49,6 +49,10 @@ export interface ICounterpartyDto {
   updatedAt: Date;
 }
 
+export interface ICounterpartyDeletionEligibilityDto {
+  canDelete: boolean;
+}
+
 export interface IGetCounterpartiesQuery extends IPaginationDto {
   roles?: UCounterpartyRole[];
   type?: UCounterpartyType;

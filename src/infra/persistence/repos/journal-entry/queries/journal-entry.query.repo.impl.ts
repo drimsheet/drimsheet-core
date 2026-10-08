@@ -20,6 +20,25 @@ import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import journalEntryDetailsMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-details.mapper';
 
 const journalEntryQueryRepo: IJournalEntryQueryRepo = {
+  async existsByCounterpartyId(counterpartyId, accountingEntityId, options) {
+    const references = await getDbQuery(options)
+      .select({ id: journalLinesInCore.id })
+      .from(journalLinesInCore)
+      .innerJoin(
+        journalEntriesInCore,
+        eq(journalEntriesInCore.id, journalLinesInCore.entryId)
+      )
+      .where(
+        and(
+          eq(journalLinesInCore.counterpartyId, counterpartyId),
+          eq(journalEntriesInCore.accountingEntityId, accountingEntityId)
+        )
+      )
+      .limit(1);
+
+    return references.length > 0;
+  },
+
   async findById(id, accountingEntityId, options) {
     const entry = await getDbQuery(
       options

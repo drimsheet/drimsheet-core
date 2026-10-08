@@ -2,6 +2,7 @@ import makeArchiveCounterpartyUsecase from '@app/counterparty/usecases/archive-c
 import makeCreateCounterpartyUsecase from '@app/counterparty/usecases/create-counterparty.usecase';
 import makeDeleteCounterpartyUsecase from '@app/counterparty/usecases/delete-counterparty.usecase';
 import makeGetCounterpartiesUsecase from '@app/counterparty/usecases/get-counterparties.usecase';
+import makeGetCounterpartyDeletionEligibilityUsecase from '@app/counterparty/usecases/get-counterparty-deletion-eligibility.usecase';
 import makeGetCounterpartyUsecase from '@app/counterparty/usecases/get-counterparty.usecase';
 import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
 
@@ -47,6 +48,15 @@ export const getCounterpartiesUseCase = makeTracedUseCase(
   makeGetCounterpartiesUsecase({
     appContext,
     counterpartyRepo: counterpartyRepos.counterparty,
+  })
+);
+
+export const getCounterpartyDeletionEligibilityUseCase = makeTracedUseCase(
+  'counterparty.getCounterpartyDeletionEligibilityUseCase',
+  makeGetCounterpartyDeletionEligibilityUsecase({
+    appContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    journalEntryQueryRepo: journalRepos.queries.journalEntry,
   })
 );
 
