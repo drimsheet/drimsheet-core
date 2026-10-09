@@ -2299,6 +2299,16 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ICounterpartyDeletionEligibilityDto": {
+        "properties": {
+          "canDelete": {
+            "type": "boolean"
+          }
+        },
+        "required": ["canDelete"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "ICounterpartyCreateMetaReq": {
         "properties": {
           "employer": {
@@ -5462,6 +5472,86 @@
           }
         },
         "description": "Permanently delete a counterparty with no remaining transaction references.\nReferences in archived transactions also block deletion. Returns 409 with\nreason=transaction_usage and nextAction=archive_counterparty; retain the\ncounterparty and use POST /counterparties/{id}/archive instead.",
+        "tags": ["Counterparty"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/counterparties/{id}/deletion-eligibility": {
+      "get": {
+        "operationId": "getCounterpartyDeletionEligibility",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyDeletionEligibilityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Check whether a counterparty has no transaction references and can be deleted.\nThis result is advisory; deletion rechecks eligibility atomically.",
         "tags": ["Counterparty"],
         "security": [],
         "parameters": [

@@ -48,6 +48,44 @@ describe('journalEntryQueryRepo', () => {
     findMany.mockReset();
   });
 
+  it.each([
+    { references: [], expected: false },
+    { references: [{ id: journalEntryId }], expected: true },
+  ])(
+    'reports counterparty reference existence as $expected',
+    async ({ references, expected }) => {
+      const limit = jest.fn().mockResolvedValue(references);
+      const where = jest.fn().mockReturnValue({ limit });
+      const innerJoin = jest.fn().mockReturnValue({ where });
+      const from = jest.fn().mockReturnValue({ innerJoin });
+      const select = jest.fn().mockReturnValue({ from });
+      jest.mocked(getDbQuery).mockReturnValue({
+        select,
+      } as unknown as ReturnType<typeof getDbQuery>);
+
+      const result = await journalEntryQueryRepo.existsByCounterpartyId(
+        counterpartyId,
+        accountingEntityId,
+        options
+      );
+
+      expect(select).toHaveBeenCalledWith({ id: journalLinesInCore.id });
+      expect(from).toHaveBeenCalledWith(journalLinesInCore);
+      expect(innerJoin).toHaveBeenCalledWith(
+        journalEntriesInCore,
+        expect.anything()
+      );
+      expect(limit).toHaveBeenCalledWith(1);
+
+      const dialect = new PgDialect();
+      const predicate = dialect.sqlToQuery(where.mock.calls[0][0] as SQL);
+      expect(predicate.sql).toContain('"counterparty_id" = $1');
+      expect(predicate.sql).toContain('"accounting_entity_id" = $2');
+      expect(predicate.params).toEqual([counterpartyId, accountingEntityId]);
+      expect(result).toBe(expected);
+    }
+  );
+
   it.each([undefined, 'posted', 'archived'] as const)(
     'scopes count and rows for status %s and retains default pagination',
     async (status) => {

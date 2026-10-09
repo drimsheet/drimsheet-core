@@ -19,6 +19,7 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import {
   ICounterpartyCreateReq,
+  ICounterpartyDeletionEligibilityDto,
   ICounterpartyDto,
   ICounterpartyUpdateReq,
   IGetCounterpartiesQuery,
@@ -30,6 +31,7 @@ import {
   createCounterpartyUseCase,
   deleteCounterpartyUseCase,
   getCounterpartiesUseCase,
+  getCounterpartyDeletionEligibilityUseCase,
   getCounterpartyUseCase,
   updateCounterpartyUseCase,
 } from '@infra/ioc/usecases/counterparty';
@@ -75,6 +77,29 @@ export class CounterpartyController extends Controller {
   )
   public async getCounterparty(@Path() id: string): Promise<ICounterpartyDto> {
     return await getCounterpartyUseCase(id);
+  }
+
+  /**
+   * Check whether a counterparty has no transaction references and can be deleted.
+   * This result is advisory; deletion rechecks eligibility atomically.
+   */
+  @Get('/{id}/deletion-eligibility')
+  @OperationId('getCounterpartyDeletionEligibility')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getCounterpartyDeletionEligibility(
+    @Path() id: string
+  ): Promise<ICounterpartyDeletionEligibilityDto> {
+    return await getCounterpartyDeletionEligibilityUseCase(id);
   }
 
   /**
