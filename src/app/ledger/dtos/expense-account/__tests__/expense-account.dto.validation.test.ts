@@ -1,4 +1,7 @@
-import { createExpenseAccountValidation } from '@app/ledger/dtos/expense-account/expense-account.dto.validation';
+import {
+  createExpenseAccountValidation,
+  updateExpenseAccountValidation,
+} from '@app/ledger/dtos/expense-account/expense-account.dto.validation';
 
 describe('createExpenseAccountValidation', () => {
   const schema = createExpenseAccountValidation;
@@ -109,5 +112,53 @@ describe('createExpenseAccountValidation', () => {
   });
   it('rejects arbitrary metadata', () => {
     expect(schema.safeParse({ ...valid, meta: {} }).success).toBe(false);
+  });
+});
+
+describe('updateExpenseAccountValidation', () => {
+  it('accepts a name update', () => {
+    expect(
+      updateExpenseAccountValidation.parse({ name: 'Consulting' })
+    ).toEqual({ name: 'Consulting' });
+  });
+
+  it.each([
+    {},
+    { name: undefined },
+    { name: null },
+    { name: '' },
+    { name: 'a' },
+    { name: 'a'.repeat(101) },
+    [],
+    null,
+  ])('rejects invalid input %j', (payload) => {
+    expect(updateExpenseAccountValidation.safeParse(payload).success).toBe(
+      false
+    );
+  });
+
+  it.each([
+    'behavior',
+    'type',
+    'subType',
+    'status',
+    'currencyCode',
+    'controlAccountId',
+    'isControlAccount',
+    'openingBalance',
+    'meta',
+    'code',
+    'materializedPath',
+    'version',
+    'expectedVersion',
+    'createdBy',
+    'accountingEntityId',
+  ])('rejects changes to %s', (field) => {
+    expect(
+      updateExpenseAccountValidation.safeParse({
+        name: 'Consulting',
+        [field]: 'forged',
+      }).success
+    ).toBe(false);
   });
 });

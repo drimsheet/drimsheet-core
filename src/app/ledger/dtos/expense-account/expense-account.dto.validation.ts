@@ -34,3 +34,6 @@ export const createExpenseAccountValidation = z
     ),
   })
   .strict();
+
+export const updateExpenseAccountValidation =
+  createExpenseAccountValidation.pick({ name: true });

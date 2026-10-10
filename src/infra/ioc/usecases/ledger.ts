@@ -17,6 +17,7 @@ import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-per
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
 import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
+import makeUpdateExpenseAccountUsecase from '@app/ledger/usecases/update-expense-account.usecase';
 import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty-cash-account.usecase';
 import makeUpdateRevenueAccountUsecase from '@app/ledger/usecases/update-revenue-account.usecase';
 
@@ -35,6 +36,7 @@ import {
   directCostsAccountService,
   employmentIncomeAccountService,
   equityAccountService,
+  expenseAccountService,
   financeCostAccountService,
   gainOnAssetSaleAccountService,
   giftsAccountService,
@@ -256,6 +258,17 @@ export const updateRevenueAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     revenueAccountService,
+    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+  })
+);
+
+export const updateExpenseAccountUseCase = makeTracedUseCase(
+  'ledger.updateExpenseAccountUseCase',
+  makeUpdateExpenseAccountUsecase({
+    appContext,
+    eventBus: messaging.eventBus,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    expenseAccountService,
     balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
   })
 );
