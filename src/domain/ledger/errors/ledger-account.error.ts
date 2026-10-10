@@ -21,6 +21,7 @@ const EErrorKeys = {
   InvalidNormalBalance: 'ledger_error_ledger_account_normal_balance_invalid',
   InvalidCode: 'ledger_error_ledger_account_code_invalid',
   InvalidName: 'ledger_error_ledger_account_name_invalid',
+  InvalidUpdate: 'ledger_error_ledger_account_update_invalid',
   InvalidStatus: 'ledger_error_ledger_account_status_invalid',
   InvalidContraRule: 'ledger_error_ledger_account_contra_rule_invalid',
   InvalidAdjunctRule: 'ledger_error_ledger_account_adjunct_rule_invalid',
@@ -78,6 +79,8 @@ const EErrorKeys = {
     'ledger_error_ledger_account_control_account_currency_mismatch_invalid',
   OpeningBalanceCurrencyMismatch:
     'ledger_error_asset_account_opening_balance_currency_mismatch_invalid',
+  OpeningBalanceLocked:
+    'ledger_error_asset_account_opening_balance_locked_conflict',
   DuplicateBankAccount:
     'ledger_error_asset_account_duplicate_bank_account_conflict',
   OpeningBalanceAccountAlreadyExists:

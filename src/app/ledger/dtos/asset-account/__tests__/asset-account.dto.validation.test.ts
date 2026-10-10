@@ -2,6 +2,7 @@ import {
   bankAccountCreationReqValidation,
   bankDetailsCreationReqValidation,
   pettyCashCreationReqValidation,
+  pettyCashUpdateReqValidation,
 } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 
 describe('Asset Account DTO Validation', () => {
@@ -104,6 +105,36 @@ describe('Asset Account DTO Validation', () => {
         );
       }
     });
+  });
+
+  describe('pettyCashUpdateReqValidation', () => {
+    it.each([
+      { name: 'Office cash' },
+      {
+        openingBalance: {
+          amount: {
+            amount: 5000,
+            currencyCode: 'NGN',
+            isMinorUnit: true,
+          },
+          exchangeRate: null,
+          date: new Date('2026-07-13T18:00:00.000Z'),
+        },
+      },
+    ])('accepts a permitted partial update', (payload) => {
+      expect(pettyCashUpdateReqValidation.safeParse(payload).success).toBe(
+        true
+      );
+    });
+
+    it.each([{}, { status: 'active' }, { openingBalance: null }])(
+      'rejects an empty, lifecycle, or clearing update: %p',
+      (payload) => {
+        expect(pettyCashUpdateReqValidation.safeParse(payload).success).toBe(
+          false
+        );
+      }
+    );
   });
 
   describe('bankDetailsCreationReqValidation', () => {

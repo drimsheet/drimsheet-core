@@ -9,6 +9,7 @@ import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 import {
   EJournalEntryStatus,
   IJournalEntry,
+  UJournalEntrySourceType,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
@@ -26,8 +27,10 @@ export interface IFindAllJournalEntriesOptions extends Omit<
   'orderBy'
 > {
   status?:
+    | typeof EJournalEntryStatus.Draft
     | typeof EJournalEntryStatus.Posted
     | typeof EJournalEntryStatus.Archived;
+  sourceType?: UJournalEntrySourceType;
   accountId?: TEntityId;
   counterpartyId?: TEntityId;
   orderBy?: UJournalEntrySortBy;
@@ -43,6 +46,12 @@ export interface IJournalEntryDetails extends Omit<IJournalEntry, 'lines'> {
 }
 
 export default interface IJournalEntryQueryRepo {
+  existsPostedByAccountId(
+    accountId: TEntityId,
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<boolean>;
+
   existsByCounterpartyId(
     counterpartyId: TEntityId,
     accountingEntityId: TEntityId,

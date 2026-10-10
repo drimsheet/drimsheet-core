@@ -19,6 +19,7 @@ import {
   journalEntryRectificationPreparationService,
   journalEntryRemovalService,
   journalEntryService,
+  openingBalanceEntryAppService,
 } from '@infra/ioc/services/journal-entry';
 import outboxService from '@infra/ioc/services/outbox';
 import { repoService } from '@infra/ioc/services/repo';
@@ -35,12 +36,11 @@ export const createOpeningBalanceUseCase = makeTracedUseCase(
     appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     eventBus: messaging.eventBus,
-    journalEntryService,
+    openingBalanceEntryAppService,
     journalEntryPersistenceService,
     outboxService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
-    fxLotAppService,
     fxCostBasisPersistenceService,
   })
 );

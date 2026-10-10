@@ -1,11 +1,6 @@
-import { IReadRepoOptions } from '@shared/types/repo.types';
-import dateUtils from '@shared/utils/date';
-
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
-import getOppositeJournalSide from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
-import openingBalanceEntryRule from '@domain/journal-entry/rules/opening-balance-entry.rule';
 import paymentEntryRule from '@domain/journal-entry/rules/payment-entry.rule';
 import receiptEntryRule from '@domain/journal-entry/rules/receipt-entry.rule';
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
@@ -16,178 +11,11 @@ import {
   IJournalLineMakePayload,
 } from '@domain/journal-entry/types/journal-line.types';
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
-import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
-import { EEquitySubType } from '@domain/ledger/types/equity-account.types';
-import {
-  ELedgerAccountStatus,
-  ELedgerType,
-} from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
-import moneyValue from '@domain/money/values/money.vo';
 
 interface IDependencies {
   accountingPeriodService: IAccountingPeriodService;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
-  ledgerAccountRepo: ILedgerAccountRepo;
-}
-
-/** Prepares the common journal after the caller-specific opening-date guard. */
-async function prepareOpeningBalance(
-  deps: IDependencies,
-  payload: Parameters<IJournalEntryService['createOpeningBalance']>[0],
-  repoOptions: IReadRepoOptions
-) {
-  const {
-    accountingEntityId,
-    account,
-    functionalCurrencyCode,
-    amount,
-    effectiveDate,
-    exchangeRate,
-    createdBy,
-  } = payload;
-
-  const functionalCurrency = currencyEntity.getByCode(functionalCurrencyCode);
-
-  const functionalAmount = exchangeRate
-    ? moneyValue.convert(amount, exchangeRate, functionalCurrency)
-    : amount;
-
-  if (account.isControlAccount) {
-    throw new journalEntryError.ControlAccountOpeningBalanceNotAllowed({
-      accountId: account.id,
-    });
-  }
-
-  const [existingBalanceAdjustment] =
-    await deps.ledgerAccountBalanceRepo.findAdjustmentsByAccountId(
-      account.id,
-      repoOptions
-    );
-
-  if (existingBalanceAdjustment) {
-    throw new journalEntryError.ExistingOpeningBalance({
-      accountId: account.id,
-    });
-  }
-
-  const [equityAccount] = await deps.ledgerAccountRepo.findBySubType(
-    accountingEntityId,
-    ELedgerType.Equity,
-    EEquitySubType.OpeningBalance,
-    repoOptions
-  );
-
-  if (!equityAccount) {
-    throw new journalEntryError.UnConfiguredOpeningBalanceAccount();
-  }
-
-  journalEntryServiceValidation.validateAccountsAgainstRule(
-    [account],
-    [equityAccount],
-    openingBalanceEntryRule
-  );
-
-  const postedAt =
-    account.status === ELedgerAccountStatus.Draft ? null : effectiveDate;
-  const headerValidationPayload = {
-    accountingEntityId,
-    effectiveDate,
-    postedAt,
-  };
-  const accountValidationPayload = {
-    account,
-    amount,
-  };
-  const equityValidationPayload = {
-    account: equityAccount,
-    amount: functionalAmount,
-  };
-  journalEntryServiceValidation.validateAccounts(headerValidationPayload, [
-    accountValidationPayload,
-    equityValidationPayload,
-  ]);
-
-  const accountSide: IJournalLineMakePayload = {
-    accountId: account.id,
-    counterpartyId: null,
-    functionalCurrency,
-    amount,
-    exchangeRate,
-    sequenceOrder: 1,
-    side: account.normalBalance,
-    description: 'Opening balance',
-  };
-
-  const equitySide: IJournalLineMakePayload = {
-    accountId: equityAccount.id,
-    counterpartyId: null,
-    functionalCurrency,
-    amount: functionalAmount,
-    exchangeRate: null,
-    sequenceOrder: 2,
-    description: null,
-    side: getOppositeJournalSide(account.normalBalance),
-  };
-
-  return journalEntryEntity.make({
-    accountingEntityId,
-    sourceType: EJournalEntrySourceType.OpeningBalance,
-    effectiveDate,
-    postedAt,
-    memo: 'Opening balance',
-    createdBy,
-    functionalCurrency,
-    lines: [accountSide, equitySide],
-  });
-}
-
-/** Rejects repeat opening balances and prepares a journal for the existing-account workflow. */
-function makeCreateOpeningBalance(
-  deps: IDependencies
-): IJournalEntryService['createOpeningBalance'] {
-  return async (payload, repoOptions) => {
-    if (payload.account.openingBalanceDate !== null)
-      throw new journalEntryError.ExistingOpeningBalance({
-        accountId: payload.account.id,
-      });
-    return prepareOpeningBalance(deps, payload, repoOptions);
-  };
-}
-
-/** Accepts only an unpersisted account with its initial date; never bypasses the existing-account guard. */
-function makeCreateInitialOpeningBalance(
-  deps: IDependencies
-): IJournalEntryService['createInitialOpeningBalance'] {
-  return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
-      throw new journalEntryError.InitialOpeningBalanceTransactionRequired();
-    const { account } = payload;
-    const hasMatchingDate =
-      account.openingBalanceDate !== null &&
-      dateUtils.isSameDay(account.openingBalanceDate, payload.effectiveDate);
-    if (!hasMatchingDate)
-      throw new journalEntryError.InvalidOpeningBalanceDate({
-        accountId: account.id,
-      });
-    const existing = await deps.ledgerAccountRepo.findById(
-      account.id,
-      account.accountingEntityId,
-      repoOptions
-    );
-    if (existing)
-      throw new journalEntryError.InitialOpeningBalanceAccountAlreadyExists({
-        accountId: account.id,
-      });
-
-    await deps.accountingPeriodService.validatePostingPeriod(
-      payload.accountingEntityId,
-      payload.effectiveDate,
-      repoOptions
-    );
-
-    return prepareOpeningBalance(deps, payload, repoOptions);
-  };
 }
 
 function makeCreateReceipt(
@@ -435,9 +263,6 @@ function makeCreateTransfer(
 
 export default function makeJournalEntryService(deps: IDependencies) {
   const service: IJournalEntryService = {
-    createOpeningBalance: makeCreateOpeningBalance(deps),
-    createInitialOpeningBalance: makeCreateInitialOpeningBalance(deps),
-
     createReceipt: makeCreateReceipt(deps),
 
     createPayment: makeCreatePayment(deps),

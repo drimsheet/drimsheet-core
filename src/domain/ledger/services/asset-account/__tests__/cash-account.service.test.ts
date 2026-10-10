@@ -591,5 +591,37 @@ describe('cashAccountService', () => {
         ledgerAccountError.ForbiddenControlAccountOpeningBalanceDate
       );
     });
+
+    it('updates only a non-archived petty-cash account', async () => {
+      const [account] = await service.createPettyCashSubAccount(
+        payload,
+        options
+      );
+      const [updated, events, audit] = service.updatePettyCashSubAccount(
+        account,
+        { name: 'Updated petty cash' }
+      );
+
+      expect(updated).toMatchObject({
+        id: account.id,
+        name: 'Updated petty cash',
+        version: 2,
+      });
+      expect(events).toHaveLength(1);
+      expect(audit?.diff.before).toEqual(account);
+
+      expect(() =>
+        service.updatePettyCashSubAccount(
+          { ...account, behavior: EAssetAccountBehavior.Bank },
+          { name: 'Wrong family' }
+        )
+      ).toThrow(ledgerAccountError.InvalidBehavior);
+      expect(() =>
+        service.updatePettyCashSubAccount(
+          { ...account, status: ELedgerAccountStatus.Archived },
+          { name: 'Archived' }
+        )
+      ).toThrow(ledgerAccountError.InvalidStatus);
+    });
   });
 });

@@ -93,9 +93,7 @@ export default function makeUpdateCounterpartyUsecase(
 
       return counterpartyDtoMapper.toDto(counterparty);
     } catch (error) {
-      return transaction.handleError(error);
-    } finally {
-      await transaction.dispose();
+      return await transaction.handleError(error);
     }
   };
 }

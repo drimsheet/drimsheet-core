@@ -6,7 +6,6 @@ import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
-import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
 import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
 import { IBankDetails } from '@domain/ledger/types/asset-account.types';
@@ -15,6 +14,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening-balance-entry.service.contract';
 import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { IBankAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
@@ -33,7 +33,7 @@ interface IDependencies {
   eventBus: IEventBus;
   cashAccountService: ICashAccountService;
   bankAccountRepo: IBankAccountRepo;
-  journalEntryService: IJournalEntryService;
+  openingBalanceEntryAppService: IOpeningBalanceEntryAppService;
   journalEntryPersistenceService: IJournalEntryPersistenceService;
   outboxService: IOutboxService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
@@ -133,7 +133,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
       };
 
       const [journalEntry, journalEvents, journalAudit] =
-        await deps.journalEntryService.createInitialOpeningBalance(
+        await deps.openingBalanceEntryAppService.createInitialOpeningBalance(
           journalEntryCreationInput,
           transactionOptions
         );
@@ -215,10 +215,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
         accountingEntity.functionalCurrencyCode
       );
     } catch (error) {
-      // handleError rolls back only unfinished work; a successful commit is preserved.
       return await transaction.handleError(error);
-    } finally {
-      await transaction.dispose();
     }
   };
 }

@@ -1,7 +1,4 @@
-import {
-  IReadRepoOptions,
-  ITransactionContext,
-} from '@shared/types/repo.types';
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
@@ -61,28 +58,7 @@ export interface ICreateTransferEntryResult {
   destinationAssetAccount: ILedgerAccount;
 }
 
-interface ICreateOpeningBalancePayload {
-  accountingEntityId: TEntityId;
-  functionalCurrencyCode: string;
-  account: ILedgerAccount;
-  amount: IMoney;
-  effectiveDate: Date;
-  exchangeRate: IExchangeRate | null;
-  createdBy: TEntityId;
-}
-
 export interface IJournalEntryService {
-  /** Prepares the initial journal for an unpersisted, dated account in the caller's transaction. */
-  createInitialOpeningBalance(
-    payload: ICreateOpeningBalancePayload,
-    repoOptions: IReadRepoOptions & { tx: ITransactionContext }
-  ): Promise<TAuditedJournalEntry>;
-
-  createOpeningBalance(
-    payload: ICreateOpeningBalancePayload,
-    repoOptions: IReadRepoOptions
-  ): Promise<TAuditedJournalEntry>;
-
   createReceipt(
     payload: ICreateReceiptEntryPayload,
     repoOptions: IReadRepoOptions

@@ -68,8 +68,8 @@ const layerImportPaths = {
   },
 };
 
-// Deliberately syntax-based: recognize createTransaction by name and require
-// auditable ownership patterns rather than attempting general resource analysis.
+// Structural checks only: recognize awaited lifecycle calls on the owned
+// transaction. Their presence does not prove cleanup on every execution path.
 const requireTransactionDisposal = {
   meta: {
     type: 'problem',
@@ -81,7 +81,7 @@ const requireTransactionDisposal = {
       declaration:
         'Assign awaited createTransaction() to a single const identifier.',
       cleanup:
-        'Immediately follow transaction creation with finally disposal, or an unconditional awaited disposing commit() and catch returning handleError(error). Use finally for branching before commit or commit({ dispose: false }).',
+        'Follow transaction creation with try/catch containing an unconditional awaited handleError(error) on that transaction, plus an awaited commit() or dispose() in try/finally. A commit with disposal disabled or unverified also requires an awaited dispose().',
     },
     schema: [],
   },
@@ -105,75 +105,97 @@ const requireTransactionDisposal = {
       callName(call.callee) === method &&
       referencesVariable(variable, call.callee.object);
 
-    const hasDisposingCommitAndHandler = (statement, variable) => {
+    const hasAwaitedErrorHandler = (statement, variable) => {
       if (statement?.type !== 'TryStatement') return false;
 
       const handler = statement.handler;
-      const returned = handler?.body.body[0];
-      const handled =
-        returned?.argument?.type === 'AwaitExpression'
-          ? returned.argument.argument
-          : returned?.argument;
       const errorVariable =
         handler?.param?.type === 'Identifier'
           ? sourceCode.getDeclaredVariables(handler)[0]
           : undefined;
-      const handlesCaughtError =
-        handler?.body.body.length === 1 &&
-        returned?.type === 'ReturnStatement' &&
-        isOwnedCall(handled, 'handleError', variable) &&
-        handled.arguments.length === 1 &&
-        referencesVariable(errorVariable, handled.arguments[0]);
-      if (!handlesCaughtError) return false;
-
-      // Sequential statements and simple write loops cannot skip the commit.
-      // Keep finally disposal for more complex control flow instead of guessing.
-      for (const step of statement.block.body) {
-        if (
-          step.type === 'ForOfStatement' &&
-          step.body.type === 'BlockStatement' &&
-          step.body.body.every((bodyStep) =>
-            ['VariableDeclaration', 'ExpressionStatement'].includes(
-              bodyStep.type
-            )
-          )
-        ) {
-          continue;
-        }
-        if (
-          !['VariableDeclaration', 'ExpressionStatement'].includes(step.type)
-        ) {
-          return false;
-        }
-        const commit =
-          step.expression?.type === 'AwaitExpression'
-            ? step.expression.argument
+      for (const step of handler?.body.body ?? []) {
+        const expression =
+          step.type === 'ReturnStatement' ? step.argument : step.expression;
+        const handled =
+          expression?.type === 'AwaitExpression'
+            ? expression.argument
             : undefined;
-        if (!isOwnedCall(commit, 'commit', variable)) continue;
-
-        if (commit.arguments.length === 0) return true;
-
-        const options = commit.arguments[0];
-        if (
-          commit.arguments.length !== 1 ||
-          options.type !== 'ObjectExpression'
-        ) {
+        const handlesCaughtError =
+          isOwnedCall(handled, 'handleError', variable) &&
+          handled.arguments.length === 1 &&
+          referencesVariable(errorVariable, handled.arguments[0]);
+        if (handlesCaughtError) return true;
+        if (['ReturnStatement', 'ThrowStatement'].includes(step.type))
           return false;
-        }
-        if (options.properties.length === 0) return true;
-
-        const flag = options?.properties?.[0];
-        return (
-          options.properties.length === 1 &&
-          flag.type === 'Property' &&
-          flag.kind === 'init' &&
-          !flag.computed &&
-          (flag.key.name ?? flag.key.value) === 'dispose' &&
-          flag.value.type === 'Literal' &&
-          flag.value.value === true
-        );
       }
       return false;
+    };
+
+    // Only statically known disposing options can replace explicit disposal.
+    const isDisposingCommit = (commit) => {
+      if (commit.arguments.length === 0) return true;
+      const options = commit.arguments[0];
+      if (
+        commit.arguments.length !== 1 ||
+        options.type !== 'ObjectExpression'
+      ) {
+        return false;
+      }
+      if (options.properties.length === 0) return true;
+      const flag = options.properties[0];
+      return (
+        options.properties.length === 1 &&
+        flag.type === 'Property' &&
+        flag.kind === 'init' &&
+        !flag.computed &&
+        (flag.key.name ?? flag.key.value) === 'dispose' &&
+        flag.value.type === 'Literal' &&
+        flag.value.value === true
+      );
+    };
+
+    const hasAwaitedCleanup = (statement, variable) => {
+      let hasCommit = false;
+      let hasDisposal = false;
+      let requiresDisposal = false;
+
+      // Branches and loops are allowed. A nested function/class does not run
+      // merely because it is declared, and catch-only cleanup is not success cleanup.
+      const visit = (node) => {
+        if (!node) return;
+        const isSeparateScope = [
+          'FunctionDeclaration',
+          'FunctionExpression',
+          'ArrowFunctionExpression',
+          'ClassDeclaration',
+          'ClassExpression',
+          'CatchClause',
+        ].includes(node.type);
+        if (isSeparateScope) return;
+
+        if (node.type === 'AwaitExpression') {
+          const call = node.argument;
+          if (isOwnedCall(call, 'commit', variable)) {
+            hasCommit = true;
+            requiresDisposal ||= !isDisposingCommit(call);
+          }
+          if (isOwnedCall(call, 'dispose', variable)) {
+            const hasSafeArguments =
+              call.arguments.length === 0 ||
+              (call.arguments.length === 1 &&
+                call.arguments[0].type === 'Identifier');
+            hasDisposal ||= hasSafeArguments;
+          }
+        }
+        for (const key of sourceCode.visitorKeys[node.type] ?? []) {
+          const child = node[key];
+          if (Array.isArray(child)) child.forEach(visit);
+          else visit(child);
+        }
+      };
+      visit(statement.block);
+      visit(statement.finalizer);
+      return hasDisposal || (hasCommit && !requiresDisposal);
     };
 
     return {
@@ -201,36 +223,11 @@ const requireTransactionDisposal = {
         const next = Array.isArray(statements)
           ? statements[statements.indexOf(declaration) + 1]
           : undefined;
-        const cleanup =
-          next?.type === 'TryStatement' ? next.finalizer?.body[0] : undefined;
-        const disposal = cleanup?.expression?.argument;
-        const isAwaitedDisposal =
-          cleanup?.type === 'ExpressionStatement' &&
-          cleanup.expression.type === 'AwaitExpression' &&
-          disposal?.type === 'CallExpression' &&
-          !disposal.optional &&
-          disposal.callee.type === 'MemberExpression' &&
-          !disposal.callee.optional &&
-          disposal.callee.object.type === 'Identifier' &&
-          callName(disposal.callee) === 'dispose';
-
-        // A computed argument could throw before dispose is called. Allow only
-        // no argument or the caller's already-captured operation error.
-        const hasSafeArguments =
-          isAwaitedDisposal &&
-          (disposal.arguments.length === 0 ||
-            (disposal.arguments.length === 1 &&
-              disposal.arguments[0].type === 'Identifier'));
         const variable = sourceCode.getDeclaredVariables(declarator)[0];
-        const disposesOwnedTransaction =
-          hasSafeArguments &&
-          variable.references.some(
-            (reference) => reference.identifier === disposal.callee.object
-          );
 
         if (
-          !disposesOwnedTransaction &&
-          !hasDisposingCommitAndHandler(next, variable)
+          !hasAwaitedErrorHandler(next, variable) ||
+          !hasAwaitedCleanup(next, variable)
         ) {
           context.report({ node, messageId: 'cleanup' });
         }

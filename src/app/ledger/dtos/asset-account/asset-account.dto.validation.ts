@@ -37,6 +37,21 @@ export const pettyCashCreationReqValidation = z
     }
   );
 
+export const pettyCashUpdateReqValidation = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1, new ledgerAccountError.InvalidName().errorKey)
+      .max(100, new ledgerAccountError.InvalidName().errorKey)
+      .optional(),
+    openingBalance: openingBalanceDtoValidation.optional(),
+  })
+  .refine(
+    (payload) =>
+      payload.name !== undefined || payload.openingBalance !== undefined,
+    new ledgerAccountError.InvalidUpdate().errorKey
+  );
+
 export const bankDetailsCreationReqValidation = z
   .object({
     bankName: z

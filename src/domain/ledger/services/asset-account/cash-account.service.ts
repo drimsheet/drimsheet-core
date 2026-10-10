@@ -12,6 +12,7 @@ import controlAccountAvailabilityValidation from '@domain/ledger/services/valida
 import {
   EAssetAccountBehavior,
   EAssetSubType,
+  IPettyCashAccount,
 } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
 import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
@@ -81,7 +82,7 @@ function makeCreateHeader(
   };
 }
 
-/** Prepares a final account under caller-owned family and parent locks; never writes. */
+/** Creates a final account under caller-owned family and parent locks; never writes. */
 function makeCreatePettyCashSubAccount(
   deps: IDependencies
 ): ICashAccountService['createPettyCashSubAccount'] {
@@ -150,9 +151,30 @@ function makeCreatePettyCashSubAccount(
   };
 }
 
+function updatePettyCashSubAccount(
+  account: Parameters<ICashAccountService['updatePettyCashSubAccount']>[0],
+  payload: Parameters<ICashAccountService['updatePettyCashSubAccount']>[1]
+): ReturnType<ICashAccountService['updatePettyCashSubAccount']> {
+  const isPettyCashAccount =
+    account.type === ELedgerType.Asset &&
+    account.subType === EAssetSubType.CashAndCashEquivalent &&
+    account.behavior === EAssetAccountBehavior.PettyCash;
+  if (!isPettyCashAccount) {
+    throw new ledgerAccountError.InvalidBehavior({
+      expected: EAssetAccountBehavior.PettyCash,
+      received: account.behavior,
+    });
+  }
+  if (account.status === ELedgerAccountStatus.Archived) {
+    throw new ledgerAccountError.InvalidStatus({ status: account.status });
+  }
+
+  return ledgerAccountEntity.update(account as IPettyCashAccount, payload);
+}
+
 /**
  *
- * Normalizes bank details, enforces persisted-state invariants, and prepares a complete bank account.
+ * Normalizes bank details, enforces persisted-state invariants, and creates a complete bank account.
  * The caller holds allocation and parent locks through insertion and commit.
  *
  * @returns Audited ICashAndCashEquivalentAccount
@@ -247,6 +269,7 @@ export default function makeCashAccountService(
   const service: ICashAccountService = {
     createHeader: makeCreateHeader(deps),
     createPettyCashSubAccount: makeCreatePettyCashSubAccount(deps),
+    updatePettyCashSubAccount,
     createBankSubAccount: makeCreateBankSubAccount(deps),
   };
 

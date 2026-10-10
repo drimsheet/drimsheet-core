@@ -174,6 +174,57 @@ function updateOpeningBalanceDate<T extends ILedgerAccount>(
   return [entity, [event], audit];
 }
 
+/** Applies editable account details while retaining accounting identity. */
+function update<T extends ILedgerAccount>(
+  account: T,
+  details: Partial<Pick<ILedgerAccount, 'name' | 'openingBalanceDate'>>
+): [Readonly<T>, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null] {
+  const name =
+    details.name === undefined
+      ? account.name
+      : stringUtils.sanitizeAndValidate(
+          details.name,
+          { min: 2, max: 100 },
+          ledgerAccountError.InvalidName
+        );
+  const openingBalanceDate =
+    details.openingBalanceDate === undefined
+      ? account.openingBalanceDate
+      : details.openingBalanceDate;
+
+  if (openingBalanceDate !== null) {
+    dateUtils.validateDateIsNotInTheFuture(
+      openingBalanceDate,
+      ledgerAccountError.InvalidOpeningBalanceDate
+    );
+    if (account.isControlAccount) {
+      throw new ledgerAccountError.ForbiddenControlAccountOpeningBalanceDate();
+    }
+  }
+
+  const hasOpeningBalanceDateChanged =
+    account.openingBalanceDate?.getTime() !== openingBalanceDate?.getTime();
+  if (name === account.name && !hasOpeningBalanceDateChanged) {
+    return [account, [], null];
+  }
+
+  const updatedAccount = deepFreeze({
+    ...account,
+    name,
+    openingBalanceDate:
+      openingBalanceDate === null ? null : new Date(openingBalanceDate),
+    version: account.version + 1,
+    updatedAt: new Date(),
+  }) as Readonly<T>;
+  const audit = ledgerAccountAudit.make({
+    before: account,
+    after: updatedAccount,
+    action: ELedgerAccountAuditAction.Updated,
+  });
+
+  return [updatedAccount, [ledgerAccountEvents.updated(updatedAccount)], audit];
+}
+
 /** Archives lifecycle state without changing identity or accounting references. */
 function archive(
   account: ILedgerAccount
@@ -234,6 +285,7 @@ function getMaterializedPaths(
 
 const ledgerAccountEntity = Object.freeze({
   make,
+  update,
   archive,
   updateOpeningBalanceDate,
   getMaterializedPaths,

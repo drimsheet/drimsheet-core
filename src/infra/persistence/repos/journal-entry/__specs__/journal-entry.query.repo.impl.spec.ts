@@ -52,6 +52,38 @@ describe('journalEntryQueryRepo', () => {
     { references: [], expected: false },
     { references: [{ id: journalEntryId }], expected: true },
   ])(
+    'reports historical posted account activity as $expected',
+    async ({ references, expected }) => {
+      const limit = jest.fn().mockResolvedValue(references);
+      const where = jest.fn().mockReturnValue({ limit });
+      const innerJoin = jest.fn().mockReturnValue({ where });
+      const from = jest.fn().mockReturnValue({ innerJoin });
+      const select = jest.fn().mockReturnValue({ from });
+      jest.mocked(getDbQuery).mockReturnValue({
+        select,
+      } as unknown as ReturnType<typeof getDbQuery>);
+
+      const result = await journalEntryQueryRepo.existsPostedByAccountId(
+        accountId,
+        accountingEntityId,
+        options
+      );
+
+      expect(limit).toHaveBeenCalledWith(1);
+      const dialect = new PgDialect();
+      const predicate = dialect.sqlToQuery(where.mock.calls[0][0] as SQL);
+      expect(predicate.sql).toContain('"account_id" = $1');
+      expect(predicate.sql).toContain('"accounting_entity_id" = $2');
+      expect(predicate.sql).toContain('"posted_at" is not null');
+      expect(predicate.params).toEqual([accountId, accountingEntityId]);
+      expect(result).toBe(expected);
+    }
+  );
+
+  it.each([
+    { references: [], expected: false },
+    { references: [{ id: journalEntryId }], expected: true },
+  ])(
     'reports counterparty reference existence as $expected',
     async ({ references, expected }) => {
       const limit = jest.fn().mockResolvedValue(references);
@@ -144,6 +176,32 @@ describe('journalEntryQueryRepo', () => {
       ]);
     }
   );
+
+  it('filters draft opening balances for one account', async () => {
+    const { countWhere } = mockPaginatedQuery(1, []);
+
+    await journalEntryQueryRepo.findAll(accountingEntityId, {
+      ...options,
+      accountId,
+      status: 'draft',
+      sourceType: 'opening_balance',
+      limit: 1,
+    });
+
+    const rowQuery = findMany.mock.calls[0][0] as { where: SQL };
+    const dialect = new PgDialect();
+    const predicate = dialect.sqlToQuery(rowQuery.where);
+    expect(countWhere).toHaveBeenCalledWith(rowQuery.where);
+    expect(predicate.sql).toContain('"status" = $3');
+    expect(predicate.sql).toContain('"source_type" = $4');
+    expect(predicate.sql).toContain('"id" in $5');
+    expect(predicate.params.slice(0, 4)).toEqual([
+      accountingEntityId,
+      'reversal',
+      'draft',
+      'opening_balance',
+    ]);
+  });
 
   it('finds and maps an enriched entry scoped to its accounting entity', async () => {
     const persistedEntry = { id: journalEntryId };

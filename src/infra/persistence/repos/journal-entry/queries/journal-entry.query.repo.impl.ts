@@ -1,4 +1,4 @@
-import { and, eq, ilike, inArray, ne, sql } from 'drizzle-orm';
+import { and, eq, ilike, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 
 import drizzleFilters from '@shared/helpers/drizzle-filters';
 import paginationValue from '@shared/values/pagination/pagination.vo';
@@ -20,6 +20,26 @@ import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import journalEntryDetailsMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-details.mapper';
 
 const journalEntryQueryRepo: IJournalEntryQueryRepo = {
+  async existsPostedByAccountId(accountId, accountingEntityId, options) {
+    const references = await getDbQuery(options)
+      .select({ id: journalLinesInCore.id })
+      .from(journalLinesInCore)
+      .innerJoin(
+        journalEntriesInCore,
+        eq(journalEntriesInCore.id, journalLinesInCore.entryId)
+      )
+      .where(
+        and(
+          eq(journalLinesInCore.accountId, accountId),
+          eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
+          isNotNull(journalEntriesInCore.postedAt)
+        )
+      )
+      .limit(1);
+
+    return references.length > 0;
+  },
+
   async existsByCounterpartyId(counterpartyId, accountingEntityId, options) {
     const references = await getDbQuery(options)
       .select({ id: journalLinesInCore.id })
@@ -81,6 +101,10 @@ const journalEntryQueryRepo: IJournalEntryQueryRepo = {
           EJournalEntryStatus.Posted,
         ])
       );
+    }
+
+    if (options.sourceType) {
+      conditions.push(eq(journalEntriesInCore.sourceType, options.sourceType));
     }
 
     if (options.accountId) {

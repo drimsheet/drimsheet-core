@@ -9,33 +9,28 @@ import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
-import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
-import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
-import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening-balance-entry.service.contract';
 import { IOpeningBalanceCreationReq } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
 import { openingBalanceCreationReqValidation } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
 import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
   appContext: IAppContext;
   ledgerAccountRepo: ILedgerAccountRepo;
   eventBus: IEventBus;
-  journalEntryService: IJournalEntryService;
+  openingBalanceEntryAppService: IOpeningBalanceEntryAppService;
   journalEntryPersistenceService: IJournalEntryPersistenceService;
   outboxService: IOutboxService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   repoService: IRepoService;
-  fxLotAppService: IFxLotAppService;
   fxCostBasisPersistenceService: IFxCostBasisPersistenceService;
 }
 
@@ -57,29 +52,28 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
 
     if (!account) throw new ledgerAppError.AccountNotFound();
 
-    const amount = moneyMapper.fromDto(payload.amount);
-    const exchangeRate = payload.exchangeRate
-      ? exchangeRateValue.make(payload.exchangeRate)
-      : null;
-
-    const balanceCreationPayload = {
-      accountingEntityId: accountingEntity.id,
-      functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
-      account,
-      amount,
-      effectiveDate: payload.date,
-      exchangeRate,
-      createdBy: actor.id,
-    };
-
-    const [journalEntry, journalEvents, audit] =
-      await deps.journalEntryService.createOpeningBalance(
-        balanceCreationPayload,
+    const openingBalanceCreation =
+      await deps.openingBalanceEntryAppService.create(
+        {
+          account,
+          openingBalance: {
+            amount: payload.amount,
+            exchangeRate: payload.exchangeRate,
+            date: payload.date,
+          },
+          accountingEntity,
+          actor: actor.id,
+        },
         repoOptions
       );
+    const [journalEntry, journalEvents, audit] =
+      openingBalanceCreation.creation;
 
-    const [updatedAccount, accountEvents, accountAudit] =
-      ledgerAccountEntity.updateOpeningBalanceDate(account, payload.date);
+    const accountUpdate = ledgerAccountEntity.updateOpeningBalanceDate(
+      account,
+      payload.date
+    );
+    const [updatedAccount, accountEvents, accountAudit] = accountUpdate;
 
     const accountHistory = historyValue.make(
       accountAudit,
@@ -95,13 +89,7 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
       historyValue.make(lineAudit, actor.id, correlationId)
     );
 
-    const shouldUpdateBalance =
-      journalEntry.status === EJournalEntryStatus.Posted;
-
-    const fxResult = await deps.fxLotAppService.acquire(
-      { journalEntry, account, actor: actor.id },
-      repoOptions
-    );
+    const fxAcquisition = openingBalanceCreation.fxAcquisition;
 
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeRepoOptions = { ...repoOptions, tx };
@@ -119,16 +107,16 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
         writeRepoOptions
       );
 
-      if (fxResult) {
+      if (fxAcquisition) {
         await deps.fxCostBasisPersistenceService.persistAcquisition(
-          fxResult.records,
+          fxAcquisition.records,
           writeRepoOptions
         );
       }
 
-      if (shouldUpdateBalance) {
+      for (const entry of openingBalanceCreation.entriesForBalancePropagation) {
         await deps.outboxService.createBalancePropagation(
-          journalEntry.id,
+          entry.id,
           writeRepoOptions
         );
       }
@@ -136,9 +124,9 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
 
     await deps.repoService.runInTransaction(transactionFn);
 
-    if (shouldUpdateBalance) {
+    for (const entry of openingBalanceCreation.entriesForBalancePropagation) {
       await deps.ledgerBalanceAdjustmentQueue.add({
-        journalEntryId: journalEntry.id,
+        journalEntryId: entry.id,
         correlationId,
       });
     }
@@ -146,7 +134,7 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
     const allEvents: IEvent<unknown>[] = [
       ...accountEvents,
       ...journalEvents,
-      ...(fxResult?.events ?? []),
+      ...(fxAcquisition?.events ?? []),
     ];
     deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
   };

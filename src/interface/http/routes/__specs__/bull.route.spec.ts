@@ -29,14 +29,17 @@ describe('BullMQ dashboard route', () => {
     expect(getLedgerAccountBalanceAdjustmentQueue).not.toHaveBeenCalled();
   });
 
-  it('serves the dashboard beneath its declared path', async () => {
-    const response = await request(express().use(...routes)).get(
-      '/bullmq-board-admin/'
-    );
+  it('serves repeated dashboard requests without reinitializing the queues', async () => {
+    const app = express().use(...routes);
+    const response = await request(app).get('/bullmq-board-admin/');
+    const repeatedResponse = await request(app).get('/bullmq-board-admin/');
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
     expect(response.text).toContain('/bullmq-board-admin');
+    expect(repeatedResponse.status).toBe(200);
+    expect(repeatedResponse.headers['content-type']).toContain('text/html');
+    expect(repeatedResponse.text).toContain('/bullmq-board-admin');
     expect(getTransactionalEmailQueue).toHaveBeenCalledTimes(1);
     expect(getLedgerAccountBalanceAdjustmentQueue).toHaveBeenCalledTimes(1);
   });
