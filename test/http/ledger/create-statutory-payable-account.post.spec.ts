@@ -71,7 +71,7 @@ jest.mock('@infra/persistence/repos/ledger', () => ({
   },
 }));
 
-const ENDPOINT = '/api/v1/accounts/liability/payables/statutory';
+const ENDPOINT = '/api/v1/ledger/liability/payables/statutory';
 const userId = '123e4567-e89b-42d3-a456-426614174001' as TEntityId;
 const accountingEntityId = '123e4567-e89b-42d3-a456-426614174002' as TEntityId;
 const accountId = '123e4567-e89b-42d3-a456-426614174003' as TEntityId;
@@ -115,7 +115,7 @@ const created: ILedgerAccountDto = {
 };
 const mockCreate = jest.mocked(createStatutoryPayableAccountUseCase);
 
-describe('POST /accounts/liability/payables/statutory', () => {
+describe('POST /ledger/liability/payables/statutory', () => {
   let app: Express;
   beforeEach(() => {
     jest.resetAllMocks();

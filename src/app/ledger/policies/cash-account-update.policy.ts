@@ -2,7 +2,7 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 
-interface IPettyCashAccountUpdatePolicy {
+interface ICashAccountUpdatePolicy {
   validateAccountExists(
     id: string,
     account: ILedgerAccount | null
@@ -21,7 +21,8 @@ function validateAccountExists(
   throw new ledgerAppError.AccountNotFound({ id });
 }
 
-const pettyCashAccountUpdatePolicy: IPettyCashAccountUpdatePolicy =
-  Object.freeze({ validateAccountExists });
+const cashAccountUpdatePolicy: ICashAccountUpdatePolicy = Object.freeze({
+  validateAccountExists,
+});
 
-export default pettyCashAccountUpdatePolicy;
+export default cashAccountUpdatePolicy;

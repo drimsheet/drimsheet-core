@@ -9,6 +9,7 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
+import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
 
@@ -18,8 +19,8 @@ import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import ILedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import { IPettyCashAccountUpdateReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
-import { pettyCashUpdateReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
+import { IBankAccountUpdateReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
+import { bankAccountUpdateReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import cashAccountUpdatePolicy from '@app/ledger/policies/cash-account-update.policy';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
@@ -31,6 +32,7 @@ interface IDependencies {
   eventBus: IEventBus;
   repoService: IRepoService;
   ledgerAccountRepo: ILedgerAccountRepo;
+  bankAccountRepo: IBankAccountRepo;
   cashAccountService: ICashAccountService;
   openingBalanceEntryAppService: IOpeningBalanceEntryAppService;
   journalEntryPersistenceService: IJournalEntryPersistenceService;
@@ -40,24 +42,26 @@ interface IDependencies {
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
 }
 
-export default function makeUpdatePettyCashAccountUseCase(
+export default function makeUpdateBankAccountUsecase(
   deps: Readonly<IDependencies>
 ) {
   return async (
     id: string,
-    payload: IPettyCashAccountUpdateReq
+    payload: IBankAccountUpdateReq
   ): Promise<ILedgerAccountDto> => {
     stringUtils.validateUUID(id, ledgerAccountError.InvalidId);
-    zodValidationRunner(pettyCashUpdateReqValidation, payload);
+    zodValidationRunner(bankAccountUpdateReqValidation, payload);
 
     const { actor, accountingEntity, correlationId, idempotencyKey } =
       deps.appContext.get(['actor', 'accountingEntity']);
+
     const repoOptions = { correlationId };
 
     const transaction = await deps.repoService.createTransaction();
 
     try {
       const transactionOptions = { ...repoOptions, tx: transaction.context };
+      // Serialize opening-balance creation/revision for this account until commit.
       const existingAccount = await deps.ledgerAccountRepo.findById(
         id as TEntityId,
         accountingEntity.id,
@@ -65,14 +69,18 @@ export default function makeUpdatePettyCashAccountUseCase(
       );
       cashAccountUpdatePolicy.validateAccountExists(id, existingAccount);
 
-      const accountUpdate = deps.cashAccountService.updatePettyCashSubAccount(
-        existingAccount,
-        {
-          name: payload.name,
-          openingBalanceDate: payload.openingBalance?.date,
-        }
-      );
-      const [account, accountEvents, accountAudit] = accountUpdate;
+      const updatePayload = {
+        name: payload.name,
+        openingBalanceDate: payload.openingBalance?.date,
+        bankDetails: payload.bankAccount,
+      };
+      const [account, accountEvents, accountAudit] =
+        await deps.cashAccountService.updateBankSubAccount(
+          existingAccount,
+          updatePayload,
+          transactionOptions
+        );
+
       const openingBalanceEntryMutation = payload.openingBalance
         ? await deps.openingBalanceEntryAppService.createOrRevise(
             {
@@ -96,6 +104,18 @@ export default function makeUpdatePettyCashAccountUseCase(
             correlationId
           ),
         });
+      }
+
+      const shouldPersistBankDetails = Boolean(
+        accountAudit && payload.bankAccount
+      );
+      if (shouldPersistBankDetails) {
+        await deps.bankAccountRepo.update(
+          account.id,
+          accountingEntity.id,
+          account.meta,
+          transactionOptions
+        );
       }
 
       const journalMutations = openingBalanceEntryMutation

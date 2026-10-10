@@ -1,5 +1,6 @@
 import {
   bankAccountCreationReqValidation,
+  bankAccountUpdateReqValidation,
   bankDetailsCreationReqValidation,
   pettyCashCreationReqValidation,
   pettyCashUpdateReqValidation,
@@ -107,7 +108,10 @@ describe('Asset Account DTO Validation', () => {
     });
   });
 
-  describe('pettyCashUpdateReqValidation', () => {
+  describe.each([
+    ['petty cash update', pettyCashUpdateReqValidation],
+    ['bank update', bankAccountUpdateReqValidation],
+  ])('%s', (_name, schema) => {
     it.each([
       { name: 'Office cash' },
       {
@@ -122,19 +126,48 @@ describe('Asset Account DTO Validation', () => {
         },
       },
     ])('accepts a permitted partial update', (payload) => {
-      expect(pettyCashUpdateReqValidation.safeParse(payload).success).toBe(
-        true
-      );
+      expect(schema.safeParse(payload).success).toBe(true);
     });
 
     it.each([{}, { status: 'active' }, { openingBalance: null }])(
       'rejects an empty, lifecycle, or clearing update: %p',
       (payload) => {
-        expect(pettyCashUpdateReqValidation.safeParse(payload).success).toBe(
-          false
-        );
+        expect(schema.safeParse(payload).success).toBe(false);
       }
     );
+  });
+
+  describe('bankAccountUpdateReqValidation details', () => {
+    const bankAccount = {
+      bankName: 'Other Bank',
+      accountName: 'Owner',
+      accountNumber: '0123456789',
+    };
+    it('allows bank details on their own or combined with other edits', () => {
+      expect(
+        bankAccountUpdateReqValidation.safeParse({ bankAccount }).success
+      ).toBe(true);
+      expect(
+        bankAccountUpdateReqValidation.safeParse({
+          name: 'Renamed',
+          bankAccount,
+        }).success
+      ).toBe(true);
+    });
+    it.each([
+      null,
+      {},
+      { ...bankAccount, accountNumber: undefined },
+      { ...bankAccount, bankName: '' },
+      { ...bankAccount, accountName: '' },
+      { ...bankAccount, accountNumber: '123' },
+      { ...bankAccount, countryCode: 'US' },
+    ])('rejects invalid or incomplete bank details %j', (details) => {
+      expect(
+        bankAccountUpdateReqValidation.safeParse({ bankAccount: details })
+          .success
+      ).toBe(false);
+    });
   });
 
   describe('bankDetailsCreationReqValidation', () => {

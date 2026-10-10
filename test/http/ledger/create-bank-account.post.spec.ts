@@ -65,7 +65,7 @@ jest.mock('../../../src/infra/persistence/repos/user', () => ({
   },
 }));
 
-const ENDPOINT = '/api/v1/accounts/asset/bank';
+const ENDPOINT = '/api/v1/ledger/asset/bank';
 const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
 const accountingEntityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
 const accountId = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
@@ -121,7 +121,7 @@ const createdAccount: ILedgerAccountDto = {
   },
 };
 
-describe('POST /accounts/asset/bank', () => {
+describe('POST /ledger/asset/bank', () => {
   let app: Express;
   const mockGetAuthUser = tokenService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;

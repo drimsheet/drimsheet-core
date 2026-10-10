@@ -16,6 +16,7 @@ import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accoun
 import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
+import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
 import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty-cash-account.usecase';
 
 import {
@@ -155,6 +156,24 @@ export const updatePettyCashAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     repoService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    cashAccountService,
+    openingBalanceEntryAppService,
+    journalEntryPersistenceService,
+    balanceEnrichmentService: ledgerAccountBalanceEnrichmentService,
+    fxCostBasisPersistenceService,
+    outboxService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+  })
+);
+
+export const updateBankAccountUseCase = makeTracedUseCase(
+  'ledger.updateBankAccountUseCase',
+  makeUpdateBankAccountUsecase({
+    appContext,
+    eventBus: messaging.eventBus,
+    repoService,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    bankAccountRepo: ledgerRepos.bankAccount,
     cashAccountService,
     openingBalanceEntryAppService,
     journalEntryPersistenceService,

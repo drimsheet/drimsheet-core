@@ -643,6 +643,33 @@ describe('Ledger Account Shared Entity', () => {
       expect(Object.isFrozen(updatedAccount)).toBe(true);
     });
 
+    it('updates metadata in the same audited transition as editable details', () => {
+      const [account] = ledgerAccountEntity.make({
+        ...validPayload,
+        subType: 'cash_and_cash_equivalent',
+      });
+      const meta = { bankName: 'Updated Bank' };
+      const [updated, events, audit] = ledgerAccountEntity.update(account, {
+        name: 'Updated account',
+        meta,
+      });
+      expect(updated).toMatchObject({
+        id: account.id,
+        name: 'Updated account',
+        meta,
+        version: account.version + 1,
+      });
+      expect(account.meta).toEqual({ bankName: 'Test Bank' });
+      expect(Object.isFrozen(updated.meta)).toBe(true);
+      expect(events).toHaveLength(1);
+      expect(audit?.diff).toEqual({ before: account, after: updated });
+      expect(
+        ledgerAccountEntity.update(updated, {
+          meta: { bankName: 'Updated Bank' },
+        })
+      ).toEqual([updated, [], null]);
+    });
+
     it('returns the original account without audit state when details are unchanged', () => {
       const [account] = makeCashAccount();
 

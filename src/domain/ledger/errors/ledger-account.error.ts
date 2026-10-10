@@ -81,6 +81,7 @@ const EErrorKeys = {
     'ledger_error_asset_account_opening_balance_currency_mismatch_invalid',
   OpeningBalanceLocked:
     'ledger_error_asset_account_opening_balance_locked_conflict',
+  BankDetailsMissing: 'ledger_error_bank_details_missing_unexpected',
   DuplicateBankAccount:
     'ledger_error_asset_account_duplicate_bank_account_conflict',
   OpeningBalanceAccountAlreadyExists:

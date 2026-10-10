@@ -47,14 +47,14 @@ jest.mock('@infra/ioc/usecases/ledger', () => ({
   getRecommendedBootstrapUseCase: jest.fn(),
 }));
 
-const ENDPOINT = '/api/v1/accounts/recommended-bootstrap';
+const ENDPOINT = '/api/v1/ledger/recommended-bootstrap';
 const userId = '123e4567-e89b-42d3-a456-426614174001' as TEntityId;
 const actor = actorEntity.makeUser({
   email: 'recommendations@example.com',
   displayName: 'Account Owner',
 })[0];
 
-describe('GET /accounts/recommended-bootstrap', () => {
+describe('GET /ledger/recommended-bootstrap', () => {
   let app: Express;
   const mockGetRecommendations = jest.mocked(getRecommendedBootstrapUseCase);
 

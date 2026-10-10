@@ -12,6 +12,7 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 import { ICurrency } from '@domain/money/types/currency.types';
 
 import {
+  IBankAccount,
   IBankDetails,
   ICashAndCashEquivalentAccount,
   IPettyCashAccount,
@@ -48,7 +49,7 @@ interface IMakeBankPayload {
   bankDetails: IBankDetails;
 }
 
-interface IUpdatePettyCashPayload {
+interface IUpdateCashAccountPayload {
   name?: string;
   openingBalanceDate?: Date;
 }
@@ -72,12 +73,27 @@ export default interface ICashAccountService {
 
   updatePettyCashSubAccount(
     account: ILedgerAccount,
-    payload: IUpdatePettyCashPayload
+    payload: IUpdateCashAccountPayload
   ): [
     Readonly<IPettyCashAccount>,
     IEvent<ILedgerAccount>[],
     ILedgerAccountAudit | null,
   ];
+
+  /** Validates normalized bank details and uniqueness; returns one audited update without writes. */
+  updateBankSubAccount(
+    account: ILedgerAccount,
+    payload: IUpdateCashAccountPayload & {
+      bankDetails?: Omit<IBankDetails, 'countryCode'>;
+    },
+    repoOptions: IReadRepoOptions
+  ): Promise<
+    [
+      Readonly<IBankAccount>,
+      IEvent<ILedgerAccount>[],
+      ILedgerAccountAudit | null,
+    ]
+  >;
 
   /** Creates a complete account under caller-owned allocation/parent locks; never persists. */
   createBankSubAccount(

@@ -49,6 +49,31 @@ const bankAccountRepoImpl: IBankAccountRepo = {
     return result ? bankAccountMapper.toDomain(result) : null;
   },
 
+  update: async (ledgerAccountId, accountingEntityId, bankValue, options) => {
+    try {
+      const updated = await getDbQuery(options)
+        .update(bankDetailsInCore)
+        .set(bankAccountMapper.toUpdateRepo(bankValue))
+        .where(
+          and(
+            eq(bankDetailsInCore.ledgerAccountId, ledgerAccountId),
+            eq(bankDetailsInCore.accountingEntityId, accountingEntityId)
+          )
+        );
+      if (updated.rowCount === 0) {
+        throw new ledgerAccountError.BankDetailsMissing({ ledgerAccountId });
+      }
+    } catch (err: unknown) {
+      if (isBankIdentityConflict(err)) {
+        throw new ledgerAccountError.DuplicateBankAccount({
+          bankName: bankValue.bankName,
+          accountNumber: bankValue.accountNumber,
+        });
+      }
+      throw err;
+    }
+  },
+
   create: async (
     ledgerAccountId,
     accountingEntityId,

@@ -38,6 +38,7 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
 const bankRepo: jest.Mocked<IBankAccountRepo> = {
   findOne: jest.fn(),
   findByLedgerAccountId: jest.fn(),
+  update: jest.fn(),
   create: jest.fn(),
 };
 const allocation: jest.Mocked<ILedgerCodeAllocationService> = {
@@ -225,6 +226,210 @@ describe('cashAccountService', () => {
         expect(bankRepo.create).not.toHaveBeenCalled();
       }
     );
+    describe('bank updates', () => {
+      it.each(['active', 'draft'] as const)(
+        'updates %s account details with audit and events, retaining identity',
+        async (status) => {
+          const [account] = await service.createBankSubAccount(
+            { ...payload(), status },
+            options
+          );
+          const openingBalanceDate = new Date('2026-03-01');
+          const [updated, events, audit] = await service.updateBankSubAccount(
+            account,
+            { name: ' Updated Bank ', openingBalanceDate },
+            options
+          );
+
+          expect(updated).toMatchObject({
+            id: account.id,
+            name: 'Updated Bank',
+            openingBalanceDate,
+            version: 2,
+            status,
+            meta: account.meta,
+            currency: account.currency,
+            controlAccountId: account.controlAccountId,
+          });
+          expect(account.name).toBe('Operating Bank');
+          expect(account.openingBalanceDate).toBeNull();
+          expect(Object.isFrozen(updated)).toBe(true);
+          expect(Object.isFrozen(updated.meta)).toBe(true);
+          expect(events).toHaveLength(1);
+          expect(events[0].data).toEqual(updated);
+          expect(audit?.diff).toMatchObject({
+            before: account,
+            after: updated,
+          });
+          expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+        }
+      );
+
+      it('returns unchanged state without audit or events for a no-op', async () => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        expect(
+          await service.updateBankSubAccount(
+            account,
+            { name: account.name },
+            options
+          )
+        ).toEqual([account, [], null]);
+      });
+
+      it.each([
+        { bankName: 'Other Bank' },
+        { accountNumber: '9876543210' },
+        { accountName: 'Changed owner' },
+      ])('normalizes and audits bank details %j', async (changes) => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        jest.clearAllMocks();
+        const details = {
+          bankName: 'Test Bank',
+          accountName: 'Main Account',
+          accountNumber: '0123456789',
+          ...changes,
+        };
+        const [updated, events, audit] = await service.updateBankSubAccount(
+          account,
+          {
+            bankDetails: {
+              ...details,
+              accountName: ` ${details.accountName} `,
+            },
+          },
+          options
+        );
+        expect(updated.meta).toEqual({ ...details, countryCode: 'NG' });
+        expect(account.meta).toEqual({
+          bankName: 'Test Bank',
+          accountName: 'Main Account',
+          accountNumber: '0123456789',
+          countryCode: 'NG',
+        });
+        expect(updated.version).toBe(account.version + 1);
+        expect(events[0].data).toEqual(updated);
+        expect(audit?.diff).toMatchObject({ before: account, after: updated });
+        expect(Object.isFrozen(updated.meta)).toBe(true);
+        if ('accountName' in changes) {
+          expect(bankRepo.findOne).not.toHaveBeenCalled();
+        } else {
+          expect(bankRepo.findOne).toHaveBeenCalledWith(
+            details.bankName,
+            details.accountNumber,
+            options
+          );
+        }
+        expect(bankRepo.update).not.toHaveBeenCalled();
+      });
+
+      it('treats equivalent normalized bank details as a no-op without matching itself as a duplicate', async () => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        jest.clearAllMocks();
+        expect(
+          await service.updateBankSubAccount(account, { bankDetails }, options)
+        ).toEqual([account, [], null]);
+        expect(bankRepo.findOne).not.toHaveBeenCalled();
+      });
+
+      it('rejects another account with the requested normalized identity', async () => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        bankRepo.findOne.mockResolvedValue(bankDetails);
+        await expect(
+          service.updateBankSubAccount(
+            account,
+            { bankDetails: { ...bankDetails, bankName: ' Other Bank ' } },
+            options
+          )
+        ).rejects.toBeInstanceOf(ledgerAccountError.DuplicateBankAccount);
+        expect(bankRepo.findOne).toHaveBeenLastCalledWith(
+          'Other Bank',
+          '0123456789',
+          options
+        );
+      });
+
+      it('validates bank details before checking uniqueness', async () => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        jest.clearAllMocks();
+        await expect(
+          service.updateBankSubAccount(
+            account,
+            { bankDetails: { ...bankDetails, bankName: ' ' } },
+            options
+          )
+        ).rejects.toBeInstanceOf(ledgerAccountError.InvalidBankName);
+        expect(bankRepo.findOne).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        { type: ELedgerType.Liability },
+        { subType: EAssetSubType.Receivables },
+        { behavior: EAssetAccountBehavior.PettyCash },
+        { behavior: EAssetAccountBehavior.DefaultCash },
+      ])('rejects a different account family %j', async (changes) => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        const [otherAccount] = ledgerAccountEntity.make({
+          ...account,
+          ...changes,
+        });
+        await expect(
+          service.updateBankSubAccount(
+            otherAccount,
+            { name: 'Changed' },
+            options
+          )
+        ).rejects.toThrow(ledgerAccountError.InvalidBehavior);
+      });
+
+      it('rejects archived accounts', async () => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        const [archived] = ledgerAccountEntity.archive(account);
+        await expect(
+          service.updateBankSubAccount(archived, { name: 'Changed' }, options)
+        ).rejects.toThrow(ledgerAccountError.InvalidStatus);
+      });
+
+      it('validates editable details through the entity', async () => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        await expect(
+          service.updateBankSubAccount(account, { name: ' ' }, options)
+        ).rejects.toThrow(ledgerAccountError.InvalidName);
+        await expect(
+          service.updateBankSubAccount(
+            account,
+            {
+              openingBalanceDate: new Date('2030-01-01'),
+            },
+            options
+          )
+        ).rejects.toThrow(ledgerAccountError.InvalidOpeningBalanceDate);
+      });
+    });
+
     it('locks the shared header and explicit parent before selecting a code', async () => {
       const [nested] = ledgerAccountEntity.make({
         ...parent,

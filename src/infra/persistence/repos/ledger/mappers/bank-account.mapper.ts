@@ -30,6 +30,16 @@ const bankAccountMapper = {
     };
   },
 
+  toUpdateRepo(value: IBankDetails) {
+    return {
+      bankName: value.bankName,
+      accountNumber: value.accountNumber,
+      accountName: value.accountName,
+      countryCode: value.countryCode,
+      updatedAt: new Date().toISOString(),
+    };
+  },
+
   toDomain(record: IBankAccountModel): IBankDetails {
     return {
       countryCode: record.countryCode,

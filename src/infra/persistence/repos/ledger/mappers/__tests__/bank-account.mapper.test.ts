@@ -30,6 +30,13 @@ describe('bankAccountMapper', () => {
     expect(result.countryCode).toBe(domainValue.countryCode);
   });
 
+  it('maps bank updates without overwriting attribution or account ownership', () => {
+    expect(bankAccountMapper.toUpdateRepo(domainValue)).toEqual({
+      ...domainValue,
+      updatedAt: expect.any(String),
+    });
+  });
+
   it('maps repository model back to domain bank value', () => {
     const model: Parameters<typeof bankAccountMapper.toDomain>[0] = {
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,

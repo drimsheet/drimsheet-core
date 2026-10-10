@@ -23,7 +23,7 @@ per accounting entity and currency. The uniqueness key is
 `(accountingEntityId, type, currency.code)` for subtype `suspense`. Archived and
 soft-deleted accounts retain their slot; this creation API does not replace them.
 
-`POST /accounts/suspense` accepts a name, asset/liability type, and currency code,
+`POST /ledger/suspense` accepts a name, asset/liability type, and currency code,
 creating one account per request. Duplicates return a conflict. The domain service
 checks for duplicates and the database enforces the same key with a scoped unique
 index and a non-null suspense currency constraint.

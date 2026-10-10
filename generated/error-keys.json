@@ -286,6 +286,7 @@
   "ledger_error_asset_opening_balance_account_already_exists_conflict",
   "ledger_error_asset_retained_earnings_account_already_exists_conflict",
   "ledger_error_bank_creation_transaction_required_unexpected",
+  "ledger_error_bank_details_missing_unexpected",
   "ledger_error_code_allocation_transaction_required_unexpected",
   "ledger_error_control_account_id_not_found",
   "ledger_error_created_by_invalid",
