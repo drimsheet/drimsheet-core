@@ -982,6 +982,18 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IPettyCashAccountUpdateReq": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "openingBalance": {
+            "$ref": "#/components/schemas/IOpeningBalanceDto"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "IFileAttachment": {
         "properties": {
           "url": {
@@ -2846,6 +2858,23 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IBankAccountUpdateReq": {
+        "description": "Editable bank ledger and bank details; currency is retained.",
+        "properties": {
+          "bankAccount": {
+            "$ref": "#/components/schemas/IBankDetailsCreationReq",
+            "description": "Replaces bank details when supplied; omitted details are retained."
+          },
+          "name": {
+            "type": "string"
+          },
+          "openingBalance": {
+            "$ref": "#/components/schemas/IOpeningBalanceDto"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "UAccountingEntityType": {
         "type": "string",
         "enum": ["individual", "sole_trader", "private_company"]
@@ -3962,6 +3991,116 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IPettyCashAccountCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/asset/petty-cash/{accountId}": {
+      "patch": {
+        "operationId": "updatePettyCashAccount",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update the name and/or opening balance of a non-archived petty cash account. Omitted fields are retained.",
+        "tags": ["Asset Accounts", "Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IPettyCashAccountUpdateReq"
               }
             }
           }
@@ -6972,6 +7111,116 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ICreateSuspenseAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/asset/bank/{accountId}": {
+      "patch": {
+        "operationId": "updateBankAccount",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update the name, bank details, and/or opening balance of a non-archived bank account. Supplied bank details replace all three fields; omitted fields are retained.",
+        "tags": ["Asset Accounts", "Accounts"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IBankAccountUpdateReq"
               }
             }
           }

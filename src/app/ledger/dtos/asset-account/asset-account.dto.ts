@@ -17,6 +17,14 @@ export interface IPettyCashAccountUpdateReq {
   openingBalance?: IOpeningBalanceDto;
 }
 
+/** Editable bank ledger and bank details; currency is retained. */
+export interface IBankAccountUpdateReq {
+  /** Replaces bank details when supplied; omitted details are retained. */
+  bankAccount?: IBankDetailsCreationReq;
+  name?: string;
+  openingBalance?: IOpeningBalanceDto;
+}
+
 export interface IBankDetailsCreationReq {
   bankName: string;
   accountName: string;

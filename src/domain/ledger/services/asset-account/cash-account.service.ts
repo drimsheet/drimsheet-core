@@ -12,6 +12,7 @@ import controlAccountAvailabilityValidation from '@domain/ledger/services/valida
 import {
   EAssetAccountBehavior,
   EAssetSubType,
+  IBankAccount,
   IPettyCashAccount,
 } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
@@ -172,6 +173,58 @@ function updatePettyCashSubAccount(
   return ledgerAccountEntity.update(account as IPettyCashAccount, payload);
 }
 
+/** Normalizes bank details and checks changed identities for duplicates; rejects other families and archived accounts without writing. */
+function makeUpdateBankSubAccount(
+  deps: IDependencies
+): ICashAccountService['updateBankSubAccount'] {
+  return async (account, payload, repoOptions) => {
+    const isBankAccount =
+      account.type === ELedgerType.Asset &&
+      account.subType === EAssetSubType.CashAndCashEquivalent &&
+      account.behavior === EAssetAccountBehavior.Bank;
+    if (!isBankAccount) {
+      throw new ledgerAccountError.InvalidBehavior({
+        expected: EAssetAccountBehavior.Bank,
+        received: account.behavior,
+      });
+    }
+    if (account.status === ELedgerAccountStatus.Archived) {
+      throw new ledgerAccountError.InvalidStatus({ status: account.status });
+    }
+
+    const bankAccount = account as IBankAccount;
+    const bankDetails = payload.bankDetails
+      ? bankDetailsValue.make({
+          countryCode: bankAccount.meta.countryCode,
+          bankName: payload.bankDetails.bankName,
+          accountName: payload.bankDetails.accountName,
+          accountNumber: payload.bankDetails.accountNumber,
+        })
+      : bankAccount.meta;
+    const hasIdentityChanged =
+      bankDetails.bankName !== bankAccount.meta.bankName ||
+      bankDetails.accountNumber !== bankAccount.meta.accountNumber;
+    if (hasIdentityChanged) {
+      const existingBank = await deps.bankAccountRepo.findOne(
+        bankDetails.bankName,
+        bankDetails.accountNumber,
+        repoOptions
+      );
+      if (existingBank) {
+        throw new ledgerAccountError.DuplicateBankAccount({
+          details: bankDetails,
+        });
+      }
+    }
+
+    return ledgerAccountEntity.update(bankAccount, {
+      name: payload.name,
+      openingBalanceDate: payload.openingBalanceDate,
+      meta: bankDetails,
+    });
+  };
+}
+
 /**
  *
  * Normalizes bank details, enforces persisted-state invariants, and creates a complete bank account.
@@ -270,6 +323,7 @@ export default function makeCashAccountService(
     createHeader: makeCreateHeader(deps),
     createPettyCashSubAccount: makeCreatePettyCashSubAccount(deps),
     updatePettyCashSubAccount,
+    updateBankSubAccount: makeUpdateBankSubAccount(deps),
     createBankSubAccount: makeCreateBankSubAccount(deps),
   };
 

@@ -4,6 +4,8 @@ import {
   Get,
   Middlewares,
   OperationId,
+  Patch,
+  Path,
   Post,
   Response,
   Route,
@@ -13,7 +15,10 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
-import { IBankAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
+import {
+  IBankAccountCreationReq,
+  IBankAccountUpdateReq,
+} from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { ICreateExpenseAccountDto } from '@app/ledger/dtos/expense-account/expense-account.dto';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import {
@@ -39,6 +44,7 @@ import {
   createTradePayableAccountUseCase,
   createTradeReceivableAccountUseCase,
   getRecommendedBootstrapUseCase,
+  updateBankAccountUseCase,
 } from '@infra/ioc/usecases/ledger';
 
 @Route('accounts')
@@ -241,5 +247,29 @@ export class AccountsController extends Controller {
   ): Promise<ILedgerAccountDto> {
     this.setStatus(201);
     return createSuspenseAccountUseCase(body);
+  }
+
+  /** Update the name, bank details, and/or opening balance of a non-archived bank account. Supplied bank details replace all three fields; omitted fields are retained. */
+  @Tags('Asset Accounts')
+  @Patch('/asset/bank/{accountId}')
+  @OperationId('updateBankAccount')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateBankAccount(
+    @Path() accountId: string,
+    @Body() body: IBankAccountUpdateReq
+  ): Promise<ILedgerAccountDto> {
+    return updateBankAccountUseCase(accountId, body);
   }
 }

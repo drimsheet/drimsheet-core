@@ -15,6 +15,7 @@ export const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo
 export const mockBankAccountRepo: jest.Mocked<IBankAccountRepo> = {
   findOne: jest.fn(),
   findByLedgerAccountId: jest.fn(),
+  update: jest.fn(),
   create: jest.fn(),
 };
 

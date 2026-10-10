@@ -4,6 +4,7 @@ import {
   Get,
   Middlewares,
   OperationId,
+  Patch,
   Path,
   Post,
   Queries,
@@ -17,9 +18,15 @@ import { TEntityId } from '@shared/types/uuid';
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 
-import { IPettyCashAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
+import {
+  IPettyCashAccountCreationReq,
+  IPettyCashAccountUpdateReq,
+} from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
-import { IGetLedgerAccountsQuery } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import {
+  IGetLedgerAccountsQuery,
+  ILedgerAccountDto,
+} from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
@@ -31,6 +38,7 @@ import {
   getLedgerAccountUseCase,
   getPermittedPostingAccountsUseCase,
   setupHeaderAccountsUseCase,
+  updatePettyCashAccountUseCase,
 } from '@infra/ioc/usecases/ledger';
 
 @Route('ledger')
@@ -153,6 +161,30 @@ export class LedgerController extends Controller {
     @Body() body: IPettyCashAccountCreationReq
   ) {
     return createPettyCashAccountUseCase(body);
+  }
+
+  /** Update the name and/or opening balance of a non-archived petty cash account. Omitted fields are retained. */
+  @Tags('Asset Accounts')
+  @Patch('/asset/petty-cash/{accountId}')
+  @OperationId('updatePettyCashAccount')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updatePettyCashAccount(
+    @Path() accountId: string,
+    @Body() body: IPettyCashAccountUpdateReq
+  ): Promise<ILedgerAccountDto> {
+    return updatePettyCashAccountUseCase(accountId, body);
   }
 
   /** Archives a non-header account and all control-account descendants, retaining history. Already archived accounts are no-ops. Header accounts return 400. Archived accounts cannot appear in new journals, including reversals. */

@@ -792,6 +792,15 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IPettyCashAccountUpdateReq: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string' },
+      openingBalance: { ref: 'IOpeningBalanceDto' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IFileAttachment: {
     dataType: 'refObject',
     properties: {
@@ -2165,6 +2174,16 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IBankAccountUpdateReq: {
+    dataType: 'refObject',
+    properties: {
+      bankAccount: { ref: 'IBankDetailsCreationReq' },
+      name: { dataType: 'string' },
+      openingBalance: { ref: 'IOpeningBalanceDto' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UAccountingEntityType: {
     dataType: 'refAlias',
     type: {
@@ -2921,6 +2940,61 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_updatePettyCashAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IPettyCashAccountUpdateReq',
+    },
+  };
+  app.patch(
+    '/api/v1/ledger/asset/petty-cash/:accountId',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.updatePettyCashAccount
+    ),
+
+    async function LedgerController_updatePettyCashAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_updatePettyCashAccount,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'updatePettyCashAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
         });
       } catch (err) {
         return next(err);
@@ -4677,6 +4751,61 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountsController_updateBankAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IBankAccountUpdateReq',
+    },
+  };
+  app.patch(
+    '/api/v1/accounts/asset/bank/:accountId',
+    ...fetchMiddlewares<RequestHandler>(AccountsController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountsController.prototype.updateBankAccount
+    ),
+
+    async function AccountsController_updateBankAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountsController_updateBankAccount,
+          request,
+          response,
+        });
+
+        const controller = new AccountsController();
+
+        await templateService.apiHandler({
+          methodName: 'updateBankAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
         });
       } catch (err) {
         return next(err);

@@ -1,12 +1,12 @@
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import pettyCashAccountUpdatePolicy from '@app/ledger/policies/petty-cash-account-update.policy';
+import cashAccountUpdatePolicy from '@app/ledger/policies/cash-account-update.policy';
 
-describe('pettyCashAccountUpdatePolicy', () => {
+describe('cashAccountUpdatePolicy', () => {
   it('accepts an existing account', () => {
     expect(() =>
-      pettyCashAccountUpdatePolicy.validateAccountExists(
+      cashAccountUpdatePolicy.validateAccountExists(
         'account-id',
         {} as ILedgerAccount
       )
@@ -15,7 +15,7 @@ describe('pettyCashAccountUpdatePolicy', () => {
 
   it('rejects a missing account', () => {
     expect(() =>
-      pettyCashAccountUpdatePolicy.validateAccountExists('account-id', null)
+      cashAccountUpdatePolicy.validateAccountExists('account-id', null)
     ).toThrow(ledgerAppError.AccountNotFound);
   });
 });

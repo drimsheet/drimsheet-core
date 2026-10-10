@@ -86,6 +86,9 @@ The cash-account service ([`cash-account.service.ts`](../services/cash-account.s
 - `createHeader()` — creates the default cash control account
 - `createBankSubAccount(payload, repoOptions)` — asynchronously normalizes bank details, rejects duplicates, resolves an optional control-account ID, validates the parent and currency, and creates a complete bank account under caller-owned locks
 - `createPettyCashSubAccount()` — creates petty cash beneath a valid cash control account
+- `updatePettyCashSubAccount()` / `updateBankSubAccount()` — update the name and opening date of a non-archived account in the matching family, retaining its currency, parent, and status. Bank updates also normalize supplied bank details and reject duplicate identities. They return the entity, events, and optional audit without persisting.
+
+The HTTP update routes are `PATCH /ledger/asset/petty-cash/{accountId}` and `PATCH /accounts/asset/bank/{accountId}` under `/api/v1`. Both accept `name`, `openingBalance`, or both. Bank updates also accept an optional `bankAccount` object containing all three fields: `bankName`, `accountName`, and `accountNumber`; the existing country code is retained. Bank metadata and the related bank-details record commit in the same transaction, and the existing bank identity constraint rejects concurrent duplicates. Omitted fields are retained; empty updates and `openingBalance: null` are rejected. Use cases scope account reads to the active accounting entity, serialize opening-balance revisions with an account lock, and commit account history, journal changes, FX acquisitions, and propagation outbox records atomically before publishing events and queueing balance propagation.
 
 ### Short Term Investments
 

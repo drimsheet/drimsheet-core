@@ -15,6 +15,13 @@ export default interface IBankAccountRepo {
     options?: IReadRepoOptions
   ): Promise<IBankDetails | null>;
 
+  update(
+    ledgerAccountId: TEntityId,
+    accountingEntityId: TEntityId,
+    bankValue: IBankDetails,
+    options: IWriteRepoOptions
+  ): Promise<void>;
+
   create(
     ledgerAccountId: TEntityId,
     accountingEntityId: TEntityId,

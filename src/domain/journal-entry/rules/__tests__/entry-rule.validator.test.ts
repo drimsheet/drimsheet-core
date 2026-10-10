@@ -39,6 +39,7 @@ describe('journalEntryRuleValidator', () => {
     bankAccountRepo: {
       findOne: jest.fn(),
       findByLedgerAccountId: jest.fn(),
+      update: jest.fn(),
       create: jest.fn(),
     },
     ledgerCodeAllocationService: { getNextCode: jest.fn() },

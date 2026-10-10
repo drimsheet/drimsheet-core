@@ -1,3 +1,5 @@
+import { PgDialect } from 'drizzle-orm/pg-core';
+
 import { TEntityId } from '@shared/types/uuid';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
@@ -138,6 +140,78 @@ describe('bankAccountRepoImpl', () => {
 
       expect(mockGetDbQuery).toHaveBeenCalledWith({});
       expect(result).toEqual(bankDetails);
+    });
+  });
+
+  describe('update', () => {
+    const options = { correlationId: 'bank-update', tx: {} };
+    const query = { update: jest.fn(), set: jest.fn(), where: jest.fn() };
+    beforeEach(() => {
+      query.update.mockReturnValue(query);
+      query.set.mockReturnValue(query);
+      query.where.mockReset().mockResolvedValue({ rowCount: 1 });
+      mockGetDbQuery.mockReturnValue(query);
+    });
+
+    it('updates scoped bank details using the caller transaction without replacing creation fields', async () => {
+      await bankAccountRepoImpl.update(
+        ledgerAccountId,
+        accountingEntityId,
+        bankDetails,
+        options
+      );
+      expect(mockGetDbQuery).toHaveBeenCalledWith(options);
+      expect(query.set).toHaveBeenCalledWith({
+        ...bankDetails,
+        updatedAt: expect.any(String),
+      });
+      const sql = new PgDialect().sqlToQuery(query.where.mock.calls[0][0]);
+      expect(sql.sql).toContain('"ledger_account_id"');
+      expect(sql.sql).toContain('"accounting_entity_id"');
+      expect(sql.params).toEqual([ledgerAccountId, accountingEntityId]);
+    });
+
+    it('rejects a missing bank record so the caller cannot commit divergent metadata', async () => {
+      query.where.mockResolvedValue({ rowCount: 0 });
+      await expect(
+        bankAccountRepoImpl.update(
+          ledgerAccountId,
+          accountingEntityId,
+          bankDetails,
+          options
+        )
+      ).rejects.toBeInstanceOf(ledgerAccountError.BankDetailsMissing);
+    });
+
+    it.each([
+      { code: '23505', constraint: 'bank_accounts_pkey' },
+      { cause: { code: '23505', constraint: 'bank_accounts_pkey' } },
+    ])(
+      'maps concurrent identity conflicts to DuplicateBankAccount: %j',
+      async (error) => {
+        query.where.mockRejectedValue(error);
+        await expect(
+          bankAccountRepoImpl.update(
+            ledgerAccountId,
+            accountingEntityId,
+            bankDetails,
+            options
+          )
+        ).rejects.toBeInstanceOf(ledgerAccountError.DuplicateBankAccount);
+      }
+    );
+
+    it('propagates unrelated database failures', async () => {
+      const failure = new Error('database unavailable');
+      query.where.mockRejectedValue(failure);
+      await expect(
+        bankAccountRepoImpl.update(
+          ledgerAccountId,
+          accountingEntityId,
+          bankDetails,
+          options
+        )
+      ).rejects.toBe(failure);
     });
   });
 

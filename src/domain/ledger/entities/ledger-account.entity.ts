@@ -1,6 +1,7 @@
 import { TCreationOmits } from '@shared/types/creation-omits.types';
 import dateUtils from '@shared/utils/date';
 import deepFreeze from '@shared/utils/deep-freeze';
+import generateDiff from '@shared/utils/diff-generator';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 import {
@@ -177,7 +178,7 @@ function updateOpeningBalanceDate<T extends ILedgerAccount>(
 /** Applies editable account details while retaining accounting identity. */
 function update<T extends ILedgerAccount>(
   account: T,
-  details: Partial<Pick<ILedgerAccount, 'name' | 'openingBalanceDate'>>
+  details: Partial<Pick<T, 'name' | 'openingBalanceDate' | 'meta'>>
 ): [Readonly<T>, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null] {
   const name =
     details.name === undefined
@@ -204,13 +205,38 @@ function update<T extends ILedgerAccount>(
 
   const hasOpeningBalanceDateChanged =
     account.openingBalanceDate?.getTime() !== openingBalanceDate?.getTime();
-  if (name === account.name && !hasOpeningBalanceDateChanged) {
+  const meta = details.meta === undefined ? account.meta : details.meta;
+  ledgerAccountValidation.validateMeta(meta);
+  const hasMetaChanged = generateDiff(
+    { meta },
+    { meta: account.meta }
+  ).hasChanges;
+  const isUnchanged =
+    name === account.name && !hasOpeningBalanceDateChanged && !hasMetaChanged;
+  if (isUnchanged) {
     return [account, [], null];
   }
 
   const updatedAccount = deepFreeze({
-    ...account,
+    id: account.id,
+    code: account.code,
+    materializedPath: account.materializedPath,
+    accountingEntityId: account.accountingEntityId,
+    type: account.type,
+    normalBalance: account.normalBalance,
+    subType: account.subType,
+    behavior: account.behavior,
+    isControlAccount: account.isControlAccount,
+    controlAccountId: account.controlAccountId,
     name,
+    currency: account.currency,
+    status: account.status,
+    contraAccountRule: account.contraAccountRule,
+    adjunctAccountRule: account.adjunctAccountRule,
+    meta,
+    createdBy: account.createdBy,
+    createdAt: account.createdAt,
+    deletedAt: account.deletedAt,
     openingBalanceDate:
       openingBalanceDate === null ? null : new Date(openingBalanceDate),
     version: account.version + 1,

@@ -37,7 +37,7 @@ export const pettyCashCreationReqValidation = z
     }
   );
 
-export const pettyCashUpdateReqValidation = z
+const cashAccountUpdateReqValidation = z
   .strictObject({
     name: z
       .string()
@@ -51,6 +51,8 @@ export const pettyCashUpdateReqValidation = z
       payload.name !== undefined || payload.openingBalance !== undefined,
     new ledgerAccountError.InvalidUpdate().errorKey
   );
+
+export const pettyCashUpdateReqValidation = cashAccountUpdateReqValidation;
 
 export const bankDetailsCreationReqValidation = z
   .object({
@@ -68,6 +70,19 @@ export const bankDetailsCreationReqValidation = z
       .max(34, new ledgerAccountError.InvalidBankAccountNumber().errorKey),
   })
   .strict();
+
+export const bankAccountUpdateReqValidation = z
+  .strictObject({
+    ...cashAccountUpdateReqValidation.shape,
+    bankAccount: bankDetailsCreationReqValidation.optional(),
+  })
+  .refine(
+    (payload) =>
+      payload.name !== undefined ||
+      payload.openingBalance !== undefined ||
+      payload.bankAccount !== undefined,
+    new ledgerAccountError.InvalidUpdate().errorKey
+  );
 
 export const bankAccountCreationReqValidation = z
   .object({
