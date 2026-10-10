@@ -23,7 +23,7 @@ export interface IClaimManagedFileUploadsPayload {
   references: string[];
 }
 
-export default interface IFileManagementService {
+export default interface IFileManagementAppService {
   preSignUploads(
     payload: IPreSignManagedFileUploadsPayload
   ): Promise<IFileUploadDto[]>;

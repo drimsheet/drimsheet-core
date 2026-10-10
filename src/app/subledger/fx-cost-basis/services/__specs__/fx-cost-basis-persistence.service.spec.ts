@@ -25,9 +25,9 @@ import {
   mockFxCostBasisLotDispositionRepo,
   mockFxCostBasisLotRepo,
 } from '@app/subledger/contracts/__mocks__/subledger.repos.mock';
-import makeFxLotCostBasisPersistenceService from '@app/subledger/fx-cost-basis/services/fx-cost-basis-persistence.service';
+import makeFxLotCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/services/fx-cost-basis-persistence.service';
 
-describe('fxCostBasisPersistenceService', () => {
+describe('fxCostBasisPersistenceAppService', () => {
   const correlationId = 'test-corr-id';
   const actor = generateUUID() as TEntityId;
   const mockDate = new Date('2026-03-14T00:00:00.000Z');
@@ -44,7 +44,7 @@ describe('fxCostBasisPersistenceService', () => {
   };
 
   const getService = () =>
-    makeFxLotCostBasisPersistenceService({
+    makeFxLotCostBasisPersistenceAppService({
       lotRepo: mockFxCostBasisLotRepo,
       acquisitionRepo: mockFxCostBasisLotAcquisitionRepo,
       dispositionRepo: mockFxCostBasisLotDispositionRepo,

@@ -4,7 +4,7 @@ import mockCacheStorage from '@shared/contracts/__mocks__/cache-storage.mock';
 import { TEntityId } from '@shared/types/uuid';
 
 import authError from '@app/auth/errors/auth.error';
-import makeTokenService from '@app/auth/services/token.service';
+import makeTokenAppService from '@app/auth/services/token.service';
 
 interface ITokenPayload extends Record<string, unknown> {
   exp?: number;
@@ -62,13 +62,13 @@ const configureCacheStorage = () => {
   });
 };
 
-describe('makeTokenService', () => {
-  let tokenService: ReturnType<typeof makeTokenService>;
+describe('makeTokenAppService', () => {
+  let tokenAppService: ReturnType<typeof makeTokenAppService>;
 
   beforeEach(() => {
     configureCacheStorage();
 
-    tokenService = makeTokenService({
+    tokenAppService = makeTokenAppService({
       cacheStorage: mockCacheStorage,
       secret,
     });
@@ -83,7 +83,7 @@ describe('makeTokenService', () => {
     const userId = 'user-123' as TEntityId;
 
     it('should successfully generate and verify a signup token', async () => {
-      const token = await tokenService.generateSignupToken({ id: userId });
+      const token = await tokenAppService.generateSignupToken({ id: userId });
       expect(mockCacheStorage.set).toHaveBeenCalledWith(
         `app:auth:signup-token:${userId}`,
         token,
@@ -91,7 +91,7 @@ describe('makeTokenService', () => {
       );
       expectTokenTtl(token, 60 * 60 * 24);
 
-      const decoded = await tokenService.verifySignupToken(token);
+      const decoded = await tokenAppService.verifySignupToken(token);
       expect(decoded.id).toBe(userId);
 
       // It should delete the token after successful verification
@@ -101,18 +101,18 @@ describe('makeTokenService', () => {
     });
 
     it('should claim and finalize a signup token separately', async () => {
-      const token = await tokenService.generateSignupToken({ id: userId });
+      const token = await tokenAppService.generateSignupToken({ id: userId });
 
-      await expect(tokenService.claimSignupToken(token)).resolves.toMatchObject(
-        { id: userId }
-      );
+      await expect(
+        tokenAppService.claimSignupToken(token)
+      ).resolves.toMatchObject({ id: userId });
       expect(mockCacheStorage.setIfNotExists).toHaveBeenCalledWith(
         `app:auth:signup-token-claim:${userId}`,
         token,
         30
       );
 
-      await tokenService.finalizeSignupToken(userId);
+      await tokenAppService.finalizeSignupToken(userId);
 
       expect(mockCacheStorage.del).toHaveBeenCalledWith(
         `app:auth:signup-token:${userId}`
@@ -123,26 +123,28 @@ describe('makeTokenService', () => {
     });
 
     it('should throw InvalidToken if token type is incorrect', async () => {
-      const wrongToken = await tokenService.generateAccessToken({ id: userId });
+      const wrongToken = await tokenAppService.generateAccessToken({
+        id: userId,
+      });
 
-      await expect(tokenService.verifySignupToken(wrongToken)).rejects.toThrow(
-        authError.InvalidToken
-      );
+      await expect(
+        tokenAppService.verifySignupToken(wrongToken)
+      ).rejects.toThrow(authError.InvalidToken);
     });
 
     it('should throw InvalidToken if token is missing from cache', async () => {
-      const token = await tokenService.generateSignupToken({ id: userId });
+      const token = await tokenAppService.generateSignupToken({ id: userId });
 
       // Manually delete from cache to simulate expiry/consumption
       await mockCacheStorage.del(`app:auth:signup-token:${userId}`);
 
-      await expect(tokenService.verifySignupToken(token)).rejects.toThrow(
+      await expect(tokenAppService.verifySignupToken(token)).rejects.toThrow(
         authError.InvalidToken
       );
     });
 
     it('should throw InvalidToken if cached token does not match provided token', async () => {
-      const token = await tokenService.generateSignupToken({ id: userId });
+      const token = await tokenAppService.generateSignupToken({ id: userId });
 
       // Tamper with the cache
       await mockCacheStorage.set(
@@ -150,13 +152,13 @@ describe('makeTokenService', () => {
         'some-other-token'
       );
 
-      await expect(tokenService.verifySignupToken(token)).rejects.toThrow(
+      await expect(tokenAppService.verifySignupToken(token)).rejects.toThrow(
         authError.InvalidToken
       );
     });
 
     it('should throw InvalidToken if signup token is already claimed (concurrent claim)', async () => {
-      const token = await tokenService.generateSignupToken({ id: userId });
+      const token = await tokenAppService.generateSignupToken({ id: userId });
 
       // Simulate an active claim by another process
       await mockCacheStorage.set(
@@ -166,13 +168,13 @@ describe('makeTokenService', () => {
       );
 
       // Verify throws InvalidToken when attempting to claim
-      await expect(tokenService.verifySignupToken(token)).rejects.toThrow(
+      await expect(tokenAppService.verifySignupToken(token)).rejects.toThrow(
         authError.InvalidToken
       );
     });
 
     it('should successfully release signup token claim', async () => {
-      const token = await tokenService.generateSignupToken({ id: userId });
+      const token = await tokenAppService.generateSignupToken({ id: userId });
 
       // Set active claim
       await mockCacheStorage.set(
@@ -182,7 +184,7 @@ describe('makeTokenService', () => {
       );
 
       // Release it
-      await tokenService.releaseSignupTokenClaim(userId);
+      await tokenAppService.releaseSignupTokenClaim(userId);
 
       // Verify that the claim key was deleted
       expect(mockCacheStorage.del).toHaveBeenCalledWith(
@@ -195,7 +197,7 @@ describe('makeTokenService', () => {
     const userId = 'user-456' as TEntityId;
 
     it('should successfully generate and verify a reset token', async () => {
-      const token = await tokenService.generatePasswordResetToken({
+      const token = await tokenAppService.generatePasswordResetToken({
         id: userId,
       });
       expect(mockCacheStorage.set).toHaveBeenCalledWith(
@@ -205,7 +207,7 @@ describe('makeTokenService', () => {
       );
       expectTokenTtl(token, 2 * 60 * 60);
 
-      const decoded = await tokenService.verifyPasswordResetToken(token);
+      const decoded = await tokenAppService.verifyPasswordResetToken(token);
       expect(decoded.id).toBe(userId);
 
       expect(mockCacheStorage.deleteIfValueMatches).toHaveBeenCalledWith(
@@ -216,33 +218,35 @@ describe('makeTokenService', () => {
     });
 
     it('should throw InvalidToken if token type is incorrect', async () => {
-      const wrongToken = await tokenService.generateAccessToken({ id: userId });
+      const wrongToken = await tokenAppService.generateAccessToken({
+        id: userId,
+      });
 
       await expect(
-        tokenService.verifyPasswordResetToken(wrongToken)
+        tokenAppService.verifyPasswordResetToken(wrongToken)
       ).rejects.toThrow(authError.InvalidToken);
     });
 
     it('should throw InvalidToken if token is missing from cache', async () => {
-      const token = await tokenService.generatePasswordResetToken({
+      const token = await tokenAppService.generatePasswordResetToken({
         id: userId,
       });
 
       await mockCacheStorage.del(`app:auth:reset-token:${userId}`);
 
       await expect(
-        tokenService.verifyPasswordResetToken(token)
+        tokenAppService.verifyPasswordResetToken(token)
       ).rejects.toThrow(authError.InvalidToken);
     });
 
     it('allows exactly one concurrent claim and permits retry after release', async () => {
-      const token = await tokenService.generatePasswordResetToken({
+      const token = await tokenAppService.generatePasswordResetToken({
         id: userId,
       });
 
       const claims = await Promise.allSettled([
-        tokenService.claimPasswordResetToken(token),
-        tokenService.claimPasswordResetToken(token),
+        tokenAppService.claimPasswordResetToken(token),
+        tokenAppService.claimPasswordResetToken(token),
       ]);
 
       expect(
@@ -258,28 +262,30 @@ describe('makeTokenService', () => {
       if (!successfulClaim || successfulClaim.status !== 'fulfilled') {
         throw new Error('Expected a successful reset-token claim');
       }
-      await tokenService.releasePasswordResetTokenClaim(successfulClaim.value);
+      await tokenAppService.releasePasswordResetTokenClaim(
+        successfulClaim.value
+      );
       await expect(
-        tokenService.claimPasswordResetToken(token)
+        tokenAppService.claimPasswordResetToken(token)
       ).resolves.toMatchObject({ id: userId });
     });
 
     it('does not let a stale owner release or finalize another claim', async () => {
-      const token = await tokenService.generatePasswordResetToken({
+      const token = await tokenAppService.generatePasswordResetToken({
         id: userId,
       });
-      const claim = await tokenService.claimPasswordResetToken(token);
+      const claim = await tokenAppService.claimPasswordResetToken(token);
       const staleClaim = { ...claim, owner: 'stale-owner' };
 
-      await tokenService.releasePasswordResetTokenClaim(staleClaim);
-      await expect(tokenService.claimPasswordResetToken(token)).rejects.toThrow(
-        authError.InvalidToken
-      );
-
-      await tokenService.finalizePasswordResetToken(staleClaim);
-      await tokenService.releasePasswordResetTokenClaim(claim);
+      await tokenAppService.releasePasswordResetTokenClaim(staleClaim);
       await expect(
-        tokenService.claimPasswordResetToken(token)
+        tokenAppService.claimPasswordResetToken(token)
+      ).rejects.toThrow(authError.InvalidToken);
+
+      await tokenAppService.finalizePasswordResetToken(staleClaim);
+      await tokenAppService.releasePasswordResetTokenClaim(claim);
+      await expect(
+        tokenAppService.claimPasswordResetToken(token)
       ).resolves.toMatchObject({ id: userId });
     });
 
@@ -290,7 +296,7 @@ describe('makeTokenService', () => {
       });
       await mockCacheStorage.set(`app:auth:reset-token:${userId}`, token, 900);
 
-      const claim = await tokenService.claimPasswordResetToken(token);
+      const claim = await tokenAppService.claimPasswordResetToken(token);
       expect(claim.id).toBe(userId);
       expect(claim.owner).toBeDefined();
     });
@@ -300,8 +306,8 @@ describe('makeTokenService', () => {
     const userId = 'user-789' as TEntityId;
 
     it('should successfully generate and decode an access token', async () => {
-      const token = await tokenService.generateAccessToken({ id: userId });
-      const decoded = await tokenService.getAuthUser(token);
+      const token = await tokenAppService.generateAccessToken({ id: userId });
+      const decoded = await tokenAppService.getAuthUser(token);
 
       expect(decoded.id).toBe(userId);
       expect(jsonWebToken.decode(token, { complete: true })).toMatchObject({
@@ -314,8 +320,8 @@ describe('makeTokenService', () => {
     it('issues unique access tokens for the same user in the same second', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00Z'));
 
-      const first = await tokenService.generateAccessToken({ id: userId });
-      const second = await tokenService.generateAccessToken({ id: userId });
+      const first = await tokenAppService.generateAccessToken({ id: userId });
+      const second = await tokenAppService.generateAccessToken({ id: userId });
 
       expect(first).not.toBe(second);
       expect(decodeToken(first)).toMatchObject({
@@ -336,25 +342,25 @@ describe('makeTokenService', () => {
         { algorithm: 'HS256', expiresIn: -1 }
       );
 
-      await expect(tokenService.getAuthUser(expiredToken)).rejects.toThrow(
+      await expect(tokenAppService.getAuthUser(expiredToken)).rejects.toThrow(
         authError.ExpiredToken
       );
     });
 
     it('should throw InvalidToken if token type is not access', async () => {
-      const wrongToken = await tokenService.generateRefreshToken({
+      const wrongToken = await tokenAppService.generateRefreshToken({
         id: userId,
       });
 
-      await expect(tokenService.getAuthUser(wrongToken)).rejects.toThrow(
+      await expect(tokenAppService.getAuthUser(wrongToken)).rejects.toThrow(
         authError.InvalidToken
       );
     });
 
     it('should throw MalformedToken for complete garbage tokens', async () => {
-      await expect(tokenService.getAuthUser('not.a.real.jwt')).rejects.toThrow(
-        authError.MalformedToken
-      );
+      await expect(
+        tokenAppService.getAuthUser('not.a.real.jwt')
+      ).rejects.toThrow(authError.MalformedToken);
     });
 
     it('should throw InvalidToken for NotBeforeError', async () => {
@@ -364,7 +370,7 @@ describe('makeTokenService', () => {
         { algorithm: 'HS256', notBefore: '1 hour' }
       );
 
-      await expect(tokenService.getAuthUser(notActiveToken)).rejects.toThrow(
+      await expect(tokenAppService.getAuthUser(notActiveToken)).rejects.toThrow(
         authError.InvalidToken
       );
     });
@@ -374,7 +380,7 @@ describe('makeTokenService', () => {
         throw new Error('unexpected verification failure');
       });
 
-      await expect(tokenService.getAuthUser('some-token')).rejects.toThrow(
+      await expect(tokenAppService.getAuthUser('some-token')).rejects.toThrow(
         authError.InvalidToken
       );
     });
@@ -384,8 +390,8 @@ describe('makeTokenService', () => {
     const userId = 'user-999' as TEntityId;
 
     it('should successfully generate and verify a refresh token', async () => {
-      const token = await tokenService.generateRefreshToken({ id: userId });
-      const decoded = await tokenService.verifyRefreshToken(token);
+      const token = await tokenAppService.generateRefreshToken({ id: userId });
+      const decoded = await tokenAppService.verifyRefreshToken(token);
 
       expect(decoded.id).toBe(userId);
       expectTokenTtl(token, 60 * 60 * 24 * 15);
@@ -394,8 +400,8 @@ describe('makeTokenService', () => {
     it('issues unique refresh tokens for the same user in the same second', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00Z'));
 
-      const first = await tokenService.generateRefreshToken({ id: userId });
-      const second = await tokenService.generateRefreshToken({ id: userId });
+      const first = await tokenAppService.generateRefreshToken({ id: userId });
+      const second = await tokenAppService.generateRefreshToken({ id: userId });
 
       expect(first).not.toBe(second);
       expect(decodeToken(first)).toMatchObject({
@@ -410,9 +416,11 @@ describe('makeTokenService', () => {
     });
 
     it('should throw InvalidToken if token type is incorrect', async () => {
-      const wrongToken = await tokenService.generateAccessToken({ id: userId });
+      const wrongToken = await tokenAppService.generateAccessToken({
+        id: userId,
+      });
 
-      expect(() => tokenService.verifyRefreshToken(wrongToken)).toThrow(
+      expect(() => tokenAppService.verifyRefreshToken(wrongToken)).toThrow(
         authError.InvalidToken
       );
     });

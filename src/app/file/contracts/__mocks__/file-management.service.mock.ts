@@ -1,8 +1,8 @@
-import IFileManagementService from '@app/file/contracts/file-management.service.contract';
+import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 
-const mockFileManagementService: jest.Mocked<IFileManagementService> = {
+const mockFileManagementAppService: jest.Mocked<IFileManagementAppService> = {
   preSignUploads: jest.fn(),
   claimUploads: jest.fn(),
 };
 
-export default mockFileManagementService;
+export default mockFileManagementAppService;

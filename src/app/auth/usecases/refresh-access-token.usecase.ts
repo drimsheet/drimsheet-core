@@ -3,9 +3,9 @@ import appError from '@shared/values/errors/app.error';
 import IUserRepo from '@domain/user/repos/user.repo';
 import IActorService from '@domain/user/types/actor.service.types';
 
-import ITokenService from '@app/auth/contracts/token-service.contract';
-import IUserSessionPersistenceService from '@app/auth/contracts/user-session-persistence.service.contract';
-import IUserSessionService from '@app/auth/contracts/user-session.service.contract';
+import ITokenAppService from '@app/auth/contracts/token-service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
+import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
 import authError from '@app/auth/errors/auth.error';
 import IAppContext from '@app/context/contracts/app-context.contract';
 
@@ -13,9 +13,9 @@ interface IDependencies {
   actorService: IActorService;
   reqContext: IAppContext;
   userRepo: IUserRepo;
-  tokenService: ITokenService;
-  userSessionService: IUserSessionService;
-  userSessionPersistenceService: IUserSessionPersistenceService;
+  tokenAppService: ITokenAppService;
+  userSessionAppService: IUserSessionAppService;
+  userSessionPersistenceAppService: IUserSessionPersistenceAppService;
 }
 
 export default function makeRefreshAccessTokenUseCase(deps: IDependencies) {
@@ -32,7 +32,7 @@ export default function makeRefreshAccessTokenUseCase(deps: IDependencies) {
     }
 
     try {
-      const decoded = deps.tokenService.verifyRefreshToken(refreshToken);
+      const decoded = deps.tokenAppService.verifyRefreshToken(refreshToken);
 
       const user = await deps.userRepo.findById(decoded.id, { correlationId });
 
@@ -41,14 +41,15 @@ export default function makeRefreshAccessTokenUseCase(deps: IDependencies) {
       }
 
       await deps.actorService.resolveUser(user, { correlationId });
-      const preparedSession = await deps.userSessionService.prepare(user);
-      const wasRotated = await deps.userSessionPersistenceService.rotateSession(
-        {
-          userSession: preparedSession.userSession,
-          presentedSession: { userId: user.id, refreshToken },
-        },
-        { correlationId }
-      );
+      const preparedSession = await deps.userSessionAppService.prepare(user);
+      const wasRotated =
+        await deps.userSessionPersistenceAppService.rotateSession(
+          {
+            userSession: preparedSession.userSession,
+            presentedSession: { userId: user.id, refreshToken },
+          },
+          { correlationId }
+        );
 
       if (!wasRotated) {
         throw new appError.Unauthorized();

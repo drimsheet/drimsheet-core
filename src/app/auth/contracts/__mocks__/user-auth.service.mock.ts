@@ -1,6 +1,6 @@
-import IUserAuthService from '@app/auth/contracts/user-auth.service.contract';
+import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
 
-const mockUserAuthService: jest.Mocked<IUserAuthService> = {
+const mockUserAuthAppService: jest.Mocked<IUserAuthAppService> = {
   make: jest.fn(),
   addStrategy: jest.fn(),
   replacePassword: jest.fn(),
@@ -8,4 +8,4 @@ const mockUserAuthService: jest.Mocked<IUserAuthService> = {
   resetFailedLoginAttempts: jest.fn(),
 };
 
-export default mockUserAuthService;
+export default mockUserAuthAppService;

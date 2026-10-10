@@ -14,16 +14,16 @@ import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
-import mockLedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
+import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockAssetAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty-cash-account.usecase';
-import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const [actor] = actorEntity.makeUser({
@@ -78,10 +78,10 @@ const deps = {
   ledgerAccountRepo: mockLedgerAccountRepo,
   cashAccountService: mockAssetAccountService,
   openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
-  journalEntryPersistenceService: mockJournalEntryPersistenceService,
-  balanceEnrichmentService: mockLedgerAccountBalanceEnrichmentService,
-  fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
-  outboxService: mockOutboxService,
+  journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
+  balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
+  fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
+  outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
 };
 
@@ -105,7 +105,7 @@ describe('update petty cash account workflow', () => {
       (current, changes) =>
         ledgerAccountEntity.update(current as IPettyCashAccount, changes)
     );
-    mockLedgerAccountBalanceEnrichmentService.enrich.mockImplementation(
+    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockImplementation(
       async ([updated]) => [
         { id: updated.id, name: updated.name } as ILedgerAccountDto,
       ]
@@ -134,7 +134,9 @@ describe('update petty cash account workflow', () => {
         history: expect.anything(),
       })
     );
-    expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
     expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
@@ -204,7 +206,7 @@ describe('update petty cash account workflow', () => {
       { account, openingBalance, accountingEntity, actor: actor.id },
       transactionOptions
     );
-    expect(mockJournalEntryPersistenceService.rectify).toHaveBeenCalledWith(
+    expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledWith(
       expect.objectContaining({
         entriesToCreate: [expect.objectContaining({ entry: creation[0] })],
         entryUpdate: null,
@@ -302,9 +304,9 @@ describe('update petty cash account workflow', () => {
       },
     });
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(records, transactionOptions);
-    expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledWith(
+    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
       creation[0].id,
       transactionOptions
     );
@@ -328,9 +330,9 @@ describe('update petty cash account workflow', () => {
     const commitOrder = mockRepoTransaction.commit.mock.invocationCallOrder[0];
     for (const write of [
       mockLedgerAccountRepo.update,
-      mockJournalEntryPersistenceService.rectify,
-      mockFxLotCostBasisService.persistence.persistAcquisition,
-      mockOutboxService.createBalancePropagation,
+      mockJournalEntryPersistenceAppService.rectify,
+      mockFxLotCostBasisAppService.persistence.persistAcquisition,
+      mockOutboxAppService.createBalancePropagation,
     ]) {
       expect(write).toHaveBeenCalledTimes(1);
       expect(write.mock.invocationCallOrder[0]).toBeLessThan(commitOrder);
@@ -343,7 +345,7 @@ describe('update petty cash account workflow', () => {
       mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
     ).toBeGreaterThan(commitOrder);
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
   });
 
@@ -378,7 +380,7 @@ describe('update petty cash account workflow', () => {
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
   });
 

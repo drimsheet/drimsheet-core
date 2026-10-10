@@ -6,7 +6,7 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import IUserRepo from '@domain/user/repos/user.repo';
 import emailValue from '@domain/user/values/email.vo';
 
-import IEmailVerificationService from '@app/auth/contracts/email-verification-service.contract';
+import IEmailVerificationAppService from '@app/auth/contracts/email-verification-service.contract';
 import authError from '@app/auth/errors/auth.error';
 import IAppContext from '@app/context/contracts/app-context.contract';
 
@@ -18,7 +18,7 @@ interface IDependencies {
   appContext: IAppContext;
   logger: ILogger;
   userRepo: IUserRepo;
-  emailVerificationService: IEmailVerificationService;
+  emailVerificationAppService: IEmailVerificationAppService;
 }
 
 export default function makeSendEmailVerificationEmailUseCase(
@@ -49,6 +49,6 @@ export default function makeSendEmailVerificationEmailUseCase(
       return;
     }
 
-    await deps.emailVerificationService.send(user, correlationId);
+    await deps.emailVerificationAppService.send(user, correlationId);
   };
 }

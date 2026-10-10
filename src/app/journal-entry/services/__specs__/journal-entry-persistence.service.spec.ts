@@ -28,15 +28,15 @@ import {
   mockJournalLineHistoryRepo,
   mockJournalLineRepo,
 } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import makeJournalEntryPersistenceService from '@app/journal-entry/services/journal-entry-persistence.service';
+import makeJournalEntryPersistenceAppService from '@app/journal-entry/services/journal-entry-persistence.service';
 import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 
-describe('journalEntryPersistenceService', () => {
-  const service = makeJournalEntryPersistenceService({
+describe('journalEntryPersistenceAppService', () => {
+  const service = makeJournalEntryPersistenceAppService({
     repoService: mockRepoService,
     journalEntryAttachmentRepo: mockJournalEntryAttachmentRepo,
     journalEntryHistoryRepo: mockJournalEntryHistoryRepo,

@@ -3,7 +3,7 @@ import {
   TRepoTransactionFn,
 } from '@shared/contracts/repo.contract';
 
-import IUserSessionPersistenceService from '@app/auth/contracts/user-session-persistence.service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
 import IUserSessionRepo from '@app/auth/contracts/user-session.repo.contract';
 
 interface IDependencies {
@@ -27,7 +27,7 @@ async function removeGeneratedTokenCollision(
  */
 function makeReplaceClientSession(
   deps: IDependencies
-): IUserSessionPersistenceService['replaceClientSession'] {
+): IUserSessionPersistenceAppService['replaceClientSession'] {
   return async (payload, repoOptions) => {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { ...repoOptions, tx };
@@ -59,7 +59,7 @@ function makeReplaceClientSession(
  */
 function makeRotateSession(
   deps: IDependencies
-): IUserSessionPersistenceService['rotateSession'] {
+): IUserSessionPersistenceAppService['rotateSession'] {
   return async (payload, repoOptions) => {
     const transactionFn: TRepoTransactionFn<boolean> = async (tx) => {
       const writeOptions = { ...repoOptions, tx };
@@ -92,7 +92,7 @@ function makeRotateSession(
  */
 function makeReplaceAllUserSessions(
   deps: IDependencies
-): IUserSessionPersistenceService['replaceAllUserSessions'] {
+): IUserSessionPersistenceAppService['replaceAllUserSessions'] {
   return async (userSession, repoOptions) => {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { ...repoOptions, tx };
@@ -112,10 +112,10 @@ function makeReplaceAllUserSessions(
  * Composes the immutable user-session persistence service from its atomic
  * write capabilities.
  */
-export default function makeUserSessionPersistenceService(
+export default function makeUserSessionPersistenceAppService(
   deps: IDependencies
-): IUserSessionPersistenceService {
-  const service: IUserSessionPersistenceService = {
+): IUserSessionPersistenceAppService {
+  const service: IUserSessionPersistenceAppService = {
     replaceClientSession: makeReplaceClientSession(deps),
     rotateSession: makeRotateSession(deps),
     replaceAllUserSessions: makeReplaceAllUserSessions(deps),

@@ -1,7 +1,7 @@
-import makeOutboxService from '@app/outbox/services/outbox.service';
+import makeOutboxAppService from '@app/outbox/services/outbox.service';
 
 import outboxRepo from '@infra/persistence/repos/outbox';
 
-const outboxService = makeOutboxService({ outboxRepo });
+const outboxAppService = makeOutboxAppService({ outboxRepo });
 
-export default outboxService;
+export default outboxAppService;

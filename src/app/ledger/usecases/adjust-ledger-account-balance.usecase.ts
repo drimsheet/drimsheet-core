@@ -8,7 +8,7 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 
-import ILedgerBalancePropagationPreparationService from '@app/ledger/contracts/ledger-balance-propagation-preparation.service.contract';
+import ILedgerBalancePropagationPreparationAppService from '@app/ledger/contracts/ledger-balance-propagation-preparation.service.contract';
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
 import { ledgerAccountBalanceAdjustmentDtoSchema } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto.validation';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
@@ -18,7 +18,7 @@ interface IDependencies {
   repoService: IRepoService;
   outboxRepo: IOutboxRepo;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
-  balancePropagationPreparationService: ILedgerBalancePropagationPreparationService;
+  balancePropagationPreparationAppService: ILedgerBalancePropagationPreparationAppService;
   reporter: IReporter;
 }
 
@@ -49,7 +49,7 @@ export default function makeAdjustLedgerAccountBalanceUseCase(
     }
 
     const preparedAdjustments =
-      await deps.balancePropagationPreparationService.prepare(
+      await deps.balancePropagationPreparationAppService.prepare(
         journalEntryId,
         repoOptions
       );

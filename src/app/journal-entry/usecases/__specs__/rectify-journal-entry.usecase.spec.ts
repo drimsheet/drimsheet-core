@@ -26,8 +26,8 @@ import mockAppContext, {
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
-import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import mockJournalEntryRectificationPreparationService from '@app/journal-entry/contracts/__mocks__/journal-entry-rectification-preparation.service.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockJournalEntryRectificationPreparationAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-rectification-preparation.service.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import {
   ITransferJournalEntryRectificationReq,
@@ -36,8 +36,8 @@ import {
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import {
   TFxLotAcquisitionAppResult,
   TFxLotDispositionAppResult,
@@ -155,14 +155,15 @@ describe('makeRectifyJournalEntryUsecase', () => {
       appContext: mockAppContext,
       counterpartyRepo: mockCounterpartyRepo,
       journalEntryRepo: mockJournalEntryRepo,
-      journalEntryRectificationPreparationService:
-        mockJournalEntryRectificationPreparationService,
-      journalEntryPersistenceService: mockJournalEntryPersistenceService,
+      journalEntryRectificationPreparationAppService:
+        mockJournalEntryRectificationPreparationAppService,
+      journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
       eventBus: mockEventBus,
-      outboxService: mockOutboxService,
+      outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
-      fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
+      fxCostBasisPersistenceAppService:
+        mockFxLotCostBasisAppService.persistence,
     });
   }
 
@@ -185,7 +186,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
       fn('mock-tx' as unknown as ITransactionContext)
     );
     mockEventBus.publish.mockResolvedValue();
-    mockOutboxService.createBalancePropagation.mockResolvedValue();
+    mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerAccountBalanceAdjustmentQueue.add.mockResolvedValue();
   });
 
@@ -195,14 +196,18 @@ describe('makeRectifyJournalEntryUsecase', () => {
     const [originalEntry] = makeEntry(100);
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
     const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
-    mockJournalEntryRectificationPreparationService.prepare.mockRejectedValueOnce(
+    mockJournalEntryRectificationPreparationAppService.prepare.mockRejectedValueOnce(
       failure
     );
     await expect(
       getUsecase()(originalEntry.id, makePayload(originalEntry))
     ).rejects.toBe(failure);
-    expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
   it('persists and propagates a reversing and corrected journal entry', async () => {
@@ -242,13 +247,15 @@ describe('makeRectifyJournalEntryUsecase', () => {
       events: [],
     };
     const fxReversal = { records: { lots: [] }, events: [] };
-    mockJournalEntryRectificationPreparationService.prepare.mockResolvedValue({
-      rectification: result,
-      counterparties,
-      fxReversal,
-      fxDisposition,
-      fxAcquisition,
-    });
+    mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
+      {
+        rectification: result,
+        counterparties,
+        fxReversal,
+        fxDisposition,
+        fxAcquisition,
+      }
+    );
 
     const response = await getUsecase()(
       originalEntry.id,
@@ -256,7 +263,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
     );
 
     expect(
-      mockJournalEntryRectificationPreparationService.prepare
+      mockJournalEntryRectificationPreparationAppService.prepare
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         originalEntry,
@@ -267,7 +274,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
       }),
       { correlationId, idempotencyKey }
     );
-    expect(mockJournalEntryPersistenceService.rectify).toHaveBeenCalledWith(
+    expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledWith(
       expect.objectContaining({
         entriesToCreate: expect.arrayContaining([
           expect.objectContaining({
@@ -285,7 +292,9 @@ describe('makeRectifyJournalEntryUsecase', () => {
       }),
       expect.objectContaining({ tx: 'mock-tx' })
     );
-    expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledTimes(2);
+    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledTimes(
+      2
+    );
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledTimes(
       2
     );
@@ -299,13 +308,13 @@ describe('makeRectifyJournalEntryUsecase', () => {
       })
     );
     expect(
-      mockFxLotCostBasisService.persistence.persistReversal
+      mockFxLotCostBasisAppService.persistence.persistReversal
     ).toHaveBeenCalledWith(fxReversal.records, expect.any(Object));
     expect(
-      mockFxLotCostBasisService.persistence.persistDisposition
+      mockFxLotCostBasisAppService.persistence.persistDisposition
     ).toHaveBeenCalledWith(fxDisposition.records, expect.any(Object));
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(fxAcquisition.records, expect.any(Object));
     expect(response).toMatchObject({
       mode: EJournalEntryRectificationMode.VoidAndReplace,
@@ -340,15 +349,17 @@ describe('makeRectifyJournalEntryUsecase', () => {
       name: 'Existing vendor',
       type: ECounterpartyType.Organization,
     });
-    mockJournalEntryRectificationPreparationService.prepare.mockResolvedValue({
-      rectification: result,
-      counterparties: new Map([
-        ['existing-vendor', { new: false, data: existingCounterparty }],
-      ]),
-      fxReversal: null,
-      fxDisposition: null,
-      fxAcquisition: null,
-    });
+    mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
+      {
+        rectification: result,
+        counterparties: new Map([
+          ['existing-vendor', { new: false, data: existingCounterparty }],
+        ]),
+        fxReversal: null,
+        fxDisposition: null,
+        fxAcquisition: null,
+      }
+    );
 
     const response = await getUsecase()(
       originalEntry.id,
@@ -356,8 +367,12 @@ describe('makeRectifyJournalEntryUsecase', () => {
     );
 
     expect(response.mode).toBe(EJournalEntryRectificationMode.UpdateMeta);
-    expect(mockJournalEntryPersistenceService.rectify).toHaveBeenCalledTimes(1);
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledTimes(
+      1
+    );
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });
 
@@ -380,17 +395,21 @@ describe('makeRectifyJournalEntryUsecase', () => {
       { correlationId }
     );
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-    mockJournalEntryRectificationPreparationService.prepare.mockResolvedValue({
-      rectification: result,
-      counterparties: new Map(),
-      fxReversal: null,
-      fxDisposition: null,
-      fxAcquisition: null,
-    });
+    mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
+      {
+        rectification: result,
+        counterparties: new Map(),
+        fxReversal: null,
+        fxDisposition: null,
+        fxAcquisition: null,
+      }
+    );
 
     await getUsecase()(originalEntry.id, makePayload(originalEntry, 100));
 
-    expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledTimes(1);
+    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledTimes(
+      1
+    );
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledTimes(
       1
     );
@@ -415,7 +434,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
       status: EJournalEntryStatus.Archived,
     };
     mockJournalEntryRepo.findById.mockResolvedValue(archivedEntry);
-    mockJournalEntryRectificationPreparationService.prepare.mockRejectedValue(
+    mockJournalEntryRectificationPreparationAppService.prepare.mockRejectedValue(
       new journalEntryError.RectificationNotPermitted({
         status: EJournalEntryStatus.Archived,
       })
@@ -425,8 +444,12 @@ describe('makeRectifyJournalEntryUsecase', () => {
       getUsecase()(archivedEntry.id, makePayload(archivedEntry))
     ).rejects.toBeInstanceOf(journalEntryError.RectificationNotPermitted);
 
-    expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -439,7 +462,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
       const [originalEntry] = makeEntry(100);
       const error = new ErrorType();
       mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-      mockJournalEntryRectificationPreparationService.prepare.mockRejectedValueOnce(
+      mockJournalEntryRectificationPreparationAppService.prepare.mockRejectedValueOnce(
         error
       );
 
@@ -449,17 +472,21 @@ describe('makeRectifyJournalEntryUsecase', () => {
 
       expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
-      expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
       expect(
-        mockFxLotCostBasisService.persistence.persistReversal
+        mockJournalEntryPersistenceAppService.rectify
       ).not.toHaveBeenCalled();
       expect(
-        mockFxLotCostBasisService.persistence.persistDisposition
+        mockFxLotCostBasisAppService.persistence.persistReversal
       ).not.toHaveBeenCalled();
       expect(
-        mockFxLotCostBasisService.persistence.persistAcquisition
+        mockFxLotCostBasisAppService.persistence.persistDisposition
       ).not.toHaveBeenCalled();
-      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisAppService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
       expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
       ).not.toHaveBeenCalled();
@@ -489,20 +516,22 @@ describe('makeRectifyJournalEntryUsecase', () => {
     };
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
     const error = new journalEntryError.RectificationNotPermitted();
-    mockJournalEntryRectificationPreparationService.prepare.mockRejectedValue(
+    mockJournalEntryRectificationPreparationAppService.prepare.mockRejectedValue(
       error
     );
 
     await expect(getUsecase()(originalEntry.id, payload)).rejects.toBe(error);
 
     expect(
-      mockJournalEntryRectificationPreparationService.prepare
+      mockJournalEntryRectificationPreparationAppService.prepare
     ).toHaveBeenCalledWith(
       expect.objectContaining({ originalEntry, requestedEntry: payload }),
       { correlationId, idempotencyKey }
     );
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 

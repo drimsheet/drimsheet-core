@@ -1,8 +1,8 @@
 import { makeAuthRateLimiters } from '@infra/config/rate-limiter.config';
 import vars from '@infra/config/vars.config';
-import featureFlagService from '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service';
+import featureFlagAppService from '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service';
 import { accountingEntityService } from '@infra/ioc/services/accounting';
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import { actorService } from '@infra/ioc/services/user';
 import { oAuthUseCase } from '@infra/ioc/usecases/auth';
 import observability from '@infra/observability';
@@ -45,7 +45,7 @@ const httpMiddlewares = {
   appContextEnrichment: makeAppContextEnrichmentMiddleware(
     appContext,
     accountingRepos.accountingEntity,
-    tokenService,
+    tokenAppService,
     userRepos.user,
     actorService
   ),
@@ -68,7 +68,7 @@ const httpMiddlewares = {
   ),
 
   featureFlagAccess: makeFeatureFlagAccessMiddleware({
-    featureFlagService: featureFlagService,
+    featureFlagAppService: featureFlagAppService,
     appContext,
   }),
 };

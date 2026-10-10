@@ -2,8 +2,8 @@ import makeJournalEntryRectificationService from '@domain/journal-entry/services
 import makeJournalEntryRemovalService from '@domain/journal-entry/services/journal-entry-removal.service';
 import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 
-import makeJournalEntryPersistenceService from '@app/journal-entry/services/journal-entry-persistence.service';
-import makeJournalEntryRectificationPreparationService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
+import makeJournalEntryPersistenceAppService from '@app/journal-entry/services/journal-entry-persistence.service';
+import makeJournalEntryRectificationPreparationAppService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
 import makeOpeningBalanceEntryAppService from '@app/journal-entry/services/opening-balance-entry.service';
 
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
@@ -28,8 +28,8 @@ export const journalEntryRemovalService = makeJournalEntryRemovalService({
   journalEntryRectificationService,
 });
 
-export const journalEntryRectificationPreparationService =
-  makeJournalEntryRectificationPreparationService({
+export const journalEntryRectificationPreparationAppService =
+  makeJournalEntryRectificationPreparationAppService({
     counterpartyAppService,
     journalEntryService,
     journalEntryRectificationService,
@@ -45,8 +45,8 @@ export const openingBalanceEntryAppService = makeOpeningBalanceEntryAppService({
   fxLotAppService,
 });
 
-export const journalEntryPersistenceService =
-  makeJournalEntryPersistenceService({
+export const journalEntryPersistenceAppService =
+  makeJournalEntryPersistenceAppService({
     repoService,
     journalEntryAttachmentRepo: journalEntryRepos.journalEntryAttachment,
     journalEntryHistoryRepo: journalEntryRepos.journalEntryHistory,

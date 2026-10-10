@@ -10,8 +10,8 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
@@ -58,7 +58,7 @@ jest.mock(
 );
 jest.mock('@infra/ioc/services/auth', () => ({
   __esModule: true,
-  tokenService: jest.requireActual<
+  tokenAppService: jest.requireActual<
     typeof import('@app/auth/contracts/__mocks__/token-service.mock')
   >('@app/auth/contracts/__mocks__/token-service.mock').default,
 }));
@@ -115,8 +115,8 @@ describe('POST /ledger/{accountId}/archive', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockUserRepo.findById.mockResolvedValue({
       id: userId,
       actorId: actor.id,
@@ -164,7 +164,7 @@ describe('POST /ledger/{accountId}/archive', () => {
   });
 
   it('requires Alpha 1 access', async () => {
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValueOnce(false);
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
     const response = await post();
 

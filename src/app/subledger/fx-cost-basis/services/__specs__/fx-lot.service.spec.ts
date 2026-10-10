@@ -30,9 +30,9 @@ import fxCostBasisLotDispositionEntity from '@domain/subledger/fx-cost-basis/ent
 import fxCostBasisLotEntity from '@domain/subledger/fx-cost-basis/entities/lot.entity';
 import { EFxCostBasisLotStatus } from '@domain/subledger/fx-cost-basis/types/lot.types';
 
-import mockExchangeRateService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import { EMissingOfficialFxRateEffectKind } from '@app/outbox/types/missing-official-fx-rate.types';
-import { mockFxCostBasisLotDomainService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import makeFxLotAppService from '@app/subledger/fx-cost-basis/services/fx-lot.service';
 
 describe('fxLotAppService', () => {
@@ -193,13 +193,13 @@ describe('fxLotAppService', () => {
   }
 
   const service = makeFxLotAppService({
-    fxCostBasisLotService: mockFxCostBasisLotDomainService,
-    exchangeRateService: mockExchangeRateService,
+    fxCostBasisLotService: mockFxCostBasisLotService,
+    exchangeRateAppService: mockExchangeRateAppService,
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockExchangeRateService.getOfficialRate.mockResolvedValue(officialRate);
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(officialRate);
   });
 
   it('prepares versioned histories for an FX lot reversal', async () => {
@@ -213,7 +213,7 @@ describe('fxLotAppService', () => {
       lot.remainingQuantity,
       lot.remainingCostBasis
     );
-    mockFxCostBasisLotDomainService.reverse.mockResolvedValue({
+    mockFxCostBasisLotService.reverse.mockResolvedValue({
       lots: [reversedLot],
     });
 
@@ -221,7 +221,7 @@ describe('fxLotAppService', () => {
       correlationId,
     });
 
-    expect(mockFxCostBasisLotDomainService.reverse).toHaveBeenCalledWith(
+    expect(mockFxCostBasisLotService.reverse).toHaveBeenCalledWith(
       journalEntry.id,
       { correlationId }
     );
@@ -235,7 +235,7 @@ describe('fxLotAppService', () => {
 
   it('returns null when there is no FX lot effect to reverse', async () => {
     const journalEntryId = generateUUID();
-    mockFxCostBasisLotDomainService.reverse.mockResolvedValue(null);
+    mockFxCostBasisLotService.reverse.mockResolvedValue(null);
 
     await expect(
       service.reverse(journalEntryId, actor, { correlationId })
@@ -265,9 +265,9 @@ describe('fxLotAppService', () => {
       )
     ).resolves.toBeNull();
 
-    expect(mockExchangeRateService.getOfficialRate).not.toHaveBeenCalled();
-    expect(mockFxCostBasisLotDomainService.acquire).not.toHaveBeenCalled();
-    expect(mockFxCostBasisLotDomainService.dispose).not.toHaveBeenCalled();
+    expect(mockExchangeRateAppService.getOfficialRate).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
   });
 
   it('prepares a rated acquisition with histories and ordered events', async () => {
@@ -276,20 +276,20 @@ describe('fxLotAppService', () => {
       EJournalSide.Debit
     );
     const domainResult = makeAcquisitionResult(journalEntry, officialRate);
-    mockFxCostBasisLotDomainService.acquire.mockReturnValue(domainResult);
+    mockFxCostBasisLotService.acquire.mockReturnValue(domainResult);
 
     const result = await service.acquire(
       { journalEntry, account, actor },
       { correlationId }
     );
 
-    expect(mockExchangeRateService.getOfficialRate).toHaveBeenCalledWith(
+    expect(mockExchangeRateAppService.getOfficialRate).toHaveBeenCalledWith(
       transactionRate.currencyPair,
       transactionRate.asOf,
       { correlationId },
       transactionRate
     );
-    expect(mockFxCostBasisLotDomainService.acquire).toHaveBeenCalledWith({
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
       createdBy: actor,
       journalEntry,
       account,
@@ -322,15 +322,15 @@ describe('fxLotAppService', () => {
         null
       );
       const domainResult = makeAcquisitionResult(journalEntry, null);
-      mockExchangeRateService.getOfficialRate.mockResolvedValue(null);
-      mockFxCostBasisLotDomainService.acquire.mockReturnValue(domainResult);
+      mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
+      mockFxCostBasisLotService.acquire.mockReturnValue(domainResult);
 
       const result = await service.acquire(
         { journalEntry, account, actor },
         { correlationId }
       );
 
-      expect(mockExchangeRateService.getOfficialRate).not.toHaveBeenCalled();
+      expect(mockExchangeRateAppService.getOfficialRate).not.toHaveBeenCalled();
       expect(result?.records.missingOfficialRateOutbox).toEqual({
         id: domainResult.acquisition[0].id,
         correlationId,
@@ -351,7 +351,7 @@ describe('fxLotAppService', () => {
       EJournalEntryStatus.Posted,
       EJournalSide.Debit
     );
-    mockFxCostBasisLotDomainService.acquire.mockReturnValue(null);
+    mockFxCostBasisLotService.acquire.mockReturnValue(null);
 
     await expect(
       service.acquire({ journalEntry, account, actor }, { correlationId })
@@ -368,12 +368,12 @@ describe('fxLotAppService', () => {
       id: generateUUID(),
       sequenceOrder: 2,
     });
-    mockFxCostBasisLotDomainService.acquire.mockReturnValue(null);
+    mockFxCostBasisLotService.acquire.mockReturnValue(null);
 
     await service.acquire({ journalEntry, account, actor }, { correlationId });
 
-    expect(mockExchangeRateService.getOfficialRate).not.toHaveBeenCalled();
-    expect(mockFxCostBasisLotDomainService.acquire).toHaveBeenCalledWith({
+    expect(mockExchangeRateAppService.getOfficialRate).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
       createdBy: actor,
       journalEntry,
       account,
@@ -388,15 +388,15 @@ describe('fxLotAppService', () => {
     );
     const domainResult = makeDispositionResult(journalEntry, null);
     const repoOptions = { correlationId };
-    mockExchangeRateService.getOfficialRate.mockResolvedValue(null);
-    mockFxCostBasisLotDomainService.dispose.mockResolvedValue(domainResult);
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
+    mockFxCostBasisLotService.dispose.mockResolvedValue(domainResult);
 
     const result = await service.dispose(
       { journalEntry, account, actor },
       repoOptions
     );
 
-    expect(mockFxCostBasisLotDomainService.dispose).toHaveBeenCalledWith(
+    expect(mockFxCostBasisLotService.dispose).toHaveBeenCalledWith(
       { journalEntry, account, officialRate: null, createdBy: actor },
       repoOptions
     );
@@ -430,7 +430,7 @@ describe('fxLotAppService', () => {
       EJournalEntryStatus.Posted,
       EJournalSide.Credit
     );
-    mockFxCostBasisLotDomainService.dispose.mockResolvedValue(null);
+    mockFxCostBasisLotService.dispose.mockResolvedValue(null);
 
     await expect(
       service.dispose({ journalEntry, account, actor }, { correlationId })
@@ -443,15 +443,19 @@ describe('fxLotAppService', () => {
       EJournalSide.Debit
     );
     const rateFailure = new Error('rate failure');
-    mockExchangeRateService.getOfficialRate.mockRejectedValueOnce(rateFailure);
+    mockExchangeRateAppService.getOfficialRate.mockRejectedValueOnce(
+      rateFailure
+    );
 
     await expect(
       service.acquire({ journalEntry, account, actor }, { correlationId })
     ).rejects.toBe(rateFailure);
 
     const domainFailure = new Error('domain failure');
-    mockExchangeRateService.getOfficialRate.mockResolvedValueOnce(officialRate);
-    mockFxCostBasisLotDomainService.acquire.mockImplementationOnce(() => {
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValueOnce(
+      officialRate
+    );
+    mockFxCostBasisLotService.acquire.mockImplementationOnce(() => {
       throw domainFailure;
     });
 

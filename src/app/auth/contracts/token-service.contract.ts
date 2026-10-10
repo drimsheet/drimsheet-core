@@ -8,7 +8,7 @@ export interface IPasswordResetTokenClaim extends IAuthTokenPayload {
   owner: string;
 }
 
-export default interface ITokenService {
+export default interface ITokenAppService {
   generateSignupToken(payload: IAuthTokenPayload): Promise<string>;
   verifySignupToken(token: string): Promise<IAuthTokenPayload>;
   claimSignupToken(token: string): Promise<IAuthTokenPayload>;

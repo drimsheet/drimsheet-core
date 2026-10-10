@@ -12,12 +12,12 @@ import IUserRepo from '@domain/user/repos/user.repo';
 import IActorService from '@domain/user/types/actor.service.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import IPasswordService from '@app/auth/contracts/password-service.contract';
-import ITokenService from '@app/auth/contracts/token-service.contract';
+import IPasswordAppService from '@app/auth/contracts/password-service.contract';
+import ITokenAppService from '@app/auth/contracts/token-service.contract';
 import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
-import IUserAuthService from '@app/auth/contracts/user-auth.service.contract';
-import IUserSessionPersistenceService from '@app/auth/contracts/user-session-persistence.service.contract';
-import IUserSessionService, {
+import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
+import IUserSessionAppService, {
   IPreparedUserSession,
 } from '@app/auth/contracts/user-session.service.contract';
 import { IAccessToken, IResetPasswordReq } from '@app/auth/dtos/auth/auth.dto';
@@ -29,13 +29,13 @@ interface IDependencies {
   actorService: IActorService;
   appContext: IAppContext;
   userRepo: IUserRepo;
-  passwordService: IPasswordService;
-  tokenService: ITokenService;
+  passwordAppService: IPasswordAppService;
+  tokenAppService: ITokenAppService;
   eventBus: IEventBus;
   userAuthRepo: IUserAuthRepo;
-  userAuthService: IUserAuthService;
-  userSessionService: IUserSessionService;
-  userSessionPersistenceService: IUserSessionPersistenceService;
+  userAuthAppService: IUserAuthAppService;
+  userSessionAppService: IUserSessionAppService;
+  userSessionPersistenceAppService: IUserSessionPersistenceAppService;
   repoService: IRepoService;
   reporter: IReporter;
 }
@@ -51,7 +51,7 @@ export default function makeResetPasswordUseCase(deps: IDependencies) {
 
     const { correlationId, idempotencyKey } = deps.appContext.get();
 
-    const tokenPayload = await deps.tokenService.claimPasswordResetToken(
+    const tokenPayload = await deps.tokenAppService.claimPasswordResetToken(
       payload.token
     );
 
@@ -77,10 +77,10 @@ export default function makeResetPasswordUseCase(deps: IDependencies) {
         throw new authError.InvalidToken();
       }
 
-      const password = deps.passwordService.makePassword(payload.password);
-      const passwordHash = await deps.passwordService.hash(password);
-      preparedSession = await deps.userSessionService.prepare(user);
-      const updatedUserAuth = deps.userAuthService.replacePassword(
+      const password = deps.passwordAppService.makePassword(payload.password);
+      const passwordHash = await deps.passwordAppService.hash(password);
+      preparedSession = await deps.userSessionAppService.prepare(user);
+      const updatedUserAuth = deps.userAuthAppService.replacePassword(
         existingUserAuth,
         passwordHash
       );
@@ -91,7 +91,7 @@ export default function makeResetPasswordUseCase(deps: IDependencies) {
           expectedVersion: existingUserAuth.version,
           tx,
         });
-        await deps.userSessionPersistenceService.replaceAllUserSessions(
+        await deps.userSessionPersistenceAppService.replaceAllUserSessions(
           preparedSession.userSession,
           { correlationId, tx }
         );
@@ -100,7 +100,7 @@ export default function makeResetPasswordUseCase(deps: IDependencies) {
       existingUser = user;
     } catch (error) {
       try {
-        await deps.tokenService.releasePasswordResetTokenClaim(tokenPayload);
+        await deps.tokenAppService.releasePasswordResetTokenClaim(tokenPayload);
       } catch (cleanupError) {
         deps.reporter.report(
           'auth.password_reset.claim_release_failed',
@@ -113,7 +113,7 @@ export default function makeResetPasswordUseCase(deps: IDependencies) {
     }
 
     try {
-      await deps.tokenService.finalizePasswordResetToken(tokenPayload);
+      await deps.tokenAppService.finalizePasswordResetToken(tokenPayload);
     } catch (error) {
       deps.reporter.report('auth.password_reset.finalization_failed', error, {
         operation: operations.finalization,

@@ -15,15 +15,15 @@ import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
-import mockLedgerAccountPersistenceService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockAssetAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import { IPettyCashAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import makeCreatePettyCashAccountUseCase from '@app/ledger/usecases/create-petty-cash-account.usecase';
-import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
@@ -62,13 +62,13 @@ const deps = {
   eventBus: mockEventBus,
   cashAccountService: mockAssetAccountService,
   openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
-  journalEntryPersistenceService: mockJournalEntryPersistenceService,
-  outboxService: mockOutboxService,
+  journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
+  outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
   repoService: mockRepoService,
-  ledgerAccountPersistenceService: mockLedgerAccountPersistenceService,
+  ledgerAccountPersistenceAppService: mockLedgerAccountPersistenceAppService,
   fxLotAppService: mockFxLotAppService,
-  fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
+  fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
 };
 function makePettyCash(
   openingBalanceDate: Date | undefined = undefined,
@@ -196,7 +196,7 @@ describe('petty cash account creation workflow', () => {
         openingBalanceDate: withOpening ? date : null,
       });
       const [account, , writeOptions] =
-        mockLedgerAccountPersistenceService.create.mock.calls[0];
+        mockLedgerAccountPersistenceAppService.create.mock.calls[0];
       expect(account).toBe(bank[0]);
       expect(account.version).toBe(1);
       expect(writeOptions.tx).toBe(options.tx);
@@ -227,7 +227,9 @@ describe('petty cash account creation workflow', () => {
           expect.objectContaining({ account, effectiveDate: date }),
           options
         );
-        expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledWith(
+        expect(
+          mockJournalEntryPersistenceAppService.create
+        ).toHaveBeenCalledWith(
           journal[0],
           expect.objectContaining({
             diff: JSON.parse(JSON.stringify(journal[2].header.diff)),
@@ -235,10 +237,9 @@ describe('petty cash account creation workflow', () => {
           expect.any(Array),
           options
         );
-        expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledWith(
-          journal[0].id,
-          options
-        );
+        expect(
+          mockOutboxAppService.createBalancePropagation
+        ).toHaveBeenCalledWith(journal[0].id, options);
         expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
           mockLedgerAccountBalanceAdjustmentQueue.add.mock
             .invocationCallOrder[0]
@@ -251,11 +252,11 @@ describe('petty cash account creation workflow', () => {
         });
       } else {
         expect(
-          mockJournalEntryPersistenceService.create
+          mockJournalEntryPersistenceAppService.create
         ).not.toHaveBeenCalled();
         expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
         expect(
-          mockOutboxService.createBalancePropagation
+          mockOutboxAppService.createBalancePropagation
         ).not.toHaveBeenCalled();
         expect(
           mockLedgerAccountBalanceAdjustmentQueue.add
@@ -299,7 +300,9 @@ describe('petty cash account creation workflow', () => {
         expect.objectContaining({ status: 'draft' }),
         options
       );
-      expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledWith(
+      expect(
+        mockLedgerAccountPersistenceAppService.create
+      ).toHaveBeenCalledWith(
         bank[0],
         'NGN',
         expect.objectContaining({ tx: options.tx, history: expect.any(Array) })
@@ -324,7 +327,9 @@ describe('petty cash account creation workflow', () => {
           }),
           options
         );
-        expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledWith(
+        expect(
+          mockJournalEntryPersistenceAppService.create
+        ).toHaveBeenCalledWith(
           journal[0],
           expect.objectContaining({
             diff: JSON.parse(JSON.stringify(journal[2].header.diff)),
@@ -334,13 +339,15 @@ describe('petty cash account creation workflow', () => {
         );
       } else
         expect(
-          mockJournalEntryPersistenceService.create
+          mockJournalEntryPersistenceAppService.create
         ).not.toHaveBeenCalled();
       expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
       expect(
-        mockFxLotCostBasisService.persistence.persistAcquisition
+        mockFxLotCostBasisAppService.persistence.persistAcquisition
       ).not.toHaveBeenCalled();
-      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
       expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
       ).not.toHaveBeenCalled();
@@ -358,7 +365,7 @@ describe('petty cash account creation workflow', () => {
     ).rejects.toBe(failure);
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -392,9 +399,11 @@ describe('petty cash account creation workflow', () => {
       }
     );
     await makeCreatePettyCashAccountUseCase(deps)(openingPayload);
-    expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
     expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });
   it('persists prepared FX records with the same transaction and publishes their events', async () => {
@@ -416,7 +425,7 @@ describe('petty cash account creation workflow', () => {
     mockFxLotAppService.acquire.mockResolvedValue({ records, events });
     await makeCreatePettyCashAccountUseCase(deps)(openingPayload);
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(records, options);
     expect(mockEventBus.publish.mock.calls[0][0]).toEqual(
       expect.arrayContaining([
@@ -486,10 +495,10 @@ describe('petty cash account creation workflow', () => {
         account: mockAssetAccountService.createPettyCashSubAccount,
         journal: mockOpeningBalanceEntryAppService.createInitialOpeningBalance,
         fx: mockFxLotAppService.acquire,
-        'ledger-write': mockLedgerAccountPersistenceService.create,
-        'journal-write': mockJournalEntryPersistenceService.create,
-        'fx-write': mockFxLotCostBasisService.persistence.persistAcquisition,
-        outbox: mockOutboxService.createBalancePropagation,
+        'ledger-write': mockLedgerAccountPersistenceAppService.create,
+        'journal-write': mockJournalEntryPersistenceAppService.create,
+        'fx-write': mockFxLotCostBasisAppService.persistence.persistAcquisition,
+        outbox: mockOutboxAppService.createBalancePropagation,
         commit: mockRepoTransaction.commit,
       };
       if (stage === 'fx-write')
@@ -515,7 +524,7 @@ describe('petty cash account creation workflow', () => {
     async (stage) => {
       const failure = new Error(stage);
       const stages = {
-        'ledger-write': mockLedgerAccountPersistenceService.create,
+        'ledger-write': mockLedgerAccountPersistenceAppService.create,
         commit: mockRepoTransaction.commit,
         publication: mockEventBus.publish,
       };
@@ -555,7 +564,7 @@ describe('petty cash account creation workflow', () => {
     });
     const creation = makeCreatePettyCashAccountUseCase(deps)(payload);
     await ready;
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalled();
+    expect(mockLedgerAccountPersistenceAppService.create).toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     release();
     await creation;

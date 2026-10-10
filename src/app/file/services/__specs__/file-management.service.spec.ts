@@ -3,7 +3,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import mockFileStorageClient from '@app/file/contracts/__mocks__/file-storage-client.mock';
 import fileAppError from '@app/file/errors/file.error';
-import makeFileManagementService from '@app/file/services/file-management.service';
+import makeFileManagementAppService from '@app/file/services/file-management.service';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 
 jest.mock('@shared/utils/uuid-generator', () => ({
@@ -11,7 +11,7 @@ jest.mock('@shared/utils/uuid-generator', () => ({
   default: jest.fn(),
 }));
 
-describe('FileManagementService', () => {
+describe('FileManagementAppService', () => {
   const reference = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
   const secondReference = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
   const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
@@ -19,7 +19,7 @@ describe('FileManagementService', () => {
   const mockedGenerateUUID = jest.mocked(generateUUID);
 
   const getService = () =>
-    makeFileManagementService({ fileStorageClient: mockFileStorageClient });
+    makeFileManagementAppService({ fileStorageClient: mockFileStorageClient });
 
   const storedPng = {
     fileUrl: 'https://example.com/file',

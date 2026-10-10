@@ -1,4 +1,4 @@
-import makeFileManagementService from '@app/file/services/file-management.service';
+import makeFileManagementAppService from '@app/file/services/file-management.service';
 
 import vars from '@infra/config/vars.config';
 import makeBlackblazeClient from '@infra/integrations/blackblaze/blackblaze-client';
@@ -11,6 +11,6 @@ const fileStorageClient = makeBlackblazeClient({
   region: vars.B2_REGION,
 });
 
-export const fileManagementService = makeFileManagementService({
+export const fileManagementAppService = makeFileManagementAppService({
   fileStorageClient,
 });

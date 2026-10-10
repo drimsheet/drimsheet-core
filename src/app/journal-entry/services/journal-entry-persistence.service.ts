@@ -9,7 +9,7 @@ import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import IJournalLineHistoryRepo from '@domain/journal-entry/repos/journal-line-history.repo';
 import IJournalLineRepo from '@domain/journal-entry/repos/journal-line.repo';
 
-import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 
 interface IDependencies {
   repoService: IRepoService;
@@ -27,7 +27,7 @@ interface IDependencies {
 
 function makeCreate(
   deps: IDependencies
-): IJournalEntryPersistenceService['create'] {
+): IJournalEntryPersistenceAppService['create'] {
   return async (entry, headerHistory, linesHistory, repoOptions) => {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { ...repoOptions, tx };
@@ -63,7 +63,7 @@ function makeCreate(
  */
 function makeRectify(
   deps: IDependencies
-): IJournalEntryPersistenceService['rectify'] {
+): IJournalEntryPersistenceAppService['rectify'] {
   return async (payload, repoOptions) => {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { ...repoOptions, tx };
@@ -144,7 +144,7 @@ function makeRectify(
  */
 function makeDelete(
   deps: IDependencies
-): IJournalEntryPersistenceService['delete'] {
+): IJournalEntryPersistenceAppService['delete'] {
   return async (payload, repoOptions) => {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { ...repoOptions, tx };
@@ -169,10 +169,10 @@ function makeDelete(
   };
 }
 
-export default function makeJournalEntryPersistenceService(
+export default function makeJournalEntryPersistenceAppService(
   deps: IDependencies
 ) {
-  const service: IJournalEntryPersistenceService = Object.freeze({
+  const service: IJournalEntryPersistenceAppService = Object.freeze({
     create: makeCreate(deps),
     rectify: makeRectify(deps),
     delete: makeDelete(deps),

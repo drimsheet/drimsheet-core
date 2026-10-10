@@ -17,3 +17,8 @@ export interface ICreateRevenueAccountDto {
   controlAccountId?: string;
   behavior: TSupportedRevenueAccountBehavior;
 }
+
+/** Editable revenue account details; accounting identity is retained. */
+export interface IUpdateRevenueAccountDto {
+  name: string;
+}

@@ -5,7 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import featureFlagError from '@app/context/errors/feature-flag.error';
 
@@ -37,25 +37,25 @@ describe('makeFeatureFlagAccessMiddleware', () => {
 
   function makeMiddleware() {
     return makeFeatureFlagAccessMiddleware({
-      featureFlagService: mockFeatureFlagService,
+      featureFlagAppService: mockFeatureFlagAppService,
       appContext: mockAppContext,
     }).canAccessAlpha1;
   }
 
   it('continues when the authenticated user can access Alpha 1', async () => {
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
 
     await makeMiddleware()(request as Request, response as Response, next);
 
     expect(mockAppContext.get).toHaveBeenCalledWith(['user']);
-    expect(mockFeatureFlagService.canAccessAlpha1).toHaveBeenCalledWith({
+    expect(mockFeatureFlagAppService.canAccessAlpha1).toHaveBeenCalledWith({
       email,
     });
     expect(next).toHaveBeenCalledTimes(1);
   });
 
   it('rejects denied Alpha 1 access without continuing', async () => {
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(false);
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
 
     await expect(
       makeMiddleware()(request as Request, response as Response, next)

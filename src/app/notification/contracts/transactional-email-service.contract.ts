@@ -12,7 +12,7 @@ interface IPasswordResetPayload extends ICorrelationId {
   resetLink: string;
 }
 
-export default interface ITransactionalEmailService {
+export default interface ITransactionalEmailAppService {
   sendEmailVerification(payload: IEmailVerificationPayload): Promise<void>;
   sendPasswordResetLink(payload: IPasswordResetPayload): Promise<void>;
 }

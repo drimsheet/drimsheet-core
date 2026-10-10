@@ -40,7 +40,7 @@ const usecase = makeCreateSuspenseAccountUsecase({
   repoService: mockRepoService,
   accountingEntityRepo: mockAccountingEntityRepo,
   suspenseAccountService: mockSuspenseAccountService,
-  ledgerAccountPersistenceService: mockPersistence,
+  ledgerAccountPersistenceAppService: mockPersistence,
 });
 
 describe('createSuspenseAccountUsecase', () => {

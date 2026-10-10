@@ -1,7 +1,8 @@
-import ITransactionEntryService from '@app/journal-entry/contracts/transaction-entry.service.contract';
+import ITransactionEntryAppService from '@app/journal-entry/contracts/transaction-entry.service.contract';
 
-const mockTransactionEntryService: jest.Mocked<ITransactionEntryService> = {
-  create: jest.fn(),
-};
+const mockTransactionEntryAppService: jest.Mocked<ITransactionEntryAppService> =
+  {
+    create: jest.fn(),
+  };
 
-export default mockTransactionEntryService;
+export default mockTransactionEntryAppService;

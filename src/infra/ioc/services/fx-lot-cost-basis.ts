@@ -1,6 +1,6 @@
 import makeFxCostBasisLotService from '@domain/subledger/fx-cost-basis/services/lot.service';
 
-import makeFxLotCostBasisPersistenceService from '@app/subledger/fx-cost-basis/services/fx-cost-basis-persistence.service';
+import makeFxLotCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/services/fx-cost-basis-persistence.service';
 import makeFxLotAppService from '@app/subledger/fx-cost-basis/services/fx-lot.service';
 
 import outboxRepo from '@infra/persistence/repos/outbox';
@@ -9,7 +9,7 @@ import fxCostBasisLotDispositionAllocationRepo from '@infra/persistence/repos/su
 import fxCostBasisLotDispositionRepo from '@infra/persistence/repos/subledger/fx-cost-basis/disposition.repo.impl';
 import fxCostBasisLotRepo from '@infra/persistence/repos/subledger/fx-cost-basis/lot.repo.impl';
 
-import { exchangeRateService } from './money';
+import { exchangeRateAppService } from './money';
 import { repoService } from './repo';
 
 export const fxCostBasisLotService = makeFxCostBasisLotService({
@@ -21,11 +21,11 @@ export const fxCostBasisLotService = makeFxCostBasisLotService({
 
 export const fxLotAppService = makeFxLotAppService({
   fxCostBasisLotService,
-  exchangeRateService,
+  exchangeRateAppService,
 });
 
-export const fxCostBasisPersistenceService =
-  makeFxLotCostBasisPersistenceService({
+export const fxCostBasisPersistenceAppService =
+  makeFxLotCostBasisPersistenceAppService({
     lotRepo: fxCostBasisLotRepo,
     acquisitionRepo: fxCostBasisLotAcquisitionRepo,
     dispositionRepo: fxCostBasisLotDispositionRepo,

@@ -29,3 +29,6 @@ export const createRevenueAccountValidation = z
     ),
   })
   .strict();
+
+export const updateRevenueAccountValidation =
+  createRevenueAccountValidation.pick({ name: true });

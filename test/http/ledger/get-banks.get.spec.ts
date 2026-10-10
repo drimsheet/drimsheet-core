@@ -6,10 +6,10 @@ import appError from '@shared/values/errors/app.error';
 
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { IBankDirectoryDto } from '@app/ledger/dtos/bank-directory/bank-directory.dto';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import userRepos from '@infra/persistence/repos/user';
 import { createApplication } from '@infra/server';
@@ -33,7 +33,7 @@ jest.mock(
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,
-  tokenService: {
+  tokenAppService: {
     getAuthUser: jest.fn(),
   },
 }));
@@ -81,11 +81,11 @@ const dummyBanks: IBankDirectoryDto[] = [
 
 describe('GET /banks', () => {
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   let app: Express;
-  const mockGetAuthUser = tokenService.getAuthUser as jest.Mock;
+  const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockGetBanks = ledgerUseCases.getBanksUseCase as jest.Mock;
 

@@ -6,7 +6,7 @@ import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.re
 import IUserRepo from '@domain/user/repos/user.repo';
 import IActorService from '@domain/user/types/actor.service.types';
 
-import ITokenService from '@app/auth/contracts/token-service.contract';
+import ITokenAppService from '@app/auth/contracts/token-service.contract';
 import IAppContext from '@app/context/contracts/app-context.contract';
 
 import getAccountingEntityFromRequest from '@interface/http/helpers/get-accounting-entity-from-request.helper';
@@ -15,7 +15,7 @@ import getAuthUserFromRequest from '@interface/http/helpers/get-auth-user-from-r
 export default function makeAppContextEnrichmentMiddleware(
   appContext: IAppContext,
   accountingEntityRepo: IAccountingEntityRepo,
-  tokenService: ITokenService,
+  tokenAppService: ITokenAppService,
   userRepo: IUserRepo,
   actorService: IActorService
 ): RequestHandler {
@@ -25,7 +25,7 @@ export default function makeAppContextEnrichmentMiddleware(
 
     const user = await getAuthUserFromRequest(
       req,
-      tokenService,
+      tokenAppService,
       userRepo,
       repoOptions
     );

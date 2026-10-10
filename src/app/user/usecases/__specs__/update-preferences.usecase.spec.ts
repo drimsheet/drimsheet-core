@@ -4,7 +4,7 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockUserPreferencesService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
+import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
 import {
   EAppThemePreference,
   EAppUsageModePreference,
@@ -25,7 +25,7 @@ describe('makeUpdateUserPreferencesUsecase', () => {
   const correlationId = 'test-correlation-id';
   const usecase = makeUpdateUserPreferencesUsecase({
     appContext: mockAppContext,
-    userPreferencesService: mockUserPreferencesService,
+    userPreferencesAppService: mockUserPreferencesAppService,
   });
 
   beforeEach(() => {
@@ -45,7 +45,7 @@ describe('makeUpdateUserPreferencesUsecase', () => {
     await expect(usecase({})).rejects.toThrow('app_error_validation_error');
 
     expect(mockAppContext.get).not.toHaveBeenCalled();
-    expect(mockUserPreferencesService.update).not.toHaveBeenCalled();
+    expect(mockUserPreferencesAppService.update).not.toHaveBeenCalled();
   });
 
   it('updates the authenticated user and returns full user preferences', async () => {
@@ -61,11 +61,11 @@ describe('makeUpdateUserPreferencesUsecase', () => {
       createdAt: new Date('2026-08-01T00:00:00.000Z'),
       updatedAt: new Date('2026-08-19T00:00:00.000Z'),
     };
-    mockUserPreferencesService.update.mockResolvedValue(updatedPreferences);
+    mockUserPreferencesAppService.update.mockResolvedValue(updatedPreferences);
 
     await expect(usecase(appPreferences)).resolves.toEqual(updatedPreferences);
 
-    expect(mockUserPreferencesService.update).toHaveBeenCalledWith(
+    expect(mockUserPreferencesAppService.update).toHaveBeenCalledWith(
       {
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
         userId,
@@ -76,7 +76,7 @@ describe('makeUpdateUserPreferencesUsecase', () => {
   });
 
   it('propagates preference service failures', async () => {
-    mockUserPreferencesService.update.mockRejectedValue(
+    mockUserPreferencesAppService.update.mockRejectedValue(
       new Error('persistence failed')
     );
 

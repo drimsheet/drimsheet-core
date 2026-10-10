@@ -1,11 +1,11 @@
-import ITokenService from '@app/auth/contracts/token-service.contract';
+import ITokenAppService from '@app/auth/contracts/token-service.contract';
 import IUserSessionRepo from '@app/auth/contracts/user-session.repo.contract';
 import authError from '@app/auth/errors/auth.error';
 import IAppContext from '@app/context/contracts/app-context.contract';
 
 interface IDependencies {
   reqContext: IAppContext;
-  tokenService: ITokenService;
+  tokenAppService: ITokenAppService;
   userSessionRepo: IUserSessionRepo;
 }
 
@@ -25,7 +25,7 @@ export default function makeLogoutUseCase(deps: IDependencies) {
     let decoded;
 
     try {
-      decoded = deps.tokenService.verifyRefreshToken(refreshToken);
+      decoded = deps.tokenAppService.verifyRefreshToken(refreshToken);
     } catch (error) {
       if (!(error instanceof authError.Base)) {
         throw error;

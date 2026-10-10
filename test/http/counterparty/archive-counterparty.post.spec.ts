@@ -11,8 +11,8 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeArchiveCounterpartyUsecase from '@app/counterparty/usecases/archive-counterparty.usecase';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
@@ -39,7 +39,7 @@ jest.mock(
 );
 jest.mock('@infra/ioc/services/auth', () => ({
   ...jest.requireActual('@infra/ioc/services/auth'),
-  tokenService: jest.requireActual(
+  tokenAppService: jest.requireActual(
     '@app/auth/contracts/__mocks__/token-service.mock'
   ).default,
 }));
@@ -97,8 +97,8 @@ describe('POST /counterparties/{id}/archive', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockUserRepo.findById.mockResolvedValue({
       id: userId,
       actorId: actor.id,
@@ -215,7 +215,7 @@ describe('POST /counterparties/{id}/archive', () => {
           ...counterparty,
           status,
         });
-        mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(false);
+        mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
         expect((await post()).status).toBe(403);
         expect(archive).not.toHaveBeenCalled();
       }

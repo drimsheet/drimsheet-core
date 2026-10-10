@@ -22,9 +22,9 @@ import {
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import makeLedgerBalancePropagationPreparationService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
+import makeLedgerBalancePropagationPreparationAppService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
 
-describe('makeLedgerBalancePropagationPreparationService', () => {
+describe('makeLedgerBalancePropagationPreparationAppService', () => {
   const accountingEntityId =
     '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
   const creatorId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
@@ -104,7 +104,7 @@ describe('makeLedgerBalancePropagationPreparationService', () => {
     data,
     meta: { page: 1, limit: data.length, total: data.length, totalPages: 1 },
   });
-  const service = makeLedgerBalancePropagationPreparationService({
+  const service = makeLedgerBalancePropagationPreparationAppService({
     journalEntryRepo: mockJournalEntryRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,

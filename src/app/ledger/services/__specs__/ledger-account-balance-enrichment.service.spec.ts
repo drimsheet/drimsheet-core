@@ -17,9 +17,9 @@ import { ICurrency } from '@domain/money/types/currency.types';
 import moneyValue from '@domain/money/values/money.vo';
 
 import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import makeLedgerAccountBalanceEnrichmentService from '@app/ledger/services/ledger-account-balance-enrichment.service';
+import makeLedgerAccountBalanceEnrichmentAppService from '@app/ledger/services/ledger-account-balance-enrichment.service';
 
-describe('ledgerAccountBalanceEnrichmentService', () => {
+describe('ledgerAccountBalanceEnrichmentAppService', () => {
   const accountingEntityId =
     '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
   const userId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
@@ -103,7 +103,7 @@ describe('ledgerAccountBalanceEnrichmentService', () => {
     '100003',
     null
   );
-  const service = makeLedgerAccountBalanceEnrichmentService({
+  const service = makeLedgerAccountBalanceEnrichmentAppService({
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     reporter: mockReporter,
   });

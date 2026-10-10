@@ -1,7 +1,7 @@
-import IUserSessionService from '@app/auth/contracts/user-session.service.contract';
+import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
 
-const mockUserSessionService: jest.Mocked<IUserSessionService> = {
+const mockUserSessionAppService: jest.Mocked<IUserSessionAppService> = {
   prepare: jest.fn(),
 };
 
-export default mockUserSessionService;
+export default mockUserSessionAppService;

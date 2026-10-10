@@ -16,24 +16,24 @@ import {
 } from '@domain/journal-entry/types/journal-entry-removal.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
-import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
   appContext: IAppContext;
   eventBus: IEventBus;
-  fxCostBasisPersistenceService: IFxCostBasisPersistenceService;
+  fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
   fxLotAppService: IFxLotAppService;
-  journalEntryPersistenceService: IJournalEntryPersistenceService;
+  journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   journalEntryRemovalService: IJournalEntryRemovalService;
   journalEntryRepo: IJournalEntryRepo;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
-  outboxService: IOutboxService;
+  outboxAppService: IOutboxAppService;
   repoService: IRepoService;
 }
 
@@ -64,7 +64,7 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
     );
 
     if (removal.mode === EJournalEntryRemovalMode.Delete) {
-      await deps.journalEntryPersistenceService.delete(
+      await deps.journalEntryPersistenceAppService.delete(
         {
           journalEntryId: originalEntry.id,
           expectedVersion: originalEntry.version,
@@ -91,19 +91,19 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { correlationId, tx };
 
-      await deps.journalEntryPersistenceService.rectify(
+      await deps.journalEntryPersistenceAppService.rectify(
         journalPersistencePayload,
         writeOptions
       );
 
       if (fxReversal) {
-        await deps.fxCostBasisPersistenceService.persistReversal(
+        await deps.fxCostBasisPersistenceAppService.persistReversal(
           fxReversal.records,
           writeOptions
         );
       }
 
-      await deps.outboxService.createBalancePropagation(
+      await deps.outboxAppService.createBalancePropagation(
         reversingJournalEntry.id,
         writeOptions
       );

@@ -1,6 +1,6 @@
-import ILedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
+import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 
-const mockLedgerAccountBalanceEnrichmentService: jest.Mocked<ILedgerAccountBalanceEnrichmentService> =
+const mockLedgerAccountBalanceEnrichmentAppService: jest.Mocked<ILedgerAccountBalanceEnrichmentAppService> =
   { enrich: jest.fn() };
 
-export default mockLedgerAccountBalanceEnrichmentService;
+export default mockLedgerAccountBalanceEnrichmentAppService;

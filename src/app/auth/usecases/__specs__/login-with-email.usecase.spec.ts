@@ -6,11 +6,11 @@ import actorError from '@domain/user/errors/actor.error';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockPasswordService from '@app/auth/contracts/__mocks__/password-service.mock';
+import mockPasswordAppService from '@app/auth/contracts/__mocks__/password-service.mock';
 import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock';
-import mockUserAuthService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
-import mockUserSessionPersistenceService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionService from '@app/auth/contracts/__mocks__/user-session.service.mock';
+import mockUserAuthAppService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
 import { IUserAuth, IUserSession } from '@app/auth/contracts/auth.types';
 import { IUserSessionReference } from '@app/auth/contracts/user-session.service.contract';
 import authError from '@app/auth/errors/auth.error';
@@ -31,13 +31,13 @@ describe('makeLoginWithEmailUseCase', () => {
       correlationId,
       clientSession: mockClientSession,
     } as unknown as IAppContextData);
-    mockUserAuthService.recordFailedLogin.mockImplementation((userAuth) => ({
+    mockUserAuthAppService.recordFailedLogin.mockImplementation((userAuth) => ({
       ...userAuth,
       failedLoginAttempts: userAuth.failedLoginAttempts + 1,
       version: userAuth.version + 1,
       updatedAt: new Date(),
     }));
-    mockUserAuthService.resetFailedLoginAttempts.mockImplementation(
+    mockUserAuthAppService.resetFailedLoginAttempts.mockImplementation(
       (userAuth) => ({
         ...userAuth,
         failedLoginAttempts: 0,
@@ -45,7 +45,7 @@ describe('makeLoginWithEmailUseCase', () => {
         updatedAt: new Date(),
       })
     );
-    mockUserSessionPersistenceService.replaceClientSession.mockResolvedValue();
+    mockUserSessionPersistenceAppService.replaceClientSession.mockResolvedValue();
   });
 
   const validPayload = {
@@ -93,12 +93,12 @@ describe('makeLoginWithEmailUseCase', () => {
       actorService: mockActorService,
       reqContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
-      userSessionService: mockUserSessionService,
-      userSessionPersistenceService: mockUserSessionPersistenceService,
+      userAuthAppService: mockUserAuthAppService,
+      userSessionAppService: mockUserSessionAppService,
+      userSessionPersistenceAppService: mockUserSessionPersistenceAppService,
     });
 
   it('should throw appError.UnprocessableEntity if payload is invalid', async () => {
@@ -121,12 +121,12 @@ describe('makeLoginWithEmailUseCase', () => {
 
     mockUserRepo.findByEmail.mockResolvedValue(mockUser);
     mockUserAuthRepo.findByUserId.mockResolvedValue(mockUserAuth);
-    mockPasswordService.compare.mockResolvedValue(true);
+    mockPasswordAppService.compare.mockResolvedValue(true);
     const preparedSession = getPreparedSession({
       userId: mockUser.id,
       refreshToken: 'old-refresh-token',
     });
-    mockUserSessionService.prepare.mockResolvedValue(preparedSession);
+    mockUserSessionAppService.prepare.mockResolvedValue(preparedSession);
 
     const usecase = getUseCase();
     const result = await usecase(validPayload);
@@ -138,16 +138,16 @@ describe('makeLoginWithEmailUseCase', () => {
         correlationId,
       }
     );
-    expect(mockPasswordService.compare).toHaveBeenCalledWith(
+    expect(mockPasswordAppService.compare).toHaveBeenCalledWith(
       validPayload.password,
       mockUserAuth.password
     );
-    expect(mockUserSessionService.prepare).toHaveBeenCalledWith(
+    expect(mockUserSessionAppService.prepare).toHaveBeenCalledWith(
       mockUser,
       'old-refresh-token'
     );
     expect(
-      mockUserSessionPersistenceService.replaceClientSession
+      mockUserSessionPersistenceAppService.replaceClientSession
     ).toHaveBeenCalledWith(
       {
         userSession: preparedSession.userSession,
@@ -176,7 +176,7 @@ describe('makeLoginWithEmailUseCase', () => {
     await expect(usecase(validPayload)).rejects.toThrow(
       authError.InvalidCredentials
     );
-    expect(mockPasswordService.compare).not.toHaveBeenCalled();
+    expect(mockPasswordAppService.compare).not.toHaveBeenCalled();
   });
 
   it('should throw authError.InvalidCredentials if userAuth record is not found', async () => {
@@ -215,7 +215,7 @@ describe('makeLoginWithEmailUseCase', () => {
     await expect(usecase(validPayload)).rejects.toThrow(
       authError.InvalidCredentials
     );
-    expect(mockPasswordService.compare).not.toHaveBeenCalled();
+    expect(mockPasswordAppService.compare).not.toHaveBeenCalled();
     expect(mockUserAuthRepo.update).toHaveBeenCalledWith(
       expect.objectContaining({ failedLoginAttempts: 1, version: 2 }),
       { correlationId, expectedVersion: 1 }
@@ -246,14 +246,14 @@ describe('makeLoginWithEmailUseCase', () => {
 
     mockUserRepo.findByEmail.mockResolvedValue(mockUser);
     mockUserAuthRepo.findByUserId.mockResolvedValue(getMockUserAuth());
-    mockPasswordService.compare.mockResolvedValue(false);
+    mockPasswordAppService.compare.mockResolvedValue(false);
 
     const usecase = getUseCase();
 
     await expect(usecase(payload)).rejects.toThrow(
       authError.InvalidCredentials
     );
-    expect(mockPasswordService.compare).toHaveBeenCalledWith(
+    expect(mockPasswordAppService.compare).toHaveBeenCalledWith(
       payload.password,
       'hashed-password'
     );
@@ -261,7 +261,7 @@ describe('makeLoginWithEmailUseCase', () => {
       expect.objectContaining({ failedLoginAttempts: 1, version: 2 }),
       { correlationId, expectedVersion: 1 }
     );
-    expect(mockUserSessionService.prepare).not.toHaveBeenCalled();
+    expect(mockUserSessionAppService.prepare).not.toHaveBeenCalled();
   });
 
   it('should not delete session if no old refresh token exists', async () => {
@@ -270,16 +270,19 @@ describe('makeLoginWithEmailUseCase', () => {
 
     mockUserRepo.findByEmail.mockResolvedValue(mockUser);
     mockUserAuthRepo.findByUserId.mockResolvedValue(getMockUserAuth());
-    mockPasswordService.compare.mockResolvedValue(true);
+    mockPasswordAppService.compare.mockResolvedValue(true);
     const preparedSession = getPreparedSession();
-    mockUserSessionService.prepare.mockResolvedValue(preparedSession);
+    mockUserSessionAppService.prepare.mockResolvedValue(preparedSession);
 
     const usecase = getUseCase();
     await usecase(validPayload);
 
-    expect(mockUserSessionService.prepare).toHaveBeenCalledWith(mockUser, null);
+    expect(mockUserSessionAppService.prepare).toHaveBeenCalledWith(
+      mockUser,
+      null
+    );
     expect(
-      mockUserSessionPersistenceService.replaceClientSession
+      mockUserSessionPersistenceAppService.replaceClientSession
     ).toHaveBeenCalledWith(
       { userSession: preparedSession.userSession, priorClientSession: null },
       { correlationId }
@@ -291,15 +294,15 @@ describe('makeLoginWithEmailUseCase', () => {
       const user = getMockUser();
       mockUserRepo.findByEmail.mockResolvedValue(user);
       mockUserAuthRepo.findByUserId.mockResolvedValue(getMockUserAuth());
-      mockPasswordService.compare.mockResolvedValue(true);
+      mockPasswordAppService.compare.mockResolvedValue(true);
       mockActorService.resolveUser.mockRejectedValueOnce(new ActorError());
       await expect(getUseCase()(validPayload)).rejects.toThrow(ActorError);
       expect(mockActorService.resolveUser).toHaveBeenCalledWith(user, {
         correlationId,
       });
-      expect(mockUserSessionService.prepare).not.toHaveBeenCalled();
+      expect(mockUserSessionAppService.prepare).not.toHaveBeenCalled();
       expect(
-        mockUserSessionPersistenceService.replaceClientSession
+        mockUserSessionPersistenceAppService.replaceClientSession
       ).not.toHaveBeenCalled();
       expect(mockClientSession.setRefreshToken).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();

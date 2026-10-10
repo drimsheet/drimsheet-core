@@ -8,7 +8,7 @@ import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balan
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 
 interface IDependencies {
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
@@ -22,7 +22,7 @@ interface IDependencies {
  */
 function makeCreate(
   deps: IDependencies
-): ILedgerAccountPersistenceService['create'] {
+): ILedgerAccountPersistenceAppService['create'] {
   return async (account, functionalCurrencyCode, repoOptions) => {
     const functionalCurrency = currencyEntity.getByCode(functionalCurrencyCode);
 
@@ -46,10 +46,10 @@ function makeCreate(
   };
 }
 
-export default function makeLedgerAccountPersistenceService(
+export default function makeLedgerAccountPersistenceAppService(
   deps: IDependencies
 ) {
-  const service: ILedgerAccountPersistenceService = Object.freeze({
+  const service: ILedgerAccountPersistenceAppService = Object.freeze({
     create: makeCreate(deps),
   });
 

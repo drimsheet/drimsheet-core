@@ -6,7 +6,7 @@ import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-a
 
 import { accountingEntityService } from '@infra/ioc/services/accounting';
 import { repoService } from '@infra/ioc/services/repo';
-import { userPreferencesService } from '@infra/ioc/services/user';
+import { userPreferencesAppService } from '@infra/ioc/services/user';
 import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import accountingRepos from '@infra/persistence/repos/accounting';
@@ -18,7 +18,7 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
   makeCreateAccountingEntityUseCase({
     appContext,
     accountingEntityRepo: accountingRepos.accountingEntity,
-    userPreferencesService,
+    userPreferencesAppService,
     fiscalYearRepo: accountingRepos.fiscalYear,
     accountingPeriodRepo: accountingRepos.accountingPeriod,
     accountingContextRepo: accountingRepos.accountingContext,
@@ -57,6 +57,6 @@ export const switchAccountingEntityUseCase = makeTracedUseCase(
   makeSwitchAccountingEntityUsecase({
     appContext,
     accountingEntityRepo: accountingRepos.accountingEntity,
-    userPreferencesService,
+    userPreferencesAppService,
   })
 );

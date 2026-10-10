@@ -42,7 +42,7 @@ export interface IFxCostBasisReversalPersistencePayload {
   lots: IFxCostBasisLotWithHistory[];
 }
 
-export default interface IFxCostBasisPersistenceService {
+export default interface IFxCostBasisPersistenceAppService {
   /**
    * Atomically writes a prepared acquisition bundle, joining the supplied
    * transaction when present.

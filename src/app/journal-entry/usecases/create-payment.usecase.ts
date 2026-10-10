@@ -23,9 +23,9 @@ import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import ICounterpartyAppService from '@app/counterparty/contracts/counterparty.service.contract';
-import IFileManagementService from '@app/file/contracts/file-management.service.contract';
+import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
-import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
@@ -34,24 +34,24 @@ import getNewCounterpartiesHelper from '@app/journal-entry/helpers/get-new-count
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
-import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
   appContext: IAppContext;
   counterpartyAppService: ICounterpartyAppService;
-  fileManagementService: IFileManagementService;
+  fileManagementAppService: IFileManagementAppService;
   journalEntryService: IJournalEntryService;
   ledgerAccountRepo: ILedgerAccountRepo;
   counterpartyRepo: ICounterpartyRepo;
-  journalEntryPersistenceService: IJournalEntryPersistenceService;
+  journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
   eventBus: IEventBus;
-  outboxService: IOutboxService;
+  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   fxLotAppService: IFxLotAppService;
-  fxCostBasisPersistenceService: IFxCostBasisPersistenceService;
+  fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
 export default function makeCreatePaymentUsecase(deps: IDependencies) {
@@ -156,7 +156,7 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
         };
       });
 
-    const attachments = await deps.fileManagementService.claimUploads({
+    const attachments = await deps.fileManagementAppService.claimUploads({
       userId: user.id,
       purpose: EFileUploadPurpose.JournalEntryAttachment,
       references: payload.attachmentReferences ?? [],
@@ -211,7 +211,7 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
 
       await Promise.all(counterpartiesToSave);
 
-      await deps.journalEntryPersistenceService.create(
+      await deps.journalEntryPersistenceAppService.create(
         journalEntry,
         journalHeaderHistory,
         journalLinesHistory,
@@ -219,14 +219,14 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
       );
 
       if (fxResult) {
-        await deps.fxCostBasisPersistenceService.persistDisposition(
+        await deps.fxCostBasisPersistenceAppService.persistDisposition(
           fxResult.records,
           writeOptions
         );
       }
 
       if (shouldUpdateBalance) {
-        await deps.outboxService.createBalancePropagation(
+        await deps.outboxAppService.createBalancePropagation(
           journalEntry.id,
           writeOptions
         );

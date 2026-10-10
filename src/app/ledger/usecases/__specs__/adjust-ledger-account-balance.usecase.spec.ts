@@ -8,7 +8,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
-import mockLedgerBalancePropagationPreparationService from '@app/ledger/contracts/__mocks__/ledger-balance-propagation-preparation.service.mock';
+import mockLedgerBalancePropagationPreparationAppService from '@app/ledger/contracts/__mocks__/ledger-balance-propagation-preparation.service.mock';
 import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
@@ -85,8 +85,8 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
       repoService: mockRepoService,
       outboxRepo: mockOutboxRepo,
       ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
-      balancePropagationPreparationService:
-        mockLedgerBalancePropagationPreparationService,
+      balancePropagationPreparationAppService:
+        mockLedgerBalancePropagationPreparationAppService,
       reporter: mockReporter,
     });
 
@@ -95,7 +95,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     mockRepoService.runInTransaction.mockImplementation((fn) => fn(tx));
     mockOutboxRepo.findByIdAndType.mockResolvedValue(outbox);
     mockOutboxRepo.delete.mockResolvedValue(true);
-    mockLedgerBalancePropagationPreparationService.prepare.mockResolvedValue(
+    mockLedgerBalancePropagationPreparationAppService.prepare.mockResolvedValue(
       preparedAdjustments
     );
     mockLedgerAccountBalanceRepo.adjustBalance.mockResolvedValue();
@@ -110,7 +110,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
       { correlationId }
     );
     expect(
-      mockLedgerBalancePropagationPreparationService.prepare
+      mockLedgerBalancePropagationPreparationAppService.prepare
     ).toHaveBeenCalledWith(journalEntryId, { correlationId });
     expect(mockLedgerAccountBalanceRepo.adjustBalance).toHaveBeenNthCalledWith(
       1,
@@ -129,7 +129,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     });
     expect(mockReporter.report).not.toHaveBeenCalled();
     expect(
-      mockLedgerBalancePropagationPreparationService.prepare.mock
+      mockLedgerBalancePropagationPreparationAppService.prepare.mock
         .invocationCallOrder[0]
     ).toBeLessThan(
       mockRepoService.runInTransaction.mock.invocationCallOrder[0]
@@ -156,13 +156,13 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     expect(mockLedgerAccountBalanceRepo.adjustBalance).not.toHaveBeenCalled();
     expect(mockOutboxRepo.delete).not.toHaveBeenCalled();
     expect(
-      mockLedgerBalancePropagationPreparationService.prepare
+      mockLedgerBalancePropagationPreparationAppService.prepare
     ).not.toHaveBeenCalled();
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
   });
 
   it('does not open a transaction when preparation fails', async () => {
-    mockLedgerBalancePropagationPreparationService.prepare.mockRejectedValueOnce(
+    mockLedgerBalancePropagationPreparationAppService.prepare.mockRejectedValueOnce(
       new ledgerAppError.BalanceNotFound()
     );
 
@@ -190,7 +190,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
 
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(
-      mockLedgerBalancePropagationPreparationService.prepare
+      mockLedgerBalancePropagationPreparationAppService.prepare
     ).not.toHaveBeenCalled();
   });
 });

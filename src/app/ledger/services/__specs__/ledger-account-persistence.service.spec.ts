@@ -19,10 +19,10 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import makeLedgerAccountPersistenceService from '@app/ledger/services/ledger-account-persistence.service';
+import makeLedgerAccountPersistenceAppService from '@app/ledger/services/ledger-account-persistence.service';
 
-describe('ledgerAccountPersistenceService', () => {
-  const service = makeLedgerAccountPersistenceService({
+describe('ledgerAccountPersistenceAppService', () => {
+  const service = makeLedgerAccountPersistenceAppService({
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
     repoService: mockRepoService,

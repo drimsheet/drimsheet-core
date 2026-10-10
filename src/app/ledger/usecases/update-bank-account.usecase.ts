@@ -14,18 +14,18 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening-balance-entry.service.contract';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
-import ILedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
+import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { IBankAccountUpdateReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { bankAccountUpdateReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import cashAccountUpdatePolicy from '@app/ledger/policies/cash-account-update.policy';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
-import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
-import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 
 interface IDependencies {
   appContext: IAppContext;
@@ -35,10 +35,10 @@ interface IDependencies {
   bankAccountRepo: IBankAccountRepo;
   cashAccountService: ICashAccountService;
   openingBalanceEntryAppService: IOpeningBalanceEntryAppService;
-  journalEntryPersistenceService: IJournalEntryPersistenceService;
-  balanceEnrichmentService: ILedgerAccountBalanceEnrichmentService;
-  fxCostBasisPersistenceService: IFxCostBasisPersistenceService;
-  outboxService: IOutboxService;
+  journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
+  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
+  fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
+  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
 }
 
@@ -128,7 +128,7 @@ export default function makeUpdateBankAccountUsecase(
             actor.id,
             correlationId
           );
-        await deps.journalEntryPersistenceService.rectify(
+        await deps.journalEntryPersistenceAppService.rectify(
           journalPersistencePayload,
           transactionOptions
         );
@@ -138,7 +138,7 @@ export default function makeUpdateBankAccountUsecase(
         ? [openingBalanceEntryMutation.fxAcquisition]
         : [];
       for (const fxAcquisition of fxAcquisitions) {
-        await deps.fxCostBasisPersistenceService.persistAcquisition(
+        await deps.fxCostBasisPersistenceAppService.persistAcquisition(
           fxAcquisition.records,
           transactionOptions
         );
@@ -147,7 +147,7 @@ export default function makeUpdateBankAccountUsecase(
       const entriesForBalancePropagation =
         openingBalanceEntryMutation?.entriesForBalancePropagation ?? [];
       for (const journalEntry of entriesForBalancePropagation) {
-        await deps.outboxService.createBalancePropagation(
+        await deps.outboxAppService.createBalancePropagation(
           journalEntry.id,
           transactionOptions
         );
@@ -179,7 +179,7 @@ export default function makeUpdateBankAccountUsecase(
         );
       }
 
-      const [response] = await deps.balanceEnrichmentService.enrich(
+      const [response] = await deps.balanceEnrichmentAppService.enrich(
         [account],
         accountingEntity,
         repoOptions

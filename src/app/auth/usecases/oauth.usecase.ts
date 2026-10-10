@@ -1,15 +1,15 @@
 import IActorService from '@domain/user/types/actor.service.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import IUserSessionPersistenceService from '@app/auth/contracts/user-session-persistence.service.contract';
-import IUserSessionService from '@app/auth/contracts/user-session.service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
+import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
 import IAppContext from '@app/context/contracts/app-context.contract';
 
 interface IDependencies {
   actorService: IActorService;
   reqContext: IAppContext;
-  userSessionService: IUserSessionService;
-  userSessionPersistenceService: IUserSessionPersistenceService;
+  userSessionAppService: IUserSessionAppService;
+  userSessionPersistenceAppService: IUserSessionPersistenceAppService;
   webAppUrl: string;
 }
 
@@ -20,12 +20,12 @@ export default function makeOauthUsecase(deps: IDependencies) {
         'clientSession',
       ]);
       await deps.actorService.resolveUser(user, { correlationId });
-      const preparedSession = await deps.userSessionService.prepare(
+      const preparedSession = await deps.userSessionAppService.prepare(
         user,
         clientSession.getRefreshToken()
       );
 
-      await deps.userSessionPersistenceService.replaceClientSession(
+      await deps.userSessionPersistenceAppService.replaceClientSession(
         {
           userSession: preparedSession.userSession,
           priorClientSession: preparedSession.priorClientSession,

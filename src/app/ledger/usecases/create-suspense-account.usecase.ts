@@ -16,7 +16,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/suspense-account.dto';
 import { createSuspenseAccountValidation } from '@app/ledger/dtos/suspense-account/suspense-account.dto.validation';
@@ -28,7 +28,7 @@ interface IDependencies {
   repoService: IRepoService;
   accountingEntityRepo: IAccountingEntityRepo;
   suspenseAccountService: ISuspenseAccountService;
-  ledgerAccountPersistenceService: ILedgerAccountPersistenceService;
+  ledgerAccountPersistenceAppService: ILedgerAccountPersistenceAppService;
 }
 
 type TUsecaseTransactionFn = TRepoTransactionFn<{
@@ -78,7 +78,7 @@ export default function makeCreateSuspenseAccountUsecase(
       const accountHistory = historyValue.make(audit, actor.id, correlationId);
 
       // Persist the prepared account/history/zero balance in the same transaction.
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         account,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [accountHistory] }

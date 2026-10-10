@@ -8,13 +8,13 @@ import userEvents from '@domain/user/events/user.events';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockAuthService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
 import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock';
 import { IUserAuth } from '@app/auth/contracts/auth.types';
 import makeRequestPasswordResetUseCase from '@app/auth/usecases/request-password-reset.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
-import mockTransactionalEmailService from '@app/notification/contracts/__mocks__/transactional-email-service.mock';
+import mockTransactionalEmailAppService from '@app/notification/contracts/__mocks__/transactional-email-service.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 describe('makeRequestPasswordResetUseCase', () => {
@@ -43,8 +43,8 @@ describe('makeRequestPasswordResetUseCase', () => {
     const usecase = makeRequestPasswordResetUseCase({
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      tokenService: mockAuthService,
-      transactionEmailService: mockTransactionalEmailService,
+      tokenAppService: mockTokenAppService,
+      transactionEmailAppService: mockTransactionalEmailAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
       varsConfig: mockVarsConfig,
@@ -58,9 +58,11 @@ describe('makeRequestPasswordResetUseCase', () => {
         correlationId,
       }
     );
-    expect(mockAuthService.generatePasswordResetToken).not.toHaveBeenCalled();
     expect(
-      mockTransactionalEmailService.sendPasswordResetLink
+      mockTokenAppService.generatePasswordResetToken
+    ).not.toHaveBeenCalled();
+    expect(
+      mockTransactionalEmailAppService.sendPasswordResetLink
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -71,8 +73,8 @@ describe('makeRequestPasswordResetUseCase', () => {
       const usecase = makeRequestPasswordResetUseCase({
         appContext: mockAppContext,
         userRepo: mockUserRepo,
-        tokenService: mockAuthService,
-        transactionEmailService: mockTransactionalEmailService,
+        tokenAppService: mockTokenAppService,
+        transactionEmailAppService: mockTransactionalEmailAppService,
         eventBus: mockEventBus,
         userAuthRepo: mockUserAuthRepo,
         varsConfig: mockVarsConfig,
@@ -95,8 +97,8 @@ describe('makeRequestPasswordResetUseCase', () => {
     const usecase = makeRequestPasswordResetUseCase({
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      tokenService: mockAuthService,
-      transactionEmailService: mockTransactionalEmailService,
+      tokenAppService: mockTokenAppService,
+      transactionEmailAppService: mockTransactionalEmailAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
       varsConfig: mockVarsConfig,
@@ -104,9 +106,11 @@ describe('makeRequestPasswordResetUseCase', () => {
 
     await usecase('found@example.com');
 
-    expect(mockAuthService.generatePasswordResetToken).not.toHaveBeenCalled();
     expect(
-      mockTransactionalEmailService.sendPasswordResetLink
+      mockTokenAppService.generatePasswordResetToken
+    ).not.toHaveBeenCalled();
+    expect(
+      mockTransactionalEmailAppService.sendPasswordResetLink
     ).not.toHaveBeenCalled();
   });
 
@@ -141,13 +145,15 @@ describe('makeRequestPasswordResetUseCase', () => {
 
     mockUserRepo.findByEmail.mockResolvedValue(mockUser);
     mockUserAuthRepo.findByUserId.mockResolvedValue(mockUserAuth);
-    mockAuthService.generatePasswordResetToken.mockResolvedValue(resetToken);
+    mockTokenAppService.generatePasswordResetToken.mockResolvedValue(
+      resetToken
+    );
 
     const usecase = makeRequestPasswordResetUseCase({
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      tokenService: mockAuthService,
-      transactionEmailService: mockTransactionalEmailService,
+      tokenAppService: mockTokenAppService,
+      transactionEmailAppService: mockTransactionalEmailAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
       varsConfig: mockVarsConfig,
@@ -161,11 +167,11 @@ describe('makeRequestPasswordResetUseCase', () => {
         correlationId,
       }
     );
-    expect(mockAuthService.generatePasswordResetToken).toHaveBeenCalledWith(
+    expect(mockTokenAppService.generatePasswordResetToken).toHaveBeenCalledWith(
       mockUser
     );
     expect(
-      mockTransactionalEmailService.sendPasswordResetLink
+      mockTransactionalEmailAppService.sendPasswordResetLink
     ).toHaveBeenCalledWith({
       user: mockUser,
       resetLink,
@@ -207,15 +213,15 @@ describe('makeRequestPasswordResetUseCase', () => {
 
     mockUserRepo.findByEmail.mockResolvedValue(mockUser);
     mockUserAuthRepo.findByUserId.mockResolvedValue(mockUserAuth);
-    mockAuthService.generatePasswordResetToken.mockResolvedValue(
+    mockTokenAppService.generatePasswordResetToken.mockResolvedValue(
       'google-user-reset-token'
     );
 
     const usecase = makeRequestPasswordResetUseCase({
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      tokenService: mockAuthService,
-      transactionEmailService: mockTransactionalEmailService,
+      tokenAppService: mockTokenAppService,
+      transactionEmailAppService: mockTransactionalEmailAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
       varsConfig: mockVarsConfig,
@@ -223,11 +229,11 @@ describe('makeRequestPasswordResetUseCase', () => {
 
     await usecase(userEmail);
 
-    expect(mockAuthService.generatePasswordResetToken).toHaveBeenCalledWith(
+    expect(mockTokenAppService.generatePasswordResetToken).toHaveBeenCalledWith(
       mockUser
     );
     expect(
-      mockTransactionalEmailService.sendPasswordResetLink
+      mockTransactionalEmailAppService.sendPasswordResetLink
     ).toHaveBeenCalledWith({
       user: mockUser,
       resetLink:

@@ -1,15 +1,15 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import { mockUserPreferencesRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
-import makeUserPreferencesService from '@app/user/services/user-preferences.service';
+import makeUserPreferencesAppService from '@app/user/services/user-preferences.service';
 import {
   EAppThemePreference,
   EAppUsageModePreference,
   IUserPreferences,
 } from '@app/user/types/user-preferences.types';
 
-describe('makeUserPreferencesService', () => {
-  const service = makeUserPreferencesService({
+describe('makeUserPreferencesAppService', () => {
+  const service = makeUserPreferencesAppService({
     userPreferencesRepo: mockUserPreferencesRepo,
   });
   const userId = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;

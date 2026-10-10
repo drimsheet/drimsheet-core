@@ -1,10 +1,10 @@
 import mockHasher from '@shared/contracts/__mocks__/hasher.mock';
 
 import authError from '@app/auth/errors/auth.error';
-import makePasswordService from '@app/auth/services/password.service';
+import makePasswordAppService from '@app/auth/services/password.service';
 
-describe('makePasswordService', () => {
-  let passwordService: ReturnType<typeof makePasswordService>;
+describe('makePasswordAppService', () => {
+  let passwordAppService: ReturnType<typeof makePasswordAppService>;
 
   beforeEach(() => {
     mockHasher.genSalt.mockReset().mockResolvedValue('mock-salt');
@@ -14,13 +14,13 @@ describe('makePasswordService', () => {
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(false);
 
-    passwordService = makePasswordService({ hasher: mockHasher });
+    passwordAppService = makePasswordAppService({ hasher: mockHasher });
   });
 
   describe('makePassword', () => {
     it('returns a valid password without normalizing it', () => {
       const password = '  StrongPassword1!  ';
-      expect(passwordService.makePassword(password)).toBe(password);
+      expect(passwordAppService.makePassword(password)).toBe(password);
     });
 
     it('accepts both exact length boundaries', () => {
@@ -29,8 +29,8 @@ describe('makePasswordService', () => {
         128 - 'StrongPassword1!'.length
       )}`;
 
-      expect(passwordService.makePassword(minimum)).toBe(minimum);
-      expect(passwordService.makePassword(maximum)).toBe(maximum);
+      expect(passwordAppService.makePassword(minimum)).toBe(minimum);
+      expect(passwordAppService.makePassword(maximum)).toBe(maximum);
     });
 
     it.each([
@@ -44,7 +44,7 @@ describe('makePasswordService', () => {
       'PasswordTest!',
       'Password123',
     ])('rejects an invalid password: %p', (input) => {
-      expect(() => passwordService.makePassword(input)).toThrow(
+      expect(() => passwordAppService.makePassword(input)).toThrow(
         authError.InvalidPassword
       );
     });
@@ -52,15 +52,17 @@ describe('makePasswordService', () => {
 
   it('hashes passwords and compares them without exposing the plaintext', async () => {
     const password = 'mySecretPassword123!';
-    const hash = await passwordService.hash(password);
+    const hash = await passwordAppService.hash(password);
 
     expect(hash).not.toBe(password);
     expect(mockHasher.genSalt).toHaveBeenCalledWith(10);
     expect(mockHasher.hash).toHaveBeenCalledWith(password, 'mock-salt');
-    await expect(passwordService.compare(password, hash)).resolves.toBe(true);
-    await expect(passwordService.compare('wrongPassword', hash)).resolves.toBe(
-      false
+    await expect(passwordAppService.compare(password, hash)).resolves.toBe(
+      true
     );
+    await expect(
+      passwordAppService.compare('wrongPassword', hash)
+    ).resolves.toBe(false);
     expect(mockHasher.compare).toHaveBeenNthCalledWith(1, password, hash);
     expect(mockHasher.compare).toHaveBeenNthCalledWith(
       2,

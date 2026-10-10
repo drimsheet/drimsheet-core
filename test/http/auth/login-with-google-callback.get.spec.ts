@@ -2,7 +2,7 @@ import { Express } from 'express';
 import passport from 'passport';
 import request from 'supertest';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
 import * as authUseCase from '@infra/ioc/usecases/auth';
 import { createApplication } from '@infra/server';
@@ -56,7 +56,7 @@ class CallbackGoogleStrategy extends passport.Strategy {
 
 describe('GET /api/v1/auth/google/callback', () => {
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   let app: Express;

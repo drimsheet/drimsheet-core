@@ -1,7 +1,7 @@
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import IFileManagementService from '@app/file/contracts/file-management.service.contract';
+import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import {
   IFileUploadDto,
   IFileUploadReq,
@@ -10,7 +10,7 @@ import { fileUploadReqValidation } from '@app/file/dtos/file-upload/file-upload.
 
 interface IDependencies {
   appContext: IAppContext;
-  fileManagementService: IFileManagementService;
+  fileManagementAppService: IFileManagementAppService;
 }
 
 export default function makePreSignUploadsUsecase(deps: IDependencies) {
@@ -18,7 +18,7 @@ export default function makePreSignUploadsUsecase(deps: IDependencies) {
     zodValidationRunner(fileUploadReqValidation, payload);
     const { user } = deps.appContext.get(['user']);
 
-    return deps.fileManagementService.preSignUploads({
+    return deps.fileManagementAppService.preSignUploads({
       userId: user.id,
       files: payload,
     });

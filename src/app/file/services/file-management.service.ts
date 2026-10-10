@@ -3,7 +3,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import fileAttachmentValue from '@shared/values/file-attachments/file-attachment.vo';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import IFileManagementService, {
+import IFileManagementAppService, {
   IClaimManagedFileUploadsPayload,
 } from '@app/file/contracts/file-management.service.contract';
 import IFileStorageClient from '@app/file/contracts/file-storage-client.contract';
@@ -108,7 +108,7 @@ async function claimUpload(
 /** Creates the capability that pre-signs purpose-scoped uploads. */
 function makePreSignUploads(
   deps: IDependencies
-): IFileManagementService['preSignUploads'] {
+): IFileManagementAppService['preSignUploads'] {
   return async (payload) => {
     try {
       const fileCounts = new Map<UFileUploadPurpose, number>();
@@ -180,7 +180,7 @@ function makePreSignUploads(
  */
 function makeClaimUploads(
   deps: IDependencies
-): IFileManagementService['claimUploads'] {
+): IFileManagementAppService['claimUploads'] {
   return async (payload) => {
     fileUploadPolicy.validateCount(payload.purpose, payload.references.length);
 
@@ -197,8 +197,8 @@ function makeClaimUploads(
 /**
  * Composes the immutable file-management service from its capabilities.
  */
-export default function makeFileManagementService(deps: IDependencies) {
-  const service: IFileManagementService = {
+export default function makeFileManagementAppService(deps: IDependencies) {
+  const service: IFileManagementAppService = {
     preSignUploads: makePreSignUploads(deps),
 
     claimUploads: makeClaimUploads(deps),

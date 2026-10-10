@@ -16,7 +16,7 @@ import { ITaxExpenseAccountService } from '@domain/ledger/types/tax-expense.serv
 import { IUnrealizedLossAccountService } from '@domain/ledger/types/unrealized-loss.service.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import { ICreateExpenseAccountDto } from '@app/ledger/dtos/expense-account/expense-account.dto';
 import { createExpenseAccountValidation } from '@app/ledger/dtos/expense-account/expense-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
@@ -26,7 +26,7 @@ interface IDependencies {
   appContext: IAppContext;
   eventBus: IEventBus;
   repoService: IRepoService;
-  ledgerAccountPersistenceService: ILedgerAccountPersistenceService;
+  ledgerAccountPersistenceAppService: ILedgerAccountPersistenceAppService;
   directCostsAccountService: IDirectCostsAccountService;
   rentAndUtilitiesAccountService: IRentAndUtilitiesAccountService;
   bankChargeAccountService: IBankChargeAccountService;
@@ -72,7 +72,7 @@ export default function makeCreateExpenseAccountUsecase(
       const [account, events, audit] = auditedAccount;
       const accountHistory = historyValue.make(audit, actor.id, correlationId);
 
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         account,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [accountHistory] }

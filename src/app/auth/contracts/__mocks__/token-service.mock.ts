@@ -1,6 +1,6 @@
-import ITokenService from '@app/auth/contracts/token-service.contract';
+import ITokenAppService from '@app/auth/contracts/token-service.contract';
 
-const mockTokenService: jest.Mocked<ITokenService> = {
+const mockTokenAppService: jest.Mocked<ITokenAppService> = {
   generateSignupToken: jest.fn(),
   verifySignupToken: jest.fn(),
   claimSignupToken: jest.fn(),
@@ -17,4 +17,4 @@ const mockTokenService: jest.Mocked<ITokenService> = {
   getAuthUser: jest.fn(),
 };
 
-export default mockTokenService;
+export default mockTokenAppService;

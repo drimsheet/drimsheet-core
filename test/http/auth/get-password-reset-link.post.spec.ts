@@ -6,7 +6,7 @@ import request from 'supertest';
 import appError from '@shared/values/errors/app.error';
 
 import { IRequestPasswordResetReq } from '@app/auth/dtos/auth/auth.dto';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
 import { makeIpRateLimitKey } from '@infra/config/rate-limiter.config';
 import middlewares from '@infra/ioc/middlewares/http';
@@ -34,7 +34,7 @@ const ENDPOINT = '/api/v1/auth/get-password-reset-link';
 
 describe('POST /auth/get-password-reset-link', () => {
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   let app: Express;

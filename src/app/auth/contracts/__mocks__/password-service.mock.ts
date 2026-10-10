@@ -1,9 +1,9 @@
-import IPasswordService from '@app/auth/contracts/password-service.contract';
+import IPasswordAppService from '@app/auth/contracts/password-service.contract';
 
-const mockPasswordService: jest.Mocked<IPasswordService> = {
+const mockPasswordAppService: jest.Mocked<IPasswordAppService> = {
   makePassword: jest.fn(),
   hash: jest.fn(),
   compare: jest.fn(),
 };
 
-export default mockPasswordService;
+export default mockPasswordAppService;

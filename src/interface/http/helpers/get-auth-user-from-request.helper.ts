@@ -5,13 +5,13 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import IUserRepo from '@domain/user/repos/user.repo';
 import { IUser } from '@domain/user/types/user.types';
 
-import ITokenService from '@app/auth/contracts/token-service.contract';
+import ITokenAppService from '@app/auth/contracts/token-service.contract';
 
 import getHttpHeaderValue from './get-http-header-value';
 
 export default async function getAuthUserFromRequest(
   req: Request,
-  tokenService: ITokenService,
+  tokenAppService: ITokenAppService,
   userRepo: IUserRepo,
   repoOptions: IReadRepoOptions
 ): Promise<IUser | null> {
@@ -25,7 +25,7 @@ export default async function getAuthUserFromRequest(
   }
   const token = parts[1];
 
-  const authUser = await tokenService.getAuthUser(token);
+  const authUser = await tokenAppService.getAuthUser(token);
 
   const user = await userRepo.findById(authUser.id, repoOptions);
 

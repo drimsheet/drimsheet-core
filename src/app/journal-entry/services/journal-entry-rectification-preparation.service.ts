@@ -26,7 +26,7 @@ import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import ICounterpartyAppService, {
   ICounterpartyFindOrCreateRes,
 } from '@app/counterparty/contracts/counterparty.service.contract';
-import IJournalEntryRectificationPreparationService, {
+import IJournalEntryRectificationPreparationAppService, {
   IJournalEntryRectificationPreparationPayload,
 } from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
 import { TJournalEntryRectificationReq } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
@@ -517,7 +517,7 @@ async function prepareFxRectification(
  */
 function makePrepare(
   deps: IDependencies
-): IJournalEntryRectificationPreparationService['prepare'] {
+): IJournalEntryRectificationPreparationAppService['prepare'] {
   return async (preparation, repoOptions) => {
     const sourcePreparation = await prepareSourceJournalEntry(
       deps,
@@ -550,9 +550,9 @@ function makePrepare(
   };
 }
 
-export default function makeJournalEntryRectificationPreparationService(
+export default function makeJournalEntryRectificationPreparationAppService(
   deps: IDependencies
-): IJournalEntryRectificationPreparationService {
+): IJournalEntryRectificationPreparationAppService {
   return Object.freeze({
     prepare: makePrepare(deps),
   });

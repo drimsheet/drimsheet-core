@@ -6,17 +6,17 @@ import eventValue from '@shared/values/events/event.vo';
 import userEvents from '@domain/user/events/user.events';
 import IUserRepo from '@domain/user/repos/user.repo';
 
-import ITokenService from '@app/auth/contracts/token-service.contract';
+import ITokenAppService from '@app/auth/contracts/token-service.contract';
 import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
 import { requestPasswordResetReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ITransactionalEmailService from '@app/notification/contracts/transactional-email-service.contract';
+import ITransactionalEmailAppService from '@app/notification/contracts/transactional-email-service.contract';
 
 interface IDependencies {
   appContext: IAppContext;
   userRepo: IUserRepo;
-  tokenService: ITokenService;
-  transactionEmailService: ITransactionalEmailService;
+  tokenAppService: ITokenAppService;
+  transactionEmailAppService: ITransactionalEmailAppService;
   eventBus: IEventBus;
   userAuthRepo: IUserAuthRepo;
   varsConfig: IVarsConfig;
@@ -46,10 +46,11 @@ export default function makeRequestPasswordResetUseCase(deps: IDependencies) {
       return;
     }
 
-    const resetToken = await deps.tokenService.generatePasswordResetToken(user);
+    const resetToken =
+      await deps.tokenAppService.generatePasswordResetToken(user);
     const resetLink = `${deps.varsConfig.WEB_APP_URL}/auth/reset-password?token=${resetToken}`;
 
-    await deps.transactionEmailService.sendPasswordResetLink({
+    await deps.transactionEmailAppService.sendPasswordResetLink({
       user,
       resetLink,
       correlationId,

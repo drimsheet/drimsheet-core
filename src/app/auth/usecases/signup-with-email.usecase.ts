@@ -14,10 +14,10 @@ import IUserIdentityService from '@domain/user/types/user-identity.service.types
 import emailValue from '@domain/user/values/email.vo';
 
 import { EAuthStrategy } from '@app/auth/contracts/auth.types';
-import IEmailVerificationService from '@app/auth/contracts/email-verification-service.contract';
-import IPasswordService from '@app/auth/contracts/password-service.contract';
+import IEmailVerificationAppService from '@app/auth/contracts/email-verification-service.contract';
+import IPasswordAppService from '@app/auth/contracts/password-service.contract';
 import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
-import IUserAuthService from '@app/auth/contracts/user-auth.service.contract';
+import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
 import { IUserSignupReq } from '@app/auth/dtos/auth/auth.dto';
 import { userSignupReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
 import IAppContext from '@app/context/contracts/app-context.contract';
@@ -28,12 +28,12 @@ interface IDependencies {
   userIdentityService: IUserIdentityService;
   appContext: IAppContext;
   userRepo: IUserRepo;
-  passwordService: IPasswordService;
+  passwordAppService: IPasswordAppService;
   eventBus: IEventBus;
   userAuthRepo: IUserAuthRepo;
-  userAuthService: IUserAuthService;
+  userAuthAppService: IUserAuthAppService;
   repoService: IRepoService;
-  emailVerificationService: IEmailVerificationService;
+  emailVerificationAppService: IEmailVerificationAppService;
 }
 
 export default function makeSignupWithEmailUsecase(deps: IDependencies) {
@@ -44,8 +44,8 @@ export default function makeSignupWithEmailUsecase(deps: IDependencies) {
 
     const email = emailValue.make(payload.email);
 
-    const password = deps.passwordService.makePassword(payload.password);
-    const passwordHash = await deps.passwordService.hash(password);
+    const password = deps.passwordAppService.makePassword(payload.password);
+    const passwordHash = await deps.passwordAppService.hash(password);
 
     const existingUser = await deps.userRepo.findByEmail(email, {
       correlationId,
@@ -53,7 +53,7 @@ export default function makeSignupWithEmailUsecase(deps: IDependencies) {
 
     if (existingUser) {
       await deps.actorService.resolveUser(existingUser, { correlationId });
-      await deps.emailVerificationService.send(existingUser, correlationId);
+      await deps.emailVerificationAppService.send(existingUser, correlationId);
       return;
     }
 
@@ -70,7 +70,7 @@ export default function makeSignupWithEmailUsecase(deps: IDependencies) {
 
     const history = historyValue.make(userAudit, user.actorId, correlationId);
 
-    const userAuth = deps.userAuthService.make({
+    const userAuth = deps.userAuthAppService.make({
       userId: user.id,
       createdBy: actor.id,
       password: passwordHash,
@@ -95,6 +95,6 @@ export default function makeSignupWithEmailUsecase(deps: IDependencies) {
 
     await deps.eventBus.publish(enrichedUserEvents);
 
-    await deps.emailVerificationService.send(user, correlationId);
+    await deps.emailVerificationAppService.send(user, correlationId);
   };
 }

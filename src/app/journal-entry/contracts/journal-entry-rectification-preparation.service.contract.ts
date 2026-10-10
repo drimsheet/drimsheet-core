@@ -28,7 +28,7 @@ export interface IPreparedJournalEntryRectification {
   fxAcquisition: TFxLotAcquisitionAppResult | null;
 }
 
-export default interface IJournalEntryRectificationPreparationService {
+export default interface IJournalEntryRectificationPreparationAppService {
   /**
    * Prepares the source-specific journal entry, domain rectification, and any
    * required FX-lot reversal and corrected effects. Failures reject and no

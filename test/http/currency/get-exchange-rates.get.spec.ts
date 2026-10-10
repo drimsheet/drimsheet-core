@@ -3,7 +3,7 @@ import request from 'supertest';
 
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
 import * as moneyUseCases from '@infra/ioc/usecases/money';
 import { createApplication } from '@infra/server';
@@ -58,7 +58,7 @@ describe('GET /currencies/exchange-rates', () => {
   });
 
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   describe('200 Response', () => {

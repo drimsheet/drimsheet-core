@@ -1,7 +1,7 @@
 import { Express } from 'express';
 import request from 'supertest';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { ICurrencyDto } from '@app/money/dtos/currency/currency.dto';
 
 import * as moneyUseCases from '@infra/ioc/usecases/money';
@@ -49,7 +49,7 @@ describe('GET /currencies', () => {
   });
 
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   describe('200 Response', () => {

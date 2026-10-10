@@ -13,7 +13,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountPersistenceService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import { mockReceivablesAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import { ICreateTradeReceivableAccountDto } from '@app/ledger/dtos/receivable-account/receivable-account.dto';
 import makeCreateTradeReceivableAccountUsecase from '@app/ledger/usecases/create-trade-receivable-account.usecase';
@@ -33,7 +33,7 @@ const usecase = makeCreateTradeReceivableAccountUsecase({
   appContext: mockAppContext,
   eventBus: mockEventBus,
   repoService: mockRepoService,
-  ledgerAccountPersistenceService: mockLedgerAccountPersistenceService,
+  ledgerAccountPersistenceAppService: mockLedgerAccountPersistenceAppService,
   receivablesAccountService: mockReceivablesAccountService,
 });
 const valid: ICreateTradeReceivableAccountDto = {
@@ -107,7 +107,7 @@ describe('complete trade-receivable creation workflow', () => {
       creation = makeAccount(scenario, scenario.status);
       const response = await usecase({ ...valid, status: scenario.status });
       const [account, functionalCurrency, writeOptions] =
-        mockLedgerAccountPersistenceService.create.mock.calls[0];
+        mockLedgerAccountPersistenceAppService.create.mock.calls[0];
       expect(
         mockReceivablesAccountService.createTradeReceivableSubAccount
       ).toHaveBeenCalledWith(
@@ -182,7 +182,7 @@ describe('complete trade-receivable creation workflow', () => {
           failure
         );
       if (stage === 'write')
-        mockLedgerAccountPersistenceService.create.mockRejectedValueOnce(
+        mockLedgerAccountPersistenceAppService.create.mockRejectedValueOnce(
           failure
         );
       if (stage === 'commit')
@@ -198,7 +198,9 @@ describe('complete trade-receivable creation workflow', () => {
     mockEventBus.publish.mockRejectedValueOnce(failure);
     await expect(usecase(valid)).rejects.toBe(failure);
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(1);
+    expect(mockLedgerAccountPersistenceAppService.create).toHaveBeenCalledTimes(
+      1
+    );
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
   });

@@ -1,4 +1,55 @@
-import { createRevenueAccountValidation } from '@app/ledger/dtos/revenue-account/revenue-account.dto.validation';
+import {
+  createRevenueAccountValidation,
+  updateRevenueAccountValidation,
+} from '@app/ledger/dtos/revenue-account/revenue-account.dto.validation';
+
+describe('updateRevenueAccountValidation', () => {
+  it('accepts a name update', () => {
+    expect(
+      updateRevenueAccountValidation.parse({ name: 'Consulting' })
+    ).toEqual({ name: 'Consulting' });
+  });
+
+  it.each([
+    {},
+    { name: undefined },
+    { name: null },
+    { name: '' },
+    { name: 'a' },
+    { name: 'a'.repeat(101) },
+    [],
+    null,
+  ])('rejects invalid input %j', (payload) => {
+    expect(updateRevenueAccountValidation.safeParse(payload).success).toBe(
+      false
+    );
+  });
+
+  it.each([
+    'behavior',
+    'type',
+    'subType',
+    'status',
+    'currencyCode',
+    'controlAccountId',
+    'isControlAccount',
+    'openingBalance',
+    'meta',
+    'code',
+    'materializedPath',
+    'version',
+    'expectedVersion',
+    'createdBy',
+    'accountingEntityId',
+  ])('rejects changes to %s', (field) => {
+    expect(
+      updateRevenueAccountValidation.safeParse({
+        name: 'Consulting',
+        [field]: 'forged',
+      }).success
+    ).toBe(false);
+  });
+});
 
 describe('createRevenueAccountValidation', () => {
   const schema = createRevenueAccountValidation;

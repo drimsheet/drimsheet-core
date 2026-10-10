@@ -12,10 +12,10 @@ import {
 } from '@domain/ledger/types/ledger.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import userRepos from '@infra/persistence/repos/user';
 import { createApplication } from '@infra/server';
@@ -39,7 +39,7 @@ jest.mock(
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,
-  tokenService: { getAuthUser: jest.fn() },
+  tokenAppService: { getAuthUser: jest.fn() },
 }));
 
 jest.mock('../../../src/infra/ioc/usecases/ledger', () => ({
@@ -106,14 +106,14 @@ const account = {
 
 describe('GET /ledger/:accountId', () => {
   let app: Express;
-  const mockGetAuthUser = tokenService.getAuthUser as jest.Mock;
+  const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockGetLedgerAccount =
     ledgerUseCases.getLedgerAccountUseCase as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
     mockFindUser.mockResolvedValue(user);
     mockGetLedgerAccount.mockResolvedValue(account);
@@ -148,7 +148,7 @@ describe('GET /ledger/:accountId', () => {
 
   describe('403 Response', () => {
     it('rejects a user without Alpha 1 access', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValueOnce(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
       const response = await request(app)
         .get(ENDPOINT)

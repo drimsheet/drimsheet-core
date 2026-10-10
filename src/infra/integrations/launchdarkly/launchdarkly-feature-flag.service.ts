@@ -1,4 +1,4 @@
-import IFeatureFlagService, {
+import IFeatureFlagAppService, {
   IFeatureFlagContext,
 } from '@app/context/contracts/feature-flag.service.contract';
 
@@ -23,8 +23,8 @@ async function canAccessAlpha1(context: IFeatureFlagContext) {
   );
 }
 
-const featureFlagService: IFeatureFlagService = Object.freeze({
+const featureFlagAppService: IFeatureFlagAppService = Object.freeze({
   canAccessAlpha1,
 });
 
-export default featureFlagService;
+export default featureFlagAppService;

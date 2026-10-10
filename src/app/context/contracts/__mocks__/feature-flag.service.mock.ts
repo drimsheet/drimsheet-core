@@ -1,7 +1,7 @@
-import IFeatureFlagService from '@app/context/contracts/feature-flag.service.contract';
+import IFeatureFlagAppService from '@app/context/contracts/feature-flag.service.contract';
 
-const mockFeatureFlagService: jest.Mocked<IFeatureFlagService> = {
+const mockFeatureFlagAppService: jest.Mocked<IFeatureFlagAppService> = {
   canAccessAlpha1: jest.fn(),
 };
 
-export default mockFeatureFlagService;
+export default mockFeatureFlagAppService;

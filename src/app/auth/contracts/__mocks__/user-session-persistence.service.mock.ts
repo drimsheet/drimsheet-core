@@ -1,10 +1,10 @@
-import IUserSessionPersistenceService from '@app/auth/contracts/user-session-persistence.service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
 
-const mockUserSessionPersistenceService: jest.Mocked<IUserSessionPersistenceService> =
+const mockUserSessionPersistenceAppService: jest.Mocked<IUserSessionPersistenceAppService> =
   {
     replaceClientSession: jest.fn(),
     rotateSession: jest.fn(),
     replaceAllUserSessions: jest.fn(),
   };
 
-export default mockUserSessionPersistenceService;
+export default mockUserSessionPersistenceAppService;

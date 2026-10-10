@@ -15,7 +15,7 @@ import emailValue from '@domain/user/values/email.vo';
 
 import { EAuthStrategy } from '@app/auth/contracts/auth.types';
 import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
-import IUserAuthService from '@app/auth/contracts/user-auth.service.contract';
+import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
 import {
   IOAuthProfile,
   TOAuthDoneCallback,
@@ -31,7 +31,7 @@ interface IDependencies {
   appContext: IAppContext;
   userRepo: IUserRepo;
   userAuthRepo: IUserAuthRepo;
-  userAuthService: IUserAuthService;
+  userAuthAppService: IUserAuthAppService;
   repoService: IRepoService;
 }
 
@@ -70,7 +70,7 @@ export default function makeLoginWithGoogleUseCase(deps: IDependencies) {
           }
 
           if (!userAuth.strategy.includes(EAuthStrategy.Google)) {
-            const updatedUserAuth = deps.userAuthService.addStrategy(
+            const updatedUserAuth = deps.userAuthAppService.addStrategy(
               userAuth,
               EAuthStrategy.Google
             );
@@ -107,7 +107,7 @@ export default function makeLoginWithGoogleUseCase(deps: IDependencies) {
         correlationId
       );
 
-      const userAuth = deps.userAuthService.make({
+      const userAuth = deps.userAuthAppService.make({
         userId: user.id,
         createdBy: actor.id,
         password: null,

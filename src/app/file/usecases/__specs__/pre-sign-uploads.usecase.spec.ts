@@ -3,7 +3,7 @@ import appError from '@shared/values/errors/app.error';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
-import mockFileManagementService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import makePreSignUploadsUsecase from '@app/file/usecases/pre-sign-uploads.usecase';
@@ -27,7 +27,7 @@ describe('preSignUploadsUsecase', () => {
   const getUsecase = () =>
     makePreSignUploadsUsecase({
       appContext: mockAppContext,
-      fileManagementService: mockFileManagementService,
+      fileManagementAppService: mockFileManagementAppService,
     });
 
   beforeEach(() => {
@@ -39,7 +39,7 @@ describe('preSignUploadsUsecase', () => {
         id: userId,
       },
     } as IAppContextData & Required<Pick<IAppContextData, 'user'>>);
-    mockFileManagementService.preSignUploads.mockResolvedValue(uploads);
+    mockFileManagementAppService.preSignUploads.mockResolvedValue(uploads);
   });
 
   it('delegates the file batch with the authenticated user ID', async () => {
@@ -54,7 +54,7 @@ describe('preSignUploadsUsecase', () => {
 
     await expect(getUsecase()(payload)).resolves.toBe(uploads);
     expect(mockAppContext.get).toHaveBeenCalledWith(['user']);
-    expect(mockFileManagementService.preSignUploads).toHaveBeenCalledWith({
+    expect(mockFileManagementAppService.preSignUploads).toHaveBeenCalledWith({
       userId,
       files: payload,
     });
@@ -86,7 +86,9 @@ describe('preSignUploadsUsecase', () => {
         appError.UnprocessableEntity
       );
       expect(mockAppContext.get).not.toHaveBeenCalled();
-      expect(mockFileManagementService.preSignUploads).not.toHaveBeenCalled();
+      expect(
+        mockFileManagementAppService.preSignUploads
+      ).not.toHaveBeenCalled();
     }
   );
 
@@ -95,7 +97,7 @@ describe('preSignUploadsUsecase', () => {
       appError.UnprocessableEntity
     );
     expect(mockAppContext.get).not.toHaveBeenCalled();
-    expect(mockFileManagementService.preSignUploads).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.preSignUploads).not.toHaveBeenCalled();
   });
 
   it('delegates purpose-specific count validation to file management', async () => {
@@ -107,11 +109,11 @@ describe('preSignUploadsUsecase', () => {
     };
     const payload = [file, { ...file, name: 'invoice.png' }];
     const error = new fileAppError.InvalidUploadCount();
-    mockFileManagementService.preSignUploads.mockRejectedValue(error);
+    mockFileManagementAppService.preSignUploads.mockRejectedValue(error);
 
     await expect(getUsecase()(payload)).rejects.toBe(error);
     expect(mockAppContext.get).toHaveBeenCalledWith(['user']);
-    expect(mockFileManagementService.preSignUploads).toHaveBeenCalledWith({
+    expect(mockFileManagementAppService.preSignUploads).toHaveBeenCalledWith({
       userId,
       files: payload,
     });
@@ -119,7 +121,7 @@ describe('preSignUploadsUsecase', () => {
 
   it('propagates file-management failures', async () => {
     const error = new fileAppError.UploadUnexpected();
-    mockFileManagementService.preSignUploads.mockRejectedValue(error);
+    mockFileManagementAppService.preSignUploads.mockRejectedValue(error);
 
     await expect(
       getUsecase()([

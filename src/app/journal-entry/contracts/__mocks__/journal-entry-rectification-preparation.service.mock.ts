@@ -1,8 +1,8 @@
-import IJournalEntryRectificationPreparationService from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
+import IJournalEntryRectificationPreparationAppService from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
 
-const mockJournalEntryRectificationPreparationService: jest.Mocked<IJournalEntryRectificationPreparationService> =
+const mockJournalEntryRectificationPreparationAppService: jest.Mocked<IJournalEntryRectificationPreparationAppService> =
   {
     prepare: jest.fn(),
   };
 
-export default mockJournalEntryRectificationPreparationService;
+export default mockJournalEntryRectificationPreparationAppService;

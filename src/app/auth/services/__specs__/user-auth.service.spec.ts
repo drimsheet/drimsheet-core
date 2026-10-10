@@ -1,9 +1,9 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import { EAuthStrategy } from '@app/auth/contracts/auth.types';
-import makeUserAuthService from '@app/auth/services/user-auth.service';
+import makeUserAuthAppService from '@app/auth/services/user-auth.service';
 
-describe('userAuthService', () => {
+describe('userAuthAppService', () => {
   const userId = '123e4567-e89b-42d3-a456-426614174000' as TEntityId;
 
   beforeEach(() => {
@@ -15,7 +15,7 @@ describe('userAuthService', () => {
   });
 
   it('creates immutable version one authentication state', () => {
-    const service = makeUserAuthService();
+    const service = makeUserAuthAppService();
 
     const userAuth = service.make({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -39,7 +39,7 @@ describe('userAuthService', () => {
   });
 
   it('adds a strategy and advances the version', () => {
-    const service = makeUserAuthService();
+    const service = makeUserAuthAppService();
     const userAuth = service.make({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       userId,
@@ -60,7 +60,7 @@ describe('userAuthService', () => {
   });
 
   it('replaces the password, restores email strategy, and advances the version', () => {
-    const service = makeUserAuthService();
+    const service = makeUserAuthAppService();
     const userAuth = service.make({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       userId,
@@ -80,7 +80,7 @@ describe('userAuthService', () => {
   });
 
   it('preserves an existing email strategy when replacing the password', () => {
-    const service = makeUserAuthService();
+    const service = makeUserAuthAppService();
     const userAuth = service.make({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       userId,
@@ -95,7 +95,7 @@ describe('userAuthService', () => {
   });
 
   it('records and resets failed login attempts through separate versions', () => {
-    const service = makeUserAuthService();
+    const service = makeUserAuthAppService();
     const userAuth = service.make({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       userId,
@@ -113,7 +113,7 @@ describe('userAuthService', () => {
   });
 
   it('preserves identity for unchanged transitions', () => {
-    const service = makeUserAuthService();
+    const service = makeUserAuthAppService();
     const userAuth = service.make({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       userId,

@@ -7,7 +7,7 @@ interface IMakeUserAuthPayload extends Pick<
   strategy: UAuthStrategy;
 }
 
-export default interface IUserAuthService {
+export default interface IUserAuthAppService {
   make(payload: IMakeUserAuthPayload): IUserAuth;
   addStrategy(userAuth: IUserAuth, strategy: UAuthStrategy): IUserAuth;
   replacePassword(userAuth: IUserAuth, password: string): IUserAuth;

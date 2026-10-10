@@ -19,9 +19,9 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import ICounterpartyAppService from '@app/counterparty/contracts/counterparty.service.contract';
-import IFileManagementService from '@app/file/contracts/file-management.service.contract';
+import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
-import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
@@ -30,24 +30,24 @@ import getLedgerAccountHelper from '@app/journal-entry/helpers/account-getter.he
 import getNewCounterpartiesHelper from '@app/journal-entry/helpers/get-new-counterparties.helper';
 import helpers from '@app/journal-entry/helpers/transfer-entry.helpers';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
-import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
   appContext: IAppContext;
   counterpartyAppService: ICounterpartyAppService;
-  fileManagementService: IFileManagementService;
+  fileManagementAppService: IFileManagementAppService;
   journalEntryService: IJournalEntryService;
   ledgerAccountRepo: ILedgerAccountRepo;
   counterpartyRepo: ICounterpartyRepo;
-  journalEntryPersistenceService: IJournalEntryPersistenceService;
+  journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
   eventBus: IEventBus;
-  outboxService: IOutboxService;
+  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   fxLotAppService: IFxLotAppService;
-  fxCostBasisPersistenceService: IFxCostBasisPersistenceService;
+  fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
 export default function makeCreateTransferUsecase(deps: IDependencies) {
@@ -106,7 +106,7 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       deps.counterpartyAppService
     );
 
-    const attachments = await deps.fileManagementService.claimUploads({
+    const attachments = await deps.fileManagementAppService.claimUploads({
       userId: user.id,
       purpose: EFileUploadPurpose.JournalEntryAttachment,
       references: payload.attachmentReferences ?? [],
@@ -179,7 +179,7 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
         });
       }
 
-      await deps.journalEntryPersistenceService.create(
+      await deps.journalEntryPersistenceAppService.create(
         journalEntry,
         journalHeaderHistory,
         journalLinesHistory,
@@ -187,21 +187,21 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       );
 
       if (dispositionResult) {
-        await deps.fxCostBasisPersistenceService.persistDisposition(
+        await deps.fxCostBasisPersistenceAppService.persistDisposition(
           dispositionResult.records,
           writeOptions
         );
       }
 
       if (acquisitionResult) {
-        await deps.fxCostBasisPersistenceService.persistAcquisition(
+        await deps.fxCostBasisPersistenceAppService.persistAcquisition(
           acquisitionResult.records,
           writeOptions
         );
       }
 
       if (shouldUpdateBalance) {
-        await deps.outboxService.createBalancePropagation(
+        await deps.outboxAppService.createBalancePropagation(
           journalEntry.id,
           writeOptions
         );

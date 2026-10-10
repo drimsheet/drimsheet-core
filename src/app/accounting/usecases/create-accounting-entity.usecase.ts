@@ -19,13 +19,13 @@ import IAccountingEntityService from '@domain/accounting/types/accounting-entity
 import { IAccountingEntityCreationDto } from '@app/accounting/dtos/accounting/accounting.dto';
 import { accountingEntityOnboardingDtoSchema } from '@app/accounting/dtos/accounting/accounting.dto.validation';
 import IAppContext from '@app/context/contracts/app-context.contract';
-import IUserPreferencesService from '@app/user/contracts/user-preferences.service.contract';
+import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
 import { EAppUsageModePreference } from '@app/user/types/user-preferences.types';
 
 interface IDependencies {
   appContext: IAppContext;
   accountingEntityRepo: IAccountingEntityRepo;
-  userPreferencesService: IUserPreferencesService;
+  userPreferencesAppService: IUserPreferencesAppService;
   fiscalYearRepo: IFiscalYearRepo;
   accountingPeriodRepo: IAccountingPeriodRepo;
   accountingContextRepo: IAccountingContextRepo;
@@ -136,7 +136,7 @@ export default function createAccountingEntityUseCase(deps: IDependencies) {
         history: accountingEntityHistory,
       });
 
-      await deps.userPreferencesService.update(
+      await deps.userPreferencesAppService.update(
         userPreferencesPayload,
         writeRepoOptions
       );

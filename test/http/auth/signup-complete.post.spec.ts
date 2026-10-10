@@ -3,7 +3,7 @@ import { Server } from 'node:http';
 import { Express } from 'express';
 import request from 'supertest';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
 import { makeHashedRateLimitKey } from '@infra/config/rate-limiter.config';
 import middlewares from '@infra/ioc/middlewares/http';
@@ -32,7 +32,7 @@ let tokenSequence = 0;
 
 describe('POST /auth/signup/complete', () => {
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   let app: Express;
