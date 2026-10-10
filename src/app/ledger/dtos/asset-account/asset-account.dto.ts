@@ -12,6 +12,11 @@ export interface IPettyCashAccountCreationReq {
   openingBalance: IOpeningBalanceDto | null;
 }
 
+export interface IPettyCashAccountUpdateReq {
+  name?: string;
+  openingBalance?: IOpeningBalanceDto;
+}
+
 export interface IBankDetailsCreationReq {
   bankName: string;
   accountName: string;

@@ -4,6 +4,7 @@ import makeJournalEntryService from '@domain/journal-entry/services/journal-entr
 
 import makeJournalEntryPersistenceService from '@app/journal-entry/services/journal-entry-persistence.service';
 import makeJournalEntryRectificationPreparationService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
+import makeOpeningBalanceEntryAppService from '@app/journal-entry/services/opening-balance-entry.service';
 
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
@@ -16,7 +17,6 @@ import { repoService } from './repo';
 export const journalEntryService = makeJournalEntryService({
   accountingPeriodService,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
-  ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });
 
 export const journalEntryRectificationService =
@@ -36,6 +36,14 @@ export const journalEntryRectificationPreparationService =
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     fxLotAppService,
   });
+
+export const openingBalanceEntryAppService = makeOpeningBalanceEntryAppService({
+  journalEntryQueryRepo: journalEntryRepos.queries.journalEntry,
+  accountingPeriodService,
+  ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
+  ledgerAccountRepo: ledgerRepos.ledgerAccount,
+  fxLotAppService,
+});
 
 export const journalEntryPersistenceService =
   makeJournalEntryPersistenceService({

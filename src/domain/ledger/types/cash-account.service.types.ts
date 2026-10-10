@@ -3,7 +3,10 @@ import {
   ITransactionContext,
 } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import { TAuditedEntity } from '@shared/values/events/types/event.types';
+import {
+  IEvent,
+  TAuditedEntity,
+} from '@shared/values/events/types/event.types';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { ICurrency } from '@domain/money/types/currency.types';
@@ -11,7 +14,9 @@ import { ICurrency } from '@domain/money/types/currency.types';
 import {
   IBankDetails,
   ICashAndCashEquivalentAccount,
+  IPettyCashAccount,
 } from './asset-account.types';
+import { ILedgerAccountAudit } from './ledger-account-audit.types';
 import { ILedgerAccount, ULedgerAccountCreationStatus } from './ledger.types';
 
 interface IMakeHeaderPayload {
@@ -43,6 +48,11 @@ interface IMakeBankPayload {
   bankDetails: IBankDetails;
 }
 
+interface IUpdatePettyCashPayload {
+  name?: string;
+  openingBalanceDate?: Date;
+}
+
 type TReturnType = TAuditedEntity<
   ICashAndCashEquivalentAccount,
   ICashAndCashEquivalentAccount,
@@ -60,7 +70,16 @@ export default interface ICashAccountService {
     repoOptions: IReadRepoOptions & { tx: ITransactionContext }
   ): Promise<TReturnType>;
 
-  /** Prepares a complete account under caller-owned allocation/parent locks; never persists. */
+  updatePettyCashSubAccount(
+    account: ILedgerAccount,
+    payload: IUpdatePettyCashPayload
+  ): [
+    Readonly<IPettyCashAccount>,
+    IEvent<ILedgerAccount>[],
+    ILedgerAccountAudit | null,
+  ];
+
+  /** Creates a complete account under caller-owned allocation/parent locks; never persists. */
   createBankSubAccount(
     payload: IMakeBankPayload,
     repoOptions: IReadRepoOptions & { tx: ITransactionContext }

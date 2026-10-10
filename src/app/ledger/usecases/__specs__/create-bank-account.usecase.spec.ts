@@ -17,7 +17,7 @@ import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
 import mockLedgerAccountPersistenceService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockAssetAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
@@ -74,7 +74,7 @@ const deps = {
   eventBus: mockEventBus,
   cashAccountService: mockAssetAccountService,
   bankAccountRepo: mockBankAccountRepo,
-  journalEntryService: mockJournalEntryService,
+  openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
   journalEntryPersistenceService: mockJournalEntryPersistenceService,
   outboxService: mockOutboxService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
@@ -179,7 +179,7 @@ describe('bank account creation workflow', () => {
         return bank;
       }
     );
-    mockJournalEntryService.createInitialOpeningBalance.mockImplementation(
+    mockOpeningBalanceEntryAppService.createInitialOpeningBalance.mockImplementation(
       async () => {
         journal = makeJournal(bank[0].status !== 'draft');
         return journal;
@@ -228,7 +228,8 @@ describe('bank account creation workflow', () => {
       expect(mockBankAccountRepo.findOne).not.toHaveBeenCalled();
       expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
-      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.commit).toHaveBeenCalledWith();
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
       expect(
         mockRepoTransaction.commit.mock.invocationCallOrder[0]
@@ -242,7 +243,7 @@ describe('bank account creation workflow', () => {
           options
         );
         expect(
-          mockJournalEntryService.createInitialOpeningBalance
+          mockOpeningBalanceEntryAppService.createInitialOpeningBalance
         ).toHaveBeenCalledWith(
           expect.objectContaining({ account, effectiveDate: date }),
           options
@@ -334,7 +335,7 @@ describe('bank account creation workflow', () => {
           effectiveDate: date,
         });
         expect(
-          mockJournalEntryService.createInitialOpeningBalance
+          mockOpeningBalanceEntryAppService.createInitialOpeningBalance
         ).toHaveBeenCalledWith(
           expect.objectContaining({
             account: bank[0],
@@ -368,7 +369,7 @@ describe('bank account creation workflow', () => {
   );
   it('rolls back account creation when opening journal creation rejects an archived account', async () => {
     const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
-    mockJournalEntryService.createInitialOpeningBalance.mockRejectedValueOnce(
+    mockOpeningBalanceEntryAppService.createInitialOpeningBalance.mockRejectedValueOnce(
       failure
     );
     await expect(
@@ -399,7 +400,7 @@ describe('bank account creation workflow', () => {
       },
       options
     );
-    expect(mockJournalEntryService.createOpeningBalance).not.toHaveBeenCalled();
+    expect(mockOpeningBalanceEntryAppService.create).not.toHaveBeenCalled();
   });
   it('stores the prepared normalized metadata rather than the raw request', async () => {
     await makeCreateBankAccountUseCase(deps)({
@@ -409,7 +410,7 @@ describe('bank account creation workflow', () => {
     expect(mockBankAccountRepo.create.mock.calls[0][2]).toEqual(bankDetails);
   });
   it('retains draft journal behavior without propagation side effects', async () => {
-    mockJournalEntryService.createInitialOpeningBalance.mockImplementation(
+    mockOpeningBalanceEntryAppService.createInitialOpeningBalance.mockImplementation(
       async () => {
         journal = makeJournal(false);
         return journal;
@@ -495,7 +496,7 @@ describe('bank account creation workflow', () => {
     'outbox',
     'commit',
   ] as const)(
-    'cleans up and suppresses side effects after %s failure',
+    'delegates cleanup to the transaction handler and suppresses side effects after %s failure',
     async (stage) => {
       const failure =
         stage === 'bank-write'
@@ -504,9 +505,9 @@ describe('bank account creation workflow', () => {
             ? new periodError.PostingPeriodNotOpen()
             : new Error(stage);
       const mocks = {
-        period: mockJournalEntryService.createInitialOpeningBalance,
+        period: mockOpeningBalanceEntryAppService.createInitialOpeningBalance,
         account: mockAssetAccountService.createBankSubAccount,
-        journal: mockJournalEntryService.createInitialOpeningBalance,
+        journal: mockOpeningBalanceEntryAppService.createInitialOpeningBalance,
         fx: mockFxLotAppService.acquire,
         'ledger-write': mockLedgerAccountPersistenceService.create,
         'bank-write': mockBankAccountRepo.create,
@@ -525,7 +526,8 @@ describe('bank account creation workflow', () => {
         makeCreateBankAccountUseCase(deps)(openingPayload)
       ).rejects.toBe(failure);
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
-      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.handleError).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
       expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
@@ -533,7 +535,7 @@ describe('bank account creation workflow', () => {
     }
   );
   it.each(['ledger-write', 'bank-write', 'commit', 'publication'] as const)(
-    'cleans up the early-return path after %s failure',
+    'delegates early-return cleanup to the transaction handler after %s failure',
     async (stage) => {
       const failure = new Error(stage);
       const stages = {
@@ -548,9 +550,10 @@ describe('bank account creation workflow', () => {
         failure
       );
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
-      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.handleError).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       expect(
-        mockJournalEntryService.createInitialOpeningBalance
+        mockOpeningBalanceEntryAppService.createInitialOpeningBalance
       ).not.toHaveBeenCalled();
       expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
       expect(

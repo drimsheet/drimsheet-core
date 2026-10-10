@@ -562,6 +562,95 @@ describe('Ledger Account Shared Entity', () => {
       ).toThrow();
     });
   });
+
+  describe('update', () => {
+    it.each([new Date('2026-03-01T00:00:00.000Z'), null])(
+      'updates only the opening balance date to %s without changing the name',
+      (openingBalanceDate) => {
+        const [account] = ledgerAccountEntity.make({
+          ...validPayload,
+          openingBalanceDate: new Date('2026-02-01T00:00:00.000Z'),
+        });
+
+        const [updatedAccount, events, audit] = ledgerAccountEntity.update(
+          account,
+          { openingBalanceDate }
+        );
+
+        expect(updatedAccount).toEqual({
+          ...account,
+          openingBalanceDate,
+          version: account.version + 1,
+          updatedAt: new Date(),
+        });
+        expect(account.openingBalanceDate).toEqual(
+          new Date('2026-02-01T00:00:00.000Z')
+        );
+        expect(Object.isFrozen(updatedAccount)).toBe(true);
+        expect(events).toEqual([
+          expect.objectContaining({
+            type: ELedgerAccountEvent.Updated,
+            data: updatedAccount,
+          }),
+        ]);
+        expect(audit).toMatchObject({
+          action: ELedgerAccountAuditAction.Updated,
+          diff: { before: account, after: updatedAccount },
+        });
+      }
+    );
+
+    it('rejects setting an opening balance date on a control account', () => {
+      const [account] = ledgerAccountEntity.make({
+        ...validPayload,
+        isControlAccount: true,
+      });
+
+      expect(() =>
+        ledgerAccountEntity.update(account, {
+          openingBalanceDate: new Date('2026-03-01T00:00:00.000Z'),
+        })
+      ).toThrow(ledgerAccountError.ForbiddenControlAccountOpeningBalanceDate);
+      expect(account.openingBalanceDate).toBeNull();
+      expect(account.version).toBe(1);
+    });
+
+    it('updates editable details in one version, event, and audit', () => {
+      const [account] = makeCashAccount(ELedgerAccountStatus.Draft);
+      const openingBalanceDate = new Date('2026-03-01T00:00:00.000Z');
+
+      const [updatedAccount, events, audit] = ledgerAccountEntity.update(
+        account,
+        { name: '  Office cash  ', openingBalanceDate }
+      );
+
+      expect(updatedAccount).toMatchObject({
+        id: account.id,
+        name: 'Office cash',
+        openingBalanceDate,
+        version: account.version + 1,
+      });
+      expect(events).toEqual([
+        expect.objectContaining({
+          type: ELedgerAccountEvent.Updated,
+          data: updatedAccount,
+        }),
+      ]);
+      expect(audit).toMatchObject({
+        action: ELedgerAccountAuditAction.Updated,
+        diff: { before: account, after: updatedAccount },
+      });
+      expect(Object.isFrozen(updatedAccount)).toBe(true);
+    });
+
+    it('returns the original account without audit state when details are unchanged', () => {
+      const [account] = makeCashAccount();
+
+      expect(
+        ledgerAccountEntity.update(account, { name: account.name })
+      ).toEqual([account, [], null]);
+    });
+  });
 });
 
 describe('initial ledger opening balance date', () => {

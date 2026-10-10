@@ -16,6 +16,7 @@ import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accoun
 import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
+import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty-cash-account.usecase';
 
 import {
   fxCostBasisPersistenceService,
@@ -23,7 +24,7 @@ import {
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceService,
-  journalEntryService,
+  openingBalanceEntryAppService,
 } from '@infra/ioc/services/journal-entry';
 import {
   assetDisposalLossAccountService,
@@ -136,7 +137,7 @@ export const createPettyCashAccountUseCase = makeTracedUseCase(
     appContext: appContext,
     eventBus: messaging.eventBus,
     cashAccountService,
-    journalEntryService,
+    openingBalanceEntryAppService,
     journalEntryPersistenceService,
     outboxService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -147,6 +148,23 @@ export const createPettyCashAccountUseCase = makeTracedUseCase(
   })
 );
 
+export const updatePettyCashAccountUseCase = makeTracedUseCase(
+  'ledger.updatePettyCashAccountUseCase',
+  makeUpdatePettyCashAccountUseCase({
+    appContext,
+    eventBus: messaging.eventBus,
+    repoService,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    cashAccountService,
+    openingBalanceEntryAppService,
+    journalEntryPersistenceService,
+    balanceEnrichmentService: ledgerAccountBalanceEnrichmentService,
+    fxCostBasisPersistenceService,
+    outboxService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+  })
+);
+
 export const createBankAccountUseCase = makeTracedUseCase(
   'ledger.createBankAccountUseCase',
   makeCreateBankAccountUseCase({
@@ -154,7 +172,7 @@ export const createBankAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     cashAccountService,
     bankAccountRepo: ledgerRepos.bankAccount,
-    journalEntryService,
+    openingBalanceEntryAppService,
     journalEntryPersistenceService,
     outboxService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,

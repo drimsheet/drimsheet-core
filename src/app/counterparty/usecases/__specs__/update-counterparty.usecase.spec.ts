@@ -71,7 +71,8 @@ describe('update counterparty use case', () => {
       status: 'active',
     });
     expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
-    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     expect(mockCounterpartyRepo.findById).toHaveBeenCalledWith(
       before.id,
       before.accountingEntityId,

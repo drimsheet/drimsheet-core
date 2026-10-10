@@ -393,7 +393,6 @@ describe('makeJournalEntryRectificationPreparationService', () => {
         const domainService = makeJournalEntryService({
           accountingPeriodService: mockAccountingPeriodService,
           ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
-          ledgerAccountRepo: mockLedgerAccountRepo,
         });
         const guardedPreparation =
           makeJournalEntryRectificationPreparationService({

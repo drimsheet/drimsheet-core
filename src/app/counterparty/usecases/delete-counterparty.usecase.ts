@@ -62,7 +62,7 @@ export default function makeDeleteCounterpartyUsecase(
 
       await transaction.commit();
     } catch (error) {
-      return transaction.handleError(error);
+      return await transaction.handleError(error);
     }
   };
 }
