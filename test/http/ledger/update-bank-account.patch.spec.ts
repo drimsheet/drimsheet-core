@@ -77,7 +77,7 @@ jest.mock('@infra/persistence/repos/user', () => ({
   },
 }));
 
-const ENDPOINT = '/api/v1/accounts/asset/bank';
+const ENDPOINT = '/api/v1/ledger/asset/bank';
 const [actor] = actorEntity.makeUser({
   email: 'cash-update@example.com',
   displayName: 'Account owner',
@@ -120,7 +120,7 @@ const openingBalance = {
   date: new Date('2026-03-01T00:00:00.000Z'),
 };
 
-describe('PATCH /accounts/asset/bank/{accountId}', () => {
+describe('PATCH /ledger/asset/bank/{accountId}', () => {
   let app: Express;
   const update = jest.mocked(ledgerUseCases.updateBankAccountUseCase);
   const cashAccountService = makeCashAccountService({

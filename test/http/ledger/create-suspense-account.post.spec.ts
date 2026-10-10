@@ -72,7 +72,7 @@ jest.mock('@infra/persistence/repos/ledger', () => ({
   },
 }));
 
-const ENDPOINT = '/api/v1/accounts/suspense';
+const ENDPOINT = '/api/v1/ledger/suspense';
 const userId = '123e4567-e89b-42d3-a456-426614174001' as TEntityId;
 const accountingEntityId = '123e4567-e89b-42d3-a456-426614174002' as TEntityId;
 const accountId = '123e4567-e89b-42d3-a456-426614174003' as TEntityId;
@@ -114,7 +114,7 @@ const created: ILedgerAccountDto = {
 };
 const mockCreate = jest.mocked(createSuspenseAccountUseCase);
 
-describe('POST /accounts/suspense', () => {
+describe('POST /ledger/suspense', () => {
   let app: Express;
   beforeEach(() => {
     jest.resetAllMocks();

@@ -574,6 +574,89 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IRecommendedBootstrapAccountDto": {
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "subType": {
+            "type": "string"
+          },
+          "behavior": {
+            "type": "string"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountCode": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "number",
+            "enum": [null],
+            "nullable": true
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "type",
+          "subType",
+          "behavior",
+          "isControlAccount"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IRecommendedBootstrapDto": {
+        "properties": {
+          "receivables": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
+            },
+            "type": "array"
+          },
+          "payables": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
+            },
+            "type": "array"
+          },
+          "revenue": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
+            },
+            "type": "array"
+          },
+          "expense": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
+            },
+            "type": "array"
+          },
+          "suspense": {
+            "items": {
+              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "receivables",
+          "payables",
+          "revenue",
+          "expense",
+          "suspense"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "ULedgerAccountBalanceEffect": {
         "type": "string",
         "enum": ["increase", "decrease", "noop"]
@@ -890,6 +973,22 @@
         "enum": ["active", "draft"],
         "description": "Status accepted when proposing or creating a ledger subaccount."
       },
+      "IBankDetailsCreationReq": {
+        "properties": {
+          "bankName": {
+            "type": "string"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "accountNumber": {
+            "type": "string"
+          }
+        },
+        "required": ["bankName", "accountName", "accountNumber"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IExchangeRateDto": {
         "properties": {
           "baseCurrencyCode": {
@@ -946,6 +1045,37 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IBankAccountCreationReq": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "controlAccountId": {
+            "type": "string"
+          },
+          "bankAccount": {
+            "$ref": "#/components/schemas/IBankDetailsCreationReq"
+          },
+          "openingBalance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IOpeningBalanceDto"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": ["name", "currencyCode", "bankAccount", "openingBalance"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IPettyCashAccountCreationReq": {
         "properties": {
           "name": {
@@ -979,6 +1109,244 @@
           "isControlAccount",
           "openingBalance"
         ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateStatutoryReceivableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "isControlAccount", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateTradeReceivableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "isControlAccount", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "TSupportedExpenseAccountBehavior": {
+        "type": "string",
+        "enum": [
+          "default_direct_cost",
+          "cogs",
+          "cost_of_services",
+          "cost_of_revenue",
+          "rent_and_utilities",
+          "bank_charge",
+          "finance_cost",
+          "interest",
+          "tax_expense",
+          "unrealized_loss",
+          "asset_disposal_loss"
+        ]
+      },
+      "ICreateExpenseAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "behavior": {
+            "$ref": "#/components/schemas/TSupportedExpenseAccountBehavior"
+          }
+        },
+        "required": ["name", "isControlAccount", "behavior"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IStatutoryPayableAccountMeta": {
+        "properties": {
+          "taxAuthority": {
+            "type": "string"
+          },
+          "taxType": {
+            "type": "string"
+          }
+        },
+        "required": ["taxAuthority", "taxType"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateStatutoryPayableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "meta": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IStatutoryPayableAccountMeta"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": ["name", "isControlAccount", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateTradePayableAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "meta": {
+            "properties": {
+              "invoiceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "counterpartyId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": ["invoiceId", "counterpartyId"],
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": ["name", "isControlAccount"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "TSupportedRevenueAccountBehavior": {
+        "type": "string",
+        "enum": [
+          "services",
+          "employment_income",
+          "gain_on_asset_sale",
+          "unrealized_gains",
+          "grants",
+          "gifts"
+        ]
+      },
+      "ICreateRevenueAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
+            "description": "Defaults to active when omitted."
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "behavior": {
+            "$ref": "#/components/schemas/TSupportedRevenueAccountBehavior"
+          }
+        },
+        "required": ["name", "isControlAccount", "behavior"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICreateSuspenseAccountDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["asset", "liability"]
+          },
+          "currencyCode": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "type", "currencyCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IBankAccountUpdateReq": {
+        "description": "Editable bank ledger and bank details; currency is retained.",
+        "properties": {
+          "bankAccount": {
+            "$ref": "#/components/schemas/IBankDetailsCreationReq",
+            "description": "Replaces bank details when supplied; omitted details are retained."
+          },
+          "name": {
+            "type": "string"
+          },
+          "openingBalance": {
+            "$ref": "#/components/schemas/IOpeningBalanceDto"
+          }
+        },
         "type": "object",
         "additionalProperties": false
       },
@@ -2507,374 +2875,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IRecommendedBootstrapAccountDto": {
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "subType": {
-            "type": "string"
-          },
-          "behavior": {
-            "type": "string"
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountCode": {
-            "type": "string"
-          },
-          "meta": {
-            "type": "number",
-            "enum": [null],
-            "nullable": true
-          }
-        },
-        "required": [
-          "key",
-          "name",
-          "type",
-          "subType",
-          "behavior",
-          "isControlAccount"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IRecommendedBootstrapDto": {
-        "properties": {
-          "receivables": {
-            "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
-            },
-            "type": "array"
-          },
-          "payables": {
-            "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
-            },
-            "type": "array"
-          },
-          "revenue": {
-            "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
-            },
-            "type": "array"
-          },
-          "expense": {
-            "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
-            },
-            "type": "array"
-          },
-          "suspense": {
-            "items": {
-              "$ref": "#/components/schemas/IRecommendedBootstrapAccountDto"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "receivables",
-          "payables",
-          "revenue",
-          "expense",
-          "suspense"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IBankDetailsCreationReq": {
-        "properties": {
-          "bankName": {
-            "type": "string"
-          },
-          "accountName": {
-            "type": "string"
-          },
-          "accountNumber": {
-            "type": "string"
-          }
-        },
-        "required": ["bankName", "accountName", "accountNumber"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IBankAccountCreationReq": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "currencyCode": {
-            "type": "string"
-          },
-          "controlAccountId": {
-            "type": "string"
-          },
-          "bankAccount": {
-            "$ref": "#/components/schemas/IBankDetailsCreationReq"
-          },
-          "openingBalance": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IOpeningBalanceDto"
-              }
-            ],
-            "nullable": true
-          }
-        },
-        "required": ["name", "currencyCode", "bankAccount", "openingBalance"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICreateStatutoryReceivableAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "currencyCode": {
-            "type": "string"
-          }
-        },
-        "required": ["name", "isControlAccount", "currencyCode"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICreateTradeReceivableAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "currencyCode": {
-            "type": "string"
-          }
-        },
-        "required": ["name", "isControlAccount", "currencyCode"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "TSupportedExpenseAccountBehavior": {
-        "type": "string",
-        "enum": [
-          "default_direct_cost",
-          "cogs",
-          "cost_of_services",
-          "cost_of_revenue",
-          "rent_and_utilities",
-          "bank_charge",
-          "finance_cost",
-          "interest",
-          "tax_expense",
-          "unrealized_loss",
-          "asset_disposal_loss"
-        ]
-      },
-      "ICreateExpenseAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "behavior": {
-            "$ref": "#/components/schemas/TSupportedExpenseAccountBehavior"
-          }
-        },
-        "required": ["name", "isControlAccount", "behavior"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IStatutoryPayableAccountMeta": {
-        "properties": {
-          "taxAuthority": {
-            "type": "string"
-          },
-          "taxType": {
-            "type": "string"
-          }
-        },
-        "required": ["taxAuthority", "taxType"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICreateStatutoryPayableAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "currencyCode": {
-            "type": "string"
-          },
-          "meta": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IStatutoryPayableAccountMeta"
-              }
-            ],
-            "nullable": true
-          }
-        },
-        "required": ["name", "isControlAccount", "currencyCode"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICreateTradePayableAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "meta": {
-            "properties": {
-              "invoiceId": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "counterpartyId": {
-                "type": "string",
-                "format": "uuid"
-              }
-            },
-            "required": ["invoiceId", "counterpartyId"],
-            "type": "object",
-            "nullable": true
-          }
-        },
-        "required": ["name", "isControlAccount"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "TSupportedRevenueAccountBehavior": {
-        "type": "string",
-        "enum": [
-          "services",
-          "employment_income",
-          "gain_on_asset_sale",
-          "unrealized_gains",
-          "grants",
-          "gifts"
-        ]
-      },
-      "ICreateRevenueAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountCreationStatus",
-            "description": "Defaults to active when omitted."
-          },
-          "isControlAccount": {
-            "type": "boolean"
-          },
-          "controlAccountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "behavior": {
-            "$ref": "#/components/schemas/TSupportedRevenueAccountBehavior"
-          }
-        },
-        "required": ["name", "isControlAccount", "behavior"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICreateSuspenseAccountDto": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["asset", "liability"]
-          },
-          "currencyCode": {
-            "type": "string"
-          }
-        },
-        "required": ["name", "type", "currencyCode"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IBankAccountUpdateReq": {
-        "description": "Editable bank ledger and bank details; currency is retained.",
-        "properties": {
-          "bankAccount": {
-            "$ref": "#/components/schemas/IBankDetailsCreationReq",
-            "description": "Replaces bank details when supplied; omitted details are retained."
-          },
-          "name": {
-            "type": "string"
-          },
-          "openingBalance": {
-            "$ref": "#/components/schemas/IOpeningBalanceDto"
-          }
-        },
-        "type": "object",
-        "additionalProperties": false
-      },
       "UAccountingEntityType": {
         "type": "string",
         "enum": ["individual", "sole_trader", "private_company"]
@@ -3670,6 +3670,57 @@
         ]
       }
     },
+    "/ledger/recommended-bootstrap": {
+      "get": {
+        "operationId": "getRecommendedBootstrap",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IRecommendedBootstrapDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get recommended posting account setup, grouped with nested sub accounts.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": []
+      }
+    },
     "/ledger/{accountId}": {
       "get": {
         "operationId": "getLedgerAccount",
@@ -3916,6 +3967,97 @@
         }
       }
     },
+    "/ledger/asset/bank": {
+      "post": {
+        "operationId": "createBankAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft bank subaccount; status defaults to Active.",
+        "tags": ["Asset Accounts", "Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IBankAccountCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
     "/ledger/asset/petty-cash": {
       "post": {
         "operationId": "createPettyCashAccount",
@@ -3991,6 +4133,763 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IPettyCashAccountCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/asset/receivables/statutory": {
+      "post": {
+        "operationId": "createStatutoryReceivableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft statutory receivable subaccount; status defaults to Active.",
+        "tags": ["Asset Accounts", "Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateStatutoryReceivableAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/asset/receivables/trade": {
+      "post": {
+        "operationId": "createTradeReceivableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft trade receivable subaccount; status defaults to Active.",
+        "tags": ["Asset Accounts", "Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateTradeReceivableAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/expenses": {
+      "post": {
+        "operationId": "createExpenseAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft expense subaccount; status defaults to Active.",
+        "tags": ["Expense Accounts", "Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateExpenseAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/liability/payables/statutory": {
+      "post": {
+        "operationId": "createStatutoryPayableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft statutory payable subaccount; status defaults to Active.",
+        "tags": ["Liability Accounts", "Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateStatutoryPayableAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/liability/payables/trade": {
+      "post": {
+        "operationId": "createTradePayableAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft trade payable subaccount; status defaults to Active.",
+        "tags": ["Liability Accounts", "Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateTradePayableAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/revenues": {
+      "post": {
+        "operationId": "createRevenueAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create an Active or Draft revenue subaccount; status defaults to Active.",
+        "tags": ["Revenue Accounts", "Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateRevenueAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/suspense": {
+      "post": {
+        "operationId": "createSuspenseAccount",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create one asset or liability suspense account for the selected currency.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICreateSuspenseAccountDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/asset/bank/{accountId}": {
+      "patch": {
+        "operationId": "updateBankAccount",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update the name, bank details, and/or opening balance of a non-archived bank account. Supplied bank details replace all three fields; omitted fields are retained.",
+        "tags": ["Asset Accounts", "Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IBankAccountUpdateReq"
               }
             }
           }
@@ -6322,905 +7221,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IResetPasswordReq"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/recommended-bootstrap": {
-      "get": {
-        "operationId": "getRecommendedBootstrap",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IRecommendedBootstrapDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Get recommended posting account setup, grouped with nested sub accounts.",
-        "tags": ["Accounts"],
-        "security": [],
-        "parameters": []
-      }
-    },
-    "/accounts/asset/bank": {
-      "post": {
-        "operationId": "createBankAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft bank subaccount; status defaults to Active.",
-        "tags": ["Asset Accounts", "Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IBankAccountCreationReq"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/asset/receivables/statutory": {
-      "post": {
-        "operationId": "createStatutoryReceivableAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft statutory receivable subaccount; status defaults to Active.",
-        "tags": ["Asset Accounts", "Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICreateStatutoryReceivableAccountDto"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/asset/receivables/trade": {
-      "post": {
-        "operationId": "createTradeReceivableAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft trade receivable subaccount; status defaults to Active.",
-        "tags": ["Asset Accounts", "Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICreateTradeReceivableAccountDto"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/expenses": {
-      "post": {
-        "operationId": "createExpenseAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft expense subaccount; status defaults to Active.",
-        "tags": ["Expense Accounts", "Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICreateExpenseAccountDto"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/liability/payables/statutory": {
-      "post": {
-        "operationId": "createStatutoryPayableAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft statutory payable subaccount; status defaults to Active.",
-        "tags": ["Liability Accounts", "Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICreateStatutoryPayableAccountDto"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/liability/payables/trade": {
-      "post": {
-        "operationId": "createTradePayableAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft trade payable subaccount; status defaults to Active.",
-        "tags": ["Liability Accounts", "Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICreateTradePayableAccountDto"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/revenues": {
-      "post": {
-        "operationId": "createRevenueAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create an Active or Draft revenue subaccount; status defaults to Active.",
-        "tags": ["Revenue Accounts", "Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICreateRevenueAccountDto"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/suspense": {
-      "post": {
-        "operationId": "createSuspenseAccount",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Create one asset or liability suspense account for the selected currency.",
-        "tags": ["Accounts"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ICreateSuspenseAccountDto"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/asset/bank/{accountId}": {
-      "patch": {
-        "operationId": "updateBankAccount",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ILedgerAccountDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Update the name, bank details, and/or opening balance of a non-archived bank account. Supplied bank details replace all three fields; omitted fields are retained.",
-        "tags": ["Asset Accounts", "Accounts"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "accountId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IBankAccountUpdateReq"
               }
             }
           }
