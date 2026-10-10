@@ -18,10 +18,10 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
-import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
-import mockBalanceEnrichmentService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
+import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockBalanceQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
@@ -30,12 +30,12 @@ import {
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
-import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import mockFxCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import appContext from '@infra/runtime/app-context';
 import { createApplication } from '@infra/server';
@@ -56,7 +56,7 @@ jest.mock(
   })
 );
 jest.mock('@infra/ioc/services/auth', () => ({
-  tokenService: { getAuthUser: jest.fn() },
+  tokenAppService: { getAuthUser: jest.fn() },
 }));
 jest.mock('@infra/ioc/usecases/ledger', () => ({
   updateBankAccountUseCase: jest.fn(),
@@ -130,8 +130,8 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
   });
   beforeEach(() => {
     jest.resetAllMocks();
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
-    jest.mocked(tokenService.getAuthUser).mockResolvedValue({ id: userId });
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
+    jest.mocked(tokenAppService.getAuthUser).mockResolvedValue({ id: userId });
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockUserRepo.findById.mockResolvedValue({
       id: userId,
@@ -146,10 +146,11 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
       throw error;
     });
     mockLedgerAccountRepo.findById.mockResolvedValue(account);
-    mockBalanceEnrichmentService.enrich.mockImplementation(async (accounts) =>
-      accounts.map((current) =>
-        ledgerAccountToDtoMapperHelper(current, null, 'NGN')
-      )
+    mockBalanceEnrichmentAppService.enrich.mockImplementation(
+      async (accounts) =>
+        accounts.map((current) =>
+          ledgerAccountToDtoMapperHelper(current, null, 'NGN')
+        )
     );
     update.mockImplementation(
       makeUpdateBankAccountUsecase({
@@ -160,10 +161,11 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
         bankAccountRepo: mockBankAccountRepo,
         cashAccountService,
         openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
-        journalEntryPersistenceService: mockJournalEntryPersistenceService,
-        balanceEnrichmentService: mockBalanceEnrichmentService,
-        fxCostBasisPersistenceService: mockFxCostBasisService.persistence,
-        outboxService: mockOutboxService,
+        journalEntryPersistenceAppService:
+          mockJournalEntryPersistenceAppService,
+        balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
+        fxCostBasisPersistenceAppService: mockFxCostBasisService.persistence,
+        outboxAppService: mockOutboxAppService,
         ledgerBalanceAdjustmentQueue: mockBalanceQueue,
       })
     );
@@ -316,7 +318,7 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
           expect.objectContaining({ tx: mockRepoTransaction.context })
         );
         expect(
-          mockJournalEntryPersistenceService.rectify
+          mockJournalEntryPersistenceAppService.rectify
         ).toHaveBeenCalledTimes(1);
       }
     );
@@ -352,7 +354,7 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
   });
   describe('403 Response', () => {
     it('enforces Alpha 1 access', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
       expect((await patch({ name: 'Changed' })).status).toBe(403);
       expect(update).not.toHaveBeenCalled();
     });

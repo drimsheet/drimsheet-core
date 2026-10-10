@@ -8,7 +8,7 @@ import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
 import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock';
-import mockUserAuthService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
+import mockUserAuthAppService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
 import { EAuthStrategy, IUserAuth } from '@app/auth/contracts/auth.types';
 import { IOAuthProfile } from '@app/auth/dtos/auth/auth.dto';
 import makeLoginWithGoogleUseCase from '@app/auth/usecases/login-with-google.usecase';
@@ -43,7 +43,7 @@ describe('makeLoginWithGoogleUseCase', () => {
       correlationId,
       idempotencyKey,
     } as unknown as IAppContextData);
-    mockUserAuthService.addStrategy.mockImplementation(
+    mockUserAuthAppService.addStrategy.mockImplementation(
       (userAuth, strategy) => ({
         ...userAuth,
         strategy: [...userAuth.strategy, strategy],
@@ -51,7 +51,7 @@ describe('makeLoginWithGoogleUseCase', () => {
         updatedAt: new Date(),
       })
     );
-    mockUserAuthService.make.mockImplementation((payload) => {
+    mockUserAuthAppService.make.mockImplementation((payload) => {
       const timestamp = new Date();
 
       return {
@@ -103,7 +103,7 @@ describe('makeLoginWithGoogleUseCase', () => {
       appContext: mockAppContext,
       userRepo: mockUserRepo,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
     });
 
@@ -147,7 +147,7 @@ describe('makeLoginWithGoogleUseCase', () => {
       correlationId,
       tx: 'mock-tx',
     });
-    expect(mockUserAuthService.addStrategy).toHaveBeenCalledWith(
+    expect(mockUserAuthAppService.addStrategy).toHaveBeenCalledWith(
       mockUserAuth,
       EAuthStrategy.Google
     );

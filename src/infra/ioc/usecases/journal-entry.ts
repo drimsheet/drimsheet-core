@@ -9,19 +9,19 @@ import makeGetJournalEntryUsecase from '@app/journal-entry/usecases/get-journal-
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
 
 import { counterpartyAppService } from '@infra/ioc/services/counterparty';
-import { fileManagementService } from '@infra/ioc/services/file';
+import { fileManagementAppService } from '@infra/ioc/services/file';
 import {
-  fxCostBasisPersistenceService,
+  fxCostBasisPersistenceAppService,
   fxLotAppService,
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
-  journalEntryPersistenceService,
-  journalEntryRectificationPreparationService,
+  journalEntryPersistenceAppService,
+  journalEntryRectificationPreparationAppService,
   journalEntryRemovalService,
   journalEntryService,
   openingBalanceEntryAppService,
 } from '@infra/ioc/services/journal-entry';
-import outboxService from '@infra/ioc/services/outbox';
+import outboxAppService from '@infra/ioc/services/outbox';
 import { repoService } from '@infra/ioc/services/repo';
 import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
@@ -37,11 +37,11 @@ export const createOpeningBalanceUseCase = makeTracedUseCase(
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     eventBus: messaging.eventBus,
     openingBalanceEntryAppService,
-    journalEntryPersistenceService,
-    outboxService,
+    journalEntryPersistenceAppService,
+    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
-    fxCostBasisPersistenceService,
+    fxCostBasisPersistenceAppService,
   })
 );
 
@@ -67,13 +67,13 @@ export const deleteJournalEntryUseCase = makeTracedUseCase(
   makeDeleteJournalEntryUsecase({
     appContext,
     eventBus: messaging.eventBus,
-    fxCostBasisPersistenceService,
+    fxCostBasisPersistenceAppService,
     fxLotAppService,
-    journalEntryPersistenceService,
+    journalEntryPersistenceAppService,
     journalEntryRemovalService,
     journalEntryRepo: journalEntryRepos.journalEntry,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    outboxService,
+    outboxAppService,
     repoService,
   })
 );
@@ -92,16 +92,16 @@ export const createPaymentUseCase = makeTracedUseCase(
     counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
     counterpartyAppService,
-    fileManagementService,
+    fileManagementAppService,
     journalEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    journalEntryPersistenceService,
+    journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxService,
+    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     fxLotAppService,
-    fxCostBasisPersistenceService,
+    fxCostBasisPersistenceAppService,
   })
 );
 
@@ -111,16 +111,16 @@ export const createReceiptUseCase = makeTracedUseCase(
     counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
     counterpartyAppService,
-    fileManagementService,
+    fileManagementAppService,
     journalEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    journalEntryPersistenceService,
+    journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxService,
+    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     fxLotAppService,
-    fxCostBasisPersistenceService,
+    fxCostBasisPersistenceAppService,
   })
 );
 
@@ -130,16 +130,16 @@ export const createTransferUseCase = makeTracedUseCase(
     counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
     counterpartyAppService,
-    fileManagementService,
+    fileManagementAppService,
     journalEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    journalEntryPersistenceService,
+    journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxService,
+    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     fxLotAppService,
-    fxCostBasisPersistenceService,
+    fxCostBasisPersistenceAppService,
   })
 );
 
@@ -149,12 +149,12 @@ export const rectifyJournalEntryUseCase = makeTracedUseCase(
     counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
     journalEntryRepo: journalEntryRepos.journalEntry,
-    journalEntryRectificationPreparationService,
-    journalEntryPersistenceService,
+    journalEntryRectificationPreparationAppService,
+    journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxService,
+    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    fxCostBasisPersistenceService,
+    fxCostBasisPersistenceAppService,
   })
 );

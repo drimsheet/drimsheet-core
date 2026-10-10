@@ -1,7 +1,7 @@
 import { Express } from 'express';
 import request from 'supertest';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
 import * as authUseCase from '@infra/ioc/usecases/auth';
 import appContext from '@infra/runtime/app-context';
@@ -26,7 +26,7 @@ jest.mock(
 
 describe('POST /api/v1/auth/logout', () => {
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   let app: Express;

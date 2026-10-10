@@ -24,14 +24,14 @@ import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
-import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryRemovalService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
 import mockLedgerBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 
 const actor = {
@@ -54,13 +54,13 @@ describe('makeDeleteJournalEntryUsecase', () => {
   const usecase = makeDeleteJournalEntryUsecase({
     appContext: mockAppContext,
     eventBus: mockEventBus,
-    fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
+    fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
     fxLotAppService: mockFxLotAppService,
-    journalEntryPersistenceService: mockJournalEntryPersistenceService,
+    journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
     journalEntryRemovalService: mockJournalEntryRemovalService,
     journalEntryRepo: mockJournalEntryRepo,
     ledgerBalanceAdjustmentQueue: mockLedgerBalanceAdjustmentQueue,
-    outboxService: mockOutboxService,
+    outboxAppService: mockOutboxAppService,
     repoService: mockRepoService,
   });
 
@@ -134,11 +134,11 @@ describe('makeDeleteJournalEntryUsecase', () => {
     mockRepoService.runInTransaction.mockImplementation(async (transactionFn) =>
       transactionFn('delete-tx' as unknown as ITransactionContext)
     );
-    mockJournalEntryPersistenceService.delete.mockResolvedValue();
-    mockJournalEntryPersistenceService.rectify.mockResolvedValue();
+    mockJournalEntryPersistenceAppService.delete.mockResolvedValue();
+    mockJournalEntryPersistenceAppService.rectify.mockResolvedValue();
     mockFxLotAppService.reverse.mockResolvedValue(null);
-    mockFxLotCostBasisService.persistence.persistReversal.mockResolvedValue();
-    mockOutboxService.createBalancePropagation.mockResolvedValue();
+    mockFxLotCostBasisAppService.persistence.persistReversal.mockResolvedValue();
+    mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerBalanceAdjustmentQueue.add.mockResolvedValue();
     mockEventBus.publish.mockResolvedValue();
   });
@@ -151,9 +151,13 @@ describe('makeDeleteJournalEntryUsecase', () => {
     const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
     mockJournalEntryRemovalService.prepare.mockRejectedValueOnce(failure);
     await expect(usecase(entry.id)).rejects.toBe(failure);
-    expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.delete).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.delete).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
   it.each([
@@ -172,7 +176,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
 
       await expect(usecase(entry.id)).resolves.toBeUndefined();
 
-      expect(mockJournalEntryPersistenceService.delete).toHaveBeenCalledWith(
+      expect(mockJournalEntryPersistenceAppService.delete).toHaveBeenCalledWith(
         {
           journalEntryId: entry.id,
           expectedVersion: entry.version,
@@ -180,9 +184,13 @@ describe('makeDeleteJournalEntryUsecase', () => {
         { correlationId, idempotencyKey }
       );
       expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-      expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryPersistenceAppService.rectify
+      ).not.toHaveBeenCalled();
       expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
-      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
       expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
@@ -206,7 +214,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
       'a1111111-1111-4111-8111-111111111111' as TEntityId,
       { correlationId, idempotencyKey }
     );
-    expect(mockJournalEntryPersistenceService.rectify).toHaveBeenCalledWith(
+    expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledWith(
       expect.objectContaining({
         entriesToCreate: [
           expect.objectContaining({
@@ -220,7 +228,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
       }),
       { correlationId, tx: 'delete-tx' }
     );
-    expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledWith(
+    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
       removal.reversingJournalEntry.id,
       { correlationId, tx: 'delete-tx' }
     );
@@ -230,9 +238,9 @@ describe('makeDeleteJournalEntryUsecase', () => {
     });
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
     expect(
-      mockJournalEntryPersistenceService.rectify.mock.invocationCallOrder[0]
+      mockJournalEntryPersistenceAppService.rectify.mock.invocationCallOrder[0]
     ).toBeLessThan(
-      mockOutboxService.createBalancePropagation.mock.invocationCallOrder[0]
+      mockOutboxAppService.createBalancePropagation.mock.invocationCallOrder[0]
     );
     expect(
       mockRepoService.runInTransaction.mock.invocationCallOrder[0]
@@ -252,15 +260,15 @@ describe('makeDeleteJournalEntryUsecase', () => {
     await usecase(entry.id);
 
     expect(
-      mockFxLotCostBasisService.persistence.persistReversal
+      mockFxLotCostBasisAppService.persistence.persistReversal
     ).toHaveBeenCalledWith(fxReversal.records, {
       correlationId,
       tx: 'delete-tx',
     });
     expect(
-      mockJournalEntryPersistenceService.rectify.mock.invocationCallOrder[0]
+      mockJournalEntryPersistenceAppService.rectify.mock.invocationCallOrder[0]
     ).toBeLessThan(
-      mockFxLotCostBasisService.persistence.persistReversal.mock
+      mockFxLotCostBasisAppService.persistence.persistReversal.mock
         .invocationCallOrder[0]
     );
   });
@@ -278,8 +286,10 @@ describe('makeDeleteJournalEntryUsecase', () => {
       journalEntryError.DeletionNotPermitted
     );
 
-    expect(mockJournalEntryPersistenceService.delete).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.rectify).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.delete).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
     expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
   });
 
@@ -319,7 +329,9 @@ describe('makeDeleteJournalEntryUsecase', () => {
     mockJournalEntryRemovalService.prepare.mockResolvedValue(
       await prepareReversal(entry)
     );
-    mockJournalEntryPersistenceService.rectify.mockRejectedValueOnce(failure);
+    mockJournalEntryPersistenceAppService.rectify.mockRejectedValueOnce(
+      failure
+    );
 
     await expect(usecase(entry.id)).rejects.toBe(failure);
 

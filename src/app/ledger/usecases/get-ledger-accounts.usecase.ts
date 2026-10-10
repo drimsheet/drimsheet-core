@@ -8,7 +8,7 @@ import ILedgerAccountRepo, {
 import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
+import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import {
   IGetLedgerAccountsQuery,
   ILedgerAccountDto,
@@ -18,7 +18,7 @@ import { getLedgerAccountQueryValidationSchema } from '@app/ledger/dtos/ledger-a
 interface IDependencies {
   appContext: IAppContext;
   ledgerAccountRepo: ILedgerAccountRepo;
-  balanceEnrichmentService: ILedgerAccountBalanceEnrichmentService;
+  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
 }
 
 export default function makeGetLedgerAccountsUsecase(deps: IDependencies) {
@@ -44,7 +44,7 @@ export default function makeGetLedgerAccountsUsecase(deps: IDependencies) {
       accountRepoOptions
     );
 
-    const data = await deps.balanceEnrichmentService.enrich(
+    const data = await deps.balanceEnrichmentAppService.enrich(
       ledgerAccountsRes.data,
       accountingEntity,
       repoOptions

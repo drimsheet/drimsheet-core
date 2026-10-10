@@ -25,7 +25,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
-import mockLedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
+import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
@@ -93,7 +93,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     makeGetPermittedPostingAccountsUsecase({
       appContext: mockAppContext,
       ledgerAccountRepo: mockLedgerAccountRepo,
-      balanceEnrichmentService: mockLedgerAccountBalanceEnrichmentService,
+      balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
     });
 
   beforeEach(() => {
@@ -106,7 +106,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       data: [],
       meta: { page: 2, limit: 5, total: 0, totalPages: 0 },
     });
-    mockLedgerAccountBalanceEnrichmentService.enrich.mockResolvedValue([]);
+    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([]);
   });
 
   it('rejects an invalid request before repository reads', async () => {
@@ -120,7 +120,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
   });
 
@@ -137,7 +137,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     });
     expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
   });
 
@@ -317,7 +317,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     const result = await getUseCase()(validQuery);
 
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).toHaveBeenCalledWith([], accountingEntity, { correlationId });
     expect(result).toEqual({
       data: [],
@@ -330,14 +330,14 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       data: [ledgerAccount],
       meta: { page: 2, limit: 5, total: 6, totalPages: 2 },
     });
-    mockLedgerAccountBalanceEnrichmentService.enrich.mockResolvedValue([
+    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([
       enrichedDto,
     ]);
 
     const result = await getUseCase()(validQuery);
 
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).toHaveBeenCalledWith([ledgerAccount], accountingEntity, {
       correlationId,
     });

@@ -1,4 +1,4 @@
-import featureFlagService from '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service';
+import featureFlagAppService from '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service';
 import launchDarklyClient from '@infra/integrations/launchdarkly/launchdarkly.client';
 
 jest.mock('@infra/integrations/launchdarkly/launchdarkly.client', () => ({
@@ -19,9 +19,9 @@ describe('LaunchDarkly feature flag service', () => {
     const email = 'user@example.com';
     client.boolVariation.mockResolvedValue(true);
 
-    await expect(featureFlagService.canAccessAlpha1({ email })).resolves.toBe(
-      true
-    );
+    await expect(
+      featureFlagAppService.canAccessAlpha1({ email })
+    ).resolves.toBe(true);
     expect(client.boolVariation).toHaveBeenCalledWith(
       'v_0_1_0_alpha_1',
       {
@@ -40,7 +40,7 @@ describe('LaunchDarkly feature flag service', () => {
     client.boolVariation.mockResolvedValue(false);
 
     await expect(
-      featureFlagService.canAccessAlpha1({ email: 'user@example.com' })
+      featureFlagAppService.canAccessAlpha1({ email: 'user@example.com' })
     ).resolves.toBe(false);
   });
 });

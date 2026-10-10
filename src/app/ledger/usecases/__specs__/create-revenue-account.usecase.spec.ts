@@ -12,7 +12,7 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountPersistenceService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import {
   mockEmploymentIncomeAccountService,
   mockGainOnAssetSaleAccountService,
@@ -77,7 +77,7 @@ const usecase = makeCreateRevenueAccountUsecase({
   appContext: mockAppContext,
   eventBus: mockEventBus,
   repoService: mockRepoService,
-  ledgerAccountPersistenceService: mockLedgerAccountPersistenceService,
+  ledgerAccountPersistenceAppService: mockLedgerAccountPersistenceAppService,
   servicesAccountService: mockServicesAccountService,
   employmentIncomeAccountService: mockEmploymentIncomeAccountService,
   gainOnAssetSaleAccountService: mockGainOnAssetSaleAccountService,
@@ -184,7 +184,7 @@ describe('complete revenue creation workflow', () => {
         status: scenario.status,
       });
       const [account, functionalCurrency, writeOptions] =
-        mockLedgerAccountPersistenceService.create.mock.calls[0];
+        mockLedgerAccountPersistenceAppService.create.mock.calls[0];
       expect(scenario.service.createSubAccount).toHaveBeenCalledWith(
         expect.objectContaining({ status: scenario.status }),
         expect.objectContaining({ tx: mockRepoTransaction.context })
@@ -254,7 +254,7 @@ describe('complete revenue creation workflow', () => {
           failure
         );
       if (stage === 'write')
-        mockLedgerAccountPersistenceService.create.mockRejectedValueOnce(
+        mockLedgerAccountPersistenceAppService.create.mockRejectedValueOnce(
           failure
         );
       if (stage === 'commit')
@@ -270,7 +270,9 @@ describe('complete revenue creation workflow', () => {
     mockEventBus.publish.mockRejectedValueOnce(failure);
     await expect(usecase(valid)).rejects.toBe(failure);
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
-    expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(1);
+    expect(mockLedgerAccountPersistenceAppService.create).toHaveBeenCalledTimes(
+      1
+    );
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
   });

@@ -6,12 +6,12 @@ import appError from '@shared/values/errors/app.error';
 
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { IFileUploadDto } from '@app/file/dtos/file-upload/file-upload.dto';
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import * as fileUseCases from '@infra/ioc/usecases/file';
 import userRepos from '@infra/persistence/repos/user';
 import { createApplication } from '@infra/server';
@@ -35,7 +35,7 @@ jest.mock(
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,
-  tokenService: {
+  tokenAppService: {
     getAuthUser: jest.fn(),
   },
 }));
@@ -98,7 +98,7 @@ const uploads: IFileUploadDto[] = [
 
 describe('POST /files/upload', () => {
   let app: Express;
-  const mockGetAuthUser = tokenService.getAuthUser as jest.Mock;
+  const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockPreSignUploads = fileUseCases.preSignUploadsUseCase as jest.Mock;
 
@@ -111,7 +111,7 @@ describe('POST /files/upload', () => {
   });
 
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   it('returns direct upload instructions for an authenticated request', async () => {

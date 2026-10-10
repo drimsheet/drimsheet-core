@@ -13,7 +13,7 @@ interface IRotateSessionPayload {
   presentedSession: IUserSessionReference;
 }
 
-export default interface IUserSessionPersistenceService {
+export default interface IUserSessionPersistenceAppService {
   replaceClientSession(
     payload: IReplaceClientSessionPayload,
     repoOptions: IWriteRepoOptions

@@ -8,9 +8,9 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import { deleteJournalEntryUseCase } from '@infra/ioc/usecases/journal-entry';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
@@ -35,7 +35,7 @@ jest.mock(
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,
-  tokenService: { getAuthUser: jest.fn() },
+  tokenAppService: { getAuthUser: jest.fn() },
 }));
 
 jest.mock('../../../src/infra/ioc/usecases/journal-entry', () => ({
@@ -62,7 +62,7 @@ const accountingEntityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
 const journalEntryId = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
 describe('DELETE /journal-entries/{id}', () => {
   let app: Express;
-  const mockGetAuthUser = tokenService.getAuthUser as jest.Mock;
+  const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
     .findByIdAndUserId as jest.Mock;
@@ -70,7 +70,7 @@ describe('DELETE /journal-entries/{id}', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
     mockFindUser.mockResolvedValue({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,

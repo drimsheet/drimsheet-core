@@ -3,8 +3,8 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockUserSessionPersistenceService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionService from '@app/auth/contracts/__mocks__/user-session.service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
 import makeOauthUsecase from '@app/auth/usecases/oauth.usecase';
 import mockAppContext, {
   mockClientSession,
@@ -35,8 +35,8 @@ describe('makeOauthUsecase', () => {
     makeOauthUsecase({
       actorService: mockActorService,
       reqContext: mockAppContext,
-      userSessionService: mockUserSessionService,
-      userSessionPersistenceService: mockUserSessionPersistenceService,
+      userSessionAppService: mockUserSessionAppService,
+      userSessionPersistenceAppService: mockUserSessionPersistenceAppService,
       webAppUrl,
     });
 
@@ -46,12 +46,12 @@ describe('makeOauthUsecase', () => {
       correlationId,
       clientSession: mockClientSession,
     } as unknown as IAppContextData);
-    mockUserSessionPersistenceService.replaceClientSession.mockReset();
+    mockUserSessionPersistenceAppService.replaceClientSession.mockReset();
   });
 
   it('persists a prepared session, exposes its refresh token, and returns the redirect URL', async () => {
     mockClientSession.getRefreshToken.mockReturnValue(null);
-    mockUserSessionService.prepare.mockResolvedValue({
+    mockUserSessionAppService.prepare.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'new-refresh-token',
       userSession,
@@ -60,9 +60,9 @@ describe('makeOauthUsecase', () => {
 
     const redirectUrl = await getUseCase().handleGoogleCallback(user);
 
-    expect(mockUserSessionService.prepare).toHaveBeenCalledWith(user, null);
+    expect(mockUserSessionAppService.prepare).toHaveBeenCalledWith(user, null);
     expect(
-      mockUserSessionPersistenceService.replaceClientSession
+      mockUserSessionPersistenceAppService.replaceClientSession
     ).toHaveBeenCalledWith(
       { userSession, priorClientSession: null },
       { correlationId }
@@ -79,7 +79,7 @@ describe('makeOauthUsecase', () => {
       refreshToken: 'old-refresh-token',
     };
     mockClientSession.getRefreshToken.mockReturnValue('old-refresh-token');
-    mockUserSessionService.prepare.mockResolvedValue({
+    mockUserSessionAppService.prepare.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'new-refresh-token',
       userSession,
@@ -88,12 +88,12 @@ describe('makeOauthUsecase', () => {
 
     await getUseCase().handleGoogleCallback(user);
 
-    expect(mockUserSessionService.prepare).toHaveBeenCalledWith(
+    expect(mockUserSessionAppService.prepare).toHaveBeenCalledWith(
       user,
       'old-refresh-token'
     );
     expect(
-      mockUserSessionPersistenceService.replaceClientSession
+      mockUserSessionPersistenceAppService.replaceClientSession
     ).toHaveBeenCalledWith(
       { userSession, priorClientSession },
       { correlationId }
@@ -102,13 +102,13 @@ describe('makeOauthUsecase', () => {
 
   it('does not expose the refresh token when persistence fails', async () => {
     mockClientSession.getRefreshToken.mockReturnValue(null);
-    mockUserSessionService.prepare.mockResolvedValue({
+    mockUserSessionAppService.prepare.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'new-refresh-token',
       userSession,
       priorClientSession: null,
     });
-    mockUserSessionPersistenceService.replaceClientSession.mockRejectedValue(
+    mockUserSessionPersistenceAppService.replaceClientSession.mockRejectedValue(
       new Error('persistence failed')
     );
 

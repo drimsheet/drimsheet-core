@@ -5,7 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IUser } from '@domain/user/types/user.types';
 
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import getAuthUserFromRequest from '@interface/http/helpers/get-auth-user-from-request.helper';
@@ -26,7 +26,7 @@ describe('getAuthUserFromRequest', () => {
   function getUserFromRequest() {
     return getAuthUserFromRequest(
       mockReq as Request,
-      mockTokenService,
+      mockTokenAppService,
       mockUserRepo,
       repoOptions
     );
@@ -34,28 +34,28 @@ describe('getAuthUserFromRequest', () => {
 
   it('returns null if the authorization header is missing', async () => {
     await expect(getUserFromRequest()).resolves.toBeNull();
-    expect(mockTokenService.getAuthUser).not.toHaveBeenCalled();
+    expect(mockTokenAppService.getAuthUser).not.toHaveBeenCalled();
   });
 
   it('returns null if the bearer token is missing', async () => {
     mockReq.headers = { authorization: 'Bearer ' };
 
     await expect(getUserFromRequest()).resolves.toBeNull();
-    expect(mockTokenService.getAuthUser).not.toHaveBeenCalled();
+    expect(mockTokenAppService.getAuthUser).not.toHaveBeenCalled();
   });
 
   it('returns null for the wrong authorization scheme', async () => {
     mockReq.headers = { authorization: 'Basic valid-token' };
 
     await expect(getUserFromRequest()).resolves.toBeNull();
-    expect(mockTokenService.getAuthUser).not.toHaveBeenCalled();
+    expect(mockTokenAppService.getAuthUser).not.toHaveBeenCalled();
   });
 
   it('returns null if the authorization header has extra segments', async () => {
     mockReq.headers = { authorization: 'Bearer valid-token extra' };
 
     await expect(getUserFromRequest()).resolves.toBeNull();
-    expect(mockTokenService.getAuthUser).not.toHaveBeenCalled();
+    expect(mockTokenAppService.getAuthUser).not.toHaveBeenCalled();
   });
 
   it('accepts additional spacing around a valid bearer token', async () => {
@@ -65,17 +65,17 @@ describe('getAuthUserFromRequest', () => {
       id: userId,
     } as IUser;
     mockReq.headers = { authorization: '  Bearer   valid-token  ' };
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(user);
 
     await expect(getUserFromRequest()).resolves.toBe(user);
-    expect(mockTokenService.getAuthUser).toHaveBeenCalledWith('valid-token');
+    expect(mockTokenAppService.getAuthUser).toHaveBeenCalledWith('valid-token');
   });
 
   it('propagates token decoding errors', async () => {
     const error = new Error('token expired');
     mockReq.headers = { authorization: 'Bearer invalid-token' };
-    mockTokenService.getAuthUser.mockRejectedValue(error);
+    mockTokenAppService.getAuthUser.mockRejectedValue(error);
 
     await expect(getUserFromRequest()).rejects.toThrow(error);
   });
@@ -87,7 +87,7 @@ describe('getAuthUserFromRequest', () => {
       id: userId,
     } as IUser;
     mockReq.headers = { authorization: 'Bearer valid-token' };
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(user);
 
     await expect(getUserFromRequest()).resolves.toBe(user);

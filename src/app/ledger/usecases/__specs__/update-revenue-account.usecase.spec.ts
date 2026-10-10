@@ -9,7 +9,7 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockBalanceEnrichmentService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
+import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import { mockRevenueAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
@@ -48,7 +48,7 @@ const usecase = makeUpdateRevenueAccountUsecase({
   eventBus: mockEventBus,
   ledgerAccountRepo: mockLedgerAccountRepo,
   revenueAccountService: mockRevenueAccountService,
-  balanceEnrichmentService: mockBalanceEnrichmentService,
+  balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
 });
 
 describe('update revenue account workflow', () => {
@@ -64,10 +64,11 @@ describe('update revenue account workflow', () => {
     mockRevenueAccountService.update.mockReturnValue(
       ledgerAccountEntity.update(account, { name: 'Advisory' })
     );
-    mockBalanceEnrichmentService.enrich.mockImplementation(async (accounts) =>
-      accounts.map((current) =>
-        ledgerAccountToDtoMapperHelper(current, null, 'NGN')
-      )
+    mockBalanceEnrichmentAppService.enrich.mockImplementation(
+      async (accounts) =>
+        accounts.map((current) =>
+          ledgerAccountToDtoMapperHelper(current, null, 'NGN')
+        )
     );
   });
 
@@ -109,9 +110,9 @@ describe('update revenue account workflow', () => {
       mockLedgerAccountRepo.update.mock.invocationCallOrder[0]
     ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
     expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
-      mockBalanceEnrichmentService.enrich.mock.invocationCallOrder[0]
+      mockBalanceEnrichmentAppService.enrich.mock.invocationCallOrder[0]
     );
-    expect(mockBalanceEnrichmentService.enrich).toHaveBeenCalledWith(
+    expect(mockBalanceEnrichmentAppService.enrich).toHaveBeenCalledWith(
       [updated],
       accountingEntity,
       { correlationId }
@@ -127,7 +128,7 @@ describe('update revenue account workflow', () => {
     await usecase(account.id, { name: '  Consulting  ' });
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-    expect(mockBalanceEnrichmentService.enrich).toHaveBeenCalledWith(
+    expect(mockBalanceEnrichmentAppService.enrich).toHaveBeenCalledWith(
       [account],
       accountingEntity,
       { correlationId }
@@ -168,7 +169,7 @@ describe('update revenue account workflow', () => {
     );
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-    expect(mockBalanceEnrichmentService.enrich).not.toHaveBeenCalled();
+    expect(mockBalanceEnrichmentAppService.enrich).not.toHaveBeenCalled();
   });
 
   it('propagates read failures without writing', async () => {
@@ -188,7 +189,7 @@ describe('update revenue account workflow', () => {
         failure
       );
       expect(mockEventBus.publish).not.toHaveBeenCalled();
-      expect(mockBalanceEnrichmentService.enrich).not.toHaveBeenCalled();
+      expect(mockBalanceEnrichmentAppService.enrich).not.toHaveBeenCalled();
     }
   );
 
@@ -199,12 +200,12 @@ describe('update revenue account workflow', () => {
       failure
     );
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledTimes(1);
-    expect(mockBalanceEnrichmentService.enrich).not.toHaveBeenCalled();
+    expect(mockBalanceEnrichmentAppService.enrich).not.toHaveBeenCalled();
   });
 
   it('propagates enrichment failure after the write and publication', async () => {
     const failure = new Error('enrichment failed');
-    mockBalanceEnrichmentService.enrich.mockRejectedValue(failure);
+    mockBalanceEnrichmentAppService.enrich.mockRejectedValue(failure);
     await expect(usecase(account.id, { name: 'Advisory' })).rejects.toBe(
       failure
     );

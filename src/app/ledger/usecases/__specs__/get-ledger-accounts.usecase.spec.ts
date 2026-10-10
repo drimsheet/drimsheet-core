@@ -10,7 +10,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
-import mockLedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
+import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
@@ -27,7 +27,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
     makeGetLedgerAccountsUsecase({
       appContext: mockAppContext,
       ledgerAccountRepo: mockLedgerAccountRepo,
-      balanceEnrichmentService: mockLedgerAccountBalanceEnrichmentService,
+      balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
     });
 
   const usdCurrency = currencyEntity.getByCode('USD');
@@ -94,7 +94,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
       correlationId,
       accountingEntity,
     } as IAppContextData);
-    mockLedgerAccountBalanceEnrichmentService.enrich.mockResolvedValue([]);
+    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([]);
   });
 
   it('throws ZodError for invalid query', async () => {
@@ -108,7 +108,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
   });
 
@@ -122,7 +122,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
     const result = await useCase(validQuery);
 
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).toHaveBeenCalledWith([], accountingEntity, { correlationId });
     expect(result).toEqual({
       data: [],
@@ -145,7 +145,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
         id: controlAccount.id,
       },
     ] as ILedgerAccountDto[];
-    mockLedgerAccountBalanceEnrichmentService.enrich.mockResolvedValue(
+    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue(
       enrichedDtos
     );
 
@@ -162,7 +162,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
       }
     );
     expect(
-      mockLedgerAccountBalanceEnrichmentService.enrich
+      mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).toHaveBeenCalledWith([ledgerAccount, controlAccount], accountingEntity, {
       correlationId,
     });

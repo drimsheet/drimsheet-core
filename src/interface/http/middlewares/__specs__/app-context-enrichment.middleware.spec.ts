@@ -9,7 +9,7 @@ import actorError from '@domain/user/errors/actor.error';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
@@ -52,7 +52,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
     return makeAppContextEnrichmentMiddleware(
       mockAppContext,
       mockAccountingEntityRepo,
-      mockTokenService,
+      mockTokenAppService,
       mockUserRepo,
       mockActorService
     );
@@ -63,7 +63,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
 
     await middleware(mockReq as Request, mockRes as Response, mockNext);
 
-    expect(mockTokenService.getAuthUser).not.toHaveBeenCalled();
+    expect(mockTokenAppService.getAuthUser).not.toHaveBeenCalled();
     expect(mockUserRepo.findById).not.toHaveBeenCalled();
     expect(mockAccountingEntityRepo.findByIdAndUserId).not.toHaveBeenCalled();
     expect(mockAppContext.set).not.toHaveBeenCalled();
@@ -77,7 +77,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
       id: userId,
     } as IUser;
     mockReq.headers = { authorization: 'Bearer valid-token' };
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(user);
 
     const middleware = makeMiddleware();
@@ -109,7 +109,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
       authorization: 'Bearer valid-token',
       'x-accounting-entity-id': accountingEntityId,
     };
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(user);
     mockAccountingEntityRepo.findByIdAndUserId.mockResolvedValue(
       accountingEntity
@@ -136,7 +136,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
   it('propagates authentication failures without enriching context', async () => {
     const error = new Error('authentication failed');
     mockReq.headers = { authorization: 'Bearer invalid-token' };
-    mockTokenService.getAuthUser.mockRejectedValue(error);
+    mockTokenAppService.getAuthUser.mockRejectedValue(error);
 
     const middleware = makeMiddleware();
 
@@ -157,7 +157,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
       authorization: 'Bearer valid-token',
       'x-accounting-entity-id': 'not-a-uuid',
     };
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(user);
 
     const middleware = makeMiddleware();
@@ -180,7 +180,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
       authorization: 'Bearer valid-token',
       'x-accounting-entity-id': accountingEntityId,
     };
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(user);
     mockAccountingEntityRepo.findByIdAndUserId.mockRejectedValue(error);
 
@@ -203,7 +203,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
       'x-actor-id': 'forged',
       'x-on-behalf-of': 'forged',
     };
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(user);
     mockActorService.resolveUser.mockResolvedValueOnce(actor);
     await makeMiddleware()(mockReq as Request, mockRes as Response, mockNext);
@@ -221,7 +221,7 @@ describe('makeAppContextEnrichmentMiddleware', () => {
     'does not populate context when actor resolution fails',
     async (ActorError) => {
       mockReq.headers = { authorization: 'Bearer valid-token' };
-      mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+      mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
       mockUserRepo.findById.mockResolvedValue({ id: userId } as IUser);
       mockActorService.resolveUser.mockRejectedValueOnce(new ActorError());
       await expect(

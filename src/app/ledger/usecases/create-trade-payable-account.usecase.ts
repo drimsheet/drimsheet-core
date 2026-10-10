@@ -8,7 +8,7 @@ import historyValue from '@shared/values/history/history.vo';
 import { IPayablesAccountService } from '@domain/ledger/types/payables.service.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateTradePayableAccountDto } from '@app/ledger/dtos/payable-account/payable-account.dto';
 import { createTradePayableAccountValidation } from '@app/ledger/dtos/payable-account/payable-account.dto.validation';
@@ -18,7 +18,7 @@ interface IDependencies {
   appContext: IAppContext;
   eventBus: IEventBus;
   repoService: IRepoService;
-  ledgerAccountPersistenceService: ILedgerAccountPersistenceService;
+  ledgerAccountPersistenceAppService: ILedgerAccountPersistenceAppService;
   payablesAccountService: IPayablesAccountService;
 }
 
@@ -62,7 +62,7 @@ export default function makeCreateTradePayableAccountUsecase(
       const [account, events, audit] = auditedAccount;
       const accountHistory = historyValue.make(audit, actor.id, correlationId);
 
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         account,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [accountHistory] }

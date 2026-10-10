@@ -9,7 +9,7 @@ import { IReceivablesAccountService } from '@domain/ledger/types/receivables-acc
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateTradeReceivableAccountDto } from '@app/ledger/dtos/receivable-account/receivable-account.dto';
 import { createTradeReceivableAccountValidation } from '@app/ledger/dtos/receivable-account/receivable-account.dto.validation';
@@ -19,7 +19,7 @@ interface IDependencies {
   appContext: IAppContext;
   eventBus: IEventBus;
   repoService: IRepoService;
-  ledgerAccountPersistenceService: ILedgerAccountPersistenceService;
+  ledgerAccountPersistenceAppService: ILedgerAccountPersistenceAppService;
   receivablesAccountService: IReceivablesAccountService;
 }
 
@@ -59,7 +59,7 @@ export default function makeCreateTradeReceivableAccountUsecase(
       const [account, events, audit] = auditedAccount;
       const accountHistory = historyValue.make(audit, actor.id, correlationId);
 
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         account,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [accountHistory] }

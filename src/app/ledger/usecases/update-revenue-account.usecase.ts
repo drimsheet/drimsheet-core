@@ -10,7 +10,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import IRevenueAccountService from '@domain/ledger/types/revenue-account.service.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
+import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IUpdateRevenueAccountDto } from '@app/ledger/dtos/revenue-account/revenue-account.dto';
 import { updateRevenueAccountValidation } from '@app/ledger/dtos/revenue-account/revenue-account.dto.validation';
@@ -21,7 +21,7 @@ interface IDependencies {
   eventBus: IEventBus;
   ledgerAccountRepo: ILedgerAccountRepo;
   revenueAccountService: IRevenueAccountService;
-  balanceEnrichmentService: ILedgerAccountBalanceEnrichmentService;
+  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
 }
 
 export default function makeUpdateRevenueAccountUsecase(deps: IDependencies) {
@@ -65,7 +65,7 @@ export default function makeUpdateRevenueAccountUsecase(deps: IDependencies) {
       );
     }
 
-    const [response] = await deps.balanceEnrichmentService.enrich(
+    const [response] = await deps.balanceEnrichmentAppService.enrich(
       [account],
       accountingEntity,
       repoOptions

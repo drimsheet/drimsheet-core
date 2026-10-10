@@ -4,15 +4,15 @@ import { IUser } from '@domain/user/types/user.types';
 
 import mockTransactionalEmailTemplate from '@app/notification/contracts/__mocks__/transactional-email-template.mock';
 import ITransactionalEmailQueue from '@app/notification/contracts/transactional-email-queue.contract';
-import makeTransactionalEmailService from '@app/notification/services/transaction-email.service';
+import makeTransactionalEmailAppService from '@app/notification/services/transaction-email.service';
 
-describe('transactionEmailService', () => {
+describe('transactionEmailAppService', () => {
   const verificationEmailHtml = '<html>verification email</html>';
   const passwordResetEmailHtml = '<html>password reset email</html>';
   const mockQueue: jest.Mocked<ITransactionalEmailQueue> = {
     add: jest.fn(),
   };
-  let service: ReturnType<typeof makeTransactionalEmailService>;
+  let service: ReturnType<typeof makeTransactionalEmailAppService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -23,7 +23,7 @@ describe('transactionEmailService', () => {
       passwordResetEmailHtml
     );
 
-    service = makeTransactionalEmailService({
+    service = makeTransactionalEmailAppService({
       transactionalEmailQueue: mockQueue,
       transactionalEmailTemplate: mockTransactionalEmailTemplate,
     });

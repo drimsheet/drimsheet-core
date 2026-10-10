@@ -2,9 +2,9 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IUser } from '@domain/user/types/user.types';
 
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockUserSessionPersistenceService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionService from '@app/auth/contracts/__mocks__/user-session.service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
 import authError from '@app/auth/errors/auth.error';
 import makeRefreshAccessTokenUseCase from '@app/auth/usecases/refresh-access-token.usecase';
 import mockAppContext, {
@@ -36,9 +36,9 @@ describe('refreshAccessTokenUseCase', () => {
       actorService: mockActorService,
       reqContext: mockAppContext,
       userRepo: mockUserRepo,
-      tokenService: mockTokenService,
-      userSessionService: mockUserSessionService,
-      userSessionPersistenceService: mockUserSessionPersistenceService,
+      tokenAppService: mockTokenAppService,
+      userSessionAppService: mockUserSessionAppService,
+      userSessionPersistenceAppService: mockUserSessionPersistenceAppService,
     });
 
   beforeEach(() => {
@@ -48,15 +48,15 @@ describe('refreshAccessTokenUseCase', () => {
       clientSession: mockClientSession,
     } as unknown as ReturnType<typeof mockAppContext.get>);
     mockClientSession.getRefreshToken.mockReturnValue(presentedRefreshToken);
-    mockTokenService.verifyRefreshToken.mockReturnValue({ id: userId });
+    mockTokenAppService.verifyRefreshToken.mockReturnValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(user);
-    mockUserSessionService.prepare.mockResolvedValue({
+    mockUserSessionAppService.prepare.mockResolvedValue({
       accessToken: 'replacement-access-token',
       refreshToken: 'replacement-refresh-token',
       userSession,
       priorClientSession: null,
     });
-    mockUserSessionPersistenceService.rotateSession
+    mockUserSessionPersistenceAppService.rotateSession
       .mockReset()
       .mockResolvedValue(true);
   });
@@ -67,11 +67,11 @@ describe('refreshAccessTokenUseCase', () => {
     await expect(getUseCase()()).rejects.toThrow('app_error_unauthorized');
 
     expect(mockClientSession.clearRefreshToken).toHaveBeenCalled();
-    expect(mockUserSessionService.prepare).not.toHaveBeenCalled();
+    expect(mockUserSessionAppService.prepare).not.toHaveBeenCalled();
   });
 
   it('propagates an invalid-token AuthError and clears the client token', async () => {
-    mockTokenService.verifyRefreshToken.mockImplementation(() => {
+    mockTokenAppService.verifyRefreshToken.mockImplementation(() => {
       throw new authError.InvalidToken();
     });
 
@@ -89,7 +89,7 @@ describe('refreshAccessTokenUseCase', () => {
   });
 
   it('throws Unauthorized without exposing credentials when the presented session is absent', async () => {
-    mockUserSessionPersistenceService.rotateSession.mockResolvedValue(false);
+    mockUserSessionPersistenceAppService.rotateSession.mockResolvedValue(false);
 
     await expect(getUseCase()()).rejects.toThrow('app_error_unauthorized');
 
@@ -100,9 +100,9 @@ describe('refreshAccessTokenUseCase', () => {
   it('rotates the presented session and returns the prepared access token', async () => {
     const result = await getUseCase()();
 
-    expect(mockUserSessionService.prepare).toHaveBeenCalledWith(user);
+    expect(mockUserSessionAppService.prepare).toHaveBeenCalledWith(user);
     expect(
-      mockUserSessionPersistenceService.rotateSession
+      mockUserSessionPersistenceAppService.rotateSession
     ).toHaveBeenCalledWith(
       {
         userSession,

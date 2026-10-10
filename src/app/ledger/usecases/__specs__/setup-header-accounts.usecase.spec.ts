@@ -37,7 +37,7 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountPersistenceService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import {
   mockAssetAccountService,
   mockAssetDisposalLossAccountService,
@@ -65,7 +65,7 @@ import {
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
-import makeLedgerAccountPersistenceService from '@app/ledger/services/ledger-account-persistence.service';
+import makeLedgerAccountPersistenceAppService from '@app/ledger/services/ledger-account-persistence.service';
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
 
@@ -187,7 +187,7 @@ const dependencies = {
   appContext: mockAppContext,
   repoService: mockRepoService,
   eventBus: mockEventBus,
-  ledgerAccountPersistenceService: mockLedgerAccountPersistenceService,
+  ledgerAccountPersistenceAppService: mockLedgerAccountPersistenceAppService,
   cashAccountService: mockAssetAccountService,
   receivablesAccountService: mockReceivablesAccountService,
   shortTermLoanAccountService: mockShortTermLoanAccountService,
@@ -285,7 +285,7 @@ describe('setupHeaderAccountsUsecase', () => {
         );
       }
     );
-    mockLedgerAccountPersistenceService.create.mockImplementation(
+    mockLedgerAccountPersistenceAppService.create.mockImplementation(
       async (account, currency, options) => {
         expect(options.tx).toBe(tx);
         if (account.controlAccountId)
@@ -465,9 +465,9 @@ describe('setupHeaderAccountsUsecase', () => {
             history.entityVersion === 1 && history.diff.before === null
         )
       ).toBe(true);
-      expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(
-        24
-      );
+      expect(
+        mockLedgerAccountPersistenceAppService.create
+      ).toHaveBeenCalledTimes(24);
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
       expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
       expect(mockEventBus.publish.mock.calls[0][0]).toHaveLength(24);
@@ -515,7 +515,7 @@ describe('setupHeaderAccountsUsecase', () => {
           failure
         );
       if (stage === 'write')
-        mockLedgerAccountPersistenceService.create.mockImplementation(
+        mockLedgerAccountPersistenceAppService.create.mockImplementation(
           async (account, currency, options) => {
             storedAccounts.push(account);
             storedHistories.push(...options.history);
@@ -567,14 +567,14 @@ describe('setupHeaderAccountsUsecase', () => {
         storedBalances.push(balance);
       }
     );
-    const persistence = makeLedgerAccountPersistenceService({
+    const persistence = makeLedgerAccountPersistenceAppService({
       ledgerAccountRepo: mockLedgerAccountRepo,
       ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
       repoService: mockRepoService,
     });
     const setup = makeSetupHeaderAccountsUsecase({
       ...dependencies,
-      ledgerAccountPersistenceService: persistence,
+      ledgerAccountPersistenceAppService: persistence,
     });
     const response = await setup();
     expect(storedAccounts).toHaveLength(24);

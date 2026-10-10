@@ -26,7 +26,7 @@ import {
 import { IAccountingEntityCreationDto } from '@app/accounting/dtos/accounting/accounting.dto';
 import createAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockUserPreferencesService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
+import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
 import { EAppUsageModePreference } from '@app/user/types/user-preferences.types';
 
 const mockAccountingDomainServices = Object.freeze({
@@ -69,7 +69,7 @@ describe('createAccountingEntityUseCase', () => {
       appContext: mockAppContext,
       repoService: mockRepoService,
       accountingEntityRepo: mockAccountingEntityRepo,
-      userPreferencesService: mockUserPreferencesService,
+      userPreferencesAppService: mockUserPreferencesAppService,
       fiscalYearRepo: mockFiscalYearRepo,
       accountingPeriodRepo: mockAccountingPeriodRepo,
       accountingContextRepo: mockAccountingContextRepo,
@@ -119,7 +119,7 @@ describe('createAccountingEntityUseCase', () => {
     mockAccountingDomainServices.accountingEntity.create.mockResolvedValue(
       accounting
     );
-    mockUserPreferencesService.update.mockResolvedValue({
+    mockUserPreferencesAppService.update.mockResolvedValue({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       userId,
       lastActiveAccountingEntityId: accountingEntity.id,
@@ -208,7 +208,7 @@ describe('createAccountingEntityUseCase', () => {
     });
     expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
     expect(mockAccountingEntityRepo.create).toHaveBeenCalled();
-    expect(mockUserPreferencesService.update).toHaveBeenCalledWith(
+    expect(mockUserPreferencesAppService.update).toHaveBeenCalledWith(
       {
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
         userId,
@@ -229,10 +229,10 @@ describe('createAccountingEntityUseCase', () => {
     expect(
       mockAccountingEntityRepo.create.mock.invocationCallOrder[0]
     ).toBeLessThan(
-      mockUserPreferencesService.update.mock.invocationCallOrder[0]
+      mockUserPreferencesAppService.update.mock.invocationCallOrder[0]
     );
     expect(
-      mockUserPreferencesService.update.mock.invocationCallOrder[0]
+      mockUserPreferencesAppService.update.mock.invocationCallOrder[0]
     ).toBeLessThan(mockFiscalYearRepo.create.mock.invocationCallOrder[0]);
   });
 
@@ -249,7 +249,7 @@ describe('createAccountingEntityUseCase', () => {
   });
 
   it('does not update context or publish when preference persistence fails', async () => {
-    mockUserPreferencesService.update.mockRejectedValueOnce(
+    mockUserPreferencesAppService.update.mockRejectedValueOnce(
       new Error('preference persistence failed')
     );
 

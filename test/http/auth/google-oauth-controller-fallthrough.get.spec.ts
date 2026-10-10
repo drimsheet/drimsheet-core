@@ -1,7 +1,7 @@
 import { Express, NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
 import { createApplication } from '@infra/server';
 
@@ -48,7 +48,7 @@ describe('GET /auth/google controller fallthrough', () => {
   });
 
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   it.each(['/api/v1/auth/google', '/api/v1/auth/google/callback'])(

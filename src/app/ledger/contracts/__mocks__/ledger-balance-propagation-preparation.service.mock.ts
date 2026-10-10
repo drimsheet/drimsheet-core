@@ -1,6 +1,6 @@
-import ILedgerBalancePropagationPreparationService from '@app/ledger/contracts/ledger-balance-propagation-preparation.service.contract';
+import ILedgerBalancePropagationPreparationAppService from '@app/ledger/contracts/ledger-balance-propagation-preparation.service.contract';
 
-const mockLedgerBalancePropagationPreparationService: jest.Mocked<ILedgerBalancePropagationPreparationService> =
+const mockLedgerBalancePropagationPreparationAppService: jest.Mocked<ILedgerBalancePropagationPreparationAppService> =
   { prepare: jest.fn() };
 
-export default mockLedgerBalancePropagationPreparationService;
+export default mockLedgerBalancePropagationPreparationAppService;

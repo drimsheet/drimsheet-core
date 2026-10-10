@@ -1,7 +1,8 @@
-import IEmailVerificationService from '@app/auth/contracts/email-verification-service.contract';
+import IEmailVerificationAppService from '@app/auth/contracts/email-verification-service.contract';
 
-const mockEmailVerificationService: jest.Mocked<IEmailVerificationService> = {
-  send: jest.fn(),
-};
+const mockEmailVerificationAppService: jest.Mocked<IEmailVerificationAppService> =
+  {
+    send: jest.fn(),
+  };
 
-export default mockEmailVerificationService;
+export default mockEmailVerificationAppService;

@@ -1,7 +1,7 @@
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 
-const exchangeRateServiceMock: jest.Mocked<IExchangeRateAppService> = {
+const exchangeRateAppServiceMock: jest.Mocked<IExchangeRateAppService> = {
   getOfficialRate: jest.fn(),
 };
 
-export default exchangeRateServiceMock;
+export default exchangeRateAppServiceMock;

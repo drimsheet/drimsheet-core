@@ -14,7 +14,7 @@ import IFxCostBasisLotRepo from '@domain/subledger/fx-cost-basis/repos/lot.repo'
 import consumeLotsInFifoOrder from '@domain/subledger/fx-cost-basis/services/consume-lots-in-fifo-order';
 import lotServiceValidation from '@domain/subledger/fx-cost-basis/services/validations/lot.validation';
 import { IFxCostBasisLotAcquisition } from '@domain/subledger/fx-cost-basis/types/acquisition.types';
-import IFxCostBasisLotDomainService, {
+import IFxCostBasisLotService, {
   IFxCostBasisReversalResult,
 } from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 import {
@@ -29,7 +29,7 @@ interface IDependencies {
   dispositionAllocationRepo: IFxCostBasisLotDispositionAllocationRepo;
 }
 
-function makeAcquire(): IFxCostBasisLotDomainService['acquire'] {
+function makeAcquire(): IFxCostBasisLotService['acquire'] {
   return (payload) => {
     lotServiceValidation.validateJournalStatus(payload.journalEntry);
 
@@ -89,9 +89,7 @@ function makeAcquire(): IFxCostBasisLotDomainService['acquire'] {
   };
 }
 
-function makeDispose(
-  deps: IDependencies
-): IFxCostBasisLotDomainService['dispose'] {
+function makeDispose(deps: IDependencies): IFxCostBasisLotService['dispose'] {
   return async (payload, repoOptions) => {
     lotServiceValidation.validateJournalStatus(payload.journalEntry);
 
@@ -150,9 +148,7 @@ function makeDispose(
   };
 }
 
-function makeReverse(
-  deps: IDependencies
-): IFxCostBasisLotDomainService['reverse'] {
+function makeReverse(deps: IDependencies): IFxCostBasisLotService['reverse'] {
   return async (journalEntryId, repoOptions) => {
     const acquisition = await deps.acquisitionRepo.findByJournalEntryId(
       journalEntryId,
@@ -216,8 +212,8 @@ function makeReverse(
 
 export default function makeFxCostBasisLotService(
   deps: IDependencies
-): IFxCostBasisLotDomainService {
-  const service: IFxCostBasisLotDomainService = {
+): IFxCostBasisLotService {
+  const service: IFxCostBasisLotService = {
     acquire: makeAcquire(),
 
     dispose: makeDispose(deps),

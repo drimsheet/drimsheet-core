@@ -3,7 +3,7 @@ import request from 'supertest';
 
 import { SYSTEM_JURISDICTIONS } from '@domain/accounting/config/jurisdictions.config';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
 import * as accountingUsecases from '@infra/ioc/usecases/accounting';
 import { createApplication } from '@infra/server';
@@ -46,7 +46,7 @@ const jurisdictions = Object.values(SYSTEM_JURISDICTIONS).map(
 
 describe('GET /accounting/jurisdictions', () => {
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   let app: Express;

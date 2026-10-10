@@ -8,7 +8,7 @@ export interface IPreparedLedgerAccountBalanceAdjustment {
   expectedVersion: number;
 }
 
-export default interface ILedgerBalancePropagationPreparationService {
+export default interface ILedgerBalancePropagationPreparationAppService {
   /**
    * Prepares versioned balance adjustments for a posted journal entry in
    * ledger-account-ID order. Invalid journals and missing balances reject;

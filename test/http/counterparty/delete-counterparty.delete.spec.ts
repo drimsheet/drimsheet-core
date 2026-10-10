@@ -16,8 +16,8 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeDeleteCounterpartyUsecase from '@app/counterparty/usecases/delete-counterparty.usecase';
 import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
@@ -45,7 +45,7 @@ jest.mock(
 );
 jest.mock('@infra/ioc/services/auth', () => ({
   ...jest.requireActual('@infra/ioc/services/auth'),
-  tokenService: jest.requireActual(
+  tokenAppService: jest.requireActual(
     '@app/auth/contracts/__mocks__/token-service.mock'
   ).default,
 }));
@@ -113,8 +113,8 @@ describe('DELETE /counterparties/{id}', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockUserRepo.findById.mockResolvedValue({
       id: userId,
       actorId: actor.id,
@@ -209,14 +209,14 @@ describe('DELETE /counterparties/{id}', () => {
     it('rejects unauthenticated callers before feature/access checks or orchestration', async () => {
       const response = await request(app).delete(endpoint);
       expect(response.status).toBe(401);
-      expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+      expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
       expect(remove).not.toHaveBeenCalled();
     });
   });
 
   describe('403 Response', () => {
     it('rejects callers without Alpha 1 access before orchestration', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
       expect((await deleteRequest()).status).toBe(403);
       expect(remove).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.delete).not.toHaveBeenCalled();

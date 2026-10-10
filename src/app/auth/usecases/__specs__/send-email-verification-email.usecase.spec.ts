@@ -5,7 +5,7 @@ import appError from '@shared/values/errors/app.error';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockEmailVerificationService from '@app/auth/contracts/__mocks__/email-verification.service.mock';
+import mockEmailVerificationAppService from '@app/auth/contracts/__mocks__/email-verification.service.mock';
 import authError from '@app/auth/errors/auth.error';
 import makeSendEmailVerificationEmailUseCase from '@app/auth/usecases/send-email-verification-email.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
@@ -19,7 +19,7 @@ describe('makeSendEmailVerificationEmailUseCase', () => {
       appContext: mockAppContext,
       logger: mockLogger,
       userRepo: mockUserRepo,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
   beforeEach(() => {
@@ -27,7 +27,7 @@ describe('makeSendEmailVerificationEmailUseCase', () => {
     mockAppContext.get.mockReturnValue({
       correlationId,
     } as IAppContextData);
-    mockEmailVerificationService.send.mockResolvedValue(true);
+    mockEmailVerificationAppService.send.mockResolvedValue(true);
   });
 
   it('rejects an invalid email', async () => {
@@ -47,7 +47,7 @@ describe('makeSendEmailVerificationEmailUseCase', () => {
       emailValue.normalize(userEmail),
       { correlationId }
     );
-    expect(mockEmailVerificationService.send).not.toHaveBeenCalled();
+    expect(mockEmailVerificationAppService.send).not.toHaveBeenCalled();
   });
 
   it('logs and returns when the email is already verified', async () => {
@@ -76,7 +76,7 @@ describe('makeSendEmailVerificationEmailUseCase', () => {
         outcome: 'skipped',
       }
     );
-    expect(mockEmailVerificationService.send).not.toHaveBeenCalled();
+    expect(mockEmailVerificationAppService.send).not.toHaveBeenCalled();
   });
 
   it('delegates delivery for an unverified user', async () => {
@@ -97,7 +97,7 @@ describe('makeSendEmailVerificationEmailUseCase', () => {
 
     await makeUseCase()(user.email);
 
-    expect(mockEmailVerificationService.send).toHaveBeenCalledWith(
+    expect(mockEmailVerificationAppService.send).toHaveBeenCalledWith(
       user,
       correlationId
     );

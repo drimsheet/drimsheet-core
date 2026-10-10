@@ -7,9 +7,9 @@ import appError from '@shared/values/errors/app.error';
 import userEntity from '@domain/user/entities/user.entity';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockUserSessionPersistenceService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionService from '@app/auth/contracts/__mocks__/user-session.service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
 import authError from '@app/auth/errors/auth.error';
 import makeVerifyEmailAddressUseCase from '@app/auth/usecases/verify-email.usecase';
 import mockAppContext, {
@@ -26,12 +26,12 @@ describe('makeVerifyEmailAddressUseCase', () => {
   const getUseCase = () =>
     makeVerifyEmailAddressUseCase({
       actorService: mockActorService,
-      tokenService: mockTokenService,
+      tokenAppService: mockTokenAppService,
       userRepo: mockUserRepo,
       appContext: mockAppContext,
       eventBus: mockEventBus,
-      userSessionService: mockUserSessionService,
-      userSessionPersistenceService: mockUserSessionPersistenceService,
+      userSessionAppService: mockUserSessionAppService,
+      userSessionPersistenceAppService: mockUserSessionPersistenceAppService,
       repoService: mockRepoService,
     });
 
@@ -49,7 +49,7 @@ describe('makeVerifyEmailAddressUseCase', () => {
       },
       priorClientSession: null,
     };
-    mockUserSessionService.prepare.mockResolvedValue(preparedSession);
+    mockUserSessionAppService.prepare.mockResolvedValue(preparedSession);
 
     return preparedSession;
   };
@@ -64,7 +64,7 @@ describe('makeVerifyEmailAddressUseCase', () => {
       clientSession: mockClientSession,
     } as unknown as IAppContextData);
     mockClientSession.getRefreshToken.mockReturnValue(null);
-    mockUserSessionPersistenceService.replaceClientSession
+    mockUserSessionPersistenceAppService.replaceClientSession
       .mockReset()
       .mockResolvedValue();
   });
@@ -86,7 +86,7 @@ describe('makeVerifyEmailAddressUseCase', () => {
       lastName: 'Doe',
     });
     const preparedSession = prepareSession(user);
-    mockTokenService.claimSignupToken.mockResolvedValue({ id: user.id });
+    mockTokenAppService.claimSignupToken.mockResolvedValue({ id: user.id });
     mockUserRepo.findById.mockResolvedValue(user);
 
     const result = await getUseCase()(token);
@@ -104,12 +104,12 @@ describe('makeVerifyEmailAddressUseCase', () => {
         tx,
       })
     );
-    expect(mockUserSessionService.prepare).toHaveBeenCalledWith(
+    expect(mockUserSessionAppService.prepare).toHaveBeenCalledWith(
       expect.objectContaining({ id: user.id, emailVerified: true }),
       null
     );
     expect(
-      mockUserSessionPersistenceService.replaceClientSession
+      mockUserSessionPersistenceAppService.replaceClientSession
     ).toHaveBeenCalledWith(
       { userSession: preparedSession.userSession, priorClientSession: null },
       { correlationId, tx }
@@ -120,7 +120,9 @@ describe('makeVerifyEmailAddressUseCase', () => {
     expect(mockEventBus.publish).toHaveBeenCalledWith([
       expect.objectContaining({ correlationId }),
     ]);
-    expect(mockTokenService.finalizeSignupToken).toHaveBeenCalledWith(user.id);
+    expect(mockTokenAppService.finalizeSignupToken).toHaveBeenCalledWith(
+      user.id
+    );
     expect(result).toEqual({ accessToken: preparedSession.accessToken });
   });
 
@@ -134,7 +136,7 @@ describe('makeVerifyEmailAddressUseCase', () => {
       lastName: 'Doe',
     });
     const preparedSession = prepareSession(user);
-    mockTokenService.claimSignupToken.mockResolvedValue({ id: user.id });
+    mockTokenAppService.claimSignupToken.mockResolvedValue({ id: user.id });
     mockUserRepo.findById.mockResolvedValue(user);
 
     const result = await getUseCase()('valid-token');
@@ -154,7 +156,7 @@ describe('makeVerifyEmailAddressUseCase', () => {
       lastName: 'Doe',
     });
     prepareSession(user);
-    mockTokenService.claimSignupToken.mockResolvedValue({ id: user.id });
+    mockTokenAppService.claimSignupToken.mockResolvedValue({ id: user.id });
     mockUserRepo.findById.mockResolvedValue(user);
     mockRepoService.runInTransaction.mockImplementationOnce(
       async (transactionFn) => {
@@ -168,17 +170,17 @@ describe('makeVerifyEmailAddressUseCase', () => {
     );
 
     expect(
-      mockUserSessionPersistenceService.replaceClientSession
+      mockUserSessionPersistenceAppService.replaceClientSession
     ).toHaveBeenCalled();
     expect(mockClientSession.setRefreshToken).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-    expect(mockTokenService.releaseSignupTokenClaim).toHaveBeenCalledWith(
+    expect(mockTokenAppService.releaseSignupTokenClaim).toHaveBeenCalledWith(
       user.id
     );
   });
 
   it('propagates an invalid token without starting persistence', async () => {
-    mockTokenService.claimSignupToken.mockRejectedValue(
+    mockTokenAppService.claimSignupToken.mockRejectedValue(
       new authError.InvalidToken()
     );
 
@@ -190,22 +192,22 @@ describe('makeVerifyEmailAddressUseCase', () => {
 
   it('maps an absent user to InvalidToken and releases the signup-token claim', async () => {
     const userId = '123e4567-e89b-42d3-a456-426614174004' as TEntityId;
-    mockTokenService.claimSignupToken.mockResolvedValue({ id: userId });
+    mockTokenAppService.claimSignupToken.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue(null);
 
     await expect(getUseCase()('valid-token')).rejects.toThrow(
       authError.InvalidToken
     );
 
-    expect(mockTokenService.releaseSignupTokenClaim).toHaveBeenCalledWith(
+    expect(mockTokenAppService.releaseSignupTokenClaim).toHaveBeenCalledWith(
       userId
     );
-    expect(mockUserSessionService.prepare).not.toHaveBeenCalled();
+    expect(mockUserSessionAppService.prepare).not.toHaveBeenCalled();
   });
 
   it('releases the signup-token claim and rethrows an unexpected repository error', async () => {
     const userId = '123e4567-e89b-42d3-a456-426614174005' as TEntityId;
-    mockTokenService.claimSignupToken.mockResolvedValue({ id: userId });
+    mockTokenAppService.claimSignupToken.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockRejectedValue(
       new Error('Database connection failed')
     );
@@ -214,7 +216,7 @@ describe('makeVerifyEmailAddressUseCase', () => {
       'Database connection failed'
     );
 
-    expect(mockTokenService.releaseSignupTokenClaim).toHaveBeenCalledWith(
+    expect(mockTokenAppService.releaseSignupTokenClaim).toHaveBeenCalledWith(
       userId
     );
   });

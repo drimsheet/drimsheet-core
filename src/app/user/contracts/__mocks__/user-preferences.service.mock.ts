@@ -1,7 +1,7 @@
-import IUserPreferencesService from '@app/user/contracts/user-preferences.service.contract';
+import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
 
-const mockUserPreferencesService: jest.Mocked<IUserPreferencesService> = {
+const mockUserPreferencesAppService: jest.Mocked<IUserPreferencesAppService> = {
   update: jest.fn(),
 };
 
-export default mockUserPreferencesService;
+export default mockUserPreferencesAppService;

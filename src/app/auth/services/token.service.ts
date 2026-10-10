@@ -8,7 +8,7 @@ import jsonWebToken, {
 
 import { ICacheStorage } from '@shared/contracts/cache-storage.contract';
 
-import ITokenService, {
+import ITokenAppService, {
   IAuthTokenPayload,
   IPasswordResetTokenClaim,
 } from '@app/auth/contracts/token-service.contract';
@@ -145,7 +145,7 @@ async function finalizePasswordResetToken(
 /** Creates the capability that generates and caches a signup token. */
 function makeGenerateSignupToken(
   deps: IDependencies
-): ITokenService['generateSignupToken'] {
+): ITokenAppService['generateSignupToken'] {
   return async ({ id }) => {
     const token = encodeToken(
       deps,
@@ -170,7 +170,7 @@ function makeGenerateSignupToken(
  */
 function makeVerifySignupToken(
   deps: IDependencies
-): ITokenService['verifySignupToken'] {
+): ITokenAppService['verifySignupToken'] {
   return async (token) => {
     const decoded = await claimSignupToken(deps, token);
     await finalizeSignupToken(deps, decoded.id);
@@ -181,21 +181,21 @@ function makeVerifySignupToken(
 /** Creates the capability that claims a cached signup token. */
 function makeClaimSignupToken(
   deps: IDependencies
-): ITokenService['claimSignupToken'] {
+): ITokenAppService['claimSignupToken'] {
   return (token) => claimSignupToken(deps, token);
 }
 
 /** Creates the capability that finalizes a claimed signup token. */
 function makeFinalizeSignupToken(
   deps: IDependencies
-): ITokenService['finalizeSignupToken'] {
+): ITokenAppService['finalizeSignupToken'] {
   return (id) => finalizeSignupToken(deps, id);
 }
 
 /** Creates the capability that releases a signup-token claim. */
 function makeReleaseSignupTokenClaim(
   deps: IDependencies
-): ITokenService['releaseSignupTokenClaim'] {
+): ITokenAppService['releaseSignupTokenClaim'] {
   return async (id) => {
     await deps.cacheStorage.del(`app:auth:signup-token-claim:${id}`);
   };
@@ -204,7 +204,7 @@ function makeReleaseSignupTokenClaim(
 /** Creates the capability that generates a short-lived access token. */
 function makeGenerateAccessToken(
   deps: IDependencies
-): ITokenService['generateAccessToken'] {
+): ITokenAppService['generateAccessToken'] {
   return async ({ id }) => {
     const ttlSeconds = 60 * 15; // 15 minutes
     return encodeToken(deps, { id, type: 'access' }, ttlSeconds, randomUUID());
@@ -214,7 +214,7 @@ function makeGenerateAccessToken(
 /** Creates the capability that generates a refresh token. */
 function makeGenerateRefreshToken(
   deps: IDependencies
-): ITokenService['generateRefreshToken'] {
+): ITokenAppService['generateRefreshToken'] {
   return async ({ id }) => {
     const ttlSeconds = 60 * 60 * 24 * 15; // 15 days
     return encodeToken(
@@ -232,7 +232,7 @@ function makeGenerateRefreshToken(
 /** Creates the capability that verifies and decodes a refresh token. */
 function makeVerifyRefreshToken(
   deps: IDependencies
-): ITokenService['verifyRefreshToken'] {
+): ITokenAppService['verifyRefreshToken'] {
   return (token) => {
     const { type, ...decoded } = verifyAuthToken(deps, token);
 
@@ -247,7 +247,7 @@ function makeVerifyRefreshToken(
 /** Creates the capability that generates and caches a password-reset token. */
 function makeGeneratePasswordResetToken(
   deps: IDependencies
-): ITokenService['generatePasswordResetToken'] {
+): ITokenAppService['generatePasswordResetToken'] {
   return async ({ id }) => {
     const ttlSeconds = 2 * 60 * 60; // 2 hours
     const token = encodeToken(
@@ -274,7 +274,7 @@ function makeGeneratePasswordResetToken(
  */
 function makeVerifyPasswordResetToken(
   deps: IDependencies
-): ITokenService['verifyPasswordResetToken'] {
+): ITokenAppService['verifyPasswordResetToken'] {
   return async (token) => {
     const decoded = await claimPasswordResetToken(deps, token);
     await finalizePasswordResetToken(deps, decoded);
@@ -285,21 +285,21 @@ function makeVerifyPasswordResetToken(
 /** Creates the capability that claims a cached password-reset token. */
 function makeClaimPasswordResetToken(
   deps: IDependencies
-): ITokenService['claimPasswordResetToken'] {
+): ITokenAppService['claimPasswordResetToken'] {
   return (token) => claimPasswordResetToken(deps, token);
 }
 
 /** Creates the capability that finalizes an owned password-reset claim. */
 function makeFinalizePasswordResetToken(
   deps: IDependencies
-): ITokenService['finalizePasswordResetToken'] {
+): ITokenAppService['finalizePasswordResetToken'] {
   return (claim) => finalizePasswordResetToken(deps, claim);
 }
 
 /** Creates the capability that releases an owned password-reset claim. */
 function makeReleasePasswordResetTokenClaim(
   deps: IDependencies
-): ITokenService['releasePasswordResetTokenClaim'] {
+): ITokenAppService['releasePasswordResetTokenClaim'] {
   return async (claim) => {
     await deps.cacheStorage.deleteIfValueMatches(
       `app:auth:reset-token-claim:${claim.id}`,
@@ -309,7 +309,7 @@ function makeReleasePasswordResetTokenClaim(
 }
 
 /** Creates the capability that verifies an access token's authenticated user. */
-function makeGetAuthUser(deps: IDependencies): ITokenService['getAuthUser'] {
+function makeGetAuthUser(deps: IDependencies): ITokenAppService['getAuthUser'] {
   return async (token) => {
     const decoded = verifyAuthToken(deps, token);
 
@@ -322,8 +322,10 @@ function makeGetAuthUser(deps: IDependencies): ITokenService['getAuthUser'] {
 }
 
 /** Composes the immutable token service from its capabilities. */
-export default function makeTokenService(deps: IDependencies): ITokenService {
-  const service: ITokenService = {
+export default function makeTokenAppService(
+  deps: IDependencies
+): ITokenAppService {
+  const service: ITokenAppService = {
     generateSignupToken: makeGenerateSignupToken(deps),
     verifySignupToken: makeVerifySignupToken(deps),
     claimSignupToken: makeClaimSignupToken(deps),

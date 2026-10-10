@@ -9,7 +9,7 @@ import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/ac
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-accounting-entity.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockUserPreferencesService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
+import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
 
 const actor = {
   ...actorEntity.makeUser({
@@ -43,7 +43,7 @@ describe('switchAccountingEntityUsecase', () => {
     makeSwitchAccountingEntityUsecase({
       appContext: mockAppContext,
       accountingEntityRepo: mockAccountingEntityRepo,
-      userPreferencesService: mockUserPreferencesService,
+      userPreferencesAppService: mockUserPreferencesAppService,
     });
 
   beforeEach(() => {
@@ -63,7 +63,7 @@ describe('switchAccountingEntityUsecase', () => {
     mockAccountingEntityRepo.findByIdAndUserId
       .mockReset()
       .mockResolvedValue(targetAccountingEntity);
-    mockUserPreferencesService.update.mockReset().mockResolvedValue({
+    mockUserPreferencesAppService.update.mockReset().mockResolvedValue({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       userId,
       lastActiveAccountingEntityId: targetAccountingEntity.id,
@@ -84,7 +84,7 @@ describe('switchAccountingEntityUsecase', () => {
       userId,
       { correlationId }
     );
-    expect(mockUserPreferencesService.update).toHaveBeenCalledWith(
+    expect(mockUserPreferencesAppService.update).toHaveBeenCalledWith(
       {
         userId,
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -96,7 +96,7 @@ describe('switchAccountingEntityUsecase', () => {
       accountingEntity: targetAccountingEntity,
     });
     expect(
-      mockUserPreferencesService.update.mock.invocationCallOrder[0]
+      mockUserPreferencesAppService.update.mock.invocationCallOrder[0]
     ).toBeLessThan(mockAppContext.set.mock.invocationCallOrder[0]);
   });
 
@@ -130,7 +130,7 @@ describe('switchAccountingEntityUsecase', () => {
 
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockAccountingEntityRepo.findByIdAndUserId).not.toHaveBeenCalled();
-    expect(mockUserPreferencesService.update).not.toHaveBeenCalled();
+    expect(mockUserPreferencesAppService.update).not.toHaveBeenCalled();
     expect(mockAppContext.set).not.toHaveBeenCalled();
   });
 
@@ -146,12 +146,12 @@ describe('switchAccountingEntityUsecase', () => {
       userId,
       { correlationId }
     );
-    expect(mockUserPreferencesService.update).not.toHaveBeenCalled();
+    expect(mockUserPreferencesAppService.update).not.toHaveBeenCalled();
     expect(mockAppContext.set).not.toHaveBeenCalled();
   });
 
   it('does not update context when preference persistence fails', async () => {
-    mockUserPreferencesService.update.mockRejectedValueOnce(
+    mockUserPreferencesAppService.update.mockRejectedValueOnce(
       new Error('preference persistence failed')
     );
 

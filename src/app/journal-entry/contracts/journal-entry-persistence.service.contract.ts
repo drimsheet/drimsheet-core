@@ -34,7 +34,7 @@ export interface IDeleteJournalEntryPersistencePayload {
   expectedVersion: number;
 }
 
-export default interface IJournalEntryPersistenceService {
+export default interface IJournalEntryPersistenceAppService {
   create(
     entry: IJournalEntry,
     headerHistory: IJournalEntryHistory,

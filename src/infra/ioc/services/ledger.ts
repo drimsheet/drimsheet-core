@@ -10,7 +10,7 @@ import makeRentAndUtilitiesAccountService from '@domain/ledger/services/expense-
 import makeTaxExpenseAccountService from '@domain/ledger/services/expense-account/tax-expense.service';
 import makeUnrealizedLossAccountService from '@domain/ledger/services/expense-account/unrealized-loss.service';
 import makeLedgerAccountArchiveService from '@domain/ledger/services/ledger-account-archive.service';
-import ledgerAccountBalanceAdjustmentDomainService from '@domain/ledger/services/ledger-account-balance-adjustment.service';
+import ledgerAccountBalanceAdjustmentService from '@domain/ledger/services/ledger-account-balance-adjustment.service';
 import makeLedgerCodeAllocationService from '@domain/ledger/services/ledger-code-allocation.service';
 import makePayablesAccountService from '@domain/ledger/services/liability-account/payables.service';
 import makeShortTermLoanService from '@domain/ledger/services/liability-account/short-term-loan.service';
@@ -23,9 +23,9 @@ import makeServicesAccountService from '@domain/ledger/services/revenue-account/
 import makeUnrealizedGainAccountService from '@domain/ledger/services/revenue-account/unrealized-gain.service';
 import makeSuspenseAccountService from '@domain/ledger/services/suspense-account/suspense-account.service';
 
-import makeLedgerAccountBalanceEnrichmentService from '@app/ledger/services/ledger-account-balance-enrichment.service';
-import makeLedgerAccountPersistenceService from '@app/ledger/services/ledger-account-persistence.service';
-import makeLedgerBalancePropagationPreparationService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
+import makeLedgerAccountBalanceEnrichmentAppService from '@app/ledger/services/ledger-account-balance-enrichment.service';
+import makeLedgerAccountPersistenceAppService from '@app/ledger/services/ledger-account-persistence.service';
+import makeLedgerBalancePropagationPreparationAppService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
 
 import observability from '@infra/observability';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
@@ -143,26 +143,23 @@ export const unrealizedLossAccountService = makeUnrealizedLossAccountService({
   ledgerCodeAllocationService,
 });
 
-export const ledgerAccountPersistenceService =
-  makeLedgerAccountPersistenceService({
+export const ledgerAccountPersistenceAppService =
+  makeLedgerAccountPersistenceAppService({
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     repoService,
   });
 
-const ledgerAccountBalanceAdjustmentService =
-  ledgerAccountBalanceAdjustmentDomainService;
-
-export const ledgerBalancePropagationPreparationService =
-  makeLedgerBalancePropagationPreparationService({
+export const ledgerBalancePropagationPreparationAppService =
+  makeLedgerBalancePropagationPreparationAppService({
     journalEntryRepo: journalEntryRepos.journalEntry,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
     ledgerAccountBalanceAdjustmentService,
   });
 
-export const ledgerAccountBalanceEnrichmentService =
-  makeLedgerAccountBalanceEnrichmentService({
+export const ledgerAccountBalanceEnrichmentAppService =
+  makeLedgerAccountBalanceEnrichmentAppService({
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
     reporter: observability.reporter,
   });

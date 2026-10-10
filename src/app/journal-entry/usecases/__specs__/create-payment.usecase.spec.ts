@@ -47,10 +47,10 @@ import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import mockCounterpartyAppService from '@app/counterparty/contracts/__mocks__/counterparty.service.mock';
 import { ICounterpartyFindOrCreateRes } from '@app/counterparty/contracts/counterparty.service.contract';
-import mockFileManagementService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
-import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
@@ -59,8 +59,8 @@ import makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 import { TFxLotDispositionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
@@ -242,17 +242,18 @@ describe('makeCreatePaymentUsecase', () => {
     return makeCreatePaymentUsecase({
       appContext: mockAppContext,
       counterpartyAppService: mockCounterpartyAppService,
-      fileManagementService: mockFileManagementService,
+      fileManagementAppService: mockFileManagementAppService,
       journalEntryService: mockJournalEntryService,
       ledgerAccountRepo: mockLedgerAccountRepo,
       counterpartyRepo: mockCounterpartyRepo,
-      journalEntryPersistenceService: mockJournalEntryPersistenceService,
+      journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
       eventBus: mockEventBus,
-      outboxService: mockOutboxService,
+      outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
       fxLotAppService: mockFxLotAppService,
-      fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
+      fxCostBasisPersistenceAppService:
+        mockFxLotCostBasisAppService.persistence,
     });
   }
 
@@ -279,7 +280,7 @@ describe('makeCreatePaymentUsecase', () => {
     mockCounterpartyAppService.getFoundOrCreated.mockReturnValue(
       newCounterpartyResponse
     );
-    mockFileManagementService.claimUploads.mockResolvedValue([]);
+    mockFileManagementAppService.claimUploads.mockResolvedValue([]);
     mockJournalEntryService.createPayment.mockResolvedValue([
       postedJournalEntry,
       postedEvents,
@@ -288,7 +289,7 @@ describe('makeCreatePaymentUsecase', () => {
     mockRepoService.runInTransaction.mockImplementation(async (transactionFn) =>
       transactionFn('mock-tx' as unknown as ITransactionContext)
     );
-    mockOutboxService.createBalancePropagation.mockResolvedValue();
+    mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerAccountBalanceAdjustmentQueue.add.mockResolvedValue();
     mockEventBus.publish.mockResolvedValue();
   });
@@ -297,8 +298,10 @@ describe('makeCreatePaymentUsecase', () => {
     const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
     mockJournalEntryService.createPayment.mockRejectedValueOnce(failure);
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
-    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -331,7 +334,7 @@ describe('makeCreatePaymentUsecase', () => {
       asOf: payload.effectiveDate,
       source: 'test-source',
     };
-    mockFileManagementService.claimUploads.mockResolvedValue(attachments);
+    mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);
     const lotId = generateUUID();
     const dispositionId = generateUUID();
     const fxRecords = {
@@ -367,7 +370,7 @@ describe('makeCreatePaymentUsecase', () => {
       { correlationId }
     );
     expect(
-      mockFxLotCostBasisService.persistence.persistDisposition
+      mockFxLotCostBasisAppService.persistence.persistDisposition
     ).toHaveBeenCalledWith(
       fxRecords,
       expect.objectContaining({ correlationId, tx: 'mock-tx' })
@@ -384,7 +387,7 @@ describe('makeCreatePaymentUsecase', () => {
       'active',
       repoOptions
     );
-    expect(mockFileManagementService.claimUploads).toHaveBeenCalledWith({
+    expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith({
       userId: user.id,
       purpose: EFileUploadPurpose.JournalEntryAttachment,
       references: attachmentReferences,
@@ -419,8 +422,8 @@ describe('makeCreatePaymentUsecase', () => {
         tx: 'mock-tx',
       })
     );
-    expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledWith(
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
+    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
       postedJournalEntry.id,
       expect.objectContaining({ correlationId, tx: expect.anything() })
     );
@@ -439,8 +442,10 @@ describe('makeCreatePaymentUsecase', () => {
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
 
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -475,12 +480,14 @@ describe('makeCreatePaymentUsecase', () => {
       },
       { correlationId }
     );
-    expect(mockFileManagementService.claimUploads).toHaveBeenCalledWith(
+    expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith(
       expect.objectContaining({ references: [] })
     );
     expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
       'draft'
@@ -529,7 +536,7 @@ describe('makeCreatePaymentUsecase', () => {
 
   it('prevents persistence when attachment claiming fails', async () => {
     const error = new fileAppError.InvalidUploadReference();
-    mockFileManagementService.claimUploads.mockRejectedValue(error);
+    mockFileManagementAppService.claimUploads.mockRejectedValue(error);
 
     await expect(getUseCase()(makePayload())).rejects.toBe(error);
 
@@ -564,16 +571,20 @@ describe('makeCreatePaymentUsecase', () => {
 
       expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
-      expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryPersistenceAppService.create
+      ).not.toHaveBeenCalled();
       expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
       expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
       expect(
-        mockFxLotCostBasisService.persistence.persistDisposition
+        mockFxLotCostBasisAppService.persistence.persistDisposition
       ).not.toHaveBeenCalled();
       expect(
-        mockFxLotCostBasisService.persistence.persistAcquisition
+        mockFxLotCostBasisAppService.persistence.persistAcquisition
       ).not.toHaveBeenCalled();
-      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
       expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
       ).not.toHaveBeenCalled();

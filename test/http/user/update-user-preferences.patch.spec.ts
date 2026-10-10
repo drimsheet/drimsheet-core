@@ -7,7 +7,7 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import authError from '@app/auth/errors/auth.error';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import {
   EAppThemePreference,
@@ -15,7 +15,7 @@ import {
   IUserPreferences,
 } from '@app/user/types/user-preferences.types';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import userRepos from '@infra/persistence/repos/user';
 import { createApplication } from '@infra/server';
 
@@ -38,7 +38,7 @@ jest.mock(
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,
-  tokenService: { getAuthUser: jest.fn() },
+  tokenAppService: { getAuthUser: jest.fn() },
 }));
 
 jest.mock('../../../src/infra/persistence/repos/user', () => ({
@@ -57,11 +57,11 @@ const userId = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
 
 describe('PATCH /users/preferences', () => {
   afterEach(() => {
-    expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+    expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
   });
 
   let app: Express;
-  const mockGetAuthUser = tokenService.getAuthUser as jest.Mock;
+  const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindPreferences = userRepos.userPreferences.findById as jest.Mock;
   const mockUpdatePreferences = userRepos.userPreferences.update as jest.Mock;

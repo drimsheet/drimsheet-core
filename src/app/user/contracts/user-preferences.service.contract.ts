@@ -5,7 +5,7 @@ import {
   IUserPreferencesUpdate,
 } from '@app/user/types/user-preferences.types';
 
-export default interface IUserPreferencesService {
+export default interface IUserPreferencesAppService {
   update(
     payload: IUserPreferencesUpdate,
     options: IWriteRepoOptions

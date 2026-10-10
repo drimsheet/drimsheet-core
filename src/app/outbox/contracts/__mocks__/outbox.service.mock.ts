@@ -1,7 +1,7 @@
-import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
+import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 
-const mockOutboxService: jest.Mocked<IOutboxService> = {
+const mockOutboxAppService: jest.Mocked<IOutboxAppService> = {
   createBalancePropagation: jest.fn(),
 };
 
-export default mockOutboxService;
+export default mockOutboxAppService;

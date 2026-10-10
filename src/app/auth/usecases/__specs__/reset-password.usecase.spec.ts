@@ -10,12 +10,12 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockPasswordService from '@app/auth/contracts/__mocks__/password-service.mock';
-import mockAuthService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockPasswordAppService from '@app/auth/contracts/__mocks__/password-service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
 import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock';
-import mockUserAuthService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
-import mockUserSessionPersistenceService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionService from '@app/auth/contracts/__mocks__/user-session.service.mock';
+import mockUserAuthAppService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
 import { EAuthStrategy, IUserAuth } from '@app/auth/contracts/auth.types';
 import authError from '@app/auth/errors/auth.error';
 import makeResetPasswordUseCase from '@app/auth/usecases/reset-password.usecase';
@@ -44,10 +44,10 @@ describe('makeResetPasswordUseCase', () => {
       idempotencyKey,
       clientSession: mockClientSession,
     } as unknown as IAppContextData);
-    mockPasswordService.makePassword
+    mockPasswordAppService.makePassword
       .mockReset()
       .mockImplementation((input) => input as string);
-    mockUserAuthService.replacePassword
+    mockUserAuthAppService.replacePassword
       .mockReset()
       .mockImplementation((userAuth, password) => ({
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -61,7 +61,7 @@ describe('makeResetPasswordUseCase', () => {
         createdAt: userAuth.createdAt,
         updatedAt: new Date(),
       }));
-    mockUserSessionService.prepare
+    mockUserSessionAppService.prepare
       .mockReset()
       .mockImplementation(async (user) => ({
         accessToken: 'mock-auth-token',
@@ -76,13 +76,15 @@ describe('makeResetPasswordUseCase', () => {
         },
         priorClientSession: null,
       }));
-    mockUserSessionPersistenceService.replaceAllUserSessions
+    mockUserSessionPersistenceAppService.replaceAllUserSessions
       .mockReset()
       .mockResolvedValue();
-    mockAuthService.releasePasswordResetTokenClaim
+    mockTokenAppService.releasePasswordResetTokenClaim
       .mockReset()
       .mockResolvedValue();
-    mockAuthService.finalizePasswordResetToken.mockReset().mockResolvedValue();
+    mockTokenAppService.finalizePasswordResetToken
+      .mockReset()
+      .mockResolvedValue();
   });
 
   afterEach(() => {
@@ -100,13 +102,13 @@ describe('makeResetPasswordUseCase', () => {
       actorService: mockActorService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
-      tokenService: mockAuthService,
+      passwordAppService: mockPasswordAppService,
+      tokenAppService: mockTokenAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
-      userSessionService: mockUserSessionService,
-      userSessionPersistenceService: mockUserSessionPersistenceService,
+      userAuthAppService: mockUserAuthAppService,
+      userSessionAppService: mockUserSessionAppService,
+      userSessionPersistenceAppService: mockUserSessionPersistenceAppService,
       repoService: mockRepoService,
       reporter: mockReporter,
     });
@@ -123,7 +125,7 @@ describe('makeResetPasswordUseCase', () => {
   });
 
   it('should propagate AuthError if the reset token is invalid or expired', async () => {
-    mockAuthService.claimPasswordResetToken.mockRejectedValue(
+    mockTokenAppService.claimPasswordResetToken.mockRejectedValue(
       new authError.InvalidToken()
     );
 
@@ -134,7 +136,7 @@ describe('makeResetPasswordUseCase', () => {
   });
 
   it('should throw an error if user cannot be found in DB', async () => {
-    mockAuthService.claimPasswordResetToken.mockResolvedValue({
+    mockTokenAppService.claimPasswordResetToken.mockResolvedValue({
       id: 'internal-id' as TEntityId,
       owner: 'claim-owner',
     });
@@ -144,16 +146,16 @@ describe('makeResetPasswordUseCase', () => {
     const payload = getValidPayload();
 
     await expect(usecase(payload)).rejects.toThrow(authError.InvalidToken);
-    expect(mockAuthService.releasePasswordResetTokenClaim).toHaveBeenCalledWith(
-      {
-        id: 'internal-id',
-        owner: 'claim-owner',
-      }
-    );
+    expect(
+      mockTokenAppService.releasePasswordResetTokenClaim
+    ).toHaveBeenCalledWith({
+      id: 'internal-id',
+      owner: 'claim-owner',
+    });
   });
 
   it('should throw an error if the user auth record cannot be found in DB', async () => {
-    mockAuthService.claimPasswordResetToken.mockResolvedValue({
+    mockTokenAppService.claimPasswordResetToken.mockResolvedValue({
       id: 'internal-id' as TEntityId,
       owner: 'claim-owner',
     });
@@ -185,7 +187,7 @@ describe('makeResetPasswordUseCase', () => {
       deletedAt: null,
     };
 
-    mockAuthService.claimPasswordResetToken.mockResolvedValue({
+    mockTokenAppService.claimPasswordResetToken.mockResolvedValue({
       id: mockUser.id,
       owner: 'claim-owner',
     });
@@ -201,24 +203,24 @@ describe('makeResetPasswordUseCase', () => {
       updatedAt: new Date(),
     } as unknown as IUserAuth;
     mockUserAuthRepo.findByUserId.mockResolvedValue(existingUserAuth);
-    mockPasswordService.hash.mockResolvedValue('new-hash');
+    mockPasswordAppService.hash.mockResolvedValue('new-hash');
 
     const usecase = getUseCase();
 
     const payload = getValidPayload();
     const result = await usecase(payload);
 
-    expect(mockAuthService.claimPasswordResetToken).toHaveBeenCalledWith(
+    expect(mockTokenAppService.claimPasswordResetToken).toHaveBeenCalledWith(
       payload.token
     );
     expect(mockUserRepo.findById).toHaveBeenCalledWith(mockUser.id, {
       correlationId,
     });
-    expect(mockPasswordService.makePassword).toHaveBeenCalledWith(
+    expect(mockPasswordAppService.makePassword).toHaveBeenCalledWith(
       payload.password
     );
-    expect(mockPasswordService.hash).toHaveBeenCalledWith(payload.password);
-    expect(mockUserSessionService.prepare).toHaveBeenCalledWith(mockUser);
+    expect(mockPasswordAppService.hash).toHaveBeenCalledWith(payload.password);
+    expect(mockUserSessionAppService.prepare).toHaveBeenCalledWith(mockUser);
 
     expect(mockRepoService.runInTransaction).toHaveBeenCalled();
     expect(mockUserAuthRepo.update).toHaveBeenCalledWith(
@@ -231,7 +233,7 @@ describe('makeResetPasswordUseCase', () => {
       { correlationId, expectedVersion: 1, tx: 'mock-tx' }
     );
     expect(
-      mockUserSessionPersistenceService.replaceAllUserSessions
+      mockUserSessionPersistenceAppService.replaceAllUserSessions
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: mockUser.id,
@@ -239,10 +241,12 @@ describe('makeResetPasswordUseCase', () => {
       }),
       { correlationId, tx: 'mock-tx' }
     );
-    expect(mockAuthService.finalizePasswordResetToken).toHaveBeenCalledWith({
-      id: mockUser.id,
-      owner: 'claim-owner',
-    });
+    expect(mockTokenAppService.finalizePasswordResetToken).toHaveBeenCalledWith(
+      {
+        id: mockUser.id,
+        owner: 'claim-owner',
+      }
+    );
     expect(mockEventBus.publish).toHaveBeenCalled();
     expect(mockClientSession.setRefreshToken).toHaveBeenCalledWith(
       'mock-refresh-token'
@@ -283,13 +287,13 @@ describe('makeResetPasswordUseCase', () => {
       updatedAt: new Date(),
     } as unknown as IUserAuth;
 
-    mockAuthService.claimPasswordResetToken.mockResolvedValue({
+    mockTokenAppService.claimPasswordResetToken.mockResolvedValue({
       id: mockUser.id,
       owner: 'claim-owner',
     });
     mockUserRepo.findById.mockResolvedValue(mockUser);
     mockUserAuthRepo.findByUserId.mockResolvedValue(existingUserAuth);
-    mockPasswordService.hash.mockResolvedValue('new-hash');
+    mockPasswordAppService.hash.mockResolvedValue('new-hash');
 
     await getUseCase()(getValidPayload());
 
@@ -312,7 +316,7 @@ describe('makeResetPasswordUseCase', () => {
       email: emailValue.make('committed@example.com'),
       emailVerified: true,
     } as IUser;
-    mockAuthService.claimPasswordResetToken.mockResolvedValue({
+    mockTokenAppService.claimPasswordResetToken.mockResolvedValue({
       id: mockUser.id,
       owner: 'claim-owner',
     });
@@ -327,8 +331,8 @@ describe('makeResetPasswordUseCase', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     } as IUserAuth);
-    mockPasswordService.hash.mockResolvedValue('new-hash');
-    mockUserSessionService.prepare.mockResolvedValue({
+    mockPasswordAppService.hash.mockResolvedValue('new-hash');
+    mockUserSessionAppService.prepare.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
       userSession: {
@@ -342,7 +346,7 @@ describe('makeResetPasswordUseCase', () => {
       priorClientSession: null,
     });
     const failure = new Error('cache unavailable');
-    mockAuthService.finalizePasswordResetToken.mockRejectedValue(failure);
+    mockTokenAppService.finalizePasswordResetToken.mockRejectedValue(failure);
 
     await expect(getUseCase()(getValidPayload())).resolves.toEqual({
       accessToken: 'access-token',
@@ -355,7 +359,7 @@ describe('makeResetPasswordUseCase', () => {
       }
     );
     expect(
-      mockAuthService.releasePasswordResetTokenClaim
+      mockTokenAppService.releasePasswordResetTokenClaim
     ).not.toHaveBeenCalled();
   });
 
@@ -373,12 +377,12 @@ describe('makeResetPasswordUseCase', () => {
       owner: 'claim-owner',
     };
 
-    mockAuthService.claimPasswordResetToken.mockResolvedValue(tokenPayload);
+    mockTokenAppService.claimPasswordResetToken.mockResolvedValue(tokenPayload);
     const dbError = new Error('Database lookup failure');
     mockUserRepo.findById.mockRejectedValue(dbError);
 
     const cleanupError = new Error('Redis connection failure');
-    mockAuthService.releasePasswordResetTokenClaim.mockRejectedValue(
+    mockTokenAppService.releasePasswordResetTokenClaim.mockRejectedValue(
       cleanupError
     );
 
@@ -407,7 +411,7 @@ describe('makeResetPasswordUseCase', () => {
       owner: 'claim-owner',
     };
 
-    mockAuthService.claimPasswordResetToken.mockResolvedValue(tokenPayload);
+    mockTokenAppService.claimPasswordResetToken.mockResolvedValue(tokenPayload);
     mockUserRepo.findById.mockResolvedValue(mockUser);
     mockUserAuthRepo.findByUserId.mockResolvedValue({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -419,8 +423,8 @@ describe('makeResetPasswordUseCase', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     } as IUserAuth);
-    mockPasswordService.hash.mockResolvedValue('new-hash');
-    mockUserSessionService.prepare.mockResolvedValue({
+    mockPasswordAppService.hash.mockResolvedValue('new-hash');
+    mockUserSessionAppService.prepare.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
       userSession: {
@@ -444,7 +448,7 @@ describe('makeResetPasswordUseCase', () => {
     );
 
     expect(
-      mockAuthService.releasePasswordResetTokenClaim
+      mockTokenAppService.releasePasswordResetTokenClaim
     ).not.toHaveBeenCalled();
   });
 });

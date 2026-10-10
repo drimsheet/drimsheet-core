@@ -10,11 +10,11 @@ import userEntity from '@domain/user/entities/user.entity';
 import IUserRepo from '@domain/user/repos/user.repo';
 import IActorService from '@domain/user/types/actor.service.types';
 
-import ITokenService, {
+import ITokenAppService, {
   IAuthTokenPayload,
 } from '@app/auth/contracts/token-service.contract';
-import IUserSessionPersistenceService from '@app/auth/contracts/user-session-persistence.service.contract';
-import IUserSessionService, {
+import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
+import IUserSessionAppService, {
   IPreparedUserSession,
 } from '@app/auth/contracts/user-session.service.contract';
 import { IAccessToken } from '@app/auth/dtos/auth/auth.dto';
@@ -27,12 +27,12 @@ const validationSchema = z.object({
 
 interface IDependencies {
   actorService: IActorService;
-  tokenService: ITokenService;
+  tokenAppService: ITokenAppService;
   userRepo: IUserRepo;
   appContext: IAppContext;
   eventBus: IEventBus;
-  userSessionService: IUserSessionService;
-  userSessionPersistenceService: IUserSessionPersistenceService;
+  userSessionAppService: IUserSessionAppService;
+  userSessionPersistenceAppService: IUserSessionPersistenceAppService;
   repoService: IRepoService;
 }
 
@@ -47,7 +47,7 @@ export default function makeVerifyEmailAddressUseCase(deps: IDependencies) {
     let decodedToken: IAuthTokenPayload | undefined;
 
     try {
-      decodedToken = await deps.tokenService.claimSignupToken(token);
+      decodedToken = await deps.tokenAppService.claimSignupToken(token);
 
       let preparedSession!: IPreparedUserSession;
       let eventsToPublish = eventValue.enrichAll([], { correlationId });
@@ -87,11 +87,11 @@ export default function makeVerifyEmailAddressUseCase(deps: IDependencies) {
           eventsToPublish = eventValue.enrichAll(events, { correlationId });
         }
 
-        preparedSession = await deps.userSessionService.prepare(
+        preparedSession = await deps.userSessionAppService.prepare(
           sessionUser,
           clientSession.getRefreshToken()
         );
-        await deps.userSessionPersistenceService.replaceClientSession(
+        await deps.userSessionPersistenceAppService.replaceClientSession(
           {
             userSession: preparedSession.userSession,
             priorClientSession: preparedSession.priorClientSession,
@@ -104,12 +104,12 @@ export default function makeVerifyEmailAddressUseCase(deps: IDependencies) {
       if (eventsToPublish.length > 0) {
         await deps.eventBus.publish(eventsToPublish);
       }
-      await deps.tokenService.finalizeSignupToken(decodedToken.id);
+      await deps.tokenAppService.finalizeSignupToken(decodedToken.id);
 
       return { accessToken: preparedSession.accessToken };
     } catch (error) {
       if (decodedToken?.id) {
-        await deps.tokenService.releaseSignupTokenClaim(decodedToken.id);
+        await deps.tokenAppService.releaseSignupTokenClaim(decodedToken.id);
       }
       if (
         error &&

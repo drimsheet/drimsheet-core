@@ -8,10 +8,10 @@ import makeUserIdentityService from '@domain/user/services/user-identity.service
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockEmailVerificationService from '@app/auth/contracts/__mocks__/email-verification.service.mock';
-import mockPasswordService from '@app/auth/contracts/__mocks__/password-service.mock';
+import mockEmailVerificationAppService from '@app/auth/contracts/__mocks__/email-verification.service.mock';
+import mockPasswordAppService from '@app/auth/contracts/__mocks__/password-service.mock';
 import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock';
-import mockUserAuthService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
+import mockUserAuthAppService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
 import { IUserSignupReq } from '@app/auth/dtos/auth/auth.dto';
 import makeSignupWithEmailUsecase from '@app/auth/usecases/signup-with-email.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
@@ -35,7 +35,7 @@ describe('makeSignupWithEmailUsecase', () => {
     mockActorService.resolveUser.mockReset();
     mockUserRepo.create.mockReset().mockResolvedValue(undefined);
     mockUserAuthRepo.create.mockReset().mockResolvedValue(undefined);
-    mockUserAuthService.make.mockReset().mockImplementation((payload) => {
+    mockUserAuthAppService.make.mockReset().mockImplementation((payload) => {
       const timestamp = new Date();
 
       return {
@@ -50,12 +50,14 @@ describe('makeSignupWithEmailUsecase', () => {
       };
     });
     mockEventBus.publish.mockReset().mockResolvedValue(undefined);
-    mockEmailVerificationService.send.mockReset().mockResolvedValue(true);
+    mockEmailVerificationAppService.send.mockReset().mockResolvedValue(true);
     mockUserRepo.findByEmail.mockReset().mockResolvedValue(null);
-    mockPasswordService.makePassword
+    mockPasswordAppService.makePassword
       .mockReset()
       .mockImplementation((input) => input as string);
-    mockPasswordService.hash.mockReset().mockResolvedValue('hashed-password');
+    mockPasswordAppService.hash
+      .mockReset()
+      .mockResolvedValue('hashed-password');
     mockRepoService.runInTransaction
       .mockReset()
       .mockImplementation(async (transactionFn) =>
@@ -70,12 +72,12 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     const invalidPayload: IUserSignupReq = {
@@ -106,7 +108,7 @@ describe('makeSignupWithEmailUsecase', () => {
     };
 
     mockUserRepo.findByEmail.mockResolvedValue(null);
-    mockPasswordService.hash.mockResolvedValue('hashed-password');
+    mockPasswordAppService.hash.mockResolvedValue('hashed-password');
 
     const usecase = makeSignupWithEmailUsecase({
       actorService: mockActorService,
@@ -114,12 +116,12 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     await usecase(payload);
@@ -134,9 +136,9 @@ describe('makeSignupWithEmailUsecase', () => {
       correlationId,
     });
 
-    expect(mockPasswordService.makePassword).toHaveBeenCalledWith(password);
-    expect(mockPasswordService.hash).toHaveBeenCalledTimes(1);
-    expect(mockPasswordService.hash).toHaveBeenCalledWith(password);
+    expect(mockPasswordAppService.makePassword).toHaveBeenCalledWith(password);
+    expect(mockPasswordAppService.hash).toHaveBeenCalledTimes(1);
+    expect(mockPasswordAppService.hash).toHaveBeenCalledWith(password);
 
     // Assert that save methods were called correctly
     expect(mockUserRepo.create).toHaveBeenCalledTimes(1);
@@ -193,7 +195,7 @@ describe('makeSignupWithEmailUsecase', () => {
       idempotencyKey: 'test-idemp-key',
     } as IAppContextData);
     mockUserRepo.findByEmail.mockResolvedValue(null);
-    mockPasswordService.hash.mockResolvedValue('hashed-password');
+    mockPasswordAppService.hash.mockResolvedValue('hashed-password');
 
     let completePublication: (() => void) | undefined;
     const publication = new Promise<void>((resolve) => {
@@ -207,12 +209,12 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     let signupCompleted = false;
@@ -246,12 +248,12 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     await expect(
@@ -266,7 +268,7 @@ describe('makeSignupWithEmailUsecase', () => {
     expect(mockUserRepo.create).not.toHaveBeenCalled();
     expect(mockUserAuthRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-    expect(mockEmailVerificationService.send).not.toHaveBeenCalled();
+    expect(mockEmailVerificationAppService.send).not.toHaveBeenCalled();
   });
 
   it('should not create auth data or publish when user creation fails', async () => {
@@ -275,7 +277,7 @@ describe('makeSignupWithEmailUsecase', () => {
       idempotencyKey: 'test-idemp-key',
     } as IAppContextData);
     mockUserRepo.findByEmail.mockResolvedValue(null);
-    mockPasswordService.hash.mockResolvedValue('hashed-password');
+    mockPasswordAppService.hash.mockResolvedValue('hashed-password');
     mockUserRepo.create.mockRejectedValue(new Error('user create failed'));
 
     const usecase = makeSignupWithEmailUsecase({
@@ -284,12 +286,12 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     await expect(
@@ -311,7 +313,7 @@ describe('makeSignupWithEmailUsecase', () => {
       idempotencyKey: 'test-idemp-key',
     } as IAppContextData);
     mockUserRepo.findByEmail.mockResolvedValue(null);
-    mockPasswordService.hash.mockResolvedValue('hashed-password');
+    mockPasswordAppService.hash.mockResolvedValue('hashed-password');
     mockUserAuthRepo.create.mockRejectedValue(
       new Error('user auth create failed')
     );
@@ -322,12 +324,12 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     await expect(
@@ -377,22 +379,22 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     await expect(usecase(payload)).resolves.toBeUndefined();
 
     expect(mockUserRepo.findByEmail).toHaveBeenCalledTimes(1);
-    expect(mockEmailVerificationService.send).toHaveBeenCalledWith(
+    expect(mockEmailVerificationAppService.send).toHaveBeenCalledWith(
       existingUser,
       correlationId
     );
-    expect(mockPasswordService.hash).toHaveBeenCalledWith(payload.password);
+    expect(mockPasswordAppService.hash).toHaveBeenCalledWith(payload.password);
     expect(mockUserRepo.create).not.toHaveBeenCalled();
     expect(mockUserAuthRepo.create).not.toHaveBeenCalled();
   });
@@ -411,12 +413,12 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     await expect(
@@ -428,7 +430,7 @@ describe('makeSignupWithEmailUsecase', () => {
       })
     ).rejects.toBe(persistenceFailure);
 
-    expect(mockEmailVerificationService.send).not.toHaveBeenCalled();
+    expect(mockEmailVerificationAppService.send).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -446,12 +448,12 @@ describe('makeSignupWithEmailUsecase', () => {
       userIdentityService: mockUserIdentityService,
       appContext: mockAppContext,
       userRepo: mockUserRepo,
-      passwordService: mockPasswordService,
+      passwordAppService: mockPasswordAppService,
       eventBus: mockEventBus,
       userAuthRepo: mockUserAuthRepo,
-      userAuthService: mockUserAuthService,
+      userAuthAppService: mockUserAuthAppService,
       repoService: mockRepoService,
-      emailVerificationService: mockEmailVerificationService,
+      emailVerificationAppService: mockEmailVerificationAppService,
     });
 
     await expect(

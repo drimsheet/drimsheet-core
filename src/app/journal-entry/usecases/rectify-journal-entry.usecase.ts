@@ -14,8 +14,8 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
-import IJournalEntryRectificationPreparationService from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryRectificationPreparationAppService from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
 import {
   IJournalEntryRectificationDto,
   TJournalEntryRectificationReq,
@@ -27,20 +27,20 @@ import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entr
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import helpers from '@app/journal-entry/usecases/helpers/rectify-journal-entry.usecase.helpers';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
-import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 
 interface IDependencies {
   appContext: IAppContext;
   counterpartyRepo: ICounterpartyRepo;
   journalEntryRepo: IJournalEntryRepo;
-  journalEntryRectificationPreparationService: IJournalEntryRectificationPreparationService;
-  journalEntryPersistenceService: IJournalEntryPersistenceService;
+  journalEntryRectificationPreparationAppService: IJournalEntryRectificationPreparationAppService;
+  journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
   eventBus: IEventBus;
-  outboxService: IOutboxService;
+  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
-  fxCostBasisPersistenceService: IFxCostBasisPersistenceService;
+  fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
 export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
@@ -74,7 +74,7 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
       actor: actor.id,
     };
     const preparedRectification =
-      await deps.journalEntryRectificationPreparationService.prepare(
+      await deps.journalEntryRectificationPreparationAppService.prepare(
         preparationPayload,
         repoOptions
       );
@@ -107,34 +107,34 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
         });
       }
 
-      await deps.journalEntryPersistenceService.rectify(
+      await deps.journalEntryPersistenceAppService.rectify(
         rectificationPersistencePayload,
         writeOptions
       );
 
       if (preparedRectification.fxReversal) {
-        await deps.fxCostBasisPersistenceService.persistReversal(
+        await deps.fxCostBasisPersistenceAppService.persistReversal(
           preparedRectification.fxReversal.records,
           writeOptions
         );
       }
 
       if (preparedRectification.fxDisposition) {
-        await deps.fxCostBasisPersistenceService.persistDisposition(
+        await deps.fxCostBasisPersistenceAppService.persistDisposition(
           preparedRectification.fxDisposition.records,
           writeOptions
         );
       }
 
       if (preparedRectification.fxAcquisition) {
-        await deps.fxCostBasisPersistenceService.persistAcquisition(
+        await deps.fxCostBasisPersistenceAppService.persistAcquisition(
           preparedRectification.fxAcquisition.records,
           writeOptions
         );
       }
 
       for (const journalEntry of entriesForBalancePropagation) {
-        await deps.outboxService.createBalancePropagation(
+        await deps.outboxAppService.createBalancePropagation(
           journalEntry.id,
           writeOptions
         );

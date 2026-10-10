@@ -5,13 +5,13 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import makeEmailVerificationService, {
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import makeEmailVerificationAppService, {
   EMAIL_VERIFICATION_COOL_DOWN_SECONDS,
 } from '@app/auth/services/email-verification.service';
-import mockTransactionalEmailService from '@app/notification/contracts/__mocks__/transactional-email-service.mock';
+import mockTransactionalEmailAppService from '@app/notification/contracts/__mocks__/transactional-email-service.mock';
 
-describe('makeEmailVerificationService', () => {
+describe('makeEmailVerificationAppService', () => {
   const correlationId = 'test-corr-id';
   const user: IUser = {
     createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -36,11 +36,11 @@ describe('makeEmailVerificationService', () => {
 
   it('atomically reserves the cooldown and sends the verification email', async () => {
     mockCacheStorage.setIfNotExists.mockResolvedValue(true);
-    mockTokenService.generateSignupToken.mockResolvedValue('token-123');
-    const service = makeEmailVerificationService({
+    mockTokenAppService.generateSignupToken.mockResolvedValue('token-123');
+    const service = makeEmailVerificationAppService({
       cacheStorage: mockCacheStorage,
-      tokenService: mockTokenService,
-      transactionalEmailService: mockTransactionalEmailService,
+      tokenAppService: mockTokenAppService,
+      transactionalEmailAppService: mockTransactionalEmailAppService,
       varsConfig,
     });
 
@@ -52,7 +52,7 @@ describe('makeEmailVerificationService', () => {
       EMAIL_VERIFICATION_COOL_DOWN_SECONDS
     );
     expect(
-      mockTransactionalEmailService.sendEmailVerification
+      mockTransactionalEmailAppService.sendEmailVerification
     ).toHaveBeenCalledWith({
       user,
       verificationLink:
@@ -63,32 +63,32 @@ describe('makeEmailVerificationService', () => {
 
   it('does not issue a token or send while the cooldown is held', async () => {
     mockCacheStorage.setIfNotExists.mockResolvedValue(false);
-    const service = makeEmailVerificationService({
+    const service = makeEmailVerificationAppService({
       cacheStorage: mockCacheStorage,
-      tokenService: mockTokenService,
-      transactionalEmailService: mockTransactionalEmailService,
+      tokenAppService: mockTokenAppService,
+      transactionalEmailAppService: mockTransactionalEmailAppService,
       varsConfig,
     });
 
     await expect(service.send(user, correlationId)).resolves.toBe(false);
 
-    expect(mockTokenService.generateSignupToken).not.toHaveBeenCalled();
+    expect(mockTokenAppService.generateSignupToken).not.toHaveBeenCalled();
     expect(
-      mockTransactionalEmailService.sendEmailVerification
+      mockTransactionalEmailAppService.sendEmailVerification
     ).not.toHaveBeenCalled();
   });
 
   it('releases the cooldown reservation when delivery fails', async () => {
     const deliveryError = new Error('delivery failed');
     mockCacheStorage.setIfNotExists.mockResolvedValue(true);
-    mockTokenService.generateSignupToken.mockResolvedValue('token-123');
-    mockTransactionalEmailService.sendEmailVerification.mockRejectedValue(
+    mockTokenAppService.generateSignupToken.mockResolvedValue('token-123');
+    mockTransactionalEmailAppService.sendEmailVerification.mockRejectedValue(
       deliveryError
     );
-    const service = makeEmailVerificationService({
+    const service = makeEmailVerificationAppService({
       cacheStorage: mockCacheStorage,
-      tokenService: mockTokenService,
-      transactionalEmailService: mockTransactionalEmailService,
+      tokenAppService: mockTokenAppService,
+      transactionalEmailAppService: mockTransactionalEmailAppService,
       varsConfig,
     });
 

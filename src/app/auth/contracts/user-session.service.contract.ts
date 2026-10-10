@@ -16,7 +16,7 @@ export interface IPreparedUserSession {
   priorClientSession: IUserSessionReference | null;
 }
 
-export default interface IUserSessionService {
+export default interface IUserSessionAppService {
   prepare(
     user: IUser,
     priorClientRefreshToken?: string | null

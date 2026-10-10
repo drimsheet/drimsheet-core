@@ -18,13 +18,13 @@ import moneyValue from '@domain/money/values/money.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeUpdateCounterpartyUsecase from '@app/counterparty/usecases/update-counterparty.usecase';
 import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import * as counterpartyUseCases from '@infra/ioc/usecases/counterparty';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
@@ -50,7 +50,7 @@ jest.mock(
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,
-  tokenService: { getAuthUser: jest.fn() },
+  tokenAppService: { getAuthUser: jest.fn() },
 }));
 
 jest.mock('../../../src/infra/ioc/usecases/counterparty', () => ({
@@ -134,8 +134,8 @@ describe('PATCH /counterparties/{id}', () => {
     });
     mockJournalLineRepo.findAllByCounterpartyId.mockResolvedValue([]);
     mockActorService.resolveUser.mockResolvedValue(actor);
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
-    jest.mocked(tokenService.getAuthUser).mockResolvedValue({ id: userId });
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
+    jest.mocked(tokenAppService.getAuthUser).mockResolvedValue({ id: userId });
     jest.mocked(userRepos.user.findById).mockResolvedValue({
       id: userId,
       actorId: actor.id,
@@ -252,7 +252,7 @@ describe('PATCH /counterparties/{id}', () => {
   });
   describe('403 Response', () => {
     it('rejects callers without Alpha 1 access', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
       expect((await patch({ status: 'active' })).status).toBe(403);
       expect(update).not.toHaveBeenCalled();
     });

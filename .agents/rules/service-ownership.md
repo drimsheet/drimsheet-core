@@ -6,6 +6,14 @@ questions, and disposition vocabulary.
 Extract a service only when it represents a named capability with a clear
 owner. Do not create a service merely to shorten a use case.
 
+## Naming
+
+- Application service names end with `AppService`, including app-owned service
+  contracts and persistence services (`PersistenceAppService`).
+- Domain service names end with `Service`, never `DomainService`.
+- Apply these names consistently to factories, interfaces, injected dependencies,
+  IoC bindings, and mocks.
+
 ## Domain Services
 
 - Own business invariants, domain decisions, and coordinated creation within
@@ -37,7 +45,7 @@ owner. Do not create a service merely to shorten a use case.
 ## Persistence Services
 
 - Are dedicated application-layer write capabilities with explicit
-  `PersistenceService` contracts.
+  `PersistenceAppService` contracts.
 - Are invoked directly by use cases only. Domain services and other application
   services must never call them.
 - Compose repository writes and storage-level invariants only when one persisted

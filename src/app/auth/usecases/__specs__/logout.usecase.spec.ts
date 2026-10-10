@@ -2,7 +2,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import userEntity from '@domain/user/entities/user.entity';
 
-import mockAuthService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
 import mockUserSessionRepo from '@app/auth/contracts/__mocks__/user-session.repo.mock';
 import authError from '@app/auth/errors/auth.error';
 import makeLogoutUseCase from '@app/auth/usecases/logout.usecase';
@@ -29,7 +29,7 @@ describe('makeLogoutUseCase', () => {
       clientSession: mockClientSession,
       correlationId,
     } as unknown as IAppContextData);
-    mockAuthService.verifyRefreshToken.mockReturnValue({
+    mockTokenAppService.verifyRefreshToken.mockReturnValue({
       id: mockUser.id,
     });
   });
@@ -37,7 +37,7 @@ describe('makeLogoutUseCase', () => {
   const getUseCase = () =>
     makeLogoutUseCase({
       reqContext: mockAppContext,
-      tokenService: mockAuthService,
+      tokenAppService: mockTokenAppService,
       userSessionRepo: mockUserSessionRepo,
     });
 
@@ -48,7 +48,7 @@ describe('makeLogoutUseCase', () => {
     const usecase = getUseCase();
     await usecase();
 
-    expect(mockAuthService.verifyRefreshToken).toHaveBeenCalledWith(
+    expect(mockTokenAppService.verifyRefreshToken).toHaveBeenCalledWith(
       'valid-refresh-token'
     );
     expect(mockUserSessionRepo.delete).toHaveBeenCalledWith(
@@ -68,7 +68,7 @@ describe('makeLogoutUseCase', () => {
     const usecase = getUseCase();
     await usecase();
 
-    expect(mockAuthService.verifyRefreshToken).not.toHaveBeenCalled();
+    expect(mockTokenAppService.verifyRefreshToken).not.toHaveBeenCalled();
     expect(mockUserSessionRepo.delete).not.toHaveBeenCalled();
     expect(mockClientSession.clearRefreshToken).toHaveBeenCalled();
   });
@@ -82,14 +82,14 @@ describe('makeLogoutUseCase', () => {
       mockClientSession.getRefreshToken.mockReturnValue(
         'unusable-refresh-token'
       );
-      mockAuthService.verifyRefreshToken.mockImplementation(() => {
+      mockTokenAppService.verifyRefreshToken.mockImplementation(() => {
         throw error;
       });
 
       const usecase = getUseCase();
       await usecase();
 
-      expect(mockAuthService.verifyRefreshToken).toHaveBeenCalledWith(
+      expect(mockTokenAppService.verifyRefreshToken).toHaveBeenCalledWith(
         'unusable-refresh-token'
       );
       expect(mockUserSessionRepo.delete).not.toHaveBeenCalled();
@@ -115,14 +115,14 @@ describe('makeLogoutUseCase', () => {
   it('should propagate unexpected verification failures without clearing the cookie', async () => {
     mockClientSession.getRefreshToken.mockReturnValue('error-refresh-token');
     const error = new Error('Some error');
-    mockAuthService.verifyRefreshToken.mockImplementation(() => {
+    mockTokenAppService.verifyRefreshToken.mockImplementation(() => {
       throw error;
     });
 
     const usecase = getUseCase();
     await expect(usecase()).rejects.toBe(error);
 
-    expect(mockAuthService.verifyRefreshToken).toHaveBeenCalledWith(
+    expect(mockTokenAppService.verifyRefreshToken).toHaveBeenCalledWith(
       'error-refresh-token'
     );
     expect(mockUserSessionRepo.delete).not.toHaveBeenCalled();

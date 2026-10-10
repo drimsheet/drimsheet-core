@@ -3,7 +3,7 @@ import {
   IUserAuth,
   UAuthStrategy,
 } from '@app/auth/contracts/auth.types';
-import IUserAuthService from '@app/auth/contracts/user-auth.service.contract';
+import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
 
 /** Builds one immutable next-version authentication-state transition. */
 function makeTransition(
@@ -23,7 +23,7 @@ function makeTransition(
 }
 
 /** Creates the capability that prepares initial version-one auth state. */
-function makeUserAuth(): IUserAuthService['make'] {
+function makeUserAuth(): IUserAuthAppService['make'] {
   return (payload) => {
     const timestamp = new Date();
 
@@ -44,7 +44,7 @@ function makeUserAuth(): IUserAuthService['make'] {
  * Creates the capability that appends a missing authentication strategy and
  * preserves identity when the strategy already exists.
  */
-function makeAddStrategy(): IUserAuthService['addStrategy'] {
+function makeAddStrategy(): IUserAuthAppService['addStrategy'] {
   return (userAuth, strategy) => {
     if (userAuth.strategy.includes(strategy)) return userAuth;
 
@@ -60,7 +60,7 @@ function makeAddStrategy(): IUserAuthService['addStrategy'] {
  * Creates the capability that replaces a password, restores email auth, and
  * resets failed-login attempts in the next version.
  */
-function makeReplacePassword(): IUserAuthService['replacePassword'] {
+function makeReplacePassword(): IUserAuthAppService['replacePassword'] {
   return (userAuth, password) => {
     const strategy = userAuth.strategy.includes(EAuthStrategy.Email)
       ? userAuth.strategy
@@ -75,7 +75,7 @@ function makeReplacePassword(): IUserAuthService['replacePassword'] {
 }
 
 /** Creates the capability that records one failed login in the next version. */
-function makeRecordFailedLogin(): IUserAuthService['recordFailedLogin'] {
+function makeRecordFailedLogin(): IUserAuthAppService['recordFailedLogin'] {
   return (userAuth) =>
     makeTransition(userAuth, {
       password: userAuth.password,
@@ -88,7 +88,7 @@ function makeRecordFailedLogin(): IUserAuthService['recordFailedLogin'] {
  * Creates the capability that resets failed-login attempts, preserving
  * identity when the count is already zero.
  */
-function makeResetFailedLoginAttempts(): IUserAuthService['resetFailedLoginAttempts'] {
+function makeResetFailedLoginAttempts(): IUserAuthAppService['resetFailedLoginAttempts'] {
   return (userAuth) => {
     if (userAuth.failedLoginAttempts === 0) return userAuth;
 
@@ -101,8 +101,8 @@ function makeResetFailedLoginAttempts(): IUserAuthService['resetFailedLoginAttem
 }
 
 /** Composes the immutable user-auth service from its capabilities. */
-export default function makeUserAuthService(): IUserAuthService {
-  const service: IUserAuthService = {
+export default function makeUserAuthAppService(): IUserAuthAppService {
+  const service: IUserAuthAppService = {
     make: makeUserAuth(),
     addStrategy: makeAddStrategy(),
     replacePassword: makeReplacePassword(),

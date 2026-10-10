@@ -7,9 +7,9 @@ import appError from '@shared/values/errors/app.error';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import * as counterpartyUseCases from '@infra/ioc/usecases/counterparty';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
@@ -34,7 +34,7 @@ jest.mock(
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,
-  tokenService: { getAuthUser: jest.fn() },
+  tokenAppService: { getAuthUser: jest.fn() },
 }));
 
 jest.mock('../../../src/infra/ioc/usecases/counterparty', () => ({
@@ -89,7 +89,7 @@ const mockResult = {
 
 describe('GET /counterparties', () => {
   let app: Express;
-  const mockGetAuthUser = tokenService.getAuthUser as jest.Mock;
+  const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
     .findByIdAndUserId as jest.Mock;
@@ -98,7 +98,7 @@ describe('GET /counterparties', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
     mockFindUser.mockResolvedValue({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -167,7 +167,7 @@ describe('GET /counterparties', () => {
 
   describe('403 Response', () => {
     it('rejects a user without Alpha 1 access', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValueOnce(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
       const response = await makeRequest();
 

@@ -27,7 +27,7 @@ import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
-import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
 import makeCreateOpeningBalanceUseCase from '@app/journal-entry/usecases/create-opening-balance.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
@@ -37,8 +37,8 @@ import {
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const actor = {
@@ -151,7 +151,9 @@ describe('createOpeningBalanceUseCase', () => {
       .mockImplementation(async (transactionFn) =>
         transactionFn('mock-tx' as unknown as ITransactionContext)
       );
-    mockOutboxService.createBalancePropagation.mockReset().mockResolvedValue();
+    mockOutboxAppService.createBalancePropagation
+      .mockReset()
+      .mockResolvedValue();
     mockLedgerAccountBalanceAdjustmentQueue.add.mockReset().mockResolvedValue();
 
     mockAppContext.get.mockReturnValue({
@@ -205,11 +207,12 @@ describe('createOpeningBalanceUseCase', () => {
       ledgerAccountRepo: mockLedgerAccountRepo,
       eventBus: mockEventBus,
       openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
-      journalEntryPersistenceService: mockJournalEntryPersistenceService,
-      outboxService: mockOutboxService,
+      journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
+      outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
       repoService: mockRepoService,
-      fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
+      fxCostBasisPersistenceAppService:
+        mockFxLotCostBasisAppService.persistence,
     });
 
   it('does not persist when opening journal creation rejects an archived account', async () => {
@@ -224,8 +227,10 @@ describe('createOpeningBalanceUseCase', () => {
       })
     ).rejects.toBe(failure);
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -278,7 +283,7 @@ describe('createOpeningBalanceUseCase', () => {
         correlationId,
       })
     );
-    expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledWith(
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         accountingEntityId: mockAccountingEntity.id,
       }),
@@ -293,14 +298,14 @@ describe('createOpeningBalanceUseCase', () => {
       expect.objectContaining({ correlationId })
     );
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(
       fxRecords,
       expect.objectContaining({ correlationId, tx: expect.anything() })
     );
     const persistedJournalEntry =
-      mockJournalEntryPersistenceService.create.mock.calls[0][0];
-    expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledWith(
+      mockJournalEntryPersistenceAppService.create.mock.calls[0][0];
+    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
       persistedJournalEntry.id,
       expect.objectContaining({ correlationId, tx: expect.anything() })
     );
@@ -339,7 +344,7 @@ describe('createOpeningBalanceUseCase', () => {
 
     await useCase(payload);
 
-    expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledWith(
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         accountingEntityId: mockAccountingEntity.id,
       }),
@@ -399,8 +404,10 @@ describe('createOpeningBalanceUseCase', () => {
       date: new Date('2026-04-24T00:00:00.000Z'),
     });
 
-    expect(mockJournalEntryPersistenceService.create).toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalled();
   });
@@ -423,7 +430,7 @@ describe('createOpeningBalanceUseCase', () => {
 
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 

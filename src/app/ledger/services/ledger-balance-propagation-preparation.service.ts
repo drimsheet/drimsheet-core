@@ -14,7 +14,7 @@ import ILedgerAccountBalanceAdjustmentService, {
 } from '@domain/ledger/types/ledger-account-balance-adjustment.service.types';
 import { ILedgerAccountBalance } from '@domain/ledger/types/ledger-account-balance.types';
 
-import ILedgerBalancePropagationPreparationService, {
+import ILedgerBalancePropagationPreparationAppService, {
   IPreparedLedgerAccountBalanceAdjustment,
 } from '@app/ledger/contracts/ledger-balance-propagation-preparation.service.contract';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
@@ -151,7 +151,7 @@ function prepareBalanceAdjustments(
  */
 function makePrepare(
   deps: IDependencies
-): ILedgerBalancePropagationPreparationService['prepare'] {
+): ILedgerBalancePropagationPreparationAppService['prepare'] {
   return async (journalEntryId, repoOptions) => {
     const propagation = await prepareBalancePropagation(
       deps,
@@ -168,8 +168,8 @@ function makePrepare(
   };
 }
 
-export default function makeLedgerBalancePropagationPreparationService(
+export default function makeLedgerBalancePropagationPreparationAppService(
   deps: IDependencies
-): ILedgerBalancePropagationPreparationService {
+): ILedgerBalancePropagationPreparationAppService {
   return Object.freeze({ prepare: makePrepare(deps) });
 }

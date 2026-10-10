@@ -13,9 +13,9 @@ import ICashAccountService from '@domain/ledger/types/cash-account.service.types
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import IJournalEntryPersistenceService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening-balance-entry.service.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { IBankAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { bankAccountCreationReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
@@ -24,8 +24,8 @@ import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-
 import openingBalanceExchangeRateGetter from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
 import openingBalanceExchangeRateValidationHelper from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-validation.helper';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IOutboxService from '@app/outbox/contracts/outbox.service.contract';
-import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
@@ -34,13 +34,13 @@ interface IDependencies {
   cashAccountService: ICashAccountService;
   bankAccountRepo: IBankAccountRepo;
   openingBalanceEntryAppService: IOpeningBalanceEntryAppService;
-  journalEntryPersistenceService: IJournalEntryPersistenceService;
-  outboxService: IOutboxService;
+  journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
+  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   repoService: IRepoService;
-  ledgerAccountPersistenceService: ILedgerAccountPersistenceService;
+  ledgerAccountPersistenceAppService: ILedgerAccountPersistenceAppService;
   fxLotAppService: IFxLotAppService;
-  fxCostBasisPersistenceService: IFxCostBasisPersistenceService;
+  fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
 export default function makeCreateBankAccountUseCase(deps: IDependencies) {
@@ -96,7 +96,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
       );
 
       if (!payload.openingBalance) {
-        await deps.ledgerAccountPersistenceService.create(
+        await deps.ledgerAccountPersistenceAppService.create(
           account,
           accountingEntity.functionalCurrencyCode,
           { ...transactionOptions, history: [accountHistory] }
@@ -158,7 +158,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
         historyValue.make(audit, actor.id, correlationId)
       );
 
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         account,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [accountHistory] }
@@ -172,7 +172,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
         transactionOptions
       );
 
-      await deps.journalEntryPersistenceService.create(
+      await deps.journalEntryPersistenceAppService.create(
         journalEntry,
         journalHeaderHistory,
         journalLineHistories,
@@ -180,14 +180,14 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
       );
 
       if (fxAcquisition) {
-        await deps.fxCostBasisPersistenceService.persistAcquisition(
+        await deps.fxCostBasisPersistenceAppService.persistAcquisition(
           fxAcquisition.records,
           transactionOptions
         );
       }
 
       if (postedJournal) {
-        await deps.outboxService.createBalancePropagation(
+        await deps.outboxAppService.createBalancePropagation(
           postedJournal.id,
           transactionOptions
         );

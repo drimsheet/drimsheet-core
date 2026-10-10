@@ -4,9 +4,9 @@ import { TEntityId } from '@shared/types/uuid';
 
 import mockUserSessionRepo from '@app/auth/contracts/__mocks__/user-session.repo.mock';
 import { IUserSession } from '@app/auth/contracts/auth.types';
-import makeUserSessionPersistenceService from '@app/auth/services/user-session-persistence.service';
+import makeUserSessionPersistenceAppService from '@app/auth/services/user-session-persistence.service';
 
-describe('userSessionPersistenceService', () => {
+describe('userSessionPersistenceAppService', () => {
   const userId = '123e4567-e89b-42d3-a456-426614174000' as TEntityId;
   const priorUserId = '123e4567-e89b-42d3-a456-426614174001' as TEntityId;
   const tx = 'mock-tx' as unknown as ITransactionContext;
@@ -21,7 +21,7 @@ describe('userSessionPersistenceService', () => {
   const repoOptions = { correlationId: 'test-correlation-id' };
 
   const getService = () =>
-    makeUserSessionPersistenceService({
+    makeUserSessionPersistenceAppService({
       userSessionRepo: mockUserSessionRepo,
       repoService: mockRepoService,
     });

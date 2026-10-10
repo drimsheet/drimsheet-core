@@ -152,7 +152,7 @@ describe('POST /mcp', () => {
       makeGetLedgerAccountsUsecase({
         appContext,
         ledgerAccountRepo: mockLedgerAccountRepo,
-        balanceEnrichmentService: mockBalanceEnrichment,
+        balanceEnrichmentAppService: mockBalanceEnrichment,
       })
     );
     jest.mocked(getJournalEntriesUseCase).mockImplementation(

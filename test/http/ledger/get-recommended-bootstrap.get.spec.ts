@@ -6,8 +6,8 @@ import { TEntityId } from '@shared/types/uuid';
 import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { IRecommendedBootstrapDto } from '@app/ledger/dtos/recommended-bootstrap/recommended-bootstrap.dto';
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
@@ -32,7 +32,7 @@ jest.mock(
   })
 );
 jest.mock('@infra/ioc/services/auth', () => ({
-  tokenService: jest.requireActual(
+  tokenAppService: jest.requireActual(
     '@app/auth/contracts/__mocks__/token-service.mock'
   ).default,
 }));
@@ -60,14 +60,14 @@ describe('GET /ledger/recommended-bootstrap', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue({
       id: userId,
       actorId: actor.id,
       email: 'recommendations@example.com',
     } as IUser);
     mockActorService.resolveUser.mockResolvedValue(actor);
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetRecommendations.mockImplementation(
       makeGetRecommendedBootstrapUsecase()
     );
@@ -111,7 +111,7 @@ describe('GET /ledger/recommended-bootstrap', () => {
         }
       }
       expect(mockGetRecommendations).toHaveBeenCalledWith();
-      expect(mockFeatureFlagService.canAccessAlpha1).toHaveBeenCalledWith({
+      expect(mockFeatureFlagAppService.canAccessAlpha1).toHaveBeenCalledWith({
         email: 'recommendations@example.com',
       });
     });
@@ -122,7 +122,7 @@ describe('GET /ledger/recommended-bootstrap', () => {
       const response = await request(app).get(ENDPOINT);
       expect(response.status).toBe(401);
       expect(mockGetRecommendations).not.toHaveBeenCalled();
-      expect(mockFeatureFlagService.canAccessAlpha1).not.toHaveBeenCalled();
+      expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
     });
 
     it('rejects a token that does not resolve an authenticated user', async () => {
@@ -137,7 +137,7 @@ describe('GET /ledger/recommended-bootstrap', () => {
 
   describe('403 Response', () => {
     it('requires Alpha 1 access before reading recommendations', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
       const response = await request(app)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');

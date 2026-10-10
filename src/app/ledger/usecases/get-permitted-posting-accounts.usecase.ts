@@ -22,7 +22,7 @@ import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountBalanceEnrichmentService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
+import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 import { getPermittedPostingAccountsQueryValidationSchema } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto.validation';
@@ -30,7 +30,7 @@ import { getPermittedPostingAccountsQueryValidationSchema } from '@app/ledger/dt
 interface IDependencies {
   appContext: IAppContext;
   ledgerAccountRepo: ILedgerAccountRepo;
-  balanceEnrichmentService: ILedgerAccountBalanceEnrichmentService;
+  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
 }
 
 const journalEntryRules: Partial<
@@ -104,7 +104,7 @@ export default function makeGetPermittedPostingAccountsUsecase(
       accountRepoOptions
     );
 
-    const data = await deps.balanceEnrichmentService.enrich(
+    const data = await deps.balanceEnrichmentAppService.enrich(
       ledgerAccountsResponse.data,
       accountingEntity,
       repoOptions

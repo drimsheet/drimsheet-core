@@ -4,7 +4,7 @@ import historyValue from '@shared/values/history/history.vo';
 
 import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
-import IFxCostBasisLotDomainService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import {
@@ -16,8 +16,8 @@ import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.serv
 import { IFxLotAppOperationPayload } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 interface IDependencies {
-  fxCostBasisLotService: IFxCostBasisLotDomainService;
-  exchangeRateService: IExchangeRateAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
 }
 
 /**
@@ -38,7 +38,7 @@ async function resolveOfficialRate(
 
   if (!transactionRate) return null;
 
-  return deps.exchangeRateService.getOfficialRate(
+  return deps.exchangeRateAppService.getOfficialRate(
     transactionRate.currencyPair,
     transactionRate.asOf,
     repoOptions,

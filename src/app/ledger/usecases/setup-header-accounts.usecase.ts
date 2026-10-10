@@ -30,7 +30,7 @@ import { IUnrealizedLossAccountService } from '@domain/ledger/types/unrealized-l
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
 import { headerAccountNameAliasesReqValidation } from '@app/ledger/dtos/header-account/header-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
@@ -40,7 +40,7 @@ interface IDependencies {
   appContext: IAppContext;
   eventBus: IEventBus;
   repoService: IRepoService;
-  ledgerAccountPersistenceService: ILedgerAccountPersistenceService;
+  ledgerAccountPersistenceAppService: ILedgerAccountPersistenceAppService;
   cashAccountService: ICashAccountService;
   receivablesAccountService: IReceivablesAccountService;
   shortTermLoanAccountService: IShortTermLoanAccountService;
@@ -182,7 +182,7 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
       for (const auditedAccount of auditedAccounts) {
         const [account, , audit] = auditedAccount;
         const history = historyValue.make(audit, actor.id, correlationId);
-        await deps.ledgerAccountPersistenceService.create(
+        await deps.ledgerAccountPersistenceAppService.create(
           account,
           accountingEntity.functionalCurrencyCode,
           { ...transactionOptions, history: [history] }
@@ -205,7 +205,7 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
         actor.id,
         correlationId
       );
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         tradeReceivable,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [tradeReceivableHistory] }
@@ -233,7 +233,7 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
         actor.id,
         correlationId
       );
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         statutoryReceivable,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [statutoryReceivableHistory] }
@@ -256,7 +256,7 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
         actor.id,
         correlationId
       );
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         tradePayable,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [tradePayableHistory] }
@@ -281,7 +281,7 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
         actor.id,
         correlationId
       );
-      await deps.ledgerAccountPersistenceService.create(
+      await deps.ledgerAccountPersistenceAppService.create(
         statutoryPayable,
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [statutoryPayableHistory] }

@@ -40,18 +40,18 @@ import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import mockCounterpartyAppService from '@app/counterparty/contracts/__mocks__/counterparty.service.mock';
 import { ICounterpartyFindOrCreateRes } from '@app/counterparty/contracts/counterparty.service.contract';
-import mockFileManagementService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
-import mockJournalEntryPersistenceService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 import makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transfer.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import mockOutboxService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 import {
   TFxLotAcquisitionAppResult,
@@ -236,17 +236,18 @@ describe('makeCreateTransferUsecase', () => {
     return makeCreateTransferUsecase({
       appContext: mockAppContext,
       counterpartyAppService: mockCounterpartyAppService,
-      fileManagementService: mockFileManagementService,
+      fileManagementAppService: mockFileManagementAppService,
       journalEntryService: mockJournalEntryService,
       ledgerAccountRepo: mockLedgerAccountRepo,
       counterpartyRepo: mockCounterpartyRepo,
-      journalEntryPersistenceService: mockJournalEntryPersistenceService,
+      journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
       eventBus: mockEventBus,
-      outboxService: mockOutboxService,
+      outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
       fxLotAppService: mockFxLotAppService,
-      fxCostBasisPersistenceService: mockFxLotCostBasisService.persistence,
+      fxCostBasisPersistenceAppService:
+        mockFxLotCostBasisAppService.persistence,
     });
   }
 
@@ -268,7 +269,7 @@ describe('makeCreateTransferUsecase', () => {
       if (id === bankChargeAccount.id) return bankChargeAccount;
       return null;
     });
-    mockFileManagementService.claimUploads.mockResolvedValue(attachments);
+    mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);
     mockCounterpartyAppService.findOrCreateMany.mockResolvedValue(new Map());
     mockJournalEntryService.createTransfer.mockResolvedValue({
       journalEntry: postedJournalEntry,
@@ -277,23 +278,25 @@ describe('makeCreateTransferUsecase', () => {
     mockRepoService.runInTransaction.mockImplementation(async (transactionFn) =>
       transactionFn('mock-tx' as unknown as ITransactionContext)
     );
-    mockJournalEntryPersistenceService.create.mockResolvedValue();
+    mockJournalEntryPersistenceAppService.create.mockResolvedValue();
     mockCounterpartyRepo.create.mockResolvedValue();
-    mockOutboxService.createBalancePropagation.mockResolvedValue();
+    mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerAccountBalanceAdjustmentQueue.add.mockResolvedValue();
     mockEventBus.publish.mockResolvedValue();
     mockFxLotAppService.dispose.mockResolvedValue(null);
     mockFxLotAppService.acquire.mockResolvedValue(null);
-    mockFxLotCostBasisService.persistence.persistDisposition.mockResolvedValue();
-    mockFxLotCostBasisService.persistence.persistAcquisition.mockResolvedValue();
+    mockFxLotCostBasisAppService.persistence.persistDisposition.mockResolvedValue();
+    mockFxLotCostBasisAppService.persistence.persistAcquisition.mockResolvedValue();
   });
 
   it('does not persist when journal creation rejects an archived account', async () => {
     const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
     mockJournalEntryService.createTransfer.mockRejectedValueOnce(failure);
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
-    expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -316,7 +319,7 @@ describe('makeCreateTransferUsecase', () => {
       accountingEntity.id,
       repoOptions
     );
-    expect(mockFileManagementService.claimUploads).toHaveBeenCalledWith({
+    expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith({
       userId: user.id,
       purpose: EFileUploadPurpose.JournalEntryAttachment,
       references: payload.attachmentReferences,
@@ -348,13 +351,13 @@ describe('makeCreateTransferUsecase', () => {
       },
       repoOptions
     );
-    expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledWith(
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalledWith(
       postedJournalEntry[0],
       expect.any(Object),
       expect.any(Array),
       { correlationId, tx: 'mock-tx' }
     );
-    expect(mockOutboxService.createBalancePropagation).toHaveBeenCalledWith(
+    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
       postedJournalEntry[0].id,
       { correlationId, tx: 'mock-tx' }
     );
@@ -379,10 +382,10 @@ describe('makeCreateTransferUsecase', () => {
       { correlationId, idempotencyKey }
     );
     expect(
-      mockFxLotCostBasisService.persistence.persistDisposition
+      mockFxLotCostBasisAppService.persistence.persistDisposition
     ).not.toHaveBeenCalled();
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
     expect(result).toEqual(journalEntryDtoMapper.toDto(postedJournalEntry[0]));
@@ -473,7 +476,7 @@ describe('makeCreateTransferUsecase', () => {
     expect(
       mockCounterpartyRepo.create.mock.invocationCallOrder[0]
     ).toBeLessThan(
-      mockJournalEntryPersistenceService.create.mock.invocationCallOrder[0]
+      mockJournalEntryPersistenceAppService.create.mock.invocationCallOrder[0]
     );
     expect(mockFxLotAppService.acquire).toHaveBeenCalledTimes(1);
     expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
@@ -582,16 +585,20 @@ describe('makeCreateTransferUsecase', () => {
 
     await getUseCase()(payload);
 
-    expect(mockJournalEntryPersistenceService.create).toHaveBeenCalledTimes(1);
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalledTimes(
+      1
+    );
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockFxLotAppService.dispose).toHaveBeenCalledTimes(1);
     expect(mockFxLotAppService.acquire).toHaveBeenCalledTimes(1);
     expect(
-      mockFxLotCostBasisService.persistence.persistDisposition
+      mockFxLotCostBasisAppService.persistence.persistDisposition
     ).not.toHaveBeenCalled();
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
     expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
@@ -648,7 +655,7 @@ describe('makeCreateTransferUsecase', () => {
 
     await getUseCase()(payload);
 
-    expect(mockFileManagementService.claimUploads).toHaveBeenCalledWith(
+    expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith(
       expect.objectContaining({ references: [] })
     );
   });
@@ -661,7 +668,7 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(payload)).rejects.toMatchObject({
       cause: { id: payload.sourceLine.accountId },
     });
-    expect(mockFileManagementService.claimUploads).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
   });
 
@@ -675,7 +682,7 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(payload)).rejects.toMatchObject({
       cause: { id: payload.destinationLine.accountId },
     });
-    expect(mockFileManagementService.claimUploads).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
   });
 
@@ -700,12 +707,12 @@ describe('makeCreateTransferUsecase', () => {
       cause: { id: payload.chargeLines[0].accountId },
     });
     expect(mockCounterpartyAppService.findOrCreateMany).not.toHaveBeenCalled();
-    expect(mockFileManagementService.claimUploads).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
   });
 
   it('prevents domain creation and persistence when attachment claiming fails', async () => {
-    mockFileManagementService.claimUploads.mockRejectedValueOnce(
+    mockFileManagementAppService.claimUploads.mockRejectedValueOnce(
       new fileAppError.InvalidUploadReference()
     );
 
@@ -740,16 +747,20 @@ describe('makeCreateTransferUsecase', () => {
 
       expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
-      expect(mockJournalEntryPersistenceService.create).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryPersistenceAppService.create
+      ).not.toHaveBeenCalled();
       expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
       expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
       expect(
-        mockFxLotCostBasisService.persistence.persistDisposition
+        mockFxLotCostBasisAppService.persistence.persistDisposition
       ).not.toHaveBeenCalled();
       expect(
-        mockFxLotCostBasisService.persistence.persistAcquisition
+        mockFxLotCostBasisAppService.persistence.persistAcquisition
       ).not.toHaveBeenCalled();
-      expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
       expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
       ).not.toHaveBeenCalled();
@@ -875,29 +886,29 @@ describe('makeCreateTransferUsecase', () => {
       { correlationId, idempotencyKey }
     );
     expect(
-      mockFxLotCostBasisService.persistence.persistDisposition
+      mockFxLotCostBasisAppService.persistence.persistDisposition
     ).toHaveBeenCalledWith(dispositionRecords, writeOptions);
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(acquisitionRecords, writeOptions);
     expect(
-      mockJournalEntryPersistenceService.create.mock.invocationCallOrder[0]
+      mockJournalEntryPersistenceAppService.create.mock.invocationCallOrder[0]
     ).toBeLessThan(
-      mockFxLotCostBasisService.persistence.persistDisposition.mock
+      mockFxLotCostBasisAppService.persistence.persistDisposition.mock
         .invocationCallOrder[0]
     );
     expect(
-      mockFxLotCostBasisService.persistence.persistDisposition.mock
+      mockFxLotCostBasisAppService.persistence.persistDisposition.mock
         .invocationCallOrder[0]
     ).toBeLessThan(
-      mockFxLotCostBasisService.persistence.persistAcquisition.mock
+      mockFxLotCostBasisAppService.persistence.persistAcquisition.mock
         .invocationCallOrder[0]
     );
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition.mock
+      mockFxLotCostBasisAppService.persistence.persistAcquisition.mock
         .invocationCallOrder[0]
     ).toBeLessThan(
-      mockOutboxService.createBalancePropagation.mock.invocationCallOrder[0]
+      mockOutboxAppService.createBalancePropagation.mock.invocationCallOrder[0]
     );
     const [publishedEvents] = mockEventBus.publish.mock.calls[0];
     expect(Array.isArray(publishedEvents)).toBe(true);
@@ -919,10 +930,10 @@ describe('makeCreateTransferUsecase', () => {
     await getUseCase()(makePayload());
 
     expect(
-      mockFxLotCostBasisService.persistence.persistDisposition
+      mockFxLotCostBasisAppService.persistence.persistDisposition
     ).toHaveBeenCalledWith(records, { correlationId, tx: 'mock-tx' });
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
   });
 
@@ -935,10 +946,10 @@ describe('makeCreateTransferUsecase', () => {
     await getUseCase()(makePayload());
 
     expect(
-      mockFxLotCostBasisService.persistence.persistDisposition
+      mockFxLotCostBasisAppService.persistence.persistDisposition
     ).not.toHaveBeenCalled();
     expect(
-      mockFxLotCostBasisService.persistence.persistAcquisition
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(records, { correlationId, tx: 'mock-tx' });
   });
 
@@ -968,7 +979,7 @@ describe('makeCreateTransferUsecase', () => {
       missingOfficialRateOutbox: null,
     } as unknown as TFxLotDispositionAppResult['records'];
     mockFxLotAppService.dispose.mockResolvedValueOnce({ records, events: [] });
-    mockFxLotCostBasisService.persistence.persistDisposition.mockRejectedValueOnce(
+    mockFxLotCostBasisAppService.persistence.persistDisposition.mockRejectedValueOnce(
       new Error('FX persistence failed')
     );
 
@@ -976,7 +987,9 @@ describe('makeCreateTransferUsecase', () => {
       'FX persistence failed'
     );
 
-    expect(mockOutboxService.createBalancePropagation).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });

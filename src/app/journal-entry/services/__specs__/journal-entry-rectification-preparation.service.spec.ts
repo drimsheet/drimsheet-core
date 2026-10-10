@@ -40,14 +40,14 @@ import {
   IReceiptJournalEntryRectificationReq,
   ITransferJournalEntryRectificationReq,
 } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
-import makeJournalEntryRectificationPreparationService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
+import makeJournalEntryRectificationPreparationAppService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
 import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 
-describe('makeJournalEntryRectificationPreparationService', () => {
+describe('makeJournalEntryRectificationPreparationAppService', () => {
   const accountingEntityId = generateUUID();
   const userId = generateUUID();
   const sourceAccount = {
@@ -76,7 +76,7 @@ describe('makeJournalEntryRectificationPreparationService', () => {
   };
   const counterparty = { name: 'Counterparty' };
   const actor = userId;
-  const service = makeJournalEntryRectificationPreparationService({
+  const service = makeJournalEntryRectificationPreparationAppService({
     counterpartyAppService: mockCounterpartyAppService,
     journalEntryService: mockJournalEntryService,
     journalEntryRectificationService: mockJournalEntryRectificationService,
@@ -395,7 +395,7 @@ describe('makeJournalEntryRectificationPreparationService', () => {
           ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
         });
         const guardedPreparation =
-          makeJournalEntryRectificationPreparationService({
+          makeJournalEntryRectificationPreparationAppService({
             counterpartyAppService: mockCounterpartyAppService,
             journalEntryService: domainService,
             journalEntryRectificationService:

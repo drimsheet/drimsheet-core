@@ -7,12 +7,12 @@ import { IAccountingEntitySwitchReq } from '@app/accounting/dtos/accounting/acco
 import { accountingEntitySwitchReqSchema } from '@app/accounting/dtos/accounting/accounting.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import IAppContext from '@app/context/contracts/app-context.contract';
-import IUserPreferencesService from '@app/user/contracts/user-preferences.service.contract';
+import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
 
 interface IDependencies {
   appContext: IAppContext;
   accountingEntityRepo: IAccountingEntityRepo;
-  userPreferencesService: IUserPreferencesService;
+  userPreferencesAppService: IUserPreferencesAppService;
 }
 
 export default function makeSwitchAccountingEntityUsecase(deps: IDependencies) {
@@ -40,7 +40,9 @@ export default function makeSwitchAccountingEntityUsecase(deps: IDependencies) {
       lastActiveAccountingEntityId: accountingEntity.id,
     };
 
-    await deps.userPreferencesService.update(updatePayload, { correlationId });
+    await deps.userPreferencesAppService.update(updatePayload, {
+      correlationId,
+    });
 
     deps.appContext.set({ accountingEntity });
 

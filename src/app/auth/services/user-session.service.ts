@@ -1,20 +1,20 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
-import ITokenService from '@app/auth/contracts/token-service.contract';
-import IUserSessionService from '@app/auth/contracts/user-session.service.contract';
+import ITokenAppService from '@app/auth/contracts/token-service.contract';
+import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
 
 interface IDependencies {
-  tokenService: ITokenService;
+  tokenAppService: ITokenAppService;
 }
 
 /**
  * Creates the capability that prepares credentials, an immutable session
  * record, and an optional prior-client reference without persisting them.
  */
-function makePrepare(deps: IDependencies): IUserSessionService['prepare'] {
+function makePrepare(deps: IDependencies): IUserSessionAppService['prepare'] {
   return async (user, priorClientRefreshToken = null) => {
-    const accessToken = await deps.tokenService.generateAccessToken(user);
-    const refreshToken = await deps.tokenService.generateRefreshToken(user);
+    const accessToken = await deps.tokenAppService.generateAccessToken(user);
+    const refreshToken = await deps.tokenAppService.generateRefreshToken(user);
     const timestamp = new Date();
 
     let priorClientSession = null;
@@ -22,7 +22,7 @@ function makePrepare(deps: IDependencies): IUserSessionService['prepare'] {
       let priorUserId = user.id;
 
       try {
-        priorUserId = deps.tokenService.verifyRefreshToken(
+        priorUserId = deps.tokenAppService.verifyRefreshToken(
           priorClientRefreshToken
         ).id;
       } catch {
@@ -54,8 +54,8 @@ function makePrepare(deps: IDependencies): IUserSessionService['prepare'] {
 }
 
 /** Composes the immutable user-session service from its capability. */
-export default function makeUserSessionService(deps: IDependencies) {
-  const service: IUserSessionService = {
+export default function makeUserSessionAppService(deps: IDependencies) {
+  const service: IUserSessionAppService = {
     prepare: makePrepare(deps),
   };
 

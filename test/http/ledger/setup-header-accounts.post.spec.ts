@@ -13,9 +13,9 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
-import mockLedgerAccountPersistenceService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { headerAccountNameAliasesReqValidation } from '@app/ledger/dtos/header-account/header-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
@@ -44,7 +44,7 @@ jest.mock(
   })
 );
 jest.mock('@infra/ioc/services/auth', () => ({
-  tokenService: jest.requireActual(
+  tokenAppService: jest.requireActual(
     '@app/auth/contracts/__mocks__/token-service.mock'
   ).default,
 }));
@@ -96,7 +96,7 @@ const setup = makeSetupHeaderAccountsUsecase({
   appContext,
   repoService: mockRepoService,
   eventBus: mockEventBus,
-  ledgerAccountPersistenceService: mockLedgerAccountPersistenceService,
+  ledgerAccountPersistenceAppService: mockLedgerAccountPersistenceAppService,
 });
 
 describe('POST /ledger/header-accounts/setup', () => {
@@ -106,8 +106,8 @@ describe('POST /ledger/header-accounts/setup', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue({
       id: userId,
       actorId: actor.id,
@@ -146,7 +146,7 @@ describe('POST /ledger/header-accounts/setup', () => {
           )
           .sort((a, b) => b.code.localeCompare(a.code))[0] ?? null
     );
-    mockLedgerAccountPersistenceService.create.mockImplementation(
+    mockLedgerAccountPersistenceAppService.create.mockImplementation(
       async (account) => {
         accounts.push(account);
       }
@@ -213,7 +213,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         );
         expect(mockSetup).toHaveBeenCalledWith(body);
         expect(
-          mockLedgerAccountPersistenceService.create
+          mockLedgerAccountPersistenceAppService.create
         ).toHaveBeenCalledTimes(24);
         expect(
           (response.body as ILedgerAccountDto[])
@@ -273,7 +273,7 @@ describe('POST /ledger/header-accounts/setup', () => {
 
   describe('403 Response', () => {
     it('requires Alpha 1 access', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValueOnce(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
       const response = await makeRequest().send({});
       expect(response.status).toBe(403);
       expect(mockSetup).not.toHaveBeenCalled();
@@ -311,7 +311,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.status).toBe(409);
         expect(response.body.errorKey).toBe(errorKey);
         expect(
-          mockLedgerAccountPersistenceService.create
+          mockLedgerAccountPersistenceAppService.create
         ).not.toHaveBeenCalled();
         expect(mockEventBus.publish).not.toHaveBeenCalled();
       }
@@ -335,7 +335,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.body.errorKey).toBe('app_error_validation_error');
         expect(mockSetup).not.toHaveBeenCalled();
         expect(
-          mockLedgerAccountPersistenceService.create
+          mockLedgerAccountPersistenceAppService.create
         ).not.toHaveBeenCalled();
       }
     );
@@ -348,7 +348,7 @@ describe('POST /ledger/header-accounts/setup', () => {
         expect(response.body.errorKey).toBe('app_error_validation_error');
         expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
         expect(
-          mockLedgerAccountPersistenceService.create
+          mockLedgerAccountPersistenceAppService.create
         ).not.toHaveBeenCalled();
       }
     );
@@ -370,13 +370,15 @@ describe('POST /ledger/header-accounts/setup', () => {
         .send('null');
       expect(response.status).toBe(500);
       expect(mockSetup).not.toHaveBeenCalled();
-      expect(mockLedgerAccountPersistenceService.create).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountPersistenceAppService.create
+      ).not.toHaveBeenCalled();
     });
 
     it('sanitizes a late control persistence failure without publishing', async () => {
       const store =
-        mockLedgerAccountPersistenceService.create.getMockImplementation()!;
-      mockLedgerAccountPersistenceService.create.mockImplementation(
+        mockLedgerAccountPersistenceAppService.create.getMockImplementation()!;
+      mockLedgerAccountPersistenceAppService.create.mockImplementation(
         async (account, currency, options) => {
           await store(account, currency, options);
           if (account.behavior === 'tax_payable')
@@ -389,14 +391,14 @@ describe('POST /ledger/header-accounts/setup', () => {
         name: 'InternalServerError',
         errorKey: 'app_error_unexpected',
       });
-      expect(mockLedgerAccountPersistenceService.create).toHaveBeenCalledTimes(
-        24
-      );
+      expect(
+        mockLedgerAccountPersistenceAppService.create
+      ).toHaveBeenCalledTimes(24);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
 
     it('sanitizes write failures without publishing events', async () => {
-      mockLedgerAccountPersistenceService.create.mockRejectedValueOnce(
+      mockLedgerAccountPersistenceAppService.create.mockRejectedValueOnce(
         new Error('database password leaked')
       );
       const response = await makeRequest().send({});

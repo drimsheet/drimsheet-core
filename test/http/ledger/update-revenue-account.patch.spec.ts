@@ -13,15 +13,15 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
-import mockBalanceEnrichmentService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import makeUpdateRevenueAccountUsecase from '@app/ledger/usecases/update-revenue-account.usecase';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
-import { tokenService } from '@infra/ioc/services/auth';
+import { tokenAppService } from '@infra/ioc/services/auth';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import appContext from '@infra/runtime/app-context';
 import { createApplication } from '@infra/server';
@@ -42,7 +42,7 @@ jest.mock(
   })
 );
 jest.mock('@infra/ioc/services/auth', () => ({
-  tokenService: { getAuthUser: jest.fn() },
+  tokenAppService: { getAuthUser: jest.fn() },
 }));
 jest.mock('@infra/ioc/usecases/ledger', () => ({
   updateRevenueAccountUseCase: jest.fn(),
@@ -100,8 +100,8 @@ describe('PATCH /ledger/revenue/{accountId}', () => {
   const update = jest.mocked(ledgerUseCases.updateRevenueAccountUseCase);
   beforeEach(() => {
     jest.resetAllMocks();
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
-    jest.mocked(tokenService.getAuthUser).mockResolvedValue({ id: userId });
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
+    jest.mocked(tokenAppService.getAuthUser).mockResolvedValue({ id: userId });
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockUserRepo.findById.mockResolvedValue({
       id: userId,
@@ -112,10 +112,11 @@ describe('PATCH /ledger/revenue/{accountId}', () => {
       accountingEntity
     );
     mockLedgerAccountRepo.findById.mockResolvedValue(account);
-    mockBalanceEnrichmentService.enrich.mockImplementation(async (accounts) =>
-      accounts.map((current) =>
-        ledgerAccountToDtoMapperHelper(current, null, 'NGN')
-      )
+    mockBalanceEnrichmentAppService.enrich.mockImplementation(
+      async (accounts) =>
+        accounts.map((current) =>
+          ledgerAccountToDtoMapperHelper(current, null, 'NGN')
+        )
     );
     update.mockImplementation(
       makeUpdateRevenueAccountUsecase({
@@ -123,7 +124,7 @@ describe('PATCH /ledger/revenue/{accountId}', () => {
         eventBus: mockEventBus,
         ledgerAccountRepo: mockLedgerAccountRepo,
         revenueAccountService: makeRevenueAccountService(),
-        balanceEnrichmentService: mockBalanceEnrichmentService,
+        balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
       })
     );
     app = createApplication();
@@ -205,7 +206,7 @@ describe('PATCH /ledger/revenue/{accountId}', () => {
   });
   describe('403 Response', () => {
     it('enforces Alpha 1 access', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
       expect((await patch({ name: 'Changed' })).status).toBe(403);
       expect(update).not.toHaveBeenCalled();
     });

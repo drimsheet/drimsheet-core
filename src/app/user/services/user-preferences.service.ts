@@ -1,5 +1,5 @@
 import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
-import IUserPreferencesService from '@app/user/contracts/user-preferences.service.contract';
+import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
 import userPreferencesAppError from '@app/user/errors/user-preferences.error';
 import { IUserAppPreferences } from '@app/user/types/user-preferences.types';
 
@@ -7,10 +7,10 @@ interface IDependencies {
   userPreferencesRepo: IUserPreferencesRepo;
 }
 
-export default function makeUserPreferencesService(
+export default function makeUserPreferencesAppService(
   deps: IDependencies
-): IUserPreferencesService {
-  const service: IUserPreferencesService = {
+): IUserPreferencesAppService {
+  const service: IUserPreferencesAppService = {
     async update(payload, options) {
       const existingPreferences = await deps.userPreferencesRepo.findById(
         payload.userId,

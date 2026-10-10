@@ -8,11 +8,11 @@ import IActorService from '@domain/user/types/actor.service.types';
 import emailValue from '@domain/user/values/email.vo';
 
 import { EAuthStrategy } from '@app/auth/contracts/auth.types';
-import IPasswordService from '@app/auth/contracts/password-service.contract';
+import IPasswordAppService from '@app/auth/contracts/password-service.contract';
 import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
-import IUserAuthService from '@app/auth/contracts/user-auth.service.contract';
-import IUserSessionPersistenceService from '@app/auth/contracts/user-session-persistence.service.contract';
-import IUserSessionService from '@app/auth/contracts/user-session.service.contract';
+import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
+import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
 import { IAccessToken, IEmailLoginReq } from '@app/auth/dtos/auth/auth.dto';
 import { emailLoginReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
 import authError from '@app/auth/errors/auth.error';
@@ -22,12 +22,12 @@ interface IDependencies {
   actorService: IActorService;
   reqContext: IAppContext;
   userRepo: IUserRepo;
-  passwordService: IPasswordService;
+  passwordAppService: IPasswordAppService;
   eventBus: IEventBus;
   userAuthRepo: IUserAuthRepo;
-  userAuthService: IUserAuthService;
-  userSessionService: IUserSessionService;
-  userSessionPersistenceService: IUserSessionPersistenceService;
+  userAuthAppService: IUserAuthAppService;
+  userSessionAppService: IUserSessionAppService;
+  userSessionPersistenceAppService: IUserSessionPersistenceAppService;
 }
 
 export default function makeLoginWithEmailUseCase(deps: IDependencies) {
@@ -64,7 +64,8 @@ export default function makeLoginWithEmailUseCase(deps: IDependencies) {
       !userAuth.strategy.includes(EAuthStrategy.Email) ||
       !userAuth.password
     ) {
-      const updatedUserAuth = deps.userAuthService.recordFailedLogin(userAuth);
+      const updatedUserAuth =
+        deps.userAuthAppService.recordFailedLogin(userAuth);
 
       await deps.userAuthRepo.update(updatedUserAuth, {
         correlationId,
@@ -73,13 +74,14 @@ export default function makeLoginWithEmailUseCase(deps: IDependencies) {
       throw new authError.InvalidCredentials();
     }
 
-    const isValidPassword = await deps.passwordService.compare(
+    const isValidPassword = await deps.passwordAppService.compare(
       payload.password,
       userAuth.password
     );
 
     if (!isValidPassword) {
-      const updatedUserAuth = deps.userAuthService.recordFailedLogin(userAuth);
+      const updatedUserAuth =
+        deps.userAuthAppService.recordFailedLogin(userAuth);
 
       await deps.userAuthRepo.update(updatedUserAuth, {
         correlationId,
@@ -90,7 +92,7 @@ export default function makeLoginWithEmailUseCase(deps: IDependencies) {
 
     if (userAuth.failedLoginAttempts > 0) {
       const updatedUserAuth =
-        deps.userAuthService.resetFailedLoginAttempts(userAuth);
+        deps.userAuthAppService.resetFailedLoginAttempts(userAuth);
 
       await deps.userAuthRepo.update(updatedUserAuth, {
         correlationId,
@@ -102,12 +104,12 @@ export default function makeLoginWithEmailUseCase(deps: IDependencies) {
       correlationId,
     });
     await deps.actorService.resolveUser(user, { correlationId });
-    const preparedSession = await deps.userSessionService.prepare(
+    const preparedSession = await deps.userSessionAppService.prepare(
       user,
       clientSession.getRefreshToken()
     );
 
-    await deps.userSessionPersistenceService.replaceClientSession(
+    await deps.userSessionPersistenceAppService.replaceClientSession(
       {
         userSession: preparedSession.userSession,
         priorClientSession: preparedSession.priorClientSession,

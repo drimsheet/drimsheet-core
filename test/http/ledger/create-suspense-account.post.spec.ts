@@ -11,8 +11,8 @@ import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import accountingAppError from '@app/accounting/errors/accounting.error';
-import mockTokenService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/suspense-account.dto';
 import { createSuspenseAccountValidation } from '@app/ledger/dtos/suspense-account/suspense-account.dto.validation';
@@ -38,7 +38,7 @@ jest.mock(
   })
 );
 jest.mock('@infra/ioc/services/auth', () => ({
-  tokenService: jest.requireActual(
+  tokenAppService: jest.requireActual(
     '@app/auth/contracts/__mocks__/token-service.mock'
   ).default,
 }));
@@ -118,8 +118,8 @@ describe('POST /ledger/suspense', () => {
   let app: Express;
   beforeEach(() => {
     jest.resetAllMocks();
-    mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(true);
-    mockTokenService.getAuthUser.mockResolvedValue({ id: userId });
+    mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
+    mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue({
       id: userId,
       actorId: actor.id,
@@ -180,7 +180,7 @@ describe('POST /ledger/suspense', () => {
   });
   describe('403 Response', () => {
     it('requires Alpha 1 access', async () => {
-      mockFeatureFlagService.canAccessAlpha1.mockResolvedValue(false);
+      mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
       expect((await send()).status).toBe(403);
       expect(mockCreate).not.toHaveBeenCalled();
     });

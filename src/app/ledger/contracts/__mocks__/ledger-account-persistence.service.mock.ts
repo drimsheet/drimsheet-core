@@ -1,6 +1,6 @@
-import ILedgerAccountPersistenceService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 
-const mockLedgerAccountPersistenceService: jest.Mocked<ILedgerAccountPersistenceService> =
+const mockLedgerAccountPersistenceAppService: jest.Mocked<ILedgerAccountPersistenceAppService> =
   { create: jest.fn() };
 
-export default mockLedgerAccountPersistenceService;
+export default mockLedgerAccountPersistenceAppService;

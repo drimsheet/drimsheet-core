@@ -1,5 +1,5 @@
 import ITransactionalEmailQueue from '@app/notification/contracts/transactional-email-queue.contract';
-import ITransactionalEmailService from '@app/notification/contracts/transactional-email-service.contract';
+import ITransactionalEmailAppService from '@app/notification/contracts/transactional-email-service.contract';
 import ITransactionalEmailTemplate from '@app/notification/contracts/transactional-email-template.contract';
 
 interface IDependencies {
@@ -7,9 +7,9 @@ interface IDependencies {
   transactionalEmailTemplate: ITransactionalEmailTemplate;
 }
 
-export default function makeTransactionalEmailService(
+export default function makeTransactionalEmailAppService(
   deps: IDependencies
-): ITransactionalEmailService {
+): ITransactionalEmailAppService {
   return {
     async sendEmailVerification(payload) {
       const { correlationId, user, verificationLink } = payload;

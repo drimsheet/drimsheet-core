@@ -32,7 +32,7 @@ export interface IFxCostBasisReversalResult {
   lots: ReturnType<typeof fxCostBasisLotEntity.reverseAcquisition>[];
 }
 
-export default interface IFxCostBasisLotDomainService {
+export default interface IFxCostBasisLotService {
   acquire(
     payload: IFxCostBasisLotOperationPayload
   ): IFxCostBasisAcquisitionResult | null;

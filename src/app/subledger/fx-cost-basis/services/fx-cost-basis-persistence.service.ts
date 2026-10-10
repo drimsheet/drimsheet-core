@@ -9,7 +9,7 @@ import IFxCostBasisLotDispositionRepo from '@domain/subledger/fx-cost-basis/repo
 import IFxCostBasisLotRepo from '@domain/subledger/fx-cost-basis/repos/lot.repo';
 
 import IOutboxRepo from '@app/outbox/contracts/outbox.repo.contract';
-import IFxCostBasisPersistenceService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 
 interface IDependencies {
   lotRepo: IFxCostBasisLotRepo;
@@ -28,7 +28,7 @@ interface IDependencies {
  */
 function makePersistAcquisition(
   deps: IDependencies
-): IFxCostBasisPersistenceService['persistAcquisition'] {
+): IFxCostBasisPersistenceAppService['persistAcquisition'] {
   return async function persistAcquisition(payload, repoOptions) {
     const {
       lot,
@@ -66,7 +66,7 @@ function makePersistAcquisition(
  */
 function makePersistDisposition(
   deps: IDependencies
-): IFxCostBasisPersistenceService['persistDisposition'] {
+): IFxCostBasisPersistenceAppService['persistDisposition'] {
   return async function persistDisposition(payload, repoOptions) {
     const {
       lots,
@@ -105,7 +105,7 @@ function makePersistDisposition(
 /** Persists prepared FX-lot reversal updates in the caller's transaction. */
 function makePersistReversal(
   deps: IDependencies
-): IFxCostBasisPersistenceService['persistReversal'] {
+): IFxCostBasisPersistenceAppService['persistReversal'] {
   return async (payload, repoOptions) => {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { ...repoOptions, tx };
@@ -123,9 +123,9 @@ function makePersistReversal(
   };
 }
 
-export default function makeFxLotCostBasisPersistenceService(
+export default function makeFxLotCostBasisPersistenceAppService(
   deps: IDependencies
-): IFxCostBasisPersistenceService {
+): IFxCostBasisPersistenceAppService {
   return Object.freeze({
     persistAcquisition: makePersistAcquisition(deps),
     persistDisposition: makePersistDisposition(deps),
