@@ -4,6 +4,7 @@ import makeEquityAccountService from '@domain/ledger/services/equity-account/equ
 import makeAssetDisposalService from '@domain/ledger/services/expense-account/asset-disposal-loss.service';
 import makeBankChargeAccountService from '@domain/ledger/services/expense-account/bank-charge.service';
 import makeDirectCostsAccountService from '@domain/ledger/services/expense-account/direct-costs.service';
+import makeExpenseAccountService from '@domain/ledger/services/expense-account/expense-account.service';
 import makeFinanceCostAccountService from '@domain/ledger/services/expense-account/finance-cost.service';
 import makeInterestAccountService from '@domain/ledger/services/expense-account/interest.service';
 import makeRentAndUtilitiesAccountService from '@domain/ledger/services/expense-account/rent-and-utilities.service';
@@ -94,6 +95,8 @@ export const grantsAccountService = makeGrantsAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
   ledgerCodeAllocationService,
 });
+
+export const expenseAccountService = makeExpenseAccountService();
 
 export const revenueAccountService = makeRevenueAccountService();
 

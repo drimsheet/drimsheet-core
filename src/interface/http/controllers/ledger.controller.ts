@@ -24,7 +24,10 @@ import {
   IPettyCashAccountCreationReq,
   IPettyCashAccountUpdateReq,
 } from '@app/ledger/dtos/asset-account/asset-account.dto';
-import { ICreateExpenseAccountDto } from '@app/ledger/dtos/expense-account/expense-account.dto';
+import {
+  ICreateExpenseAccountDto,
+  IUpdateExpenseAccountDto,
+} from '@app/ledger/dtos/expense-account/expense-account.dto';
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
 import {
   IGetLedgerAccountsQuery,
@@ -64,6 +67,7 @@ import {
   getRecommendedBootstrapUseCase,
   setupHeaderAccountsUseCase,
   updateBankAccountUseCase,
+  updateExpenseAccountUseCase,
   updatePettyCashAccountUseCase,
   updateRevenueAccountUseCase,
 } from '@infra/ioc/usecases/ledger';
@@ -435,6 +439,30 @@ export class LedgerController extends Controller {
     @Body() body: IPettyCashAccountUpdateReq
   ) {
     return updatePettyCashAccountUseCase(accountId, body);
+  }
+
+  /** Update the name of a non-archived expense account, retaining its accounting identity and balances. */
+  @Tags('Expense Accounts')
+  @Patch('/expense/{accountId}')
+  @OperationId('updateExpenseAccount')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateExpenseAccount(
+    @Path() accountId: string,
+    @Body() body: IUpdateExpenseAccountDto
+  ) {
+    return await updateExpenseAccountUseCase(accountId, body);
   }
 
   /** Update the name of a non-archived revenue account, retaining its accounting identity and balances. */

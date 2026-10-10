@@ -22,3 +22,8 @@ export interface ICreateExpenseAccountDto {
   controlAccountId?: string;
   behavior: TSupportedExpenseAccountBehavior;
 }
+
+/** Editable expense account details; accounting identity is retained. */
+export interface IUpdateExpenseAccountDto {
+  name: string;
+}

@@ -1055,6 +1055,14 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateExpenseAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IUpdateRevenueAccountDto: {
     dataType: 'refObject',
     properties: {
@@ -3485,6 +3493,61 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'updatePettyCashAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_updateExpenseAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IUpdateExpenseAccountDto',
+    },
+  };
+  app.patch(
+    '/api/v1/ledger/expense/:accountId',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.updateExpenseAccount
+    ),
+
+    async function LedgerController_updateExpenseAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_updateExpenseAccount,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'updateExpenseAccount',
           controller,
           response,
           next,
