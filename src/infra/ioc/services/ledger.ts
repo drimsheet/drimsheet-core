@@ -18,6 +18,7 @@ import makeEmploymentIncomeAccountService from '@domain/ledger/services/revenue-
 import makeGainOnAssetSaleAccountService from '@domain/ledger/services/revenue-account/gain-on-sale.service';
 import makeGiftsAccountService from '@domain/ledger/services/revenue-account/gifts.service';
 import makeGrantsAccountService from '@domain/ledger/services/revenue-account/grants.service';
+import makeRevenueAccountService from '@domain/ledger/services/revenue-account/revenue-account.service';
 import makeServicesAccountService from '@domain/ledger/services/revenue-account/services.service';
 import makeUnrealizedGainAccountService from '@domain/ledger/services/revenue-account/unrealized-gain.service';
 import makeSuspenseAccountService from '@domain/ledger/services/suspense-account/suspense-account.service';
@@ -93,6 +94,8 @@ export const grantsAccountService = makeGrantsAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
   ledgerCodeAllocationService,
 });
+
+export const revenueAccountService = makeRevenueAccountService();
 
 export const giftsAccountService = makeGiftsAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,

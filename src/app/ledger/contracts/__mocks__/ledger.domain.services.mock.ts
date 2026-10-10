@@ -14,6 +14,7 @@ import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-alloc
 import { IPayablesAccountService } from '@domain/ledger/types/payables.service.types';
 import { IReceivablesAccountService } from '@domain/ledger/types/receivables-account.service.types';
 import { IRentAndUtilitiesAccountService } from '@domain/ledger/types/rent-and-utilities.service.types';
+import IRevenueAccountService from '@domain/ledger/types/revenue-account.service.types';
 import { IServicesAccountService } from '@domain/ledger/types/services.service.types';
 import { IShortTermLoanAccountService } from '@domain/ledger/types/short-term-loan.service.types';
 import { ISuspenseAccountService } from '@domain/ledger/types/suspense-account.service.types';
@@ -48,6 +49,10 @@ export const mockUnrealizedGainAccountService: jest.Mocked<IUnrealizedGainAccoun
 export const mockGrantsAccountService: jest.Mocked<IGrantsAccountService> = {
   createHeader: jest.fn(),
   createSubAccount: jest.fn(),
+};
+
+export const mockRevenueAccountService: jest.Mocked<IRevenueAccountService> = {
+  update: jest.fn(),
 };
 
 export const mockGiftsAccountService: jest.Mocked<IGiftsAccountService> = {

@@ -39,7 +39,10 @@ import {
   ICreateStatutoryReceivableAccountDto,
   ICreateTradeReceivableAccountDto,
 } from '@app/ledger/dtos/receivable-account/receivable-account.dto';
-import { ICreateRevenueAccountDto } from '@app/ledger/dtos/revenue-account/revenue-account.dto';
+import {
+  ICreateRevenueAccountDto,
+  IUpdateRevenueAccountDto,
+} from '@app/ledger/dtos/revenue-account/revenue-account.dto';
 import { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/suspense-account.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
@@ -62,6 +65,7 @@ import {
   setupHeaderAccountsUseCase,
   updateBankAccountUseCase,
   updatePettyCashAccountUseCase,
+  updateRevenueAccountUseCase,
 } from '@infra/ioc/usecases/ledger';
 
 @Route('ledger')
@@ -431,6 +435,30 @@ export class LedgerController extends Controller {
     @Body() body: IPettyCashAccountUpdateReq
   ) {
     return updatePettyCashAccountUseCase(accountId, body);
+  }
+
+  /** Update the name of a non-archived revenue account, retaining its accounting identity and balances. */
+  @Tags('Revenue Accounts')
+  @Patch('/revenue/{accountId}')
+  @OperationId('updateRevenueAccount')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateRevenueAccount(
+    @Path() accountId: string,
+    @Body() body: IUpdateRevenueAccountDto
+  ) {
+    return await updateRevenueAccountUseCase(accountId, body);
   }
 
   /** Archives a non-header account and all control-account descendants, retaining history. Already archived accounts are no-ops. Header accounts return 400. Archived accounts cannot appear in new journals, including reversals. */

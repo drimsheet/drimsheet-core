@@ -18,6 +18,7 @@ import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recomme
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
 import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
 import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty-cash-account.usecase';
+import makeUpdateRevenueAccountUsecase from '@app/ledger/usecases/update-revenue-account.usecase';
 
 import {
   fxCostBasisPersistenceService,
@@ -46,6 +47,7 @@ import {
   payablesAccountService,
   receivablesAccountService,
   rentAndUtilitiesAccountService,
+  revenueAccountService,
   servicesAccountService,
   shortTermLoanAccountService,
   suspenseAccountService,
@@ -244,6 +246,17 @@ export const createRevenueAccountUseCase = makeTracedUseCase(
     unrealizedGainAccountService,
     grantsAccountService,
     giftsAccountService,
+  })
+);
+
+export const updateRevenueAccountUseCase = makeTracedUseCase(
+  'ledger.updateRevenueAccountUseCase',
+  makeUpdateRevenueAccountUsecase({
+    appContext,
+    eventBus: messaging.eventBus,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    revenueAccountService,
+    balanceEnrichmentService: ledgerAccountBalanceEnrichmentService,
   })
 );
 
