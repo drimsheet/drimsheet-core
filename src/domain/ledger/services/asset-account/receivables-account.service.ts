@@ -7,6 +7,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
+import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import receivablesControlAccountValidation from '@domain/ledger/services/validations/receivables-control-account.validation';
 import {
   EAssetAccountBehavior,
@@ -99,6 +100,9 @@ function makeCreateStatutoryReceivableSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     receivablesControlAccountValidation.validateStatutoryReceivableSubAccount(
       controlAccount,
       payload.accountingEntity.id
@@ -137,7 +141,7 @@ function makeCreateStatutoryReceivableSubAccount(
       controlAccountId: controlAccount.id,
       currency: payload.currency,
       meta: null,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
@@ -165,6 +169,9 @@ function makeCreateTradeReceivableSubAccount(
     );
 
     controlAccountAvailabilityValidation.validate(controlAccount);
+
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
 
     receivablesControlAccountValidation.validateTradeReceivableSubAccount(
       controlAccount,
@@ -204,7 +211,7 @@ function makeCreateTradeReceivableSubAccount(
       controlAccountId: controlAccount.id,
       currency: payload.currency,
       meta: null,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,

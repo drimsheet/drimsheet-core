@@ -55,10 +55,12 @@ describe('ledger account archive service', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockLedgerAccountRepo.findDescendants.mockResolvedValue([]);
+    mockLedgerAccountRepo.findById.mockResolvedValue(
+      account('100000', '100000', 'active', true)
+    );
   });
 
   afterEach(() => {
-    expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
@@ -159,5 +161,40 @@ describe('ledger account archive service', () => {
     mockLedgerAccountRepo.findDescendants.mockRejectedValueOnce(failure);
     await expect(service.archive(target, repoOptions)).rejects.toBe(failure);
     expect(target.status).toBe('active');
+  });
+  it.each(['draft', 'active'] as const)(
+    'rejects archiving a %s child of a draft control',
+    async (status) => {
+      const parent = account('100001', '100000.100001', 'draft', true);
+      const target = account('100002', '100000.100001.100002', status);
+      mockLedgerAccountRepo.findById.mockResolvedValue(parent);
+      await expect(service.archive(target, repoOptions)).rejects.toBeInstanceOf(
+        ledgerAccountError.NonDraftChildOfDraftControlAccount
+      );
+      expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
+        target.controlAccountId,
+        accountingEntityId,
+        repoOptions
+      );
+      expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
+    }
+  );
+
+  it('allows archiving a whole draft subtree under an active parent', async () => {
+    const target = account('100001', '100000.100001', 'draft', true);
+    const child = account('100002', '100000.100001.100002', 'draft');
+    mockLedgerAccountRepo.findDescendants.mockResolvedValue([child]);
+    const archived = await service.archive(target, repoOptions);
+    expect(archived.map(([candidate]) => candidate.status)).toEqual([
+      'archived',
+      'archived',
+    ]);
+  });
+
+  it('rejects when the parent cannot be found', async () => {
+    mockLedgerAccountRepo.findById.mockResolvedValue(null);
+    await expect(
+      service.archive(account('100001', '100000.100001'), repoOptions)
+    ).rejects.toBeInstanceOf(ledgerAccountError.ControlAccountIdNotFound);
   });
 });

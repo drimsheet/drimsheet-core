@@ -66,7 +66,9 @@ describe('archive ledger account use case', () => {
       correlationId: 'archive',
       idempotencyKey: 'request',
     } as IAppContextData);
-    mockLedgerAccountRepo.findById.mockResolvedValue(account);
+    mockLedgerAccountRepo.findById.mockImplementation(async (id) =>
+      id === account.id ? account : header
+    );
     mockLedgerAccountRepo.findByCode.mockResolvedValue(header);
     mockLedgerAccountRepo.findDescendants.mockResolvedValue([child]);
     mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
@@ -77,7 +79,7 @@ describe('archive ledger account use case', () => {
 
   it('locks the allocation root and target before cascading and publishing', async () => {
     expect(await usecase(account.id)).toBeUndefined();
-    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(2);
+    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(3);
     expect(mockLedgerAccountRepo.findById).toHaveBeenNthCalledWith(
       1,
       account.id,
@@ -137,9 +139,11 @@ describe('archive ledger account use case', () => {
   });
 
   it('archives a supplied leaf without any root or descendant lookup', async () => {
-    mockLedgerAccountRepo.findById.mockResolvedValue(child);
+    mockLedgerAccountRepo.findById.mockImplementation(async (id) =>
+      id === child.id ? child : account
+    );
     await usecase(child.id);
-    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(2);
+    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(3);
     expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledTimes(1);
     expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledTimes(1);
@@ -268,5 +272,24 @@ describe('archive ledger account use case', () => {
   it('validates the account ID before reading context', async () => {
     await expect(usecase('invalid')).rejects.toThrow();
     expect(mockAppContext.get).not.toHaveBeenCalled();
+  });
+  it('does not persist or publish when archiving would violate a draft parent', async () => {
+    const [draftParent] = ledgerAccountEntity.make({
+      ...header,
+      status: 'draft',
+    });
+    mockLedgerAccountRepo.findById
+      .mockResolvedValueOnce(account)
+      .mockResolvedValueOnce(account)
+      .mockResolvedValueOnce(draftParent);
+    await expect(usecase(account.id)).rejects.toBeInstanceOf(
+      ledgerAccountError.NonDraftChildOfDraftControlAccount
+    );
+    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
+      expect.any(ledgerAccountError.NonDraftChildOfDraftControlAccount)
+    );
   });
 });

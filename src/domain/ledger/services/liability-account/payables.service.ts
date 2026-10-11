@@ -7,6 +7,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
+import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import payablesControlAccountValidation from '@domain/ledger/services/validations/payables-control-account.validation';
 import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
 import { TPayablesLedgerCode } from '@domain/ledger/types/ledger-code.types';
@@ -102,6 +103,9 @@ function makeCreateStatutoryPayableSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     payablesControlAccountValidation.validateStatutoryPayableSubAccount(
       controlAccount,
       payload.accountingEntity.id
@@ -139,7 +143,7 @@ function makeCreateStatutoryPayableSubAccount(
       isControlAccount: payload.isControlAccount,
       controlAccountId: controlAccount.id,
       currency: payload.currency,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       meta,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
@@ -170,6 +174,9 @@ function makeCreateTradePayableAccount(
     );
 
     controlAccountAvailabilityValidation.validate(controlAccount);
+
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
 
     payablesControlAccountValidation.validateTradePayableSubAccount(
       controlAccount,
@@ -208,7 +215,7 @@ function makeCreateTradePayableAccount(
       isControlAccount: payload.isControlAccount,
       controlAccountId: controlAccount.id,
       currency: null,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       meta,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,

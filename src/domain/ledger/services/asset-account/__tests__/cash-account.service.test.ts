@@ -151,6 +151,53 @@ describe('cashAccountService', () => {
       isControlAccount: false,
       bankDetails,
     });
+    it.each(
+      [
+        undefined,
+        ELedgerAccountStatus.Active,
+        ELedgerAccountStatus.Draft,
+      ].flatMap((status) =>
+        [false, true].map((isControlAccount) => ({ status, isControlAccount }))
+      )
+    )(
+      'enforces draft-parent status for child $status, control=$isControlAccount',
+      async ({ status, isControlAccount }) => {
+        const [draftParent] = ledgerAccountEntity.make<ILedgerAccount>({
+          ...parent,
+          code: parent.code.slice(0, 3) + '037',
+          materializedPath:
+            parent.materializedPath + '.' + parent.code.slice(0, 3) + '037',
+          controlAccountId: parent.id,
+          status: ELedgerAccountStatus.Draft,
+          currency: payload().currency,
+        });
+        mockLedgerAccountRepo.findById.mockResolvedValue(draftParent);
+        const creation = service.createBankSubAccount(
+          {
+            ...payload(),
+            controlAccountId: draftParent.id,
+            status,
+            isControlAccount,
+          },
+          options
+        );
+        if (status === ELedgerAccountStatus.Draft) {
+          const [child] = await creation;
+          expect(child).toMatchObject({
+            status: ELedgerAccountStatus.Draft,
+            controlAccountId: draftParent.id,
+            isControlAccount,
+          });
+        } else {
+          await expect(creation).rejects.toBeInstanceOf(
+            ledgerAccountError.NonDraftChildOfDraftControlAccount
+          );
+          expect(allocation.getNextCode).not.toHaveBeenCalled();
+        }
+        expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+      }
+    );
+
     it.each([true, false])(
       'rejects an archived parent with explicit selection %s before allocating a code',
       async (explicit) => {
@@ -618,6 +665,48 @@ describe('cashAccountService', () => {
         .mockReset()
         .mockResolvedValue(header.code.slice(0, 3) + '042');
     });
+    it.each(
+      [
+        undefined,
+        ELedgerAccountStatus.Active,
+        ELedgerAccountStatus.Draft,
+      ].flatMap((status) =>
+        [false, true].map((isControlAccount) => ({ status, isControlAccount }))
+      )
+    )(
+      'enforces draft-parent status for child $status, control=$isControlAccount',
+      async ({ status, isControlAccount }) => {
+        const [parent] = ledgerAccountEntity.make<ILedgerAccount>({
+          ...header,
+          code: header.code.slice(0, 3) + '037',
+          materializedPath:
+            header.materializedPath + '.' + header.code.slice(0, 3) + '037',
+          controlAccountId: header.id,
+          status: ELedgerAccountStatus.Draft,
+          currency: payload.currency ?? null,
+        });
+        mockLedgerAccountRepo.findById.mockResolvedValue(parent);
+        const creation = service.createPettyCashSubAccount(
+          { ...payload, controlAccountId: parent.id, status, isControlAccount },
+          options
+        );
+        if (status === ELedgerAccountStatus.Draft) {
+          const [child] = await creation;
+          expect(child).toMatchObject({
+            status: ELedgerAccountStatus.Draft,
+            controlAccountId: parent.id,
+            isControlAccount,
+          });
+        } else {
+          await expect(creation).rejects.toBeInstanceOf(
+            ledgerAccountError.NonDraftChildOfDraftControlAccount
+          );
+          expect(allocation.getNextCode).not.toHaveBeenCalled();
+        }
+        expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+      }
+    );
+
     it.each([true, false])(
       'rejects an archived parent with explicit selection %s before allocating a code',
       async (explicit) => {

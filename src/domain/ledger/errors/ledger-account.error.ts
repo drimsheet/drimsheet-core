@@ -3,6 +3,8 @@ import errorUtils from '@shared/utils/error';
 import DomainError from '@shared/values/errors/domain.error';
 
 const EErrorKeys = {
+  NonDraftChildOfDraftControlAccount:
+    'ledger_error_non_draft_child_of_draft_control_account_invalid',
   AccountNotFound: 'ledger_error_ledger_account_not_found',
   HeaderAccountNotArchivable: 'ledger_error_header_account_archive_invalid',
   ArchivedControlAccount: 'ledger_error_archived_control_account_invalid',

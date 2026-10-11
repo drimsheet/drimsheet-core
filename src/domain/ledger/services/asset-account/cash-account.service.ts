@@ -9,6 +9,7 @@ import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-i
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import cashControlAccountValidation from '@domain/ledger/services/validations/cash-control-account.validation';
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
+import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -104,6 +105,9 @@ function makeCreatePettyCashSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     cashControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntity.id,
@@ -144,7 +148,7 @@ function makeCreatePettyCashSubAccount(
       currency: payload.currency,
       meta: null,
       openingBalanceDate: payload.openingBalanceDate,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,
@@ -264,6 +268,9 @@ function makeCreateBankSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     cashControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntity.id,
@@ -302,7 +309,7 @@ function makeCreateBankSubAccount(
       currency: payload.currency,
       meta: bankDetails,
       openingBalanceDate: payload.openingBalanceDate,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,

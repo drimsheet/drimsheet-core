@@ -8,6 +8,7 @@ import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-i
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import bankChargeControlAccountValidation from '@domain/ledger/services/validations/bank-charge-control-account.validation';
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
+import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import { IBankChargeAccountService } from '@domain/ledger/types/bank-charge.service.types';
 import {
   EExpenseAccountBehavior,
@@ -89,6 +90,9 @@ function makeCreateSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     bankChargeControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntityId
@@ -126,7 +130,7 @@ function makeCreateSubAccount(
       controlAccountId: controlAccount.id,
       currency: null,
       meta: null,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
