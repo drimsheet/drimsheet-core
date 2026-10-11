@@ -9,6 +9,7 @@ import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-i
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import cashControlAccountValidation from '@domain/ledger/services/validations/cash-control-account.validation';
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
+import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -16,7 +17,7 @@ import {
   IPettyCashAccount,
 } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TCashLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -30,7 +31,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
   bankAccountRepo: IBankAccountRepo;
-  ledgerCodeAllocationService: ILedgerCodeAllocationService;
+  ledgerAccountService: ILedgerAccountService;
 }
 
 const LEDGER_CODE = ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS;
@@ -104,6 +105,9 @@ function makeCreatePettyCashSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     cashControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntity.id,
@@ -115,7 +119,7 @@ function makeCreatePettyCashSubAccount(
       subAccountCurrency: payload.currency,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Asset,
@@ -144,7 +148,7 @@ function makeCreatePettyCashSubAccount(
       currency: payload.currency,
       meta: null,
       openingBalanceDate: payload.openingBalanceDate,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,
@@ -264,6 +268,9 @@ function makeCreateBankSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     cashControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntity.id,
@@ -273,7 +280,7 @@ function makeCreateBankSubAccount(
       controlAccount,
       subAccountCurrency: payload.currency,
     });
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Asset,
@@ -302,7 +309,7 @@ function makeCreateBankSubAccount(
       currency: payload.currency,
       meta: bankDetails,
       openingBalanceDate: payload.openingBalanceDate,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,

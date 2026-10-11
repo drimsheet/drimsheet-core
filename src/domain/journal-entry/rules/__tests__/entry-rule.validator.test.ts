@@ -42,7 +42,7 @@ describe('journalEntryRuleValidator', () => {
       update: jest.fn(),
       create: jest.fn(),
     },
-    ledgerCodeAllocationService: { getNextCode: jest.fn() },
+    ledgerAccountService: { archive: jest.fn(), getNextCode: jest.fn() },
   });
   let account: ILedgerAccount;
 

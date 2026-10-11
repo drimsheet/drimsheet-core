@@ -5,6 +5,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeShortTermLoanService from '@domain/ledger/services/liability-account/short-term-loan.service';
 import {
@@ -105,6 +106,30 @@ describe('shortTermLoanAccountService', () => {
     expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
     jest.useRealTimers();
   });
+
+  it.each([false, true])(
+    'rejects non-draft loan/card children of a draft control, control=%s',
+    (isControlAccount) => {
+      const controlAccount = makeControlAccount(undefined, {
+        status: ELedgerAccountStatus.Draft,
+      });
+      expect(() =>
+        service.createSubAccount({
+          ...shortTermLoanPayload,
+          controlAccount,
+          isControlAccount,
+        })
+      ).toThrow(ledgerAccountError.NonDraftChildOfDraftControlAccount);
+      expect(() =>
+        service.createCreditCardSubAccount({
+          ...creditCardPayload,
+          controlAccount,
+          isControlAccount,
+        })
+      ).toThrow(ledgerAccountError.NonDraftChildOfDraftControlAccount);
+      expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+    }
+  );
 
   describe('createHeader', () => {
     it('creates a frozen short-term-debt header when one does not exist', async () => {

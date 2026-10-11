@@ -8,12 +8,13 @@ import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-i
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import assetDisposalLossControlAccountValidation from '@domain/ledger/services/validations/asset-disposal-loss-control-account.validation';
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
+import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import { IAssetDisposalLossAccountService } from '@domain/ledger/types/asset-disposal-loss.service.types';
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TAssetDisposalLossLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -25,7 +26,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
-  ledgerCodeAllocationService: ILedgerCodeAllocationService;
+  ledgerAccountService: ILedgerAccountService;
 }
 
 const LEDGER_CODE = EXPENSE_LEDGER_CODES.ASSET_DISPOSAL_LOSS;
@@ -99,6 +100,9 @@ function makeCreateSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     assetDisposalLossControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntityId
@@ -109,7 +113,7 @@ function makeCreateSubAccount(
       subAccountCurrency: null,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntityId,
         type: ELedgerType.Expense,
@@ -137,7 +141,7 @@ function makeCreateSubAccount(
       controlAccountId: controlAccount.id,
       currency: null,
       meta: null,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,

@@ -335,6 +335,7 @@
   "ledger_error_ledger_account_tax_type_invalid",
   "ledger_error_ledger_account_type_invalid",
   "ledger_error_ledger_account_update_invalid",
+  "ledger_error_non_draft_child_of_draft_control_account_invalid",
   "ledger_error_suspense_account_already_exists_conflict",
   "money_error_amount_invalid",
   "money_error_currency_code_invalid",

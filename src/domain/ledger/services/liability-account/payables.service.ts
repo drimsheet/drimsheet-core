@@ -7,8 +7,9 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-locked-control-account.helper';
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
+import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import payablesControlAccountValidation from '@domain/ledger/services/validations/payables-control-account.validation';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TPayablesLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -26,7 +27,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
-  ledgerCodeAllocationService: ILedgerCodeAllocationService;
+  ledgerAccountService: ILedgerAccountService;
 }
 
 const LEDGER_CODE = LIABILITY_LEDGER_CODES.PAYABLES;
@@ -102,6 +103,9 @@ function makeCreateStatutoryPayableSubAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     payablesControlAccountValidation.validateStatutoryPayableSubAccount(
       controlAccount,
       payload.accountingEntity.id
@@ -112,7 +116,7 @@ function makeCreateStatutoryPayableSubAccount(
       subAccountCurrency: payload.currency,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Liability,
@@ -139,7 +143,7 @@ function makeCreateStatutoryPayableSubAccount(
       isControlAccount: payload.isControlAccount,
       controlAccountId: controlAccount.id,
       currency: payload.currency,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       meta,
       contraAccountRule: EContraAccountRule.ContraNotPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
@@ -171,6 +175,9 @@ function makeCreateTradePayableAccount(
 
     controlAccountAvailabilityValidation.validate(controlAccount);
 
+    const status = payload.status ?? ELedgerAccountStatus.Active;
+    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+
     payablesControlAccountValidation.validateTradePayableSubAccount(
       controlAccount,
       payload.accountingEntity.id
@@ -181,7 +188,7 @@ function makeCreateTradePayableAccount(
       subAccountCurrency: null,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Liability,
@@ -208,7 +215,7 @@ function makeCreateTradePayableAccount(
       isControlAccount: payload.isControlAccount,
       controlAccountId: controlAccount.id,
       currency: null,
-      status: payload.status ?? ELedgerAccountStatus.Active,
+      status,
       meta,
       contraAccountRule: EContraAccountRule.ContraPermitted,
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,

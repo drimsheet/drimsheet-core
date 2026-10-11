@@ -8,7 +8,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeGainOnAssetSaleAccountService from '@domain/ledger/services/revenue-account/gain-on-sale.service';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
@@ -36,14 +36,15 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findLatestBySubType: jest.fn(),
   findAll: jest.fn(),
 };
-const allocation: jest.Mocked<ILedgerCodeAllocationService> = {
+const allocation: jest.Mocked<ILedgerAccountService> = {
+  archive: jest.fn(),
   getNextCode: jest.fn(),
 };
 
 describe('gainOnAssetSaleAccountService', () => {
   const service = makeGainOnAssetSaleAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
-    ledgerCodeAllocationService: allocation,
+    ledgerAccountService: allocation,
   });
   const createdBy = generateUUID();
   const accountingEntity = {
@@ -319,6 +320,48 @@ describe('gainOnAssetSaleAccountService', () => {
         .mockReset()
         .mockResolvedValue(header.code.slice(0, 3) + '042');
     });
+    it.each(
+      [
+        undefined,
+        ELedgerAccountStatus.Active,
+        ELedgerAccountStatus.Draft,
+      ].flatMap((status) =>
+        [false, true].map((isControlAccount) => ({ status, isControlAccount }))
+      )
+    )(
+      'enforces draft-parent status for child $status, control=$isControlAccount',
+      async ({ status, isControlAccount }) => {
+        const [parent] = ledgerAccountEntity.make<ILedgerAccount>({
+          ...header,
+          code: header.code.slice(0, 3) + '037',
+          materializedPath:
+            header.materializedPath + '.' + header.code.slice(0, 3) + '037',
+          controlAccountId: header.id,
+          status: ELedgerAccountStatus.Draft,
+          currency: null,
+        });
+        mockLedgerAccountRepo.findById.mockResolvedValue(parent);
+        const creation = service.createSubAccount(
+          { ...payload, controlAccountId: parent.id, status, isControlAccount },
+          options
+        );
+        if (status === ELedgerAccountStatus.Draft) {
+          const [child] = await creation;
+          expect(child).toMatchObject({
+            status: ELedgerAccountStatus.Draft,
+            controlAccountId: parent.id,
+            isControlAccount,
+          });
+        } else {
+          await expect(creation).rejects.toBeInstanceOf(
+            ledgerAccountError.NonDraftChildOfDraftControlAccount
+          );
+          expect(allocation.getNextCode).not.toHaveBeenCalled();
+        }
+        expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+      }
+    );
+
     it.each([
       undefined,
       ELedgerAccountStatus.Active,

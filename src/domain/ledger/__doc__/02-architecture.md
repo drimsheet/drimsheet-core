@@ -24,10 +24,12 @@ does not change the authoritative journal entry.
 body, and returns HTTP 204 with no content. It retains the account and all historical
 journal references. Header accounts (`controlAccountId === null`) cannot be
 archived. Repeating archive is a no-op; stale repository writes conflict.
+Archiving a child of a draft control account is rejected by the domain status
+invariant. An entire draft subtree can be archived beneath an active parent.
 Control-account archive includes every descendant in one transaction with one
 actor-attributed archive audit and event per changed account.
 
-The archive domain service accepts the supplied account, queries descendants by
+`ledgerAccountService.archive` accepts the supplied account, queries descendants by
 its complete materialized path, and returns audited tuples. It does not re-fetch
 the target, resolve the allocation root, or compare an expected version.
 
@@ -59,7 +61,7 @@ Our Chart of Accounts follows a **6-digit** hierarchical coding structure: **A-B
 - **BB** (2 digits) represents the account group / sub-header (e.g. Cash and Cash Equivalents, Retained Earnings, etc.)
 - **CCC** (3 digits) represents the control account or sub-ledger (sequentially allocated)
 
-Domain creation services allocate codes through `ledgerCodeAllocationService.getNextCode` under the caller-owned transaction. The allocator locks the family root before reading the latest subtype code. Allocation spans behaviors, parents, and currencies within the accounting entity/type/subtype, with a 999-account limit per family.
+Domain creation services allocate codes through `ledgerAccountService.getNextCode` under the caller-owned transaction. The caller locks the family root before the service reads the latest subtype code. Allocation spans behaviors, parents, and currencies within the accounting entity/type/subtype, with a 999-account limit per family.
 
 Power users can set a display code for accounts, but the internal code will always follow the above structure.
 
@@ -124,6 +126,13 @@ services/
 ```
 
 ## Domain Account Creation
+
+A draft control account can only receive draft children, including nested control
+accounts. Creation services validate the resolved child status in the domain
+before allocating a code or returning a new account. Omitting status retains the
+existing active default, so omission under a draft parent is rejected rather
+than silently converted to draft. Active parents may receive active or draft
+children; archived-parent restrictions continue to apply.
 
 Child creation methods accept an optional `controlAccountId` and require a caller-owned transaction. They lock the allocation root before resolving and locking the selected parent, enforce the existing parent and currency rules, and create the account with its final code and materialized path. Omitted parent IDs retain the existing family-specific default parents. Trade/statutory receivables and payables share their respective root allocation sequences; direct-cost variants share theirs.
 

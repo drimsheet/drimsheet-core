@@ -6,6 +6,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import shortTermLoanControlAccountValidation from '@domain/ledger/services/validations/short-term-loan-control-account.validation';
 import { TShortTermDebtLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
@@ -86,6 +87,11 @@ function makeCreateSubAccount(): IShortTermLoanAccountService['createSubAccount'
   return (payload) => {
     const { controlAccount } = payload;
 
+    controlAccountChildStatusValidation.validate(
+      controlAccount.status,
+      ELedgerAccountStatus.Active
+    );
+
     shortTermLoanControlAccountValidation.validate(
       controlAccount,
       payload.accountingEntityId
@@ -131,6 +137,11 @@ function makeCreateSubAccount(): IShortTermLoanAccountService['createSubAccount'
 function makeCreateCreditCardSubAccount(): IShortTermLoanAccountService['createCreditCardSubAccount'] {
   return (payload) => {
     const { controlAccount } = payload;
+
+    controlAccountChildStatusValidation.validate(
+      controlAccount.status,
+      ELedgerAccountStatus.Active
+    );
 
     shortTermLoanControlAccountValidation.validateCreditCardSubAccount(
       controlAccount,

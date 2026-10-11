@@ -46,7 +46,7 @@ import {
   EExpenseAccountBehavior,
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
@@ -62,8 +62,10 @@ import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 import userEntity from '@domain/user/entities/user.entity';
 
-const mockLedgerCodeAllocationService: jest.Mocked<ILedgerCodeAllocationService> =
-  { getNextCode: jest.fn() };
+const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
+  archive: jest.fn(),
+  getNextCode: jest.fn(),
+};
 
 const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
   validatePostingPeriod: jest.fn(),
@@ -123,15 +125,15 @@ describe('journalEntryService', () => {
       update: jest.fn(),
       create: jest.fn(),
     },
-    ledgerCodeAllocationService: { getNextCode: jest.fn() },
+    ledgerAccountService: { archive: jest.fn(), getNextCode: jest.fn() },
   });
   const servicesAccountService = makeServicesAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
-    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
+    ledgerAccountService: mockLedgerAccountService,
   });
   const payablesAccountService = makePayablesAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
-    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
+    ledgerAccountService: mockLedgerAccountService,
   });
 
   async function makeReceiptFixture(postedAt: Date | null = null) {

@@ -10,9 +10,8 @@ import makeInterestAccountService from '@domain/ledger/services/expense-account/
 import makeRentAndUtilitiesAccountService from '@domain/ledger/services/expense-account/rent-and-utilities.service';
 import makeTaxExpenseAccountService from '@domain/ledger/services/expense-account/tax-expense.service';
 import makeUnrealizedLossAccountService from '@domain/ledger/services/expense-account/unrealized-loss.service';
-import makeLedgerAccountArchiveService from '@domain/ledger/services/ledger-account-archive.service';
 import ledgerAccountBalanceAdjustmentService from '@domain/ledger/services/ledger-account-balance-adjustment.service';
-import makeLedgerCodeAllocationService from '@domain/ledger/services/ledger-code-allocation.service';
+import makeLedgerAccountService from '@domain/ledger/services/ledger-account.service';
 import makePayablesAccountService from '@domain/ledger/services/liability-account/payables.service';
 import makeShortTermLoanService from '@domain/ledger/services/liability-account/short-term-loan.service';
 import makeEmploymentIncomeAccountService from '@domain/ledger/services/revenue-account/employment-income.service';
@@ -34,23 +33,19 @@ import ledgerRepos from '@infra/persistence/repos/ledger';
 
 import { repoService } from './repo';
 
-const ledgerCodeAllocationService = makeLedgerCodeAllocationService({
-  ledgerAccountRepo: ledgerRepos.ledgerAccount,
-});
-
-export const ledgerAccountArchiveService = makeLedgerAccountArchiveService({
+export const ledgerAccountService = makeLedgerAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });
 
 export const cashAccountService = makeCashAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
   bankAccountRepo: ledgerRepos.bankAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const receivablesAccountService = makeReceivablesAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const suspenseAccountService = makeSuspenseAccountService({
@@ -59,7 +54,7 @@ export const suspenseAccountService = makeSuspenseAccountService({
 
 export const payablesAccountService = makePayablesAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const shortTermLoanAccountService = makeShortTermLoanService({
@@ -72,28 +67,28 @@ export const equityAccountService = makeEquityAccountService({
 
 export const servicesAccountService = makeServicesAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const employmentIncomeAccountService =
   makeEmploymentIncomeAccountService({
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    ledgerCodeAllocationService,
+    ledgerAccountService,
   });
 
 export const gainOnAssetSaleAccountService = makeGainOnAssetSaleAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const unrealizedGainAccountService = makeUnrealizedGainAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const grantsAccountService = makeGrantsAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const expenseAccountService = makeExpenseAccountService();
@@ -102,48 +97,48 @@ export const revenueAccountService = makeRevenueAccountService();
 
 export const giftsAccountService = makeGiftsAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const assetDisposalLossAccountService = makeAssetDisposalService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const bankChargeAccountService = makeBankChargeAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const directCostsAccountService = makeDirectCostsAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const financeCostAccountService = makeFinanceCostAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const interestAccountService = makeInterestAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const rentAndUtilitiesAccountService =
   makeRentAndUtilitiesAccountService({
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    ledgerCodeAllocationService,
+    ledgerAccountService,
   });
 
 export const taxExpenseAccountService = makeTaxExpenseAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const unrealizedLossAccountService = makeUnrealizedLossAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  ledgerCodeAllocationService,
+  ledgerAccountService,
 });
 
 export const ledgerAccountPersistenceAppService =

@@ -11,7 +11,7 @@ import { IGiftsAccountService } from '@domain/ledger/types/gifts.service.types';
 import { IGrantsAccountService } from '@domain/ledger/types/grants.service.types';
 import { IInterestAccountService } from '@domain/ledger/types/interest.service.types';
 import ILedgerAccountBalanceAdjustmentService from '@domain/ledger/types/ledger-account-balance-adjustment.service.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { IPayablesAccountService } from '@domain/ledger/types/payables.service.types';
 import { IReceivablesAccountService } from '@domain/ledger/types/receivables-account.service.types';
 import { IRentAndUtilitiesAccountService } from '@domain/ledger/types/rent-and-utilities.service.types';
@@ -154,8 +154,10 @@ export const mockLedgerAccountBalanceAdjustmentService: jest.Mocked<ILedgerAccou
     calculate: jest.fn(),
   };
 
-export const mockLedgerCodeAllocationService: jest.Mocked<ILedgerCodeAllocationService> =
-  { getNextCode: jest.fn() };
+export const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
+  archive: jest.fn(),
+  getNextCode: jest.fn(),
+};
 
 export const mockExpenseAccountService: jest.Mocked<IExpenseAccountService> = {
   update: jest.fn(),

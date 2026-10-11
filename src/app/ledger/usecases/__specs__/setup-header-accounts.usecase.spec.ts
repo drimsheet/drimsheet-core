@@ -22,7 +22,7 @@ import makeInterestAccountService from '@domain/ledger/services/expense-account/
 import makeRentAndUtilitiesAccountService from '@domain/ledger/services/expense-account/rent-and-utilities.service';
 import makeTaxExpenseAccountService from '@domain/ledger/services/expense-account/tax-expense.service';
 import makeUnrealizedLossAccountService from '@domain/ledger/services/expense-account/unrealized-loss.service';
-import makeLedgerCodeAllocationService from '@domain/ledger/services/ledger-code-allocation.service';
+import makeLedgerAccountService from '@domain/ledger/services/ledger-account.service';
 import makePayablesAccountService from '@domain/ledger/services/liability-account/payables.service';
 import makeShortTermLoanService from '@domain/ledger/services/liability-account/short-term-loan.service';
 import makeEmploymentIncomeAccountService from '@domain/ledger/services/revenue-account/employment-income.service';
@@ -210,7 +210,7 @@ const dependencies = {
 };
 const usecase = makeSetupHeaderAccountsUsecase(dependencies);
 
-const allocation = makeLedgerCodeAllocationService({
+const allocation = makeLedgerAccountService({
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
 let storedAccounts: ILedgerAccount[];
@@ -306,7 +306,7 @@ describe('setupHeaderAccountsUsecase', () => {
     });
     const receivablesService = makeReceivablesAccountService({
       ledgerAccountRepo: mockLedgerAccountRepo,
-      ledgerCodeAllocationService: allocation,
+      ledgerAccountService: allocation,
     });
     mockReceivablesAccountService.createTradeReceivableSubAccount.mockImplementation(
       receivablesService.createTradeReceivableSubAccount
@@ -316,7 +316,7 @@ describe('setupHeaderAccountsUsecase', () => {
     );
     const payablesService = makePayablesAccountService({
       ledgerAccountRepo: mockLedgerAccountRepo,
-      ledgerCodeAllocationService: allocation,
+      ledgerAccountService: allocation,
     });
     mockPayablesAccountService.createTradePayableSubAccount.mockImplementation(
       payablesService.createTradePayableSubAccount
@@ -329,13 +329,13 @@ describe('setupHeaderAccountsUsecase', () => {
       makeCashAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
         bankAccountRepo: mockBankAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockReceivablesAccountService.createHeader.mockImplementation(
       makeReceivablesAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockShortTermLoanAccountService.createHeader.mockImplementation(
@@ -345,7 +345,7 @@ describe('setupHeaderAccountsUsecase', () => {
     mockPayablesAccountService.createHeader.mockImplementation(
       makePayablesAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockEquityAccountService.createRetainedEarningsAccount.mockImplementation(
@@ -359,85 +359,85 @@ describe('setupHeaderAccountsUsecase', () => {
     mockServicesAccountService.createHeader.mockImplementation(
       makeServicesAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockEmploymentIncomeAccountService.createHeader.mockImplementation(
       makeEmploymentIncomeAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockGainOnAssetSaleAccountService.createHeader.mockImplementation(
       makeGainOnAssetSaleAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockUnrealizedGainAccountService.createHeader.mockImplementation(
       makeUnrealizedGainAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockGrantsAccountService.createHeader.mockImplementation(
       makeGrantsAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockGiftsAccountService.createHeader.mockImplementation(
       makeGiftsAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockDirectCostsAccountService.createHeader.mockImplementation(
       makeDirectCostsAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockRentAndUtilitiesAccountService.createHeader.mockImplementation(
       makeRentAndUtilitiesAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockBankChargeAccountService.createHeader.mockImplementation(
       makeBankChargeAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockFinanceCostAccountService.createHeader.mockImplementation(
       makeFinanceCostAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockInterestAccountService.createHeader.mockImplementation(
       makeInterestAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockTaxExpenseAccountService.createHeader.mockImplementation(
       makeTaxExpenseAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockUnrealizedLossAccountService.createHeader.mockImplementation(
       makeUnrealizedLossAccountService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
     mockAssetDisposalLossAccountService.createHeader.mockImplementation(
       makeAssetDisposalService({
         ledgerAccountRepo: mockLedgerAccountRepo,
-        ledgerCodeAllocationService: allocation,
+        ledgerAccountService: allocation,
       }).createHeader
     );
   });

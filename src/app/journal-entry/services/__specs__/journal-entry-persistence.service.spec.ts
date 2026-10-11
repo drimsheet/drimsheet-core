@@ -29,7 +29,7 @@ import {
   mockJournalLineRepo,
 } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makeJournalEntryPersistenceAppService from '@app/journal-entry/services/journal-entry-persistence.service';
-import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountRepo,
@@ -47,7 +47,7 @@ describe('journalEntryPersistenceAppService', () => {
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
     bankAccountRepo: mockBankAccountRepo,
-    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
+    ledgerAccountService: mockLedgerAccountService,
   });
   const equityAccountService = makeEquityAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
