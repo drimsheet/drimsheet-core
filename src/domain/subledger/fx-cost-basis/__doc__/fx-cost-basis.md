@@ -1,5 +1,10 @@
 # FX Cost Basis Sub Ledger
 
+See [FX Cost Basis Entity Invariants](invariants.md) for the bookkeeping and
+data-reliability guarantees governing lots, acquisitions, dispositions, and
+allocations, including the boundary between historical lot basis and financial
+reporting measurements.
+
 ## Glossary
 
 | Term                             | Definition                                                                                                                                                                                          |

@@ -15,7 +15,8 @@ Please read the following documents in order to understand the architecture and 
 3. [Adjustments & Reporting](./03-adjustments-and-reporting.md) - System reporting needs and how standard-specific adjustments are handled.
 4. [Individual Reporting](./04-individual-reporting.md) - MVP specifics for Individual reporting requirements.
 5. [Statutory Reporting](./05-statutory-reporting.md) - Tax types, taxation policies, and statutory compliance architecture.
+6. [Entity Invariants](./entities.md) - Accounting contracts for entities, their rationale, and supporting references.
 
 ---
 
-**Note:** For documentation regarding the Chart of Accounts, Ledgers, and base transaction recording, see the [Bookkeeping Documentation](../../bookkeeping/__docs__/bookkeeping.md).
+**Note:** For the Chart of Accounts and ledger behavior, see the [Ledger Architecture](../../ledger/__doc__/02-architecture.md) and [Ledger Account Entity Invariants](../../ledger/__doc__/invariants.md).
