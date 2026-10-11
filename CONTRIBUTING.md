@@ -104,7 +104,12 @@ src/
 
 ## Domain Documentation
 
-Contributors should see further documentations in the `__docs__` folder within the `domain` layer for the respective domains.
+Read the documentation in each domain's `__doc__` or `__docs__` folder. For
+accounting changes, start with the
+[accounting entity invariants](src/domain/accounting/__doc__/entities.md).
+When changing an invariant, update its documentation, implementation, and
+behavioral tests together, and refer to its stable ID in the change. Keep
+enforcement investigations and coverage gaps in plans or issues.
 
 ## Working with Money
 
