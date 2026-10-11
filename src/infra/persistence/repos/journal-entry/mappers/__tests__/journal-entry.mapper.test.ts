@@ -13,7 +13,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 import userEntity from '@domain/user/entities/user.entity';
 
-import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountRepo,
@@ -30,7 +30,7 @@ describe('Journal Entry Mapper', () => {
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
     bankAccountRepo: mockBankAccountRepo,
-    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
+    ledgerAccountService: mockLedgerAccountService,
   });
   beforeEach(() => {
     jest.useFakeTimers();

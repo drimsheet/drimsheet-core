@@ -8,14 +8,14 @@ import historyValue from '@shared/values/history/history.vo';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
-import ILedgerAccountArchiveService from '@domain/ledger/types/ledger-account-archive.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 
 interface IDependencies {
   appContext: IAppContext;
   ledgerAccountRepo: ILedgerAccountRepo;
-  archiveService: ILedgerAccountArchiveService;
+  ledgerAccountService: ILedgerAccountService;
   repoService: IRepoService;
   eventBus: IEventBus;
 }
@@ -71,7 +71,7 @@ export default function makeArchiveLedgerAccountUsecase(deps: IDependencies) {
         throw new ledgerAccountError.AccountNotFound({ id });
       }
 
-      const archivedAccounts = await deps.archiveService.archive(
+      const archivedAccounts = await deps.ledgerAccountService.archive(
         account,
         lockedReadOptions
       );

@@ -1,10 +1,12 @@
+import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
-import makeLedgerAccountArchiveService from '@domain/ledger/services/ledger-account-archive.service';
+import makeLedgerAccountService from '@domain/ledger/services/ledger-account.service';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const accountingEntityId = generateUUID();
 const createdBy = generateUUID();
@@ -46,12 +48,12 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findLatestBySubType: jest.fn(),
   findAll: jest.fn(),
 };
-const service = makeLedgerAccountArchiveService({
+const service = makeLedgerAccountService({
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
 const repoOptions = { correlationId: 'archive', tx: {} };
 
-describe('ledger account archive service', () => {
+describe('ledgerAccountService.archive', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockLedgerAccountRepo.findDescendants.mockResolvedValue([]);
@@ -196,5 +198,90 @@ describe('ledger account archive service', () => {
     await expect(
       service.archive(account('100001', '100000.100001'), repoOptions)
     ).rejects.toBeInstanceOf(ledgerAccountError.ControlAccountIdNotFound);
+  });
+});
+
+describe('ledgerAccountService.getNextCode', () => {
+  const service = makeLedgerAccountService({
+    ledgerAccountRepo: mockLedgerAccountRepo,
+  });
+  const [header] = ledgerAccountEntity.make({
+    name: 'Cash header',
+    code: '100000',
+    materializedPath: '100000',
+    accountingEntityId: 'b2222222-2222-4222-8222-222222222222' as TEntityId,
+    createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+    type: 'asset',
+    subType: 'cash_and_cash_equivalent',
+    behavior: 'default_cash',
+    normalBalance: 'debit',
+    isControlAccount: true,
+    controlAccountId: null,
+    currency: SYSTEM_CURRENCIES.NGN,
+    meta: null,
+    status: 'active',
+    contraAccountRule: 'contra_permitted',
+    adjunctAccountRule: 'adjunct_permitted',
+  });
+  const payload = {
+    accountingEntityId: header.accountingEntityId,
+    type: header.type,
+    subType: header.subType,
+    allocationHeaderCode: header.code,
+  };
+  const options = { correlationId: 'allocation', tx: {} };
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValue({
+      id: header.id,
+      code: '100041',
+      materializedPath: '100000.100041',
+    });
+  });
+  it('selects the next family code without reserving or writing it', async () => {
+    await expect(service.getNextCode(payload, options)).resolves.toBe('100042');
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
+    expect(mockLedgerAccountRepo.findLatestBySubType).toHaveBeenCalledWith(
+      header.accountingEntityId,
+      header.type,
+      header.subType,
+      options
+    );
+    expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
+  });
+  it('falls back to the header when no latest account exists', async () => {
+    mockLedgerAccountRepo.findLatestBySubType.mockResolvedValue(null);
+    await expect(service.getNextCode(payload, options)).resolves.toBe('100001');
+  });
+  it('rejects a missing transaction before reading', async () => {
+    await expect(
+      // @ts-expect-error Exercise runtime contract.
+      service.getNextCode(payload, { correlationId: 'allocation' })
+    ).rejects.toBeInstanceOf(
+      ledgerAccountError.CodeAllocationTransactionRequired
+    );
+    expect(mockLedgerAccountRepo.findLatestBySubType).not.toHaveBeenCalled();
+  });
+  it.each(['100999', '200001'])(
+    'preserves predecessor restrictions: %s',
+    async (code) => {
+      mockLedgerAccountRepo.findLatestBySubType.mockResolvedValue({
+        id: header.id,
+        code,
+        materializedPath: code,
+      });
+      await expect(
+        service.getNextCode(payload, options)
+      ).rejects.toBeInstanceOf(
+        code === '100999'
+          ? ledgerAccountError.MaximumLimitReached
+          : ledgerAccountError.InvalidPredecessorCode
+      );
+    }
+  );
+  it('propagates predecessor lookup failure', async () => {
+    const failure = new Error('database unavailable');
+    mockLedgerAccountRepo.findLatestBySubType.mockRejectedValue(failure);
+    await expect(service.getNextCode(payload, options)).rejects.toBe(failure);
   });
 });

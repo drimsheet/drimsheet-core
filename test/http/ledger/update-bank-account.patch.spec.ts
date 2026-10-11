@@ -23,7 +23,7 @@ import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/
 import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
 import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockBalanceQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
-import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountRepo,
@@ -126,7 +126,7 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
     bankAccountRepo: mockBankAccountRepo,
-    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
+    ledgerAccountService: mockLedgerAccountService,
   });
   beforeEach(() => {
     jest.resetAllMocks();

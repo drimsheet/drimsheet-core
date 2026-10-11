@@ -12,7 +12,7 @@ import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 
-import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountRepo,
@@ -30,7 +30,7 @@ describe('mapLedgerAccountToDto', () => {
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
     bankAccountRepo: mockBankAccountRepo,
-    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
+    ledgerAccountService: mockLedgerAccountService,
   });
   let mockAccount: ILedgerAccount;
   let controlAccount: ILedgerAccount;

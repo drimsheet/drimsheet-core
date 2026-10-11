@@ -9,7 +9,7 @@ import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-l
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import servicesControlAccountValidation from '@domain/ledger/services/validations/services-control-account.validation';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TServicesLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -26,7 +26,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
-  ledgerCodeAllocationService: ILedgerCodeAllocationService;
+  ledgerAccountService: ILedgerAccountService;
 }
 
 const LEDGER_CODE = REVENUE_LEDGER_CODES.SERVICES;
@@ -106,7 +106,7 @@ function makeCreateSubAccount(
       subAccountCurrency: null,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntityId,
         type: ELedgerType.Revenue,

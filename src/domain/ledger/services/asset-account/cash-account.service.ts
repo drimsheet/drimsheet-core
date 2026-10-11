@@ -17,7 +17,7 @@ import {
   IPettyCashAccount,
 } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TCashLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -31,7 +31,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
   bankAccountRepo: IBankAccountRepo;
-  ledgerCodeAllocationService: ILedgerCodeAllocationService;
+  ledgerAccountService: ILedgerAccountService;
 }
 
 const LEDGER_CODE = ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS;
@@ -119,7 +119,7 @@ function makeCreatePettyCashSubAccount(
       subAccountCurrency: payload.currency,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Asset,
@@ -280,7 +280,7 @@ function makeCreateBankSubAccount(
       controlAccount,
       subAccountCurrency: payload.currency,
     });
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Asset,

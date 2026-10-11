@@ -29,7 +29,7 @@ invariant. An entire draft subtree can be archived beneath an active parent.
 Control-account archive includes every descendant in one transaction with one
 actor-attributed archive audit and event per changed account.
 
-The archive domain service accepts the supplied account, queries descendants by
+`ledgerAccountService.archive` accepts the supplied account, queries descendants by
 its complete materialized path, and returns audited tuples. It does not re-fetch
 the target, resolve the allocation root, or compare an expected version.
 
@@ -61,7 +61,7 @@ Our Chart of Accounts follows a **6-digit** hierarchical coding structure: **A-B
 - **BB** (2 digits) represents the account group / sub-header (e.g. Cash and Cash Equivalents, Retained Earnings, etc.)
 - **CCC** (3 digits) represents the control account or sub-ledger (sequentially allocated)
 
-Domain creation services allocate codes through `ledgerCodeAllocationService.getNextCode` under the caller-owned transaction. The allocator locks the family root before reading the latest subtype code. Allocation spans behaviors, parents, and currencies within the accounting entity/type/subtype, with a 999-account limit per family.
+Domain creation services allocate codes through `ledgerAccountService.getNextCode` under the caller-owned transaction. The caller locks the family root before the service reads the latest subtype code. Allocation spans behaviors, parents, and currencies within the accounting entity/type/subtype, with a 999-account limit per family.
 
 Power users can set a display code for accounts, but the internal code will always follow the above structure.
 

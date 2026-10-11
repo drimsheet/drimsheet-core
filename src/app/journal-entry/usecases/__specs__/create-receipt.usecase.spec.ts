@@ -41,7 +41,7 @@ import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/jour
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import makeCreateReceiptUsecase from '@app/journal-entry/usecases/create-receipt.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
-import { mockLedgerCodeAllocationService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountRepo,
@@ -90,11 +90,11 @@ describe('makeCreateReceiptUsecase', () => {
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
     bankAccountRepo: mockBankAccountRepo,
-    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
+    ledgerAccountService: mockLedgerAccountService,
   });
   const servicesAccountService = makeServicesAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
-    ledgerCodeAllocationService: mockLedgerCodeAllocationService,
+    ledgerAccountService: mockLedgerAccountService,
   });
   let sourceAccount: IServicesAccount;
   let destinationAccount: ICashAndCashEquivalentAccount;

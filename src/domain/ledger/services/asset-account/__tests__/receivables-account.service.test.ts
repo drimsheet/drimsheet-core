@@ -12,7 +12,7 @@ import {
   EAssetAccountBehavior,
   EAssetSubType,
 } from '@domain/ledger/types/asset-account.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
@@ -35,14 +35,15 @@ const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findLatestBySubType: jest.fn(),
   findAll: jest.fn(),
 };
-const allocation: jest.Mocked<ILedgerCodeAllocationService> = {
+const allocation: jest.Mocked<ILedgerAccountService> = {
+  archive: jest.fn(),
   getNextCode: jest.fn(),
 };
 
 describe('receivablesAccountService', () => {
   const service = makeReceivablesAccountService({
     ledgerAccountRepo,
-    ledgerCodeAllocationService: allocation,
+    ledgerAccountService: allocation,
   });
   const userId = generateUUID();
   const accountingEntity = {

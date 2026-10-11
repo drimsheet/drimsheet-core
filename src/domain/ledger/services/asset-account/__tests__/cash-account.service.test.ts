@@ -14,7 +14,7 @@ import {
   EAssetAccountBehavior,
   EAssetSubType,
 } from '@domain/ledger/types/asset-account.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import {
   ELedgerAccountStatus,
   ELedgerType,
@@ -41,14 +41,15 @@ const bankRepo: jest.Mocked<IBankAccountRepo> = {
   update: jest.fn(),
   create: jest.fn(),
 };
-const allocation: jest.Mocked<ILedgerCodeAllocationService> = {
+const allocation: jest.Mocked<ILedgerAccountService> = {
+  archive: jest.fn(),
   getNextCode: jest.fn(),
 };
 describe('cashAccountService', () => {
   const service = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
     bankAccountRepo: bankRepo,
-    ledgerCodeAllocationService: allocation,
+    ledgerAccountService: allocation,
   });
   const mockOptions: IReadRepoOptions = {
     correlationId: 'test-correlation-id',

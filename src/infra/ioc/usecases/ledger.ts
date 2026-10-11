@@ -42,9 +42,9 @@ import {
   giftsAccountService,
   grantsAccountService,
   interestAccountService,
-  ledgerAccountArchiveService,
   ledgerAccountBalanceEnrichmentAppService,
   ledgerAccountPersistenceAppService,
+  ledgerAccountService,
   ledgerBalancePropagationPreparationAppService,
   payablesAccountService,
   receivablesAccountService,
@@ -77,7 +77,7 @@ export const archiveLedgerAccountUseCase = makeTracedUseCase(
   makeArchiveLedgerAccountUsecase({
     appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    archiveService: ledgerAccountArchiveService,
+    ledgerAccountService,
     repoService,
     eventBus: messaging.eventBus,
   })

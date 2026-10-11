@@ -10,7 +10,7 @@ import controlAccountAvailabilityValidation from '@domain/ledger/services/valida
 import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import grantsControlAccountValidation from '@domain/ledger/services/validations/grants-control-account.validation';
 import { IGrantsAccountService } from '@domain/ledger/types/grants.service.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TGrantsLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -26,7 +26,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
-  ledgerCodeAllocationService: ILedgerCodeAllocationService;
+  ledgerAccountService: ILedgerAccountService;
 }
 
 const LEDGER_CODE = REVENUE_LEDGER_CODES.GRANTS;
@@ -106,7 +106,7 @@ function makeCreateSubAccount(
       subAccountCurrency: null,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntityId,
         type: ELedgerType.Revenue,

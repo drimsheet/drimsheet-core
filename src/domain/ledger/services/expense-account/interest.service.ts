@@ -14,7 +14,7 @@ import {
   EExpenseSubType,
 } from '@domain/ledger/types/expense-account.types';
 import { IInterestAccountService } from '@domain/ledger/types/interest.service.types';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TInterestLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -26,7 +26,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
-  ledgerCodeAllocationService: ILedgerCodeAllocationService;
+  ledgerAccountService: ILedgerAccountService;
 }
 const LEDGER_CODE = EXPENSE_LEDGER_CODES.INTEREST;
 
@@ -104,7 +104,7 @@ function makeCreateSubAccount(
       subAccountCurrency: null,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntityId,
         type: ELedgerType.Expense,

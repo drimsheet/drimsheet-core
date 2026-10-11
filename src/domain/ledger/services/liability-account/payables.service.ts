@@ -9,7 +9,7 @@ import getLockedControlAccountHelper from '@domain/ledger/services/helpers/get-l
 import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import payablesControlAccountValidation from '@domain/ledger/services/validations/payables-control-account.validation';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TPayablesLedgerCode } from '@domain/ledger/types/ledger-code.types';
 import {
   EAdjunctAccountRule,
@@ -27,7 +27,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
-  ledgerCodeAllocationService: ILedgerCodeAllocationService;
+  ledgerAccountService: ILedgerAccountService;
 }
 
 const LEDGER_CODE = LIABILITY_LEDGER_CODES.PAYABLES;
@@ -116,7 +116,7 @@ function makeCreateStatutoryPayableSubAccount(
       subAccountCurrency: payload.currency,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Liability,
@@ -188,7 +188,7 @@ function makeCreateTradePayableAccount(
       subAccountCurrency: null,
     });
 
-    const code = await deps.ledgerCodeAllocationService.getNextCode(
+    const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Liability,

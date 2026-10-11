@@ -8,7 +8,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeServicesAccountService from '@domain/ledger/services/revenue-account/services.service';
-import ILedgerCodeAllocationService from '@domain/ledger/types/ledger-code-allocation.service.types';
+import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import {
   EAdjunctAccountRule,
   EContraAccountRule,
@@ -36,14 +36,15 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findLatestBySubType: jest.fn(),
   findAll: jest.fn(),
 };
-const allocation: jest.Mocked<ILedgerCodeAllocationService> = {
+const allocation: jest.Mocked<ILedgerAccountService> = {
+  archive: jest.fn(),
   getNextCode: jest.fn(),
 };
 
 describe('servicesAccountService', () => {
   const service = makeServicesAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
-    ledgerCodeAllocationService: allocation,
+    ledgerAccountService: allocation,
   });
   const createdBy = generateUUID();
   const accountingEntity = {

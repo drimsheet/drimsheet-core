@@ -7,7 +7,7 @@ import repoError from '@shared/values/errors/repo.error';
 
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
-import makeLedgerAccountArchiveService from '@domain/ledger/services/ledger-account-archive.service';
+import makeLedgerAccountService from '@domain/ledger/services/ledger-account.service';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
@@ -50,7 +50,7 @@ const actorId = generateUUID();
 const usecase = makeArchiveLedgerAccountUsecase({
   appContext: mockAppContext,
   ledgerAccountRepo: mockLedgerAccountRepo,
-  archiveService: makeLedgerAccountArchiveService({
+  ledgerAccountService: makeLedgerAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
   }),
   repoService: mockRepoService,
