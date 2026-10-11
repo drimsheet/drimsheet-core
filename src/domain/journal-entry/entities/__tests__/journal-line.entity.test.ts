@@ -116,6 +116,54 @@ describe('JournalLineItem Entity', () => {
       expect(lineItem.description).toBe('General Memo');
     });
 
+    it.each([
+      [SYSTEM_CURRENCIES.USD, 100n, 150, SYSTEM_CURRENCIES.JPY, 150n],
+      [SYSTEM_CURRENCIES.JPY, 150n, 0.006, SYSTEM_CURRENCIES.USD, 90n],
+    ])(
+      'creates a line from %o %s at %s with %o %s functional minor units',
+      (source, amount, rate, target, expected) => {
+        const transactionAmount = moneyValue.make(amount, source, true);
+        const [line, events, audit] = journalLineEntity.make(
+          validEntryPayload,
+          {
+            ...validPayload,
+            amount: transactionAmount,
+            functionalCurrency: target,
+            exchangeRate: exchangeRateValue.make({
+              baseCurrencyCode: source.code,
+              targetCurrencyCode: target.code,
+              rate,
+              type: EExchangeRateType.Official,
+              asOf: new Date('2026-04-14T00:00:00.000Z'),
+              source: 'test',
+            }),
+          }
+        );
+
+        const expectedFunctionalAmount = moneyValue.make(
+          expected,
+          target,
+          true
+        );
+        expect(line.amount).toBe(transactionAmount);
+        expect(line.functionalAmount).toEqual(expectedFunctionalAmount);
+        expect(events[0].data.functionalAmount).toEqual(
+          expectedFunctionalAmount
+        );
+        expect(audit.diff.after?.functionalAmount).toEqual(
+          expectedFunctionalAmount
+        );
+
+        const [updatedLine] = journalLineEntity.update(line, {
+          ...line,
+          amount: moneyValue.add(transactionAmount, transactionAmount),
+        });
+
+        expect(updatedLine.functionalAmount.amount).toBe(expected * 2n);
+        expect(updatedLine.functionalAmount.currency).toBe(target);
+      }
+    );
+
     it('should throw an AppError if side is invalid', () => {
       const invalidPayload = {
         ...validPayload,

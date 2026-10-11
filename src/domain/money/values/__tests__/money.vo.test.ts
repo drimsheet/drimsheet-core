@@ -10,10 +10,10 @@ describe('Money Value Object', () => {
   const USD = SYSTEM_CURRENCIES.USD;
   const JPY = SYSTEM_CURRENCIES.JPY;
 
-  function makeExchangeRate(rate: number) {
+  function makeExchangeRate(rate: number, source = USD, target = NGN) {
     return exchangeRateValue.make({
-      baseCurrencyCode: USD.code,
-      targetCurrencyCode: NGN.code,
+      baseCurrencyCode: source.code,
+      targetCurrencyCode: target.code,
       rate,
       type: EExchangeRateType.Market,
       asOf: new Date('2026-08-01T00:00:00.000Z'),
@@ -314,6 +314,77 @@ describe('Money Value Object', () => {
   });
 
   describe('convert', () => {
+    it.each([
+      [100n, USD, 150, JPY, 150n],
+      [150n, JPY, 0.006, USD, 90n],
+      [100n, JPY, 0.006, USD, 60n],
+      [0n, USD, 150, JPY, 0n],
+      [0n, JPY, 0.006, USD, 0n],
+      [1n, USD, 150, JPY, 1n],
+      [-1n, USD, 150, JPY, -1n],
+      [1n, USD, 190, JPY, 1n],
+      [-1n, USD, 190, JPY, -1n],
+      [1n, JPY, 0.006, USD, 0n],
+      [-1n, JPY, 0.006, USD, 0n],
+      [9007199254740993n, USD, 150, JPY, 13510798882111489n],
+      [9007199254740993n, JPY, 0.006, USD, 5404319552844595n],
+      [10000000n, JPY, 1e-7, USD, 100n],
+      [100000000n, JPY, 1.25e-7, USD, 1250n],
+      [1n, USD, Number.MAX_SAFE_INTEGER, NGN, 9007199254740991n],
+      [1000000000000000n, USD, 1e-15, NGN, 1n],
+      // Floating-point factor construction rounds this numerator up by one.
+      [1000000000000000n, USD, 4.000000000000004, NGN, 4000000000000004n],
+    ])(
+      'converts %s minor units of %o at %s to %o as %s minor units',
+      (amount, source, rate, target, expected) => {
+        const sourceMoney = money.make(amount, source, true);
+
+        const converted = money.convert(
+          sourceMoney,
+          makeExchangeRate(rate, source, target),
+          target
+        );
+
+        expect(converted.amount).toBe(expected);
+        expect(converted.currency).toBe(target);
+        expect(Object.isFrozen(converted)).toBe(true);
+        expect(sourceMoney.amount).toBe(amount);
+      }
+    );
+
+    it('uses the supplied precision beyond the system zero- and two-decimal currencies', () => {
+      const threeDecimalCurrency = { ...NGN, minorUnit: 3 };
+      const sourceMoney = money.make(1n, JPY, true);
+
+      const converted = money.convert(
+        sourceMoney,
+        makeExchangeRate(0.006, JPY, threeDecimalCurrency),
+        threeDecimalCurrency
+      );
+
+      expect(converted.amount).toBe(6n);
+      expect(converted.currency).toBe(threeDecimalCurrency);
+    });
+
+    it.each([
+      0,
+      -1,
+      NaN,
+      Infinity,
+      -Infinity,
+      Number.MAX_SAFE_INTEGER + 1,
+      1e-16,
+      1e21,
+    ])('rejects invalid rate %s even for zero money', (rate) => {
+      const exchangeRate = makeExchangeRate(rate);
+
+      for (const amount of [0n, 100n]) {
+        expect(() =>
+          money.convert(money.make(amount, USD, true), exchangeRate, NGN)
+        ).toThrow(new exchangeRateError.InvalidRate({ value: rate }));
+      }
+    });
+
     it('should convert money from one currency to another using an exchange rate', () => {
       const sourceMoney = money.make(1000, USD, true);
       const exchangeRate = makeExchangeRate(1500);

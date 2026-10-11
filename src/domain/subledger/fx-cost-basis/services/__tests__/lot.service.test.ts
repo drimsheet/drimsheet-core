@@ -1,6 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
+import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
@@ -8,6 +9,7 @@ import {
   UJournalEntryStatus,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -22,6 +24,7 @@ import {
 } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
+import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 import fxCostBasisLotAcquisitionEntity from '@domain/subledger/fx-cost-basis/entities/acquisition.entity';
 import fxCostBasisLotDispositionAllocationEntity from '@domain/subledger/fx-cost-basis/entities/disposition-allocation.entity';
@@ -192,6 +195,67 @@ describe('makeFxCostBasisLotService', () => {
 
     expect(result).not.toBeNull();
   });
+
+  it.each([
+    [SYSTEM_CURRENCIES.USD, 100n, 150, SYSTEM_CURRENCIES.JPY, 150n],
+    [SYSTEM_CURRENCIES.JPY, 150n, 0.006, SYSTEM_CURRENCIES.USD, 90n],
+  ])(
+    'acquires %o %s at %s with %o %s functional basis',
+    (source, amount, conversionRate, target, expected) => {
+      const [foreignAccount] = ledgerAccountEntity.make({
+        ...account,
+        currency: source,
+      });
+      const [journalEntry] = journalEntryEntity.make({
+        accountingEntityId: entityId,
+        memo: null,
+        sourceType: EJournalEntrySourceType.OpeningBalance,
+        effectiveDate: date,
+        postedAt: date,
+        createdBy: userId,
+        functionalCurrency: target,
+        lines: [
+          {
+            accountId: foreignAccount.id,
+            sequenceOrder: 1,
+            amount: moneyValue.make(amount, source, true),
+            functionalCurrency: target,
+            exchangeRate: exchangeRateValue.make({
+              baseCurrencyCode: source.code,
+              targetCurrencyCode: target.code,
+              rate: conversionRate,
+              type: EExchangeRateType.Negotiated,
+              asOf: date,
+              source: 'bank',
+            }),
+            side: EJournalSide.Debit,
+            description: null,
+          },
+          {
+            accountId: generateUUID(),
+            sequenceOrder: 2,
+            amount: moneyValue.make(expected, target, true),
+            functionalCurrency: target,
+            exchangeRate: null,
+            side: EJournalSide.Credit,
+            description: null,
+          },
+        ],
+      });
+
+      const acquisition = service.acquire({
+        createdBy: userId,
+        journalEntry,
+        account: foreignAccount,
+        officialRate: null,
+      });
+
+      const expectedBasis = moneyValue.make(expected, target, true);
+      expect(acquisition?.lot[0].costBasis).toEqual(expectedBasis);
+      expect(acquisition?.lot[0].remainingCostBasis).toEqual(expectedBasis);
+      expect(acquisition?.acquisition[0].costBasis).toEqual(expectedBasis);
+    }
+  );
 
   it.each([
     EJournalEntryStatus.Draft,

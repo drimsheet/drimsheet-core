@@ -1,15 +1,12 @@
 import { IFactor } from '@shared/types/number.types';
-import numberUtils from '@shared/utils/number';
 
 import currencyEntity from '@domain/money/entities/currency.entity';
-import exchangeRateError from '@domain/money/errors/exchange-rate.error';
 import moneyError from '@domain/money/errors/money.error';
 import { ICurrency } from '@domain/money/types/currency.types';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 import { IMoney } from '@domain/money/types/money.types';
+import getConversionRateFactorHelper from '@domain/money/values/helpers/get-conversion-rate-factor.helper';
 import moneyValidation from '@domain/money/values/validations/money.validation';
-
-// TODO (i18n): translate error messages
 
 /**
  * Checks if the factor is valid.
@@ -218,27 +215,24 @@ function sortAscending(...args: IMoney[]) {
   return args.sort((a, b) => Number(a.amount - b.amount));
 }
 
+/**
+ * Converts at target major units per source major unit. Apply both currency
+ * scales before the single final division, truncating toward zero in target
+ * minor units (including negative amounts), as for equal-precision conversion.
+ */
 function convert(
   money: IMoney,
   exchangeRate: IExchangeRate,
-  targetCurrencyCode: ICurrency
+  targetCurrency: ICurrency
 ) {
-  numberUtils.validatePositiveNumber(
-    exchangeRate.rate,
-    exchangeRateError.InvalidRate
-  );
-  const factor = numberUtils.toFactor(
-    exchangeRate.rate,
-    exchangeRateError.InvalidRate
-  );
+  const factor = getConversionRateFactorHelper(exchangeRate.rate);
+  const sourceScale = 10n ** BigInt(money.currency.minorUnit);
+  const targetScale = 10n ** BigInt(targetCurrency.minorUnit);
+  const numerator = money.amount * factor.numerator * targetScale;
+  const denominator = factor.denominator * sourceScale;
+  const targetMinorUnits = numerator / denominator;
 
-  if (!isValidFactor(factor)) {
-    throw new exchangeRateError.InvalidRate({ value: exchangeRate.rate });
-  }
-
-  const { amount } = multiply(money, factor);
-
-  return make(amount, targetCurrencyCode, true);
+  return make(targetMinorUnits, targetCurrency, true);
 }
 
 const moneyValue = Object.freeze({

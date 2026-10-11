@@ -50,6 +50,38 @@ const totalAmount = itemMoney.amount + taxMoney.amount;
 - `min(...args)` / `max(...args)`: Utilities to find extremums securely.
 - `validate(money)`: Asserts structural integrity and currency validity.
 
+### Currency Conversion
+
+`convert(money, exchangeRate, targetCurrency)` interprets the rate as target
+major units per source major unit. It accounts for both currencies' precisions:
+
+```text
+target minor units = truncateTowardZero(
+  source minor units × rate × 10^target precision ÷ 10^source precision
+)
+```
+
+The rate's canonical decimal string is parsed into a BigInt fraction, including
+scientific notation. All monetary arithmetic uses integers; division occurs
+only after applying both currency scales. Conversion rounds once at the final
+target minor unit by truncating toward zero: `1.9` becomes `1` and `-1.9`
+becomes `-1`. This preserves the existing equal-precision rounding rule.
+
+- USD `100n` (USD 1.00) at `150` JPY/USD becomes JPY `150n` (JPY 150).
+- JPY `150n` at `0.006` USD/JPY becomes USD `90n` (USD 0.90).
+- USD `1n` at `150` JPY/USD becomes JPY `1n`, discarding the fractional yen.
+
+Rates must be positive and finite. Their decimal numerator and denominator
+must each fit within `Number.MAX_SAFE_INTEGER` before currency scaling, retaining
+the existing safe-factor limit. Invalid rates are rejected even for zero amounts.
+Source amounts and converted amounts remain BigInts and are not restricted to
+JavaScript's safe-integer range by conversion itself.
+
+`IExchangeRate.rate` remains a JavaScript number. Exact conversion uses the decimal
+value represented by `rate.toString()`; it cannot restore precision lost before
+the rate reached this API. Parsing the fraction with BigInts avoids introducing
+additional error from floating-point factor multiplication.
+
 ## Working with Currency
 
 All currency representations in Drimsheet use standard ISO 4217 rules. The currency value object ensures that the application only ever operates using globally recognized fiat parameters.

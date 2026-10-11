@@ -38,7 +38,10 @@ const openingBalance = {
   date: effectiveDate,
 };
 
-function makeAccount(status: 'draft' | 'active' = 'draft') {
+function makeAccount(
+  status: 'draft' | 'active' = 'draft',
+  currency = SYSTEM_CURRENCIES.NGN
+) {
   return ledgerAccountEntity.make<IPettyCashAccount>({
     name: 'Office cash',
     code: '100042',
@@ -51,7 +54,7 @@ function makeAccount(status: 'draft' | 'active' = 'draft') {
     normalBalance: 'debit',
     isControlAccount: false,
     controlAccountId: 'c3333333-3333-4333-8333-333333333333' as TEntityId,
-    currency: SYSTEM_CURRENCIES.NGN,
+    currency,
     status,
     contraAccountRule: 'contra_permitted',
     adjunctAccountRule: 'adjunct_permitted',
@@ -173,6 +176,45 @@ describe('opening balance entry service', () => {
     ).rejects.toBeInstanceOf(ledgerAccountError.OpeningBalanceLocked);
     expect(mockLedgerAccountRepo.findBySubType).not.toHaveBeenCalled();
     expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+  });
+
+  it('passes a balanced differing-precision opening journal to FX acquisition', async () => {
+    const account = makeAccount('active', SYSTEM_CURRENCIES.JPY);
+
+    const result = await service.create(
+      {
+        ...getPayload(account),
+        openingBalance: {
+          amount: { amount: 150, currencyCode: 'JPY', isMinorUnit: true },
+          exchangeRate: {
+            baseCurrencyCode: 'JPY',
+            targetCurrencyCode: 'NGN',
+            rate: 0.006,
+            type: 'negotiated',
+            asOf: effectiveDate,
+            source: 'bank',
+          },
+          date: effectiveDate,
+        },
+      },
+      repoOptions
+    );
+
+    const [entry] = result.creation;
+    expect(entry.lines).toHaveLength(2);
+    expect(entry.lines[0].amount.amount).toBe(150n);
+    expect(entry.lines[0].functionalAmount).toEqual({
+      amount: 90n,
+      currency: SYSTEM_CURRENCIES.NGN,
+    });
+    expect(entry.lines[0].side).toBe('debit');
+    expect(entry.lines[1].amount).toEqual(entry.lines[0].functionalAmount);
+    expect(entry.lines[1].functionalAmount.amount).toBe(90n);
+    expect(entry.lines[1].side).toBe('credit');
+    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
+      { journalEntry: entry, account, actor: actor.id },
+      repoOptions
+    );
   });
 
   it('revises the existing draft while preserving entry and line identity', async () => {

@@ -1,9 +1,11 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
+import journalLineEntity from '@domain/journal-entry/entities/journal-line.entity';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
+import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 import fxCostBasisLotEntity from '@domain/subledger/fx-cost-basis/entities/lot.entity';
 import fxCostBasisLotError from '@domain/subledger/fx-cost-basis/errors/lot.error';
@@ -122,6 +124,124 @@ describe('consumeLotsInFifoOrder', () => {
       remainingCostBasis: moneyValue.makeZeroAmount(SYSTEM_CURRENCIES.NGN),
     });
   });
+
+  it.each([
+    {
+      source: SYSTEM_CURRENCIES.USD,
+      target: SYSTEM_CURRENCIES.JPY,
+      acquisitionRate: 140,
+      saleRate: 150,
+      firstBasis: 140n,
+      secondBasis: 280n,
+      consumed: 210n,
+      firstProceeds: 150n,
+      finalProceeds: 75n,
+      remainingBasis: 210n,
+    },
+    {
+      source: SYSTEM_CURRENCIES.JPY,
+      target: SYSTEM_CURRENCIES.USD,
+      acquisitionRate: 0.005,
+      saleRate: 0.006,
+      firstBasis: 50n,
+      secondBasis: 100n,
+      consumed: 75n,
+      firstProceeds: 60n,
+      finalProceeds: 30n,
+      remainingBasis: 75n,
+    },
+  ])(
+    'reconciles $source.code/$target.code basis and proceeds across precision changes',
+    (scenario) => {
+      const rate = exchangeRateValue.make({
+        baseCurrencyCode: scenario.source.code,
+        targetCurrencyCode: scenario.target.code,
+        rate: scenario.acquisitionRate,
+        type: EExchangeRateType.Negotiated,
+        asOf: date,
+        source: 'bank',
+      });
+      const lots = [
+        { quantity: 100n, basis: scenario.firstBasis },
+        { quantity: 200n, basis: scenario.secondBasis },
+      ].map(
+        (lot) =>
+          fxCostBasisLotEntity.make({
+            createdBy: entityId,
+            ledgerAccountId: accountId,
+            accountingEntityId: entityId,
+            status: EFxCostBasisLotStatus.Open,
+            originalQuantity: moneyValue.make(
+              lot.quantity,
+              scenario.source,
+              true
+            ),
+            remainingQuantity: moneyValue.make(
+              lot.quantity,
+              scenario.source,
+              true
+            ),
+            costBasis: moneyValue.make(lot.basis, scenario.target, true),
+            remainingCostBasis: moneyValue.make(
+              lot.basis,
+              scenario.target,
+              true
+            ),
+            acquisitionRate: rate,
+            acquisitionDate: date,
+          })[0]
+      );
+      const [journalLine] = journalLineEntity.make(
+        {
+          id: entityId,
+          memo: null,
+          createdBy: entityId,
+          createdAt: date,
+        },
+        {
+          accountId,
+          sequenceOrder: 1,
+          amount: moneyValue.make(150n, scenario.source, true),
+          functionalCurrency: scenario.target,
+          exchangeRate: exchangeRateValue.make({
+            ...rate,
+            rate: scenario.saleRate,
+          }),
+          side: 'credit',
+          description: null,
+        }
+      );
+
+      const result = consumeLotsInFifoOrder(lots, journalLine);
+
+      expect(result.costBasisConsumed).toEqual(
+        moneyValue.make(scenario.consumed, scenario.target, true)
+      );
+      expect(
+        result.allocationSegments.map(
+          (allocation) => allocation.proceeds.amount
+        )
+      ).toEqual([scenario.firstProceeds, scenario.finalProceeds]);
+      expect(
+        moneyValue.add(
+          ...result.allocationSegments.map((allocation) => allocation.proceeds)
+        )
+      ).toEqual(journalLine.functionalAmount);
+      expect(
+        moneyValue.add(
+          ...result.allocationSegments.map(
+            (allocation) => allocation.realizedGainLoss
+          )
+        ).amount
+      ).toBe(15n);
+      expect(result.lots[0][0].remainingCostBasis.amount).toBe(0n);
+      expect(result.lots[0][0].status).toBe(EFxCostBasisLotStatus.Closed);
+      expect(result.lots[1][0].remainingQuantity.amount).toBe(150n);
+      expect(result.lots[1][0].remainingCostBasis.amount).toBe(
+        scenario.remainingBasis
+      );
+    }
+  );
 
   it('rejects the operation when the supplied lots cannot cover the quantity', () => {
     const lot = makeLot(60, 60, 84_000, 84_000, 1400);
