@@ -55,11 +55,13 @@ export interface IJournalEntryReversalResult {
 }
 
 export interface IJournalEntryRectificationService {
+  /** Prepares changes without writes; rejects unless every newly posted entry has an Open posting period. */
   rectify(
     payload: IJournalEntryRectificationPayload,
     repoOptions: IReadRepoOptions
   ): Promise<IJournalEntryRectificationResult>;
 
+  /** Prepares a reversal without writes; validates its own effective date, not the original's period. */
   reverse(
     originalEntry: IJournalEntry,
     actorId: TEntityId,

@@ -2,10 +2,18 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import periodError from '@domain/accounting/errors/period.error';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import {
+  EPeriodStatus,
+  EPeriodUnit,
+} from '@domain/accounting/types/period.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
+import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
 import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import {
   EJournalEntryRectificationMode,
@@ -881,4 +889,94 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
     expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
   });
+  it.each([
+    periodError.PostingPeriodNotOpen,
+    periodError.PostingDateNotCovered,
+  ])(
+    'propagates reversal-period rejection before preparing FX effects (%p)',
+    async (ErrorType) => {
+      jest.useFakeTimers();
+      const reversalDate = new Date('2026-10-01T10:00:00.000Z');
+      jest.setSystemTime(reversalDate);
+      try {
+        const [originalEntry] = makeEntry(EJournalEntrySourceType.Transfer);
+        const candidate = makeEntry(EJournalEntrySourceType.Transfer, 150);
+        const sourceLine = {
+          accountId: sourceAccount.id,
+          amount: amountDto,
+          exchangeRate: null,
+          description: null,
+          sequenceOrder: 1,
+        };
+        const requestedEntry: ITransferJournalEntryRectificationReq = {
+          sourceType: EJournalEntrySourceType.Transfer,
+          attachments: [],
+          effectiveDate,
+          postedAt: effectiveDate,
+          memo: 'Correction',
+          sourceLine,
+          destinationLine: {
+            ...sourceLine,
+            accountId: destinationAccount.id,
+            sequenceOrder: 2,
+          },
+          chargeLines: [],
+        };
+        mockJournalEntryService.createTransfer.mockResolvedValueOnce({
+          journalEntry: candidate,
+          destinationAssetAccount: destinationAccount,
+        });
+        const [fiscalYear] = fiscalYearEntity.make({
+          accountingEntityId,
+          createdBy: actor,
+          startDate: new Date('2026-01-01'),
+          endDate: new Date('2026-12-31'),
+          status: EPeriodStatus.Open,
+        });
+        const periods = accountingPeriodEntity.make({
+          accountingEntityId,
+          createdBy: actor,
+          fiscalYear,
+          unit: EPeriodUnit.Month,
+          count: 12,
+        });
+        const [replacementPeriod] = periods[8];
+        const failure = new ErrorType({
+          accountingEntityId,
+          postingDate: reversalDate,
+        });
+        mockAccountingPeriodService.validatePostingPeriod.mockReset();
+        mockAccountingPeriodService.validatePostingPeriod
+          .mockResolvedValueOnce(replacementPeriod)
+          .mockRejectedValueOnce(failure);
+        mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([]);
+        const realRectificationService = makeJournalEntryRectificationService({
+          accountingPeriodService: mockAccountingPeriodService,
+          ledgerAccountRepo: mockLedgerAccountRepo,
+        });
+        mockJournalEntryRectificationService.rectify.mockImplementationOnce(
+          realRectificationService.rectify
+        );
+
+        await expect(
+          service.prepare(
+            { originalEntry, requestedEntry, accountingEntity, actor },
+            repoOptions
+          )
+        ).rejects.toBe(failure);
+
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod
+        ).toHaveBeenCalledWith(accountingEntityId, effectiveDate, repoOptions);
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod
+        ).toHaveBeenCalledWith(accountingEntityId, reversalDate, repoOptions);
+        expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
+        expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+        expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
+    }
+  );
 });

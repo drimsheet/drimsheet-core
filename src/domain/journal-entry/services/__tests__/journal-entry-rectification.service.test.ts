@@ -1,6 +1,16 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import periodError from '@domain/accounting/errors/period.error';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import makeAccountingPeriodService from '@domain/accounting/services/accounting-period.service';
+import {
+  EPeriodStatus,
+  EPeriodUnit,
+  IAccountingPeriod,
+} from '@domain/accounting/types/period.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
@@ -50,7 +60,39 @@ describe('makeJournalEntryRectificationService', () => {
   const creditAccountId = generateUUID();
   const effectiveDate = new Date('2026-09-01T00:00:00.000Z');
   const now = new Date('2026-09-21T09:30:00.000Z');
-  const service = makeJournalEntryRectificationService({ ledgerAccountRepo });
+  const periodRepo: jest.Mocked<IAccountingPeriodRepo> = {
+    create: jest.fn(),
+    findByDate: jest.fn(),
+    findAllByDate: jest.fn(),
+    findByRange: jest.fn(),
+  };
+  const dependencies = {
+    ledgerAccountRepo,
+    accountingPeriodService: makeAccountingPeriodService({
+      accountingPeriodRepo: periodRepo,
+    }),
+  };
+  const service = makeJournalEntryRectificationService(dependencies);
+  let periods: IAccountingPeriod[];
+
+  function makePeriods() {
+    const [fiscalYear] = fiscalYearEntity.make({
+      accountingEntityId,
+      createdBy,
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2026-12-31'),
+      status: EPeriodStatus.Open,
+    });
+    return accountingPeriodEntity
+      .make({
+        accountingEntityId,
+        createdBy,
+        fiscalYear,
+        unit: EPeriodUnit.Month,
+        count: 12,
+      })
+      .map(([period]) => period);
+  }
 
   function makeAccount(id: TEntityId) {
     const [account] = ledgerAccountEntity.make({
@@ -77,6 +119,17 @@ describe('makeJournalEntryRectificationService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    jest.setSystemTime(now);
+    periods = makePeriods();
+    periodRepo.findAllByDate.mockImplementation(async (entityId, date) => {
+      const day = new Date(date.toISOString().slice(0, 10));
+      return periods.filter(
+        (period) =>
+          period.accountingEntityId === entityId &&
+          period.startDate <= day &&
+          period.endDate >= day
+      );
+    });
     ledgerAccountRepo.findAllByIds.mockResolvedValue([
       makeAccount(debitAccountId),
       makeAccount(creditAccountId),
@@ -531,5 +584,204 @@ describe('makeJournalEntryRectificationService', () => {
       originalEntry.lines[0].createdBy
     );
     expect(result.currentJournalEntry.lines[1].createdBy).toBe(actorId);
+  });
+  describe('posting periods', () => {
+    const reversalDate = new Date('2026-10-01T09:30:00.000Z');
+    const repoOptions = { correlationId: 'posting-period-check' };
+
+    beforeEach(() => jest.setSystemTime(reversalDate));
+
+    async function prepare(
+      mode: 'reverse' | 'rectify',
+      original: IJournalEntry
+    ) {
+      if (mode === 'reverse')
+        return service.reverse(original, createdBy, repoOptions);
+      return service.rectify(
+        makePayload(original, makeEntry({ posted: true, amount: 150 })),
+        repoOptions
+      );
+    }
+
+    describe.each(['reverse', 'rectify'] as const)('%s', (mode) => {
+      it.each([
+        EPeriodStatus.Closed,
+        EPeriodStatus.Closing,
+        EPeriodStatus.Pending,
+      ])(
+        'rejects a %s reversal period without changing the original',
+        async (status) => {
+          const [original] = makeEntry({ posted: true });
+          const snapshot = structuredClone(original);
+          periods[9] = { ...periods[9], status };
+
+          await expect(prepare(mode, original)).rejects.toBeInstanceOf(
+            periodError.PostingPeriodNotOpen
+          );
+          expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
+            accountingEntityId,
+            reversalDate,
+            repoOptions
+          );
+          expect(original).toEqual(snapshot);
+          expect(periodRepo.create).not.toHaveBeenCalled();
+        }
+      );
+
+      it.each(['uncovered', 'another entity'] as const)(
+        'rejects a reversal date with %s coverage',
+        async (coverage) => {
+          const [original] = makeEntry({ posted: true });
+          const snapshot = structuredClone(original);
+          periods[9] = { ...periods[9], accountingEntityId: generateUUID() };
+          if (coverage === 'uncovered') periods.splice(9, 1);
+
+          await expect(prepare(mode, original)).rejects.toBeInstanceOf(
+            periodError.PostingDateNotCovered
+          );
+          expect(original).toEqual(snapshot);
+        }
+      );
+
+      it('rejects ambiguous reversal coverage', async () => {
+        const [original] = makeEntry({ posted: true });
+        periods.push({ ...periods[9], id: generateUUID() });
+        await expect(prepare(mode, original)).rejects.toBeInstanceOf(
+          periodError.PostingPeriodAmbiguous
+        );
+      });
+
+      it('propagates a period read failure', async () => {
+        const [original] = makeEntry({ posted: true });
+        const failure = new Error('Period read failed');
+        periodRepo.findAllByDate.mockRejectedValue(failure);
+        await expect(prepare(mode, original)).rejects.toBe(failure);
+      });
+
+      it('keeps the validated reversal timestamp when time advances during the read', async () => {
+        const [original] = makeEntry({ posted: true });
+        periodRepo.findAllByDate.mockImplementation(async (_, date) => {
+          jest.setSystemTime(new Date('2026-11-01'));
+          return [periods[date.getUTCMonth()]];
+        });
+        const result = await prepare(mode, original);
+        expect(result.reversingJournalEntry).toMatchObject({
+          effectiveDate: reversalDate,
+          postedAt: reversalDate,
+        });
+        expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
+          accountingEntityId,
+          reversalDate,
+          repoOptions
+        );
+      });
+    });
+
+    it('reverses an original from a closed earlier period in the current open period', async () => {
+      const [original] = makeEntry({ posted: true });
+      periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
+      const result = await service.reverse(original, createdBy, repoOptions);
+      expect(result.reversingJournalEntry.effectiveDate).toEqual(reversalDate);
+      expect(result.entryUpdate.entry.status).toBe(EJournalEntryStatus.Voided);
+      expect(periodRepo.findAllByDate).toHaveBeenCalledTimes(1);
+    });
+
+    it('rectifies an original from a closed earlier period when both new entries are open', async () => {
+      const [original] = makeEntry({ posted: true });
+      periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
+      const result = await service.rectify(
+        {
+          actorId: createdBy,
+          originalEntry: original,
+          newEntry: { id: generateUUID(), effectiveDate: reversalDate },
+        },
+        repoOptions
+      );
+      expect(result.entriesToCreate).toHaveLength(2);
+      expect(
+        result.entriesToCreate.every(
+          ([entry]) =>
+            entry.status === EJournalEntryStatus.Posted &&
+            entry.effectiveDate.getTime() === reversalDate.getTime()
+        )
+      ).toBe(true);
+    });
+
+    it.each(['closed', 'uncovered'] as const)(
+      'rejects a %s replacement date even when the reversal date is open',
+      async (kind) => {
+        const [original] = makeEntry({ posted: true });
+        periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
+        if (kind === 'uncovered') periods.splice(8, 1);
+        const snapshot = structuredClone(original);
+        await expect(
+          service.rectify(
+            {
+              actorId: createdBy,
+              originalEntry: original,
+              newEntry: { id: generateUUID(), memo: 'Correction' },
+            },
+            repoOptions
+          )
+        ).rejects.toBeInstanceOf(
+          kind === 'closed'
+            ? periodError.PostingPeriodNotOpen
+            : periodError.PostingDateNotCovered
+        );
+        expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
+          accountingEntityId,
+          effectiveDate,
+          repoOptions
+        );
+        expect(original).toEqual(snapshot);
+      }
+    );
+
+    it.each(['open', 'closed', 'uncovered'] as const)(
+      'checks a %s effective date when posting a draft directly',
+      async (kind) => {
+        const [original] = makeEntry();
+        const payload = makePayload(original, makeEntry({ posted: true }));
+        const snapshot = structuredClone(original);
+        if (kind === 'closed')
+          periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
+        if (kind === 'uncovered') periods.splice(8, 1);
+        const result = service.rectify(payload, repoOptions);
+        if (kind === 'open') {
+          await expect(result).resolves.toMatchObject({
+            currentJournalEntry: { status: EJournalEntryStatus.Posted },
+          });
+        } else {
+          await expect(result).rejects.toBeInstanceOf(
+            kind === 'closed'
+              ? periodError.PostingPeriodNotOpen
+              : periodError.PostingDateNotCovered
+          );
+        }
+        expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
+          accountingEntityId,
+          effectiveDate,
+          repoOptions
+        );
+        expect(original).toEqual(snapshot);
+      }
+    );
+
+    it.each([false, true])(
+      'does not check periods for an edit without a new posting (posted: %s)',
+      async (posted) => {
+        const [original] = makeEntry({ posted });
+        periods = [];
+        const result = await service.rectify(
+          makePayload(
+            original,
+            makeEntry({ posted, description: 'Metadata correction' })
+          ),
+          repoOptions
+        );
+        expect(result.entriesToCreate).toEqual([]);
+        expect(periodRepo.findAllByDate).not.toHaveBeenCalled();
+      }
+    );
   });
 });
