@@ -448,4 +448,22 @@ describe('Money Value Object', () => {
       ).toThrow(new moneyError.InvalidCurrencyCode({ currencyCode: 'FAKE' }));
     });
   });
+  describe('isSafeMinorUnitNumber', () => {
+    it.each([
+      [BigInt(Number.MIN_SAFE_INTEGER) - 1n, false],
+      [BigInt(Number.MIN_SAFE_INTEGER), true],
+      [-1n, true],
+      [0n, true],
+      [1n, true],
+      [BigInt(Number.MAX_SAFE_INTEGER), true],
+      [BigInt(Number.MAX_SAFE_INTEGER) + 1n, false],
+    ])(
+      'checks minor-unit amount %s against both safe bounds',
+      (amount, expected) => {
+        const value = money.make(amount, SYSTEM_CURRENCIES.NGN, true);
+
+        expect(money.isSafeMinorUnitNumber(value)).toBe(expected);
+      }
+    );
+  });
 });
