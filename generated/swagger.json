@@ -657,6 +657,25 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IBankDetails": {
+        "properties": {
+          "countryCode": {
+            "type": "string"
+          },
+          "bankName": {
+            "type": "string"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "accountNumber": {
+            "type": "string"
+          }
+        },
+        "required": ["countryCode", "bankName", "accountName", "accountNumber"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "ULedgerAccountBalanceEffect": {
         "type": "string",
         "enum": ["increase", "decrease", "noop"]
@@ -3789,6 +3808,86 @@
           }
         },
         "description": "Get a single ledger account by id",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/ledger/{accountId}/bank-details": {
+      "get": {
+        "operationId": "getBankDetails",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IBankDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get the bank details of a ledger account with bank behavior.",
         "tags": ["Ledger"],
         "security": [],
         "parameters": [

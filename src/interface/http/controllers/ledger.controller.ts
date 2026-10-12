@@ -61,6 +61,7 @@ import {
   createTradePayableAccountUseCase,
   createTradeReceivableAccountUseCase,
   getAccountTransactionsUseCase,
+  getBankDetailsUseCase,
   getLedgerAccountsUseCase,
   getLedgerAccountUseCase,
   getLedgerSubAccountsUseCase,
@@ -144,6 +145,24 @@ export class LedgerController extends Controller {
   )
   public async getLedgerAccount(@Path() accountId: string) {
     return getLedgerAccountUseCase(accountId as TEntityId);
+  }
+
+  /** Get the bank details of a ledger account with bank behavior. */
+  @Get('/{accountId}/bank-details')
+  @OperationId('getBankDetails')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getBankDetails(@Path() accountId: string) {
+    return getBankDetailsUseCase(accountId as TEntityId);
   }
 
   /** Get direct sub accounts only, returning an empty array when there are none. */
