@@ -223,7 +223,7 @@ describe('fxCostBasisLotDispositionEntity', () => {
       ).not.toThrow();
       expect(() =>
         dispositionValidation.validateCostBasisConsumed(
-          moneyValue.make(0, SYSTEM_CURRENCIES.NGN, false)
+          moneyValue.make(-1, SYSTEM_CURRENCIES.NGN, false)
         )
       ).toThrow(fxCostBasisLotDispositionError.InvalidCostBasisConsumed);
     });
@@ -234,7 +234,7 @@ describe('fxCostBasisLotDispositionEntity', () => {
       ).not.toThrow();
       expect(() =>
         dispositionValidation.validateProceeds(
-          moneyValue.make(0, SYSTEM_CURRENCIES.NGN, false)
+          moneyValue.make(-1, SYSTEM_CURRENCIES.NGN, false)
         )
       ).toThrow(fxCostBasisLotDispositionError.InvalidProceeds);
     });
@@ -267,4 +267,15 @@ describe('fxCostBasisLotDispositionEntity', () => {
       ).toThrow();
     });
   });
+  it.each([0n, -1n])(
+    'rejects a foreign quantity of %s minor units',
+    (amount) => {
+      expect(() =>
+        fxCostBasisLotDispositionEntity.make({
+          ...validPayload,
+          quantity: moneyValue.make(amount, SYSTEM_CURRENCIES.USD, true),
+        })
+      ).toThrow(fxCostBasisLotDispositionError.InvalidQuantity);
+    }
+  );
 });
