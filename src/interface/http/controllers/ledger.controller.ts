@@ -63,6 +63,7 @@ import {
   getAccountTransactionsUseCase,
   getLedgerAccountsUseCase,
   getLedgerAccountUseCase,
+  getLedgerSubAccountsUseCase,
   getPermittedPostingAccountsUseCase,
   getRecommendedBootstrapUseCase,
   setupHeaderAccountsUseCase,
@@ -143,6 +144,23 @@ export class LedgerController extends Controller {
   )
   public async getLedgerAccount(@Path() accountId: string) {
     return getLedgerAccountUseCase(accountId as TEntityId);
+  }
+
+  /** Get direct sub accounts only, returning an empty array when there are none. */
+  @Get('/{accountId}/sub-accounts')
+  @OperationId('getLedgerSubAccounts')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getLedgerSubAccounts(@Path() accountId: string) {
+    return getLedgerSubAccountsUseCase(accountId as TEntityId);
   }
 
   /**

@@ -2855,6 +2855,55 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_getLedgerSubAccounts: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+  };
+  app.get(
+    '/api/v1/ledger/:accountId/sub-accounts',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.getLedgerSubAccounts
+    ),
+
+    async function LedgerController_getLedgerSubAccounts(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_getLedgerSubAccounts,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'getLedgerSubAccounts',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsLedgerController_listTransactions: Record<
     string,
     TsoaRoute.ParameterSchema

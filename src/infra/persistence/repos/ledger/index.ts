@@ -1,4 +1,5 @@
 import accountTransactionQueryRepo from '@infra/persistence/repos/ledger/queries/account-transaction.query.repo.impl';
+import ledgerAccountQueryRepo from '@infra/persistence/repos/ledger/queries/ledger-account.query.repo.impl';
 
 import bankAccountRepoImpl from './bank-account.repo.impl';
 import ledgerAccountBalanceRepoImpl from './ledger-account-balance.repo.impl';
@@ -13,6 +14,7 @@ const ledgerRepos = {
 
   queries: {
     accountTransaction: accountTransactionQueryRepo,
+    ledgerAccount: ledgerAccountQueryRepo,
   },
 };
 
