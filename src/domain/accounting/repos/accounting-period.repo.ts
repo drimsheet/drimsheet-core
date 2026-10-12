@@ -11,6 +11,19 @@ export default interface IAccountingPeriodRepo {
     options: IReadRepoOptions
   ): Promise<IAccountingPeriod | null>;
 
+  findAllByDate(
+    accountingEntityId: TEntityId,
+    date: Date,
+    options: IReadRepoOptions
+  ): Promise<IAccountingPeriod[]>;
+
+  /** Returns periods for this entity that intersect the inclusive date range. */
+  findByRange(
+    accountingEntityId: TEntityId,
+    range: Pick<IAccountingPeriod, 'startDate' | 'endDate'>,
+    options: IReadRepoOptions
+  ): Promise<IAccountingPeriod[]>;
+
   create(
     payload: IAccountingPeriod | IAccountingPeriod[],
     options: IWriteRepoOptions<

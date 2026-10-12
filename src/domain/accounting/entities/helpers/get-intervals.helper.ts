@@ -7,7 +7,9 @@ import periodError from '@domain/accounting/errors/period.error';
 import { EPeriodUnit, IPeriod } from '@domain/accounting/types/period.types';
 
 export default function getPeriodIntervals(
-  payload: Pick<IPeriod, 'startDate' | 'endDate' | 'unit' | 'count'>
+  payload: Pick<IPeriod, 'startDate' | 'endDate' | 'unit' | 'count'> & {
+    utc?: boolean;
+  }
 ) {
   const { startDate, endDate, unit, count } = payload;
 
@@ -30,7 +32,9 @@ export default function getPeriodIntervals(
     [EPeriodUnit.Year]: dateUtils.getYearDistance,
   };
   const distanceFn = distanceMaps[unit];
-  const distance = distanceFn({ start: startDate, end: endDate });
+  const distance = payload.utc
+    ? dateUtils.getUtcCalendarDistance(startDate, endDate, unit)
+    : distanceFn({ start: startDate, end: endDate });
 
   if (distance < count) {
     throw new periodError.InvalidInterval();
@@ -52,7 +56,9 @@ export default function getPeriodIntervals(
     if (i === count - 1) {
       intervals.push({ startDate: startOfInterval, endDate });
     } else {
-      const nextEndDate = adder(startOfInterval, intervalSize);
+      const nextEndDate = payload.utc
+        ? dateUtils.addUtcCalendarUnits(startOfInterval, intervalSize, unit)
+        : adder(startOfInterval, intervalSize);
       intervals.push({ startDate: startOfInterval, endDate: nextEndDate });
       startOfInterval = nextEndDate;
     }

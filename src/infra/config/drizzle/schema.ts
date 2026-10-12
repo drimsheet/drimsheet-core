@@ -905,6 +905,7 @@ export const accountingPeriodsInCore = core.table(
       foreignColumns: [fiscalYearsInCore.id],
       name: 'accounting_periods_fiscal_year_id_fkey',
     }).onDelete('cascade'),
+    check('accounting_periods_dates_ordered', sql`start_date <= end_date`),
   ]
 );
 

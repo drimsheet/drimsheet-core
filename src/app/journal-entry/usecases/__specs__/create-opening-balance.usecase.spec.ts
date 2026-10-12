@@ -4,6 +4,7 @@ import { ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
+import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -215,24 +216,33 @@ describe('createOpeningBalanceUseCase', () => {
         mockFxLotCostBasisAppService.persistence,
     });
 
-  it('does not persist when opening journal creation rejects an archived account', async () => {
-    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
-    mockOpeningBalanceEntryAppService.create.mockRejectedValueOnce(failure);
-    await expect(
-      getUseCase()({
-        accountId: mockAssetAccount.id,
-        amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
-        exchangeRate: null,
-        date: new Date('2026-04-24T00:00:00Z'),
-      })
-    ).rejects.toBe(failure);
-    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
-    ).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
+  it.each([
+    new journalEntryError.ArchivedLedgerAccountNotAllowed(),
+    new periodError.PostingDateNotCovered(),
+    new periodError.PostingPeriodAmbiguous(),
+    new periodError.PostingPeriodNotOpen(),
+  ])(
+    'does not persist or publish when journal creation rejects: %s',
+    async (failure) => {
+      mockOpeningBalanceEntryAppService.create.mockRejectedValueOnce(failure);
+      await expect(
+        getUseCase()({
+          accountId: mockAssetAccount.id,
+          amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+          exchangeRate: null,
+          date: new Date('2026-04-24T00:00:00Z'),
+        })
+      ).rejects.toBe(failure);
+      expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryPersistenceAppService.create
+      ).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 
   it('should successfully record opening balance and update account openingBalanceDate', async () => {
     const fxRecords = {

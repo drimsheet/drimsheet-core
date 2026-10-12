@@ -1,127 +1,192 @@
-import getEntitiesAndEvents from '@shared/helpers/get-entities-and-events';
 import { TEntityId } from '@shared/types/uuid';
 
 import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity';
 import periodError from '@domain/accounting/errors/period.error';
-import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { EPeriodActions } from '@domain/accounting/types/period-audit.types';
 import {
   EPeriodStatus,
   EPeriodUnit,
+  UPeriodUnit,
 } from '@domain/accounting/types/period.types';
+
+const accountingEntityId = '98402eb7-ec79-436f-b258-00a4fb9a572a' as TEntityId;
+const createdBy = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
+function makeInput(
+  start = '2028-01-01',
+  end = '2028-12-31',
+  unit: UPeriodUnit = EPeriodUnit.Month,
+  count = 12
+) {
+  const [fiscalYear] = fiscalYearEntity.make({
+    createdBy,
+    accountingEntityId,
+    startDate: new Date('2028-01-01'),
+    endDate: new Date('2030-12-31'),
+    status: EPeriodStatus.Open,
+  });
+  return {
+    createdBy,
+    accountingEntityId,
+    unit,
+    count,
+    fiscalYear: {
+      ...fiscalYear,
+      startDate: new Date(start),
+      endDate: new Date(end),
+    },
+  };
+}
 
 describe('accountingPeriodEntity', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date('2026-04-01T00:00:00.000Z'));
+    jest.setSystemTime(new Date('2027-01-01'));
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it.each([
+    ['2028-01-01', '2028-01-07', EPeriodUnit.Day, 2],
+    ['2028-01-01', '2028-12-31', EPeriodUnit.Month, 12],
+    ['2029-01-01', '2029-12-31', EPeriodUnit.Month, 12],
+    ['2028-02-27', '2028-03-02', EPeriodUnit.Day, 5],
+    ['2028-12-30', '2029-01-03', EPeriodUnit.Day, 5],
+    ['2028-01-01', '2028-01-01', EPeriodUnit.Day, 1],
+    ['2028-01-01', '2028-12-31', EPeriodUnit.Quarter, 4],
+    ['2028-01-01', '2028-12-31', EPeriodUnit.Week, 52],
+    ['2028-01-01', '2030-12-31', EPeriodUnit.Year, 3],
+    ['2028-01-01', '2028-11-17', EPeriodUnit.Month, 4],
+  ] as const)(
+    'covers every date once: %s to %s (%s, %s)',
+    (start, end, unit, count) => {
+      const input = makeInput(start, end, unit, count);
+      const generated = accountingPeriodEntity.make(input);
+      const periods = generated.map(([period]) => period);
+      expect(periods).toHaveLength(count);
+      expect(periods[0].startDate).toEqual(new Date(start));
+      expect(periods[count - 1].endDate).toEqual(new Date(end));
+      expect(new Set(periods.map((p) => p.id)).size).toBe(count);
+      const cursor = new Date(start);
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+      const after = new Date(end);
+      after.setUTCDate(after.getUTCDate() + 1);
+      while (cursor <= after) {
+        const matches = periods.filter(
+          (p) => p.startDate <= cursor && cursor <= p.endDate
+        );
+        expect(matches).toHaveLength(
+          cursor >= new Date(start) && cursor <= new Date(end) ? 1 : 0
+        );
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+      for (const audited of generated) {
+        const [period, events, audit] = audited;
+        expect(audit.diff.after).toEqual(period);
+        expect(events[0].data).toEqual(period);
+      }
+    }
+  );
+
+  it('uses UTC month starts across daylight-saving transitions without changing reporting generation', () => {
+    const input = makeInput();
+    const generated = accountingPeriodEntity.make(input);
+    expect(generated.map(([p]) => p.startDate)).toEqual(
+      Array.from(
+        { length: 12 },
+        (_, month) => new Date(Date.UTC(2028, month, 1))
+      )
+    );
+    expect(generated[0][0].endDate).toEqual(new Date('2028-01-31'));
+    const reporting = reportingPeriodEntity.make(input);
+    expect(reporting[0][0].endDate).toEqual(reporting[1][0].startDate);
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
+  it.each([0, -1, 1.5, Infinity, 551])(
+    'rejects invalid generation count %s',
+    (count) => {
+      expect(() =>
+        accountingPeriodEntity.make({ ...makeInput(), count })
+      ).toThrow(periodError.InvalidInterval);
+    }
+  );
 
-  describe('make', () => {
-    const validFiscalYear: IFiscalYear = {
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      id: '12302eb7-ec79-436f-b258-00a4fb9a5123' as TEntityId,
-      name: 'FY 2026',
-      accountingEntityId: '98402eb7-ec79-436f-b258-00a4fb9a572a' as TEntityId,
-      startDate: new Date('2026-01-01T00:00:00.000Z'),
-      endDate: new Date('2026-12-31T23:59:59.999Z'),
-      status: EPeriodStatus.Pending,
-      closedAt: null,
-      updatedAt: new Date(),
-    };
-
-    const validPayload = {
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      accountingEntityId: '98402eb7-ec79-436f-b258-00a4fb9a572a' as TEntityId,
-      unit: EPeriodUnit.Quarter,
-      count: 4,
-      fiscalYear: validFiscalYear,
-    };
-
-    it('creates an array of valid accounting period entities', () => {
-      const result = accountingPeriodEntity.make(validPayload);
-      const { entities, events } = getEntitiesAndEvents(result);
-
-      // A 12 month fiscal year split into 1-quarter periods = 4 periods
-      expect(entities.length).toBe(4);
-
-      const firstEntity = entities[0];
-      expect(firstEntity.name).toBe('Accounting Period 1');
-      expect(firstEntity.accountingEntityId).toBe(
-        validPayload.accountingEntityId
-      );
-      expect(firstEntity.fiscalYearId).toBe(validPayload.fiscalYear.id);
-      expect(firstEntity.unit).toBe(validPayload.unit);
-      expect(firstEntity.count).toBe(validPayload.count);
-      expect(firstEntity.startDate).toEqual(
-        new Date('2026-01-01T00:00:00.000Z')
-      );
-      expect(firstEntity.status).toBe(EPeriodStatus.Open);
-      expect(firstEntity.closedAt).toBeNull();
-      expect(firstEntity.updatedAt).toEqual(
-        new Date('2026-04-01T00:00:00.000Z')
-      );
-      expect(firstEntity.id).toBeDefined();
-
-      expect(Object.isFrozen(firstEntity)).toBe(true);
-
-      // It returns one accountingPeriodCreated event for each period
-      expect(events.length).toBe(4);
-      expect(events[0].type).toBe(
-        'domain:accounting:period:accounting-period:created'
-      );
-
-      const firstAudit = result[0][2];
-      expect(firstAudit).toEqual({
-        entityId: firstEntity.id,
-        entityVersion: 1,
-        action: EPeriodActions.Created,
-        diff: {
-          before: null,
-          after: firstEntity,
-        },
-        occurredAt: firstEntity.updatedAt,
+  it('returns an audited, immutable period for each interval, including earlier periods in the current fiscal year', () => {
+    jest.setSystemTime(new Date('2028-04-01'));
+    const input = makeInput();
+    const periods = accountingPeriodEntity.make(input);
+    expect(periods).toHaveLength(12);
+    periods.forEach(([period, events, audit], index) => {
+      expect(period).toMatchObject({
+        name: `Accounting Period ${index + 1}`,
+        accountingEntityId,
+        createdBy,
+        fiscalYearId: input.fiscalYear.id,
+        count: 12,
+        unit: EPeriodUnit.Month,
+        status: EPeriodStatus.Open,
+        closedAt: null,
+        updatedAt: new Date('2028-04-01'),
       });
-      expect(Object.isFrozen(firstAudit)).toBe(true);
+      expect(Object.isFrozen(period)).toBe(true);
+      expect(Object.isFrozen(period.startDate)).toBe(true);
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'domain:accounting:period:accounting-period:created',
+        data: period,
+      });
+      expect(audit).toMatchObject({
+        entityId: period.id,
+        action: 'created',
+        diff: { before: null, after: period },
+      });
+      expect(Object.isFrozen(audit)).toBe(true);
     });
+    expect(periods[0][0].endDate).toEqual(new Date('2028-01-31'));
+    expect(periods[0][0].startDate).not.toBe(input.fiscalYear.startDate);
+  });
 
-    it('throws InvalidPeriodUnitError if unit is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        unit: 'invalid',
-      };
-      // @ts-expect-error testing invalid unit
-      expect(() => accountingPeriodEntity.make(invalidPayload)).toThrow();
+  it('normalizes generated boundaries to UTC calendar days', () => {
+    const input = makeInput();
+    const [[period]] = accountingPeriodEntity.make({
+      ...input,
+      count: 1,
+      fiscalYear: {
+        ...input.fiscalYear,
+        startDate: new Date('2028-01-01T13:00:00Z'),
+        endDate: new Date('2028-12-31T23:00:00Z'),
+      },
     });
+    expect(period.startDate).toEqual(new Date('2028-01-01'));
+    expect(period.endDate).toEqual(new Date('2028-12-31'));
+  });
 
-    it('throws InvalidPeriodIntervalError if count is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        count: -1,
-      };
-      expect(() => accountingPeriodEntity.make(invalidPayload)).toThrow();
-    });
+  it.each([
+    ['createdBy', 'invalid', periodError.InvalidCreatedBy],
+    ['accountingEntityId', 'invalid', periodError.InvalidAccountingEntityId],
+    ['unit', 'invalid', periodError.InvalidUnit],
+  ] as const)('rejects invalid %s', (field, value, ErrorClass) => {
+    expect(() =>
+      accountingPeriodEntity.make({ ...makeInput(), [field]: value })
+    ).toThrow(ErrorClass);
+  });
 
-    it('throws AppError if count is not a numeric value', () => {
-      const invalidPayload = {
-        ...validPayload,
-        count: 'invalid',
-      };
-      // @ts-expect-error testing invalid count
-      expect(() => accountingPeriodEntity.make(invalidPayload)).toThrow();
-    });
+  it('rejects an invalid fiscal-year ID', () => {
+    const input = makeInput();
+    expect(() =>
+      accountingPeriodEntity.make({
+        ...input,
+        fiscalYear: { ...input.fiscalYear, id: 'invalid' as TEntityId },
+      })
+    ).toThrow(periodError.InvalidFiscalYearId);
+  });
 
-    it('throws AppError if accountingEntityId is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        accountingEntityId: 'invalid' as TEntityId,
-      };
-      expect(() => accountingPeriodEntity.make(invalidPayload)).toThrow(
-        periodError.InvalidAccountingEntityId
-      );
-    });
+  it('rejects a fiscal year belonging to another accounting entity', () => {
+    const input = makeInput();
+    expect(() =>
+      accountingPeriodEntity.make({
+        ...input,
+        fiscalYear: { ...input.fiscalYear, accountingEntityId: createdBy },
+      })
+    ).toThrow(periodError.InvalidAccountingEntityId);
   });
 });

@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 
 import dateUtils from '@shared/utils/date';
+import dateError from '@shared/values/errors/date.error';
 import DomainError from '@shared/values/errors/domain.error';
 
 class TestError extends DomainError<'test_error_invalid'> {
@@ -10,6 +11,103 @@ class TestError extends DomainError<'test_error_invalid'> {
 }
 
 describe('dateUtils', () => {
+  it('returns the current instant without normalizing its time', () => {
+    const timestamp = new Date('2028-03-12T13:45:56.789Z');
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(timestamp);
+      expect(dateUtils.now()).toEqual(timestamp);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  describe('UTC calendar dates', () => {
+    it.each([
+      ['2028-02-29T23:59:59.999Z', '2028-02-29'],
+      ['2028-01-01T00:30:00+02:00', '2027-12-31'],
+      ['2028-03-12T23:30:00-04:00', '2028-03-13'],
+      ['2028-11-05T01:30:00-05:00', '2028-11-05'],
+    ])('normalizes %s to UTC midnight without mutating it', (value, day) => {
+      const input = new Date(value);
+      const normalized = dateUtils.toUtcStartOfDay(input);
+      expect(normalized).toEqual(new Date(`${day}T00:00:00.000Z`));
+      expect(normalized).not.toBe(input);
+      expect(input).toEqual(new Date(value));
+    });
+
+    it('rejects invalid dates before normalization', () => {
+      expect(() => dateUtils.toUtcStartOfDay(new Date(NaN))).toThrow(
+        dateError.InvalidDate
+      );
+    });
+
+    it.each([
+      ['2028-03-12T00:01:00Z', '2028-03-12T23:59:00Z', true],
+      ['2028-03-12T23:59:00Z', '2028-03-13T00:01:00Z', false],
+      ['2028-03-12T23:30:00-04:00', '2028-03-13T03:30:00Z', true],
+      ['invalid', '2028-03-12T00:01:00Z', false],
+      ['2028-03-12T00:01:00Z', 'invalid', false],
+    ])('compares UTC calendar dates: %s and %s', (first, second, expected) => {
+      expect(dateUtils.isSameUtcDay(new Date(first), new Date(second))).toBe(
+        expected
+      );
+    });
+  });
+
+  describe('UTC calendar arithmetic', () => {
+    it.each([
+      ['2028-03-01T16:00:00Z', '2028-02-29'],
+      ['2029-03-01T16:00:00Z', '2029-02-28'],
+      ['2029-01-01T16:00:00Z', '2028-12-31'],
+      ['2028-03-13T16:00:00Z', '2028-03-12'],
+      ['2028-11-06T16:00:00Z', '2028-11-05'],
+    ])(
+      'gets the previous UTC calendar day for %s without mutation',
+      (value, expected) => {
+        const input = new Date(value);
+        expect(dateUtils.addUtcCalendarUnits(input, -1, 'day')).toEqual(
+          new Date(`${expected}T00:00:00.000Z`)
+        );
+        expect(input).toEqual(new Date(value));
+      }
+    );
+
+    it.each([
+      ['day', '2028-02-28', '2028-02-29'],
+      ['week', '2028-12-28', '2029-01-04'],
+      ['month', '2028-01-31', '2028-02-29'],
+      ['quarter', '2028-01-31', '2028-04-30'],
+      ['year', '2028-02-29', '2029-02-28'],
+    ] as const)(
+      'adds one %s using UTC calendar dates',
+      (unit, start, expected) => {
+        expect(
+          dateUtils.addUtcCalendarUnits(new Date(`${start}T23:00:00Z`), 1, unit)
+        ).toEqual(new Date(expected));
+      }
+    );
+
+    it.each([
+      ['day', 366],
+      ['week', 52],
+      ['month', 12],
+      ['quarter', 4],
+      ['year', 1],
+    ] as const)(
+      'measures inclusive UTC %s distance across a leap year',
+      (unit, expected) => {
+        expect(
+          dateUtils.getUtcCalendarDistance(
+            new Date('2028-01-01T23:00:00Z'),
+            new Date('2028-12-31T01:00:00Z'),
+            unit
+          )
+        ).toBe(expected);
+      }
+    );
+  });
+
   describe('isValidDate', () => {
     it('returns true for a valid Date object', () => {
       expect(dateUtils.isValidDate(new Date())).toBe(true);

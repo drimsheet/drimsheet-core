@@ -5,6 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
+import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
@@ -277,41 +278,52 @@ describe('makeCreateReceiptUsecase', () => {
         mockFxLotCostBasisAppService.persistence,
     });
 
-  it('does not persist when journal creation rejects an archived account', async () => {
-    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
-    mockJournalEntryService.createReceipt.mockRejectedValueOnce(failure);
-    await expect(
-      getUseCase()({
-        sourceLines: [
-          {
-            accountId: sourceAccount.id,
+  it.each([
+    new journalEntryError.ArchivedLedgerAccountNotAllowed(),
+    new periodError.PostingDateNotCovered(),
+    new periodError.PostingPeriodAmbiguous(),
+    new periodError.PostingPeriodNotOpen(),
+  ])(
+    'does not persist or publish when journal creation rejects: %s',
+    async (failure) => {
+      mockJournalEntryService.createReceipt.mockRejectedValueOnce(failure);
+      await expect(
+        getUseCase()({
+          sourceLines: [
+            {
+              accountId: sourceAccount.id,
+              counterparty: { name: 'Jane Doe' },
+              amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+              exchangeRate: null,
+              description: 'Revenue',
+              sequenceOrder: 1,
+            },
+          ],
+          destinationLine: {
+            accountId: destinationAccount.id,
             counterparty: { name: 'Jane Doe' },
             amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
             exchangeRate: null,
-            description: 'Revenue',
-            sequenceOrder: 1,
+            description: 'Cash',
+            sequenceOrder: 2,
           },
-        ],
-        destinationLine: {
-          accountId: destinationAccount.id,
-          counterparty: { name: 'Jane Doe' },
-          amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
-          exchangeRate: null,
-          description: 'Cash',
-          sequenceOrder: 2,
-        },
-        effectiveDate: new Date('2026-08-06T00:00:00Z'),
-        postedAt: new Date('2026-08-06T00:00:00Z'),
-        memo: 'Receipt',
-      })
-    ).rejects.toBe(failure);
-    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
-    ).not.toHaveBeenCalled();
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
+          effectiveDate: new Date('2026-08-06T00:00:00Z'),
+          postedAt: new Date('2026-08-06T00:00:00Z'),
+          memo: 'Receipt',
+        })
+      ).rejects.toBe(failure);
+      expect(
+        mockJournalEntryPersistenceAppService.create
+      ).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 
   it('successfully orchestrates receipt creation, persists changes, propagates balances and returns DTO', async () => {
     const usecase = getUseCase();

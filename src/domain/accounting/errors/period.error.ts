@@ -17,8 +17,11 @@ const EErrorKeys = {
   InvalidInterval: 'accounting_error_period_interval_invalid',
   FiscalYearExceedsJurisdictionLimit:
     'accounting_error_period_fiscal_year_exceeds_jurisdiction_limit_invalid',
+  OverlappingPeriods: 'accounting_error_period_overlap_conflict',
   PostingDateNotCovered:
     'accounting_error_period_posting_date_not_covered_invalid',
+  PostingPeriodAmbiguous:
+    'accounting_error_period_posting_period_ambiguous_unexpected',
   PostingPeriodNotOpen:
     'accounting_error_period_posting_period_not_open_conflict',
 } as const satisfies TErrorKeys<'accounting_error_period'>;

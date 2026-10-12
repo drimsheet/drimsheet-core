@@ -1,6 +1,5 @@
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import getPeriodContainingCurrentDate from '@domain/accounting/entities/helpers/get-current-period.helper';
 import getAccountingJurisdiction from '@domain/accounting/entities/helpers/get-jurisdiction.helper';
@@ -12,21 +11,18 @@ import errors from '@domain/accounting/errors/accounting-entity.error';
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 import accountingEntityServiceValidation from '@domain/accounting/services/validations/accounting-entity.validation';
 import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
+import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import { EPeriodStatus } from '@domain/accounting/types/period.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
+  accountingPeriodService: IAccountingPeriodService;
   accountingEntityRepo: IAccountingEntityRepo;
 }
 
-type TCreate = IAccountingEntityService['create'];
-type TGrantUserAccess = IAccountingEntityService['grantUserAccess'];
-type TValidateAccess = IAccountingEntityService['validateAccess'];
-
-export default function makeAccountingEntityService(
-  deps: IDependencies
-): IAccountingEntityService {
-  const create: TCreate = async (input, repoOptions) => {
+/** Creates an accounting entity and its valid fiscal-year graph without persisting it. */
+function makeCreate(deps: IDependencies): IAccountingEntityService['create'] {
+  return async (input, repoOptions) => {
     await accountingEntityServiceValidation.validateExistingIndividualEntity(
       deps.accountingEntityRepo,
       input,
@@ -72,13 +68,16 @@ export default function makeAccountingEntityService(
       status: EPeriodStatus.Open,
     });
 
-    const accountingPeriods = accountingPeriodEntity.make({
-      createdBy: input.createdBy,
-      accountingEntityId: accountingEntity[0].id,
-      unit: input.accountingPeriod.unit,
-      count: input.accountingPeriod.count,
-      fiscalYear: fiscalYear[0],
-    });
+    const accountingPeriods = await deps.accountingPeriodService.generate(
+      {
+        createdBy: input.createdBy,
+        accountingEntityId: accountingEntity[0].id,
+        unit: input.accountingPeriod.unit,
+        count: input.accountingPeriod.count,
+        fiscalYear: fiscalYear[0],
+      },
+      repoOptions
+    );
 
     const currentAccountingPeriod =
       getPeriodContainingCurrentDate(
@@ -128,32 +127,31 @@ export default function makeAccountingEntityService(
       reportingContext,
     });
   };
+}
 
-  /**
-   * Grants a user access to an accounting entity
-   * @param accountingEntity
-   * @param userId
-   * @returns boolean
-   */
-  const grantUserAccess: TGrantUserAccess = (accountingEntity, userId) => {
-    return accountingEntity.ownerId === userId;
-  };
+/** Determines ownership-based access to the accounting entity. */
+function makeGrantUserAccess(): IAccountingEntityService['grantUserAccess'] {
+  return (accountingEntity, userId) => accountingEntity.ownerId === userId;
+}
 
-  /**
-   *
-   * @param accountingEntity
-   * @param userId
-   * @throws {errors.UnauthorizedUserAccess}
-   */
-  const validateAccess: TValidateAccess = (accountingEntity, userId) => {
+/** Rejects access by anyone other than the accounting entity's owner. */
+function makeValidateAccess(
+  grantUserAccess: IAccountingEntityService['grantUserAccess']
+): IAccountingEntityService['validateAccess'] {
+  return (accountingEntity, userId) => {
     if (!grantUserAccess(accountingEntity, userId)) {
       throw new errors.Unauthorized();
     }
   };
+}
 
+export default function makeAccountingEntityService(
+  deps: IDependencies
+): IAccountingEntityService {
+  const grantUserAccess = makeGrantUserAccess();
   return Object.freeze({
-    create,
+    create: makeCreate(deps),
     grantUserAccess,
-    validateAccess,
+    validateAccess: makeValidateAccess(grantUserAccess),
   });
 }

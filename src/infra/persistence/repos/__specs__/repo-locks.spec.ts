@@ -51,6 +51,20 @@ const reads: Array<{
       accountingPeriodRepo.findByDate(id, new Date('2026-01-01'), options),
   },
   {
+    name: 'accountingPeriod.findAllByDate',
+    read: (options) =>
+      accountingPeriodRepo.findAllByDate(id, new Date('2026-01-01'), options),
+  },
+  {
+    name: 'accountingPeriod.findByRange',
+    read: (options) =>
+      accountingPeriodRepo.findByRange(
+        id,
+        { startDate: new Date('2026-01-01'), endDate: new Date('2026-12-31') },
+        options
+      ),
+  },
+  {
     name: 'bankAccount.findOne',
     read: (options) =>
       bankAccountRepo.findOne('Test Bank', '0123456789', options),

@@ -341,6 +341,7 @@ describe('opening balance entry app service creation', () => {
       );
       it.each([
         new periodError.PostingDateNotCovered(),
+        new periodError.PostingPeriodAmbiguous(),
         new periodError.PostingPeriodNotOpen(),
         new Error('Period lookup failed'),
       ])(
