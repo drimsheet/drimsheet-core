@@ -1,9 +1,11 @@
 import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
 
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
+import fxCostBasisLotAcquisitionEntity from '@domain/subledger/fx-cost-basis/entities/acquisition.entity';
 import { IFxCostBasisLotAcquisition } from '@domain/subledger/fx-cost-basis/types/acquisition.types';
 
 import exchangeRateMapper from '@infra/persistence/repos/money/mappers/exchange-rate.mapper';
@@ -133,5 +135,31 @@ describe('FX Cost-Basis Lot Acquisition Mapper', () => {
         expectedRepoModel
       );
     });
+  });
+  it('round-trips an acquisition with zero functional basis', () => {
+    const date = new Date('2026-04-09T00:00:00.000Z');
+    const [acquisition] = fxCostBasisLotAcquisitionEntity.make({
+      createdBy: generateUUID(),
+      ledgerAccountId: generateUUID(),
+      accountingEntityId: generateUUID(),
+      lotId: generateUUID(),
+      journalEntryId: generateUUID(),
+      quantity: moneyValue.make(1n, SYSTEM_CURRENCIES.USD, true),
+      costBasis: moneyValue.makeZeroAmount(SYSTEM_CURRENCIES.JPY),
+      acquisitionDate: date,
+      officialRate: null,
+      acquisitionRate: exchangeRateValue.make({
+        baseCurrencyCode: 'USD',
+        targetCurrencyCode: 'JPY',
+        rate: 99,
+        type: EExchangeRateType.Negotiated,
+        asOf: date,
+        source: 'bank',
+      }),
+    });
+
+    const row = fxCostBasisLotAcquisitionMapper.toRepo(acquisition);
+    expect(row.costBasisAmount).toBe(0);
+    expect(fxCostBasisLotAcquisitionMapper.toDomain(row)).toEqual(acquisition);
   });
 });
