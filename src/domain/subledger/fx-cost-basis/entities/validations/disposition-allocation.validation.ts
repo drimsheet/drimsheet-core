@@ -30,7 +30,7 @@ function validateQuantity(quantity: unknown) {
 function validateCostBasisConsumed(costBasisConsumed: unknown) {
   const isValidCostBasis =
     isValidMoney(costBasisConsumed) &&
-    !moneyValue.isLessThan(
+    moneyValue.isGreaterThan(
       costBasisConsumed,
       moneyValue.makeZeroAmount(costBasisConsumed.currency)
     );
@@ -47,7 +47,7 @@ function validateCostBasisConsumed(costBasisConsumed: unknown) {
 function validateProceeds(proceeds: unknown) {
   const isValidProceeds =
     isValidMoney(proceeds) &&
-    !moneyValue.isLessThan(
+    moneyValue.isGreaterThan(
       proceeds,
       moneyValue.makeZeroAmount(proceeds.currency)
     );

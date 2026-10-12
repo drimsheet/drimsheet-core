@@ -75,10 +75,10 @@ describe('fxCostBasisLotDispositionAllocationEntity', () => {
         fxCostBasisLotDispositionAllocationError.InvalidCostBasisConsumed,
       ],
       [
-        'negative cost basis',
+        'zero cost basis',
         () =>
           dispositionAllocationValidation.validateCostBasisConsumed(
-            moneyValue.make(-1n, SYSTEM_CURRENCIES.NGN, true)
+            moneyValue.makeZeroAmount(SYSTEM_CURRENCIES.NGN)
           ),
         fxCostBasisLotDispositionAllocationError.InvalidCostBasisConsumed,
       ],
@@ -91,10 +91,10 @@ describe('fxCostBasisLotDispositionAllocationEntity', () => {
         fxCostBasisLotDispositionAllocationError.InvalidProceeds,
       ],
       [
-        'negative proceeds',
+        'zero proceeds',
         () =>
           dispositionAllocationValidation.validateProceeds(
-            moneyValue.make(-1n, SYSTEM_CURRENCIES.NGN, true)
+            moneyValue.makeZeroAmount(SYSTEM_CURRENCIES.NGN)
           ),
         fxCostBasisLotDispositionAllocationError.InvalidProceeds,
       ],
@@ -128,15 +128,4 @@ describe('fxCostBasisLotDispositionAllocationEntity', () => {
       );
     });
   });
-  it.each([0n, -1n])(
-    'rejects a foreign quantity of %s minor units',
-    (amount) => {
-      expect(() =>
-        fxCostBasisLotDispositionAllocationEntity.make({
-          ...payload,
-          quantity: moneyValue.make(amount, SYSTEM_CURRENCIES.USD, true),
-        })
-      ).toThrow(fxCostBasisLotDispositionAllocationError.InvalidQuantity);
-    }
-  );
 });

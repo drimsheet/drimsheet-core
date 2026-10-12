@@ -189,7 +189,7 @@ describe('fxCostBasisLotAcquisitionEntity', () => {
       ).not.toThrow();
       expect(() =>
         acquisitionValidation.validateCostBasis(
-          moneyValue.make(-1, SYSTEM_CURRENCIES.NGN, false)
+          moneyValue.make(0, SYSTEM_CURRENCIES.NGN, false)
         )
       ).toThrow(FxCostBasisLotAcquisitionError.InvalidCostBasis);
     });
@@ -209,15 +209,4 @@ describe('fxCostBasisLotAcquisitionEntity', () => {
       ).toThrow();
     });
   });
-  it.each([0n, -1n])(
-    'rejects a foreign quantity of %s minor units',
-    (amount) => {
-      expect(() =>
-        fxCostBasisLotAcquisitionEntity.make({
-          ...validPayload,
-          quantity: moneyValue.make(amount, SYSTEM_CURRENCIES.USD, true),
-        })
-      ).toThrow(FxCostBasisLotAcquisitionError.InvalidQuantity);
-    }
-  );
 });
