@@ -36,6 +36,7 @@ import IFxCostBasisLotDispositionAllocationRepo from '@domain/subledger/fx-cost-
 import IFxCostBasisLotDispositionRepo from '@domain/subledger/fx-cost-basis/repos/disposition.repo';
 import IFxCostBasisLotRepo from '@domain/subledger/fx-cost-basis/repos/lot.repo';
 import makeFxCostBasisLotService from '@domain/subledger/fx-cost-basis/services/lot.service';
+import { IFxCostBasisDispositionResult } from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 import { EFxCostBasisLotStatus } from '@domain/subledger/fx-cost-basis/types/lot.types';
 
 const mockFxCostBasisLotRepo: jest.Mocked<IFxCostBasisLotRepo> = {
@@ -154,6 +155,326 @@ describe('makeFxCostBasisLotService', () => {
   });
 
   beforeEach(() => jest.clearAllMocks());
+
+  describe('zero-rounded functional amounts', () => {
+    const repoOptions = { correlationId: 'zero-rounded-fx' };
+    const [foreignAccount] = ledgerAccountEntity.make(account);
+
+    function makePayload(
+      cents: bigint,
+      conversionRate: number,
+      side: typeof EJournalSide.Debit | typeof EJournalSide.Credit
+    ) {
+      const quantity = moneyValue.make(cents, SYSTEM_CURRENCIES.USD, true);
+      const exchangeRate = exchangeRateValue.make({
+        baseCurrencyCode: 'USD',
+        targetCurrencyCode: 'JPY',
+        rate: conversionRate,
+        type: EExchangeRateType.Negotiated,
+        asOf: date,
+        source: 'bank',
+      });
+      const functionalAmount = moneyValue.convert(
+        quantity,
+        exchangeRate,
+        SYSTEM_CURRENCIES.JPY
+      );
+      const [journalEntry] = journalEntryEntity.make({
+        accountingEntityId: entityId,
+        memo: null,
+        sourceType: EJournalEntrySourceType.OpeningBalance,
+        effectiveDate: date,
+        postedAt: date,
+        createdBy: userId,
+        functionalCurrency: SYSTEM_CURRENCIES.JPY,
+        lines: [
+          {
+            accountId: foreignAccount.id,
+            sequenceOrder: 1,
+            amount: quantity,
+            functionalCurrency: SYSTEM_CURRENCIES.JPY,
+            exchangeRate,
+            side,
+            description: null,
+          },
+          {
+            accountId: generateUUID(),
+            sequenceOrder: 2,
+            amount: functionalAmount,
+            functionalCurrency: SYSTEM_CURRENCIES.JPY,
+            exchangeRate: null,
+            side:
+              side === EJournalSide.Debit
+                ? EJournalSide.Credit
+                : EJournalSide.Debit,
+            description: null,
+          },
+        ],
+      });
+
+      return {
+        createdBy: userId,
+        journalEntry,
+        account: foreignAccount,
+        officialRate: null,
+      };
+    }
+
+    function expectReconciled(disposal: IFxCostBasisDispositionResult) {
+      const [disposition] = disposal.disposition;
+      for (const field of [
+        'quantity',
+        'costBasisConsumed',
+        'proceeds',
+        'realizedGainLoss',
+      ] as const) {
+        expect(
+          moneyValue.add(
+            ...disposal.allocations.map((allocation) => allocation[field])
+          )
+        ).toEqual(disposition[field]);
+      }
+      for (const movement of [disposition, ...disposal.allocations]) {
+        expect(movement.realizedGainLoss).toEqual(
+          moneyValue.subtract(movement.proceeds, movement.costBasisConsumed)
+        );
+      }
+    }
+
+    it('closes a positive residual quantity whose stored basis is zero', async () => {
+      const acquisition = service.acquire(
+        makePayload(101n, 99, EJournalSide.Debit)
+      )!;
+      const [originalLot] = acquisition.lot;
+      expect(originalLot.costBasis.amount).toBe(99n);
+      mockFxCostBasisLotRepo.findOpenByAccountId.mockResolvedValue([
+        originalLot,
+      ]);
+
+      const partial = (await service.dispose(
+        makePayload(100n, 99, EJournalSide.Credit),
+        repoOptions
+      ))!;
+      const [remainingLot] = partial.lots[0];
+      expect(partial.disposition[0].costBasisConsumed.amount).toBe(99n);
+      expect(remainingLot.remainingQuantity.amount).toBe(1n);
+      expect(remainingLot.remainingCostBasis.amount).toBe(0n);
+      expect(remainingLot.status).toBe(EFxCostBasisLotStatus.Open);
+      expectReconciled(partial);
+      mockFxCostBasisLotRepo.findOpenByAccountId.mockResolvedValue([
+        remainingLot,
+      ]);
+
+      const closing = (await service.dispose(
+        makePayload(1n, 150, EJournalSide.Credit),
+        repoOptions
+      ))!;
+      const [closedLot, events, audit] = closing.lots[0];
+      expect(closedLot.status).toBe(EFxCostBasisLotStatus.Closed);
+      expect(closedLot.remainingQuantity.amount).toBe(0n);
+      expect(closedLot.remainingCostBasis.amount).toBe(0n);
+      expect(closing.disposition[0]).toMatchObject({
+        costBasisConsumed: { amount: 0n },
+        proceeds: { amount: 1n },
+        realizedGainLoss: { amount: 1n },
+      });
+      expectReconciled(closing);
+      expect(events).toHaveLength(1);
+      expect(events[0].data).toEqual(closedLot);
+      expect(audit.action).toBe('closed');
+      expect(audit.diff).toEqual({ before: remainingLot, after: closedLot });
+      expect(originalLot.remainingQuantity.amount).toBe(101n);
+      expect(originalLot.remainingCostBasis.amount).toBe(99n);
+      expect(remainingLot.remainingQuantity.amount).toBe(1n);
+    });
+
+    it('creates zero-proceeds allocations and assigns the residual to the final allocation', async () => {
+      const first = service.acquire(makePayload(1n, 150, EJournalSide.Debit))!;
+      const second = service.acquire(
+        makePayload(100n, 150, EJournalSide.Debit)
+      )!;
+      mockFxCostBasisLotRepo.findOpenByAccountId.mockResolvedValue([
+        first.lot[0],
+        second.lot[0],
+      ]);
+
+      const disposal = (await service.dispose(
+        makePayload(2n, 99, EJournalSide.Credit),
+        repoOptions
+      ))!;
+
+      expect(
+        disposal.allocations.map((allocation) => allocation.quantity.amount)
+      ).toEqual([1n, 1n]);
+      expect(
+        disposal.allocations.map(
+          (allocation) => allocation.costBasisConsumed.amount
+        )
+      ).toEqual([1n, 1n]);
+      expect(
+        disposal.allocations.map((allocation) => allocation.proceeds.amount)
+      ).toEqual([0n, 1n]);
+      expect(
+        disposal.allocations.map(
+          (allocation) => allocation.realizedGainLoss.amount
+        )
+      ).toEqual([-1n, 0n]);
+      expect(disposal.disposition[0]).toMatchObject({
+        quantity: { amount: 2n },
+        costBasisConsumed: { amount: 2n },
+        proceeds: { amount: 1n },
+        realizedGainLoss: { amount: -1n },
+      });
+      expect(disposal.lots[0][0].status).toBe(EFxCostBasisLotStatus.Closed);
+      expect(disposal.lots[1][0]).toMatchObject({
+        remainingQuantity: { amount: 99n },
+        remainingCostBasis: { amount: 149n },
+      });
+      expectReconciled(disposal);
+    });
+
+    it.each([
+      { acquisitionRate: 99, dispositionRate: 150, basis: 0n, proceeds: 1n },
+      { acquisitionRate: 150, dispositionRate: 99, basis: 1n, proceeds: 0n },
+      { acquisitionRate: 99, dispositionRate: 99, basis: 0n, proceeds: 0n },
+    ])(
+      'acquires and closes a cent with basis $basis and proceeds $proceeds JPY',
+      async (scenario) => {
+        const acquisition = service.acquire(
+          makePayload(1n, scenario.acquisitionRate, EJournalSide.Debit)
+        )!;
+        expect(acquisition.lot[0].costBasis.amount).toBe(scenario.basis);
+        expect(acquisition.acquisition[0].costBasis.amount).toBe(
+          scenario.basis
+        );
+        mockFxCostBasisLotRepo.findOpenByAccountId.mockResolvedValue([
+          acquisition.lot[0],
+        ]);
+
+        const disposal = (await service.dispose(
+          makePayload(1n, scenario.dispositionRate, EJournalSide.Credit),
+          repoOptions
+        ))!;
+
+        expect(disposal.disposition[0]).toMatchObject({
+          costBasisConsumed: { amount: scenario.basis },
+          proceeds: { amount: scenario.proceeds },
+          realizedGainLoss: { amount: scenario.proceeds - scenario.basis },
+        });
+        expect(disposal.lots[0][0]).toMatchObject({
+          status: EFxCostBasisLotStatus.Closed,
+          remainingQuantity: { amount: 0n },
+          remainingCostBasis: { amount: 0n },
+        });
+        expectReconciled(disposal);
+      }
+    );
+
+    it('consumes zero partial basis and preserves the exact basis for closure', async () => {
+      const acquisition = service.acquire(
+        makePayload(101n, 99, EJournalSide.Debit)
+      )!;
+      mockFxCostBasisLotRepo.findOpenByAccountId.mockResolvedValue([
+        acquisition.lot[0],
+      ]);
+      const partial = (await service.dispose(
+        makePayload(1n, 150, EJournalSide.Credit),
+        repoOptions
+      ))!;
+
+      expect(partial.disposition[0].costBasisConsumed.amount).toBe(0n);
+      expect(partial.disposition[0].proceeds.amount).toBe(1n);
+      expect(partial.lots[0][0]).toMatchObject({
+        status: EFxCostBasisLotStatus.Open,
+        remainingQuantity: { amount: 100n },
+        remainingCostBasis: { amount: 99n },
+      });
+      expectReconciled(partial);
+      mockFxCostBasisLotRepo.findOpenByAccountId.mockResolvedValue([
+        partial.lots[0][0],
+      ]);
+      const closing = (await service.dispose(
+        makePayload(100n, 99, EJournalSide.Credit),
+        repoOptions
+      ))!;
+
+      expect(closing.disposition[0].costBasisConsumed.amount).toBe(99n);
+      expect(closing.lots[0][0]).toMatchObject({
+        status: EFxCostBasisLotStatus.Closed,
+        remainingQuantity: { amount: 0n },
+        remainingCostBasis: { amount: 0n },
+      });
+      expectReconciled(closing);
+    });
+
+    it('reverses a zero-basis acquisition without changing its original records', async () => {
+      const acquisition = service.acquire(
+        makePayload(1n, 99, EJournalSide.Debit)
+      )!;
+      const [lot] = acquisition.lot;
+      const [record] = acquisition.acquisition;
+      mockAcquisitionRepo.findByJournalEntryId.mockResolvedValue(record);
+      mockDispositionRepo.findByJournalEntryId.mockResolvedValue(null);
+      mockFxCostBasisLotRepo.findById.mockResolvedValue(lot);
+
+      const reversal = (await service.reverse(
+        record.journalEntryId,
+        repoOptions
+      ))!;
+      const [reversed, events, audit] = reversal.lots[0];
+
+      expect(reversed).toMatchObject({
+        status: EFxCostBasisLotStatus.Closed,
+        remainingQuantity: { amount: 0n },
+        remainingCostBasis: { amount: 0n },
+      });
+      expect(events[0].data).toEqual(reversed);
+      expect(audit.action).toBe('reversed');
+      expect(audit.diff).toEqual({ before: lot, after: reversed });
+      expect(lot.remainingQuantity.amount).toBe(1n);
+      expect(record.quantity.amount).toBe(1n);
+      expect(record.costBasis.amount).toBe(0n);
+    });
+
+    it('restores the exact zero basis when reversing a disposition', async () => {
+      const acquisition = service.acquire(
+        makePayload(1n, 99, EJournalSide.Debit)
+      )!;
+      const [lot] = acquisition.lot;
+      mockFxCostBasisLotRepo.findOpenByAccountId.mockResolvedValue([lot]);
+      const disposal = (await service.dispose(
+        makePayload(1n, 150, EJournalSide.Credit),
+        repoOptions
+      ))!;
+      const [closed] = disposal.lots[0];
+      const [disposition] = disposal.disposition;
+      mockAcquisitionRepo.findByJournalEntryId.mockResolvedValue(null);
+      mockDispositionRepo.findByJournalEntryId.mockResolvedValue(disposition);
+      mockDispositionAllocationRepo.findAllByDispositionId.mockResolvedValue(
+        disposal.allocations
+      );
+      mockFxCostBasisLotRepo.findById.mockResolvedValue(closed);
+
+      const reversal = (await service.reverse(
+        disposition.journalEntryId,
+        repoOptions
+      ))!;
+      const [restored, events, audit] = reversal.lots[0];
+
+      expect(restored).toMatchObject({
+        status: EFxCostBasisLotStatus.Open,
+        remainingQuantity: lot.remainingQuantity,
+        remainingCostBasis: lot.remainingCostBasis,
+      });
+      expect(events[0].data).toEqual(restored);
+      expect(audit.action).toBe('reversed');
+      expect(audit.diff).toEqual({ before: closed, after: restored });
+      expect(closed.remainingQuantity.amount).toBe(0n);
+      expect(disposition.costBasisConsumed.amount).toBe(0n);
+      expect(disposition.proceeds.amount).toBe(1n);
+      expect(disposal.allocations[0].costBasisConsumed.amount).toBe(0n);
+    });
+  });
 
   it('derives an acquisition from the completed journal and account', () => {
     const journalEntry = makeJournal(EJournalSide.Debit);

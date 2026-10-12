@@ -15,13 +15,27 @@ function isValidMoney(value: unknown): value is IMoney {
 }
 
 function validateQuantity(quantity: unknown) {
-  if (!isValidMoney(quantity) || quantity.amount <= 0n) {
+  const isInvalidQuantity =
+    !isValidMoney(quantity) ||
+    !moneyValue.isGreaterThan(
+      quantity,
+      moneyValue.makeZeroAmount(quantity.currency)
+    );
+
+  if (isInvalidQuantity) {
     throw new FxCostBasisLotDispositionError.InvalidQuantity({ quantity });
   }
 }
 
 function validateCostBasisConsumed(costBasisConsumed: unknown) {
-  if (!isValidMoney(costBasisConsumed) || costBasisConsumed.amount <= 0n) {
+  const isInvalidCostBasis =
+    !isValidMoney(costBasisConsumed) ||
+    moneyValue.isLessThan(
+      costBasisConsumed,
+      moneyValue.makeZeroAmount(costBasisConsumed.currency)
+    );
+
+  if (isInvalidCostBasis) {
     throw new FxCostBasisLotDispositionError.InvalidCostBasisConsumed({
       costBasisConsumed,
     });
@@ -29,7 +43,14 @@ function validateCostBasisConsumed(costBasisConsumed: unknown) {
 }
 
 function validateProceeds(proceeds: unknown) {
-  if (!isValidMoney(proceeds) || proceeds.amount <= 0n) {
+  const isInvalidProceeds =
+    !isValidMoney(proceeds) ||
+    moneyValue.isLessThan(
+      proceeds,
+      moneyValue.makeZeroAmount(proceeds.currency)
+    );
+
+  if (isInvalidProceeds) {
     throw new FxCostBasisLotDispositionError.InvalidProceeds({ proceeds });
   }
 }

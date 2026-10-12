@@ -176,6 +176,12 @@ describe('fxCostBasisLotEntity', () => {
         fxCostBasisLotError.InvalidConsumptionQuantity,
       ],
       [
+        'negative quantity',
+        moneyValue.make(-1, SYSTEM_CURRENCIES.USD, false),
+        moneyValue.make(0, SYSTEM_CURRENCIES.NGN, false),
+        fxCostBasisLotError.InvalidConsumptionQuantity,
+      ],
+      [
         'excess quantity',
         moneyValue.make(101, SYSTEM_CURRENCIES.USD, false),
         moneyValue.make(1, SYSTEM_CURRENCIES.NGN, false),
@@ -188,9 +194,9 @@ describe('fxCostBasisLotEntity', () => {
         fxCostBasisLotError.InvalidConsumptionQuantity,
       ],
       [
-        'zero cost basis',
+        'negative cost basis',
         moneyValue.make(1, SYSTEM_CURRENCIES.USD, false),
-        moneyValue.make(0, SYSTEM_CURRENCIES.NGN, false),
+        moneyValue.make(-1, SYSTEM_CURRENCIES.NGN, false),
         fxCostBasisLotError.InvalidConsumptionCostBasis,
       ],
       [
@@ -230,17 +236,20 @@ describe('fxCostBasisLotEntity', () => {
       ).toThrow(fxCostBasisLotError.ClosedLot);
     });
 
-    it('rejects closing a lot while leaving cost-basis dust', () => {
-      const [lot] = fxCostBasisLotEntity.make(validPayload);
+    it.each([0, 149999])(
+      'rejects closing a lot with only %s of its basis consumed',
+      (basis) => {
+        const [lot] = fxCostBasisLotEntity.make(validPayload);
 
-      expect(() =>
-        fxCostBasisLotEntity.consume(
-          lot,
-          lot.remainingQuantity,
-          moneyValue.make(149999, SYSTEM_CURRENCIES.NGN, false)
-        )
-      ).toThrow(fxCostBasisLotError.InvalidConsumptionCostBasis);
-    });
+        expect(() =>
+          fxCostBasisLotEntity.consume(
+            lot,
+            lot.remainingQuantity,
+            moneyValue.make(basis, SYSTEM_CURRENCIES.NGN, false)
+          )
+        ).toThrow(fxCostBasisLotError.InvalidConsumptionCostBasis);
+      }
+    );
   });
 
   describe('reverseAcquisition', () => {
@@ -375,7 +384,7 @@ describe('fxCostBasisLotEntity', () => {
       ).not.toThrow();
       expect(() =>
         lotValidation.validateCostBasis(
-          moneyValue.make(0, SYSTEM_CURRENCIES.NGN, false),
+          moneyValue.make(-1, SYSTEM_CURRENCIES.NGN, false),
           validPayload.remainingCostBasis
         )
       ).toThrow(fxCostBasisLotError.InvalidCostBasis);
@@ -405,4 +414,19 @@ describe('fxCostBasisLotEntity', () => {
       ).toThrow(fxCostBasisLotError.ExcessRemainingCostBasis);
     });
   });
+  it.each([0n, -1n])(
+    'rejects a foreign quantity of %s minor units',
+    (amount) => {
+      expect(() =>
+        fxCostBasisLotEntity.make({
+          ...validPayload,
+          originalQuantity: moneyValue.make(
+            amount,
+            SYSTEM_CURRENCIES.USD,
+            true
+          ),
+        })
+      ).toThrow(fxCostBasisLotError.InvalidOriginalQuantity);
+    }
+  );
 });
