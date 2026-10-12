@@ -10,6 +10,7 @@ import makeCreateSuspenseAccountUsecase from '@app/ledger/usecases/create-suspen
 import makeCreateTradePayableAccountUsecase from '@app/ledger/usecases/create-trade-payable-account.usecase';
 import makeCreateTradeReceivableAccountUsecase from '@app/ledger/usecases/create-trade-receivable-account.usecase';
 import makeGetAccountTransactionsUseCase from '@app/ledger/usecases/get-account-transactions.usecase';
+import makeGetBankDetailsUsecase from '@app/ledger/usecases/get-bank-details.usecase';
 import makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
 import makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
@@ -113,6 +114,15 @@ export const getLedgerAccountUseCase = makeTracedUseCase(
     appContext: appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+  })
+);
+
+export const getBankDetailsUseCase = makeTracedUseCase(
+  'ledger.getBankDetailsUseCase',
+  makeGetBankDetailsUsecase({
+    appContext,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    bankAccountRepo: ledgerRepos.bankAccount,
   })
 );
 
