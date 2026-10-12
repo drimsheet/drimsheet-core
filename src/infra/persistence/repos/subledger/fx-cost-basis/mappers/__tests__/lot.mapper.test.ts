@@ -1,11 +1,8 @@
 import { TEntityId } from '@shared/types/uuid';
-import generateUUID from '@shared/utils/uuid-generator';
 
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
-import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
-import fxCostBasisLotEntity from '@domain/subledger/fx-cost-basis/entities/lot.entity';
 import {
   EFxCostBasisLotStatus,
   IFxCostBasisLot,
@@ -82,37 +79,5 @@ describe('FX Cost-Basis Lot Mapper', () => {
 
       expect(fxCostBasisLotMapper.toRepo(domainLot)).toEqual(expectedRepoModel);
     });
-  });
-  it('round-trips an open zero-basis holding and its closed state', () => {
-    const date = new Date('2026-04-09T00:00:00.000Z');
-    const quantity = moneyValue.make(1n, SYSTEM_CURRENCIES.USD, true);
-    const basis = moneyValue.makeZeroAmount(SYSTEM_CURRENCIES.JPY);
-    const [lot] = fxCostBasisLotEntity.make({
-      createdBy: generateUUID(),
-      ledgerAccountId: generateUUID(),
-      accountingEntityId: generateUUID(),
-      status: EFxCostBasisLotStatus.Open,
-      originalQuantity: quantity,
-      remainingQuantity: quantity,
-      costBasis: basis,
-      remainingCostBasis: basis,
-      acquisitionDate: date,
-      acquisitionRate: exchangeRateValue.make({
-        baseCurrencyCode: 'USD',
-        targetCurrencyCode: 'JPY',
-        rate: 99,
-        type: EExchangeRateType.Negotiated,
-        asOf: date,
-        source: 'bank',
-      }),
-    });
-    const [closed] = fxCostBasisLotEntity.consume(lot, quantity, basis);
-
-    for (const holding of [lot, closed]) {
-      const row = fxCostBasisLotMapper.toRepo(holding);
-      expect(row.costBasisAmount).toBe(0);
-      expect(row.remainingCostBasisAmount).toBe(0);
-      expect(fxCostBasisLotMapper.toDomain(row)).toEqual(holding);
-    }
   });
 });

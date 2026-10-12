@@ -46,12 +46,6 @@ The balance equations include accepted reversals. Reversing an acquisition
 removes its effect from the remaining balances while preserving the original
 acquisition facts and the evidence of the reversal.
 
-A positive foreign-currency holding may have zero functional-currency basis
-under the [money conversion conventions](../../../money/__docs__/money.md).
-For example, a remaining USD 0.01 with JPY 0 basis is still available for
-consumption under FX-L-005. Its final disposal consumes that exact zero basis
-and closes the lot; zero measured basis does not erase the holding.
-
 ## FX Lot Acquisition
 
 An [FX Lot Acquisition](../entities/acquisition.entity.ts) records an increase
@@ -104,9 +98,6 @@ required by [FX-D-002](#fx-lot-disposition).
 Rounding must preserve [FX-D-002](#fx-lot-disposition): for example, if proceeds
 total 100 functional-currency minor units and earlier allocations receive 33
 each, the final allocation receives 34. This preserves the recorded total.
-An allocation may likewise have zero proceeds or consumed basis while carrying
-positive foreign quantity. Such allocations still contribute to all disposition
-totals, and their realized result remains proceeds less consumed basis.
 
 ## Reporting Boundary
 

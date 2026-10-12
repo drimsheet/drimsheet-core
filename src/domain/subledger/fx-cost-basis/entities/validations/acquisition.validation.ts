@@ -14,27 +14,13 @@ function isValidMoney(value: unknown): value is IMoney {
 }
 
 function validateQuantity(quantity: unknown) {
-  const isInvalidQuantity =
-    !isValidMoney(quantity) ||
-    !moneyValue.isGreaterThan(
-      quantity,
-      moneyValue.makeZeroAmount(quantity.currency)
-    );
-
-  if (isInvalidQuantity) {
+  if (!isValidMoney(quantity) || quantity.amount <= 0n) {
     throw new fxCostBasisLotAcquisitionError.InvalidQuantity({ quantity });
   }
 }
 
 function validateCostBasis(costBasis: unknown) {
-  const isInvalidCostBasis =
-    !isValidMoney(costBasis) ||
-    moneyValue.isLessThan(
-      costBasis,
-      moneyValue.makeZeroAmount(costBasis.currency)
-    );
-
-  if (isInvalidCostBasis) {
+  if (!isValidMoney(costBasis) || costBasis.amount <= 0n) {
     throw new fxCostBasisLotAcquisitionError.InvalidCostBasis({ costBasis });
   }
 }

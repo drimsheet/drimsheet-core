@@ -1,11 +1,9 @@
 import { TEntityId } from '@shared/types/uuid';
-import generateUUID from '@shared/utils/uuid-generator';
 
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
-import fxCostBasisLotDispositionEntity from '@domain/subledger/fx-cost-basis/entities/disposition.entity';
 import { IFxCostBasisLotDisposition } from '@domain/subledger/fx-cost-basis/types/disposition.types';
 
 import exchangeRateMapper from '@infra/persistence/repos/money/mappers/exchange-rate.mapper';
@@ -88,45 +86,4 @@ describe('FX Cost-Basis Lot Disposition Mapper', () => {
       fxCostBasisLotDispositionMapper.toRepo(makeDisposition(null))
     ).toEqual(expectedModel(null));
   });
-  it.each([
-    [0n, 1n],
-    [1n, 0n],
-    [0n, 0n],
-  ])(
-    'round-trips disposition basis %s and proceeds %s without losing zero amounts',
-    (basis, proceeds) => {
-      const date = new Date('2026-04-09T00:00:00.000Z');
-      const [disposition] = fxCostBasisLotDispositionEntity.make({
-        createdBy: generateUUID(),
-        ledgerAccountId: generateUUID(),
-        accountingEntityId: generateUUID(),
-        journalEntryId: generateUUID(),
-        quantity: moneyValue.make(1n, SYSTEM_CURRENCIES.USD, true),
-        costBasisConsumed: moneyValue.make(basis, SYSTEM_CURRENCIES.JPY, true),
-        proceeds: moneyValue.make(proceeds, SYSTEM_CURRENCIES.JPY, true),
-        realizedGainLoss: moneyValue.make(
-          proceeds - basis,
-          SYSTEM_CURRENCIES.JPY,
-          true
-        ),
-        dispositionDate: date,
-        officialRate: null,
-        dispositionRate: exchangeRateValue.make({
-          baseCurrencyCode: 'USD',
-          targetCurrencyCode: 'JPY',
-          rate: proceeds === 0n ? 99 : 150,
-          type: EExchangeRateType.Negotiated,
-          asOf: date,
-          source: 'bank',
-        }),
-      });
-
-      const row = fxCostBasisLotDispositionMapper.toRepo(disposition);
-      expect(row.costBasisConsumedAmount).toBe(Number(basis));
-      expect(row.proceedsAmount).toBe(Number(proceeds));
-      expect(fxCostBasisLotDispositionMapper.toDomain(row)).toEqual(
-        disposition
-      );
-    }
-  );
 });

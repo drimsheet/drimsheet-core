@@ -29,17 +29,11 @@ function isValidMoney(value: unknown): value is IMoney {
 }
 
 function isPositiveMoney(value: IMoney) {
-  return moneyValue.isGreaterThan(
-    value,
-    moneyValue.makeZeroAmount(value.currency)
-  );
+  return value.amount > 0n;
 }
 
 function isNonNegativeMoney(value: IMoney) {
-  return !moneyValue.isLessThan(
-    value,
-    moneyValue.makeZeroAmount(value.currency)
-  );
+  return value.amount >= 0n;
 }
 
 function validateOriginalQuantity(
@@ -66,10 +60,7 @@ function validateRemainingQuantity(
 function validateOriginalCostBasis(
   costBasis: unknown
 ): asserts costBasis is IMoney {
-  const isInvalidCostBasis =
-    !isValidMoney(costBasis) || !isNonNegativeMoney(costBasis);
-
-  if (isInvalidCostBasis) {
+  if (!isValidMoney(costBasis) || !isPositiveMoney(costBasis)) {
     throw new fxCostBasisLotError.InvalidCostBasis({ costBasis });
   }
 }
@@ -156,12 +147,11 @@ function validateConsumption(
     lot.remainingCostBasis.currency
   );
   moneyValue.validate(costBasis);
-  const isInvalidConsumptionCostBasis =
+  if (
     !moneyValue.isSameCurrency(costBasis, lot.remainingCostBasis) ||
-    moneyValue.isLessThan(costBasis, zeroCostBasis) ||
-    moneyValue.isGreaterThan(costBasis, lot.remainingCostBasis);
-
-  if (isInvalidConsumptionCostBasis) {
+    !moneyValue.isGreaterThan(costBasis, zeroCostBasis) ||
+    moneyValue.isGreaterThan(costBasis, lot.remainingCostBasis)
+  ) {
     throw new fxCostBasisLotError.InvalidConsumptionCostBasis({ costBasis });
   }
 }

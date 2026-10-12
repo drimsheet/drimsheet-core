@@ -1,9 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
-import generateUUID from '@shared/utils/uuid-generator';
 
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
-import fxCostBasisLotDispositionAllocationEntity from '@domain/subledger/fx-cost-basis/entities/disposition-allocation.entity';
 import { IFxCostBasisLotDispositionAllocation } from '@domain/subledger/fx-cost-basis/types/disposition.types';
 
 import fxCostBasisLotDispositionAllocationMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/disposition-allocation.mapper';
@@ -41,33 +39,4 @@ describe('FX Cost-Basis Lot Disposition Allocation Mapper', () => {
       createdAt: createdAt.toISOString(),
     });
   });
-  it.each([
-    [0n, 1n],
-    [1n, 0n],
-    [0n, 0n],
-  ])(
-    'round-trips allocation basis %s and proceeds %s without losing zero amounts',
-    (basis, proceeds) => {
-      const allocation = fxCostBasisLotDispositionAllocationEntity.make({
-        createdBy: generateUUID(),
-        dispositionId: generateUUID(),
-        lotId: generateUUID(),
-        quantity: moneyValue.make(1n, SYSTEM_CURRENCIES.USD, true),
-        costBasisConsumed: moneyValue.make(basis, SYSTEM_CURRENCIES.JPY, true),
-        proceeds: moneyValue.make(proceeds, SYSTEM_CURRENCIES.JPY, true),
-        realizedGainLoss: moneyValue.make(
-          proceeds - basis,
-          SYSTEM_CURRENCIES.JPY,
-          true
-        ),
-      });
-
-      const row = fxCostBasisLotDispositionAllocationMapper.toRepo(allocation);
-      expect(row.costBasisConsumedAmount).toBe(Number(basis));
-      expect(row.proceedsAmount).toBe(Number(proceeds));
-      expect(fxCostBasisLotDispositionAllocationMapper.toDomain(row)).toEqual(
-        allocation
-      );
-    }
-  );
 });
