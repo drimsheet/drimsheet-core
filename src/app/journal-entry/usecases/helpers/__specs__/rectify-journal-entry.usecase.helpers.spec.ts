@@ -12,6 +12,7 @@ import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 
+import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import helpers from '@app/journal-entry/usecases/helpers/rectify-journal-entry.usecase.helpers';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
@@ -59,6 +60,7 @@ describe('rectifyJournalEntryUseCaseHelpers', () => {
     const [originalEntry] = makeEntry();
     const [newEntry] = makeEntry(125);
     const rectification = await makeJournalEntryRectificationService({
+      accountingPeriodService: mockAccountingPeriodService,
       ledgerAccountRepo: mockLedgerAccountRepo,
     }).rectify(
       {

@@ -21,6 +21,7 @@ export const journalEntryService = makeJournalEntryService({
 
 export const journalEntryRectificationService =
   makeJournalEntryRectificationService({
+    accountingPeriodService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
   });
 

@@ -5,9 +5,11 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
+import periodError from '@domain/accounting/errors/period.error';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
+import makeJournalEntryRemovalService from '@domain/journal-entry/services/journal-entry-removal.service';
 import { EJournalEntryRemovalMode } from '@domain/journal-entry/types/journal-entry-removal.types';
 import {
   EJournalEntrySourceType,
@@ -20,6 +22,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 
+import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
@@ -49,6 +52,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
   const userId = generateUUID();
   const now = new Date('2026-09-22T10:00:00.000Z');
   const rectificationService = makeJournalEntryRectificationService({
+    accountingPeriodService: mockAccountingPeriodService,
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
   const usecase = makeDeleteJournalEntryUsecase({
@@ -124,6 +128,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     jest.useFakeTimers();
     jest.setSystemTime(now);
     jest.clearAllMocks();
+    mockAccountingPeriodService.validatePostingPeriod.mockReset();
     mockAppContext.get.mockReturnValue({
       actor,
       correlationId,
@@ -338,4 +343,58 @@ describe('makeDeleteJournalEntryUsecase', () => {
     expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
+  it.each([
+    periodError.PostingPeriodNotOpen,
+    periodError.PostingDateNotCovered,
+  ])(
+    'rejects an invalid reversal period before any deletion side effects (%p)',
+    async (ErrorType) => {
+      const earlierDate = new Date('2026-08-15');
+      const entry = { ...makeEntry(earlierDate), effectiveDate: earlierDate };
+      const snapshot = structuredClone(entry);
+      const failure = new ErrorType({ accountingEntityId, postingDate: now });
+      mockJournalEntryRepo.findById.mockResolvedValue(entry);
+      mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
+        failure
+      );
+      const removalService = makeJournalEntryRemovalService({
+        journalEntryRectificationService: rectificationService,
+      });
+      mockJournalEntryRemovalService.prepare.mockImplementationOnce(
+        removalService.prepare
+      );
+
+      await expect(usecase(entry.id)).rejects.toBe(failure);
+
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).toHaveBeenCalledWith(accountingEntityId, now, {
+        correlationId,
+        idempotencyKey,
+      });
+      expect(entry).toEqual(snapshot);
+      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryPersistenceAppService.rectify
+      ).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryPersistenceAppService.delete
+      ).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisAppService.persistence.persistReversal
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisAppService.persistence.persistDisposition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisAppService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
+      expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 });

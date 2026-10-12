@@ -5,6 +5,13 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import periodError from '@domain/accounting/errors/period.error';
+import {
+  EPeriodStatus,
+  EPeriodUnit,
+} from '@domain/accounting/types/period.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -21,6 +28,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 import actorEntity from '@domain/user/entities/actor.entity';
 
+import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
@@ -67,6 +75,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
   const effectiveDate = new Date('2026-09-01T00:00:00.000Z');
   const now = new Date('2026-09-21T10:00:00.000Z');
   const rectificationService = makeJournalEntryRectificationService({
+    accountingPeriodService: mockAccountingPeriodService,
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
 
@@ -172,6 +181,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
     jest.useFakeTimers();
     jest.setSystemTime(now);
     jest.clearAllMocks();
+    mockAccountingPeriodService.validatePostingPeriod.mockReset();
     mockAppContext.get.mockReturnValue({
       actor,
       correlationId,
@@ -544,4 +554,95 @@ describe('makeRectifyJournalEntryUsecase', () => {
 
     expect(mockJournalEntryRepo.findById).not.toHaveBeenCalled();
   });
+  it.each([
+    periodError.PostingPeriodNotOpen,
+    periodError.PostingDateNotCovered,
+  ])(
+    'rejects an invalid reversal period before any rectification writes (%p)',
+    async (ErrorType) => {
+      const [originalEntry] = makeEntry(100);
+      const [replacement] = makeEntry(150);
+      const snapshot = structuredClone(originalEntry);
+      const reversalDate = new Date('2026-10-01T10:00:00.000Z');
+      jest.setSystemTime(reversalDate);
+      const [fiscalYear] = fiscalYearEntity.make({
+        accountingEntityId,
+        createdBy: actor.id,
+        startDate: new Date('2026-01-01'),
+        endDate: new Date('2026-12-31'),
+        status: EPeriodStatus.Open,
+      });
+      const periods = accountingPeriodEntity.make({
+        accountingEntityId,
+        createdBy: actor.id,
+        fiscalYear,
+        unit: EPeriodUnit.Month,
+        count: 12,
+      });
+      const [replacementPeriod] = periods[8];
+      const failure = new ErrorType({
+        accountingEntityId,
+        postingDate: reversalDate,
+      });
+      mockAccountingPeriodService.validatePostingPeriod
+        .mockResolvedValueOnce(replacementPeriod)
+        .mockRejectedValueOnce(failure);
+      mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
+      mockJournalEntryRectificationPreparationAppService.prepare.mockImplementationOnce(
+        async (payload, options) => ({
+          rectification: await rectificationService.rectify(
+            {
+              originalEntry: payload.originalEntry,
+              actorId: payload.actor,
+              newEntry: replacement,
+            },
+            options
+          ),
+          counterparties: new Map(),
+          fxReversal: null,
+          fxDisposition: null,
+          fxAcquisition: null,
+        })
+      );
+
+      await expect(
+        getUsecase()(originalEntry.id, makePayload(originalEntry))
+      ).rejects.toBe(failure);
+
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).toHaveBeenCalledWith(accountingEntityId, effectiveDate, {
+        correlationId,
+        idempotencyKey,
+      });
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).toHaveBeenCalledWith(accountingEntityId, reversalDate, {
+        correlationId,
+        idempotencyKey,
+      });
+      expect(originalEntry).toEqual(snapshot);
+      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryPersistenceAppService.rectify
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisAppService.persistence.persistReversal
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisAppService.persistence.persistDisposition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisAppService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 });
