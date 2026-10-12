@@ -29,6 +29,8 @@ import { JournalEntryController } from './../src/interface/http/controllers/jour
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { LedgerController } from './../src/interface/http/controllers/ledger.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { ReportingController } from './../src/interface/http/controllers/reporting.controller';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { UserController } from './../src/interface/http/controllers/user.controller';
 
 const expressAuthenticationRecasted = expressAuthentication as (
@@ -170,6 +172,58 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IMoneyDto: {
+    dataType: 'refObject',
+    properties: {
+      amount: { dataType: 'double', required: true },
+      currencyCode: { dataType: 'string', required: true },
+      isMinorUnit: { dataType: 'boolean', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountCashFlowDto: {
+    dataType: 'refObject',
+    properties: {
+      accountId: { dataType: 'string', required: true },
+      currencyCode: { dataType: 'string', required: true },
+      period: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          to: { dataType: 'string', required: true },
+          from: { dataType: 'string', required: true },
+        },
+        required: true,
+      },
+      totalMoneyIn: { ref: 'IMoneyDto', required: true },
+      totalMoneyOut: { ref: 'IMoneyDto', required: true },
+      buckets: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            moneyOut: { ref: 'IMoneyDto', required: true },
+            moneyIn: { ref: 'IMoneyDto', required: true },
+            to: { dataType: 'string', required: true },
+            from: { dataType: 'string', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetAccountCashFlowQuery: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      bucketDays: { dataType: 'double', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ULedgerType: {
     dataType: 'refAlias',
     type: {
@@ -295,16 +349,6 @@ const models: TsoaRoute.Models = {
       ],
       validators: {},
     },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IMoneyDto: {
-    dataType: 'refObject',
-    properties: {
-      amount: { dataType: 'double', required: true },
-      currencyCode: { dataType: 'string', required: true },
-      isMinorUnit: { dataType: 'boolean', required: true },
-    },
-    additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ILedgerAccountDto: {
@@ -2665,6 +2709,61 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'updateUserPreferences',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsReportingController_getAccountCashFlow: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetAccountCashFlowQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/accounts/:accountId/cash-flow',
+    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      ReportingController.prototype.getAccountCashFlow
+    ),
+
+    async function ReportingController_getAccountCashFlow(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsReportingController_getAccountCashFlow,
+          request,
+          response,
+        });
+
+        const controller = new ReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getAccountCashFlow',
           controller,
           response,
           next,

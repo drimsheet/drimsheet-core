@@ -8,6 +8,16 @@ import { IMoney } from '@domain/money/types/money.types';
 import getConversionRateFactorHelper from '@domain/money/values/helpers/get-conversion-rate-factor.helper';
 import moneyValidation from '@domain/money/values/validations/money.validation';
 
+const MIN_SAFE_MINOR_UNITS = BigInt(Number.MIN_SAFE_INTEGER);
+const MAX_SAFE_MINOR_UNITS = BigInt(Number.MAX_SAFE_INTEGER);
+
+/** Whether minor units fit within JavaScript's safe integer range. */
+function isSafeMinorUnitNumber(money: IMoney): boolean {
+  return (
+    money.amount >= MIN_SAFE_MINOR_UNITS && money.amount <= MAX_SAFE_MINOR_UNITS
+  );
+}
+
 /**
  * Checks if the factor is valid.
  */
@@ -238,6 +248,7 @@ function convert(
 const moneyValue = Object.freeze({
   make,
   makeZeroAmount,
+  isSafeMinorUnitNumber,
   add,
   subtract,
   divide,

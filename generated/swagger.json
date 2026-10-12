@@ -179,6 +179,102 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IMoneyDto": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "isMinorUnit": {
+            "type": "boolean"
+          }
+        },
+        "required": ["amount", "currencyCode", "isMinorUnit"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountCashFlowDto": {
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "period": {
+            "properties": {
+              "to": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string"
+              }
+            },
+            "required": ["to", "from"],
+            "type": "object"
+          },
+          "totalMoneyIn": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "totalMoneyOut": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "buckets": {
+            "items": {
+              "properties": {
+                "moneyOut": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "moneyIn": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                }
+              },
+              "required": ["moneyOut", "moneyIn", "to", "from"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "accountId",
+          "currencyCode",
+          "period",
+          "totalMoneyIn",
+          "totalMoneyOut",
+          "buckets"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetAccountCashFlowQuery": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date; the period may span at most 366 days."
+          },
+          "bucketDays": {
+            "type": "number",
+            "format": "double",
+            "description": "Positive integer number of calendar days per bucket, anchored at from."
+          }
+        },
+        "required": ["from", "to", "bucketDays"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "ULedgerType": {
         "type": "string",
         "enum": ["asset", "liability", "revenue", "expense", "equity"]
@@ -262,23 +358,6 @@
           "adjunct_only",
           "adjunct_not_applicable"
         ]
-      },
-      "IMoneyDto": {
-        "properties": {
-          "amount": {
-            "type": "number",
-            "format": "double"
-          },
-          "currencyCode": {
-            "type": "string"
-          },
-          "isMinorUnit": {
-            "type": "boolean"
-          }
-        },
-        "required": ["amount", "currencyCode", "isMinorUnit"],
-        "type": "object",
-        "additionalProperties": false
       },
       "ILedgerAccountDto": {
         "properties": {
@@ -3454,6 +3533,124 @@
           }
         ],
         "parameters": []
+      }
+    },
+    "/reporting/accounts/{accountId}/cash-flow": {
+      "get": {
+        "operationId": "getAccountCashFlow",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountCashFlowDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Money in/out for a bank or petty-cash posting account, in its own currency.\nDates are inclusive; periods longer than 366 days return 400. Buckets start\nat from and include zero-activity intervals. Corrected originals, reversals,\ndrafts, never-posted entries and opening balances are excluded. Historical\nresults can change after rectification. Either gross total above 1 trillion\nmajor currency units returns 400. Unsafe numeric serialization returns 500.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date; the period may span at most 366 days.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Positive integer number of calendar days per bucket, anchored at from.",
+            "in": "query",
+            "name": "bucketDays",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
       }
     },
     "/ledger": {
