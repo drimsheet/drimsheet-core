@@ -12,7 +12,9 @@ import toSchemaString from '../utils/to-schema-string';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export function up(pgm: MigrationBuilder) {
+  pgm.createExtension('btree_gist', { ifNotExists: true });
+
   pgm.createTable(accountingPeriodsTable, {
     created_by: {
       type: 'uuid',
@@ -80,8 +82,21 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       default: pgm.func('now()'),
     },
   });
+  pgm.addConstraint(
+    accountingPeriodsTable,
+    'accounting_periods_dates_ordered',
+    {
+      check: 'start_date <= end_date',
+    }
+  );
+  pgm.sql(`ALTER TABLE ${toSchemaString(accountingPeriodsTable)}
+    ADD CONSTRAINT accounting_periods_entity_dates_excl
+    EXCLUDE USING gist (
+      accounting_entity_id WITH =,
+      daterange(start_date, end_date, '[]') WITH &&
+    )`);
 }
 
-export async function down(pgm: MigrationBuilder): Promise<void> {
+export function down(pgm: MigrationBuilder) {
   pgm.dropTable(accountingPeriodsTable);
 }

@@ -5,7 +5,9 @@ import { SYSTEM_JURISDICTIONS } from '@domain/accounting/config/jurisdictions.co
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import periodError from '@domain/accounting/errors/period.error';
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 import makeAccountingEntityService from '@domain/accounting/services/accounting-entity.service';
+import makeAccountingPeriodService from '@domain/accounting/services/accounting-period.service';
 import {
   EAccountingEntityType,
   IAccountingEntity,
@@ -20,10 +22,22 @@ describe('accountingEntityService', () => {
     findByIdAndUserId: jest.fn(),
     findByUserId: jest.fn(),
   };
-  const service = makeAccountingEntityService({ accountingEntityRepo });
+  const accountingPeriodRepo: jest.Mocked<IAccountingPeriodRepo> = {
+    findByDate: jest.fn(),
+    findAllByDate: jest.fn(),
+    findByRange: jest.fn(),
+    create: jest.fn(),
+  };
+  const service = makeAccountingEntityService({
+    accountingEntityRepo,
+    accountingPeriodService: makeAccountingPeriodService({
+      accountingPeriodRepo,
+    }),
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    accountingPeriodRepo.findByRange.mockResolvedValue([]);
     accountingEntityRepo.findByUserId.mockResolvedValue([]);
   });
 

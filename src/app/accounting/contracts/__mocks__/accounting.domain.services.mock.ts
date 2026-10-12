@@ -10,5 +10,6 @@ export const mockAccountingEntityService: jest.Mocked<IAccountingEntityService> 
 
 export const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> =
   {
+    generate: jest.fn(),
     validatePostingPeriod: jest.fn(),
   };

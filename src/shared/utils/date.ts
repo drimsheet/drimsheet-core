@@ -1,11 +1,18 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 import { TErrorConstructor } from '@shared/types/error.types';
 import dateError from '@shared/values/errors/date.error';
 
+dayjs.extend(utc);
+
 export interface IStartAndEndDates {
   start: Date;
   end: Date;
+}
+
+function now() {
+  return dayjs().toDate();
 }
 
 function isValidDate(date: Date | string | number) {
@@ -197,7 +204,43 @@ function isSameDay(
   return dayjs(date1).isSame(dayjs(date2), 'day');
 }
 
+type TCalendarUnit = 'day' | 'week' | 'month' | 'quarter' | 'year';
+
+/** Returns a new Date at midnight on the input's UTC calendar day. */
+function toUtcStartOfDay(date: Date) {
+  validateDate(date, dateError.InvalidDate);
+  return dayjs.utc(date).startOf('day').toDate();
+}
+
+function isSameUtcDay(first: Date, second: Date) {
+  return dayjs.utc(first).isSame(dayjs.utc(second), 'day');
+}
+
+/** Inclusive distance using UTC calendar dates, independent of process timezone. */
+function getUtcCalendarDistance(start: Date, end: Date, unit: TCalendarUnit) {
+  return Math.round(
+    dayjs
+      .utc(end)
+      .startOf('day')
+      .add(1, 'day')
+      .diff(dayjs.utc(start).startOf('day'), unit, true)
+  );
+}
+
+/** Adds signed calendar units at UTC midnight, including month-end clamping. */
+function addUtcCalendarUnits(date: Date, count: number, unit: TCalendarUnit) {
+  const start = dayjs.utc(date).startOf('day');
+  return unit === 'quarter'
+    ? start.add(count * 3, 'month').toDate()
+    : start.add(count, unit).toDate();
+}
+
 const dateUtils = Object.freeze({
+  now,
+  toUtcStartOfDay,
+  isSameUtcDay,
+  getUtcCalendarDistance,
+  addUtcCalendarUnits,
   isValidDate,
   isSameDay,
   validateDate,

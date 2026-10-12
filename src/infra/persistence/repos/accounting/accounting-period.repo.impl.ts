@@ -25,9 +25,43 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
         )
       );
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
-    const [result] = await query;
+    const [period] = await query;
 
-    return result ? accountingPeriodMapper.toDomain(result) : null;
+    return period ? accountingPeriodMapper.toDomain(period) : null;
+  },
+
+  findAllByDate: async (accountingEntityId, date, options) => {
+    const repoDate = toRepoDateOnly(date);
+    const baseQuery = getDbQuery(options)
+      .select()
+      .from(accountingPeriodsInCore)
+      .where(
+        and(
+          eq(accountingPeriodsInCore.accountingEntityId, accountingEntityId),
+          lte(accountingPeriodsInCore.startDate, repoDate),
+          gte(accountingPeriodsInCore.endDate, repoDate)
+        )
+      );
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const periods = await query;
+
+    return periods.map(accountingPeriodMapper.toDomain);
+  },
+
+  findByRange: async (accountingEntityId, range, options) => {
+    const baseQuery = getDbQuery(options)
+      .select()
+      .from(accountingPeriodsInCore)
+      .where(
+        and(
+          eq(accountingPeriodsInCore.accountingEntityId, accountingEntityId),
+          lte(accountingPeriodsInCore.startDate, toRepoDateOnly(range.endDate)),
+          gte(accountingPeriodsInCore.endDate, toRepoDateOnly(range.startDate))
+        )
+      );
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const periods = await query;
+    return periods.map(accountingPeriodMapper.toDomain);
   },
 
   create: async (payload, options) => {

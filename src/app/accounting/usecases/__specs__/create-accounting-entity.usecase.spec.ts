@@ -5,6 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import makeAccountingEntityService from '@domain/accounting/services/accounting-entity.service';
+import makeAccountingPeriodService from '@domain/accounting/services/accounting-period.service';
 import { IAccountingEntityCreationResult } from '@domain/accounting/types/accounting-entity.service.types';
 import {
   EAccountingEntityType,
@@ -80,8 +81,12 @@ describe('createAccountingEntityUseCase', () => {
     });
 
   beforeEach(async () => {
+    mockAccountingPeriodRepo.findByRange.mockResolvedValue([]);
     mockAccountingEntityRepo.findByUserId.mockResolvedValue([]);
     accounting = await makeAccountingEntityService({
+      accountingPeriodService: makeAccountingPeriodService({
+        accountingPeriodRepo: mockAccountingPeriodRepo,
+      }),
       accountingEntityRepo: mockAccountingEntityRepo,
     }).create(
       {
@@ -143,6 +148,9 @@ describe('createAccountingEntityUseCase', () => {
       entityType: EAccountingEntityType.PrivateCompany,
     };
     const privateCompanyAccounting = await makeAccountingEntityService({
+      accountingPeriodService: makeAccountingPeriodService({
+        accountingPeriodRepo: mockAccountingPeriodRepo,
+      }),
       accountingEntityRepo: mockAccountingEntityRepo,
     }).create(
       {

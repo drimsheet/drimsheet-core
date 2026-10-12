@@ -5,6 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
+import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
@@ -289,17 +290,28 @@ describe('makeCreateTransferUsecase', () => {
     mockFxLotCostBasisAppService.persistence.persistAcquisition.mockResolvedValue();
   });
 
-  it('does not persist when journal creation rejects an archived account', async () => {
-    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
-    mockJournalEntryService.createTransfer.mockRejectedValueOnce(failure);
-    await expect(getUseCase()(makePayload())).rejects.toBe(failure);
-    expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
-    ).not.toHaveBeenCalled();
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
+  it.each([
+    new journalEntryError.ArchivedLedgerAccountNotAllowed(),
+    new periodError.PostingDateNotCovered(),
+    new periodError.PostingPeriodAmbiguous(),
+    new periodError.PostingPeriodNotOpen(),
+  ])(
+    'does not persist or publish when journal creation rejects: %s',
+    async (failure) => {
+      mockJournalEntryService.createTransfer.mockRejectedValueOnce(failure);
+      await expect(getUseCase()(makePayload())).rejects.toBe(failure);
+      expect(
+        mockJournalEntryPersistenceAppService.create
+      ).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 
   it('orchestrates a posted transfer with attachments and returns its DTO', async () => {
     const payload = makePayload();

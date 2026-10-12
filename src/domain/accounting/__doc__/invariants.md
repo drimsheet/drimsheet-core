@@ -51,13 +51,21 @@ subject to applicable jurisdiction restrictions.
 An Accounting Period is a posting interval within a Fiscal Year. Its status controls
 whether postings are accepted.
 
-| ID         | Invariant                                                                                                       | Accounting basis / rationale                                                  | References (optional) |
-| ---------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------- |
-| ACC-AP-001 | An accounting period and its fiscal year must belong to the same accounting entity.                             | **Structural integrity:** preserve calendar ownership.                        | —                     |
-| ACC-AP-002 | An accounting period's start and end must fall within its fiscal year's start and end.                          | **Accounting principle:** posting intervals subdivide the annual cycle.       | —                     |
-| ACC-AP-003 | Accounting-period dates and generation parameters must satisfy the [shared period rules](#shared-period-rules). | **Structural integrity:** use valid intervals and generation parameters.      | —                     |
-| ACC-AP-004 | A posting must have a covering accounting period belonging to the posting's accounting entity.                  | **Accounting principle:** allocate activity to the correct entity and period. | —                     |
-| ACC-AP-005 | The accounting period used for a posting must have status Open when that posting is accepted.                   | **Drimsheet policy:** control changes to period results.                      | —                     |
+| ID         | Invariant                                                                                                         | Accounting basis / rationale                                                  | References (optional) |
+| ---------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------- |
+| ACC-AP-001 | An accounting period and its fiscal year must belong to the same accounting entity.                               | **Structural integrity:** preserve calendar ownership.                        | —                     |
+| ACC-AP-002 | An accounting period's start and end must fall within its fiscal year's start and end.                            | **Accounting principle:** posting intervals subdivide the annual cycle.       | —                     |
+| ACC-AP-003 | Accounting-period dates and generation parameters must satisfy the [shared period rules](#shared-period-rules).   | **Structural integrity:** use valid intervals and generation parameters.      | —                     |
+| ACC-AP-004 | A posting must have exactly one covering accounting period belonging to the posting's accounting entity.          | **Accounting principle:** allocate activity to the correct entity and period. | —                     |
+| ACC-AP-005 | The accounting period used for a posting must have status Open when that posting is accepted.                     | **Drimsheet policy:** control changes to period results.                      | —                     |
+| ACC-AP-006 | Accounting periods belonging to the same accounting entity must not overlap, regardless of status or fiscal year. | **Data reliability:** each date has unambiguous period ownership.             | —                     |
+| ACC-AP-007 | Generated accounting periods must cover every date of their fiscal year without gaps.                             | **Accounting principle:** the full annual cycle has a posting interval.       | —                     |
+
+Accounting-period boundaries are inclusive calendar dates. If one period begins
+on January 4, the previous period ends on January 3. January 3 belongs only to the
+previous period, and January 4 belongs only to the next. Different accounting
+entities may use the same dates. Non-overlap must hold before postings are
+accepted. Missing, ambiguous or non-Open periods prevent posting.
 
 ## Reporting Period
 

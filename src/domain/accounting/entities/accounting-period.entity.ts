@@ -1,8 +1,10 @@
+import dateUtils from '@shared/utils/date';
+import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
-import getPeriodIntervals from '@domain/accounting/entities/helpers/get-intervals.helper';
-import periodValidation from '@domain/accounting/entities/validations/period.validation';
+import getAccountingPeriodIntervalsHelper from '@domain/accounting/entities/helpers/get-accounting-period-intervals.helper';
+import accountingPeriodValidation from '@domain/accounting/entities/validations/accounting-period.validation';
 import periodError from '@domain/accounting/errors/period.error';
 import periodEvents from '@domain/accounting/events/period.events';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
@@ -27,39 +29,40 @@ function make(
     payload.accountingEntityId,
     periodError.InvalidAccountingEntityId
   );
-  periodValidation.validateUnit(payload.unit);
-
-  const intervals = getPeriodIntervals({
+  stringUtils.validateUUID(
+    payload.fiscalYear.id,
+    periodError.InvalidFiscalYearId
+  );
+  stringUtils.validateUUID(payload.createdBy, periodError.InvalidCreatedBy);
+  accountingPeriodValidation.validateFiscalYearOwnership(
+    payload.accountingEntityId,
+    payload.fiscalYear
+  );
+  const intervals = getAccountingPeriodIntervalsHelper({
     startDate: payload.fiscalYear.startDate,
     endDate: payload.fiscalYear.endDate,
     unit: payload.unit,
     count: payload.count,
   });
+  accountingPeriodValidation.validatePartition(intervals, payload.fiscalYear);
 
-  stringUtils.validateUUID(payload.createdBy, periodError.InvalidCreatedBy);
-
-  const timestamp = new Date();
-
-  const accountingPeriods: IAccountingPeriod[] = intervals.map(
-    (interval, index) =>
-      Object.freeze({
-        id: stringUtils.generateUUID(),
-        createdBy: payload.createdBy,
-        name: `Accounting Period ${index + 1}`,
-        accountingEntityId: payload.accountingEntityId,
-        unit: payload.unit,
-        count: payload.count,
-        startDate: interval.startDate,
-        endDate: interval.endDate,
-        status: EPeriodStatus.Open,
-        fiscalYearId: payload.fiscalYear.id,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        closedAt: null,
-      })
-  );
-
-  return accountingPeriods.map((period) => {
+  const timestamp = dateUtils.now();
+  return intervals.map((interval, index) => {
+    const period = deepFreeze({
+      id: stringUtils.generateUUID(),
+      createdBy: payload.createdBy,
+      name: `Accounting Period ${index + 1}`,
+      accountingEntityId: payload.accountingEntityId,
+      unit: payload.unit,
+      count: payload.count,
+      startDate: interval.startDate,
+      endDate: interval.endDate,
+      status: EPeriodStatus.Open,
+      fiscalYearId: payload.fiscalYear.id,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      closedAt: null,
+    });
     const event = periodEvents.accountingPeriodCreated(period);
     const audit = accountingPeriodAudit.make({
       before: null,
@@ -73,6 +76,7 @@ function make(
 
 const accountingPeriodEntity = Object.freeze({
   make,
+  ...accountingPeriodValidation,
 });
 
 export default accountingPeriodEntity;

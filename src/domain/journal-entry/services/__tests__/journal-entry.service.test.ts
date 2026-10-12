@@ -3,6 +3,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
+import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import {
@@ -68,6 +69,7 @@ const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
 };
 
 const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
+  generate: jest.fn(),
   validatePostingPeriod: jest.fn(),
 };
 
@@ -944,6 +946,23 @@ describe('journalEntryService', () => {
       repoOptions
     );
   });
+
+  it.each([
+    new periodError.PostingDateNotCovered(),
+    new periodError.PostingPeriodAmbiguous(),
+    new periodError.PostingPeriodNotOpen(),
+  ])(
+    'rejects receipt creation when posting eligibility fails: %s',
+    async (error) => {
+      const { payload } = await makeReceiptFixture(timestamp);
+      mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
+        error
+      );
+      await expect(service.createReceipt(payload, repoOptions)).rejects.toBe(
+        error
+      );
+    }
+  );
 
   it('creates a posted receipt when a posting date is provided', async () => {
     const { payload } = await makeReceiptFixture(timestamp);
