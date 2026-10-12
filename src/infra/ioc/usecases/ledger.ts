@@ -13,6 +13,7 @@ import makeGetAccountTransactionsUseCase from '@app/ledger/usecases/get-account-
 import makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
 import makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
+import makeGetLedgerSubAccountsUsecase from '@app/ledger/usecases/get-ledger-sub-accounts.usecase';
 import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
@@ -111,6 +112,16 @@ export const getLedgerAccountUseCase = makeTracedUseCase(
   makeGetLedgerAccountUseCase({
     appContext: appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+  })
+);
+
+export const getLedgerSubAccountsUseCase = makeTracedUseCase(
+  'ledger.getLedgerSubAccountsUseCase',
+  makeGetLedgerSubAccountsUsecase({
+    appContext,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
     balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
   })
 );
