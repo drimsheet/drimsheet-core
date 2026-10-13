@@ -56,7 +56,9 @@ const userRepo: IUserRepo = {
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
     const result = await query;
 
-    if (!result.length) return null;
+    if (!result.length) {
+      return null;
+    }
 
     return userMapper.toDomain(result[0]);
   },
@@ -69,7 +71,9 @@ const userRepo: IUserRepo = {
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
     const result = await query;
 
-    if (!result.length) return null;
+    if (!result.length) {
+      return null;
+    }
 
     return userMapper.toDomain(result[0]);
   },

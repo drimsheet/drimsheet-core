@@ -290,8 +290,9 @@ describe('Journal Entry DTO Mapper', () => {
         ],
       });
       expect(result).not.toHaveProperty('version');
-      for (const line of result.lines)
+      for (const line of result.lines) {
         expect(line).not.toHaveProperty('version');
+      }
       expect(result.lines[0]).not.toHaveProperty('accountId');
       expect(result.lines[0]).not.toHaveProperty('counterpartyId');
       expect(result.lines[0]).not.toHaveProperty('meta');

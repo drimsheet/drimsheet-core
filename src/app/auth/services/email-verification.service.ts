@@ -31,7 +31,9 @@ function makeSend(deps: IDependencies): IEmailVerificationAppService['send'] {
       EMAIL_VERIFICATION_COOL_DOWN_SECONDS
     );
 
-    if (!acquired) return false;
+    if (!acquired) {
+      return false;
+    }
 
     try {
       const verificationToken = await deps.tokenAppService.generateSignupToken({

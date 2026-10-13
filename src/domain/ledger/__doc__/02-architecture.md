@@ -18,6 +18,29 @@ for derived balances or for bubbling adjustments through the account hierarchy.
 An adjustment or propagation failure can leave displayed balances stale, but it
 does not change the authoritative journal entry.
 
+## Cash Account Currency Changes
+
+Bank and petty-cash updates accept an optional `currencyCode`. A changed currency
+requires no associated journal entry in any state, including drafts and opening
+balances. A zero balance alone is insufficient. Repeating the existing currency
+is a no-op. The new currency must remain compatible with the parent and every
+existing descendant; updates do not cascade currency changes to other accounts.
+This preserves LED-LA-003 and LED-LA-008.
+
+The cash domain update methods load and lock the target account. For currency
+edits, they first lock the cash-family header, matching child creation. The
+reference and hierarchy checks run in the use case’s transaction.
+The cash domain service validates eligibility and returns only the audited ledger
+account tuple, following the account-creation convention. The use case persists
+the account and its actor-attributed history. Opening-journal work remains a
+separate application capability when explicitly supplied in the update request.
+
+Journal persistence takes Share locks on referenced accounts and checks current
+currencies before writing prepared lines. If a currency edit wins the lock, a
+journal prepared with the old currency is rejected. If a journal write wins,
+the currency edit sees its reference after acquiring the account lock and is
+rejected. This applies to both journal creation and rectification.
+
 ## Account Archiving
 
 `POST /ledger/{accountId}/archive` accepts only the account ID, requires no request

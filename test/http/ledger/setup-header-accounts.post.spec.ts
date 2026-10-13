@@ -381,8 +381,9 @@ describe('POST /ledger/header-accounts/setup', () => {
       mockLedgerAccountPersistenceAppService.create.mockImplementation(
         async (account, currency, options) => {
           await store(account, currency, options);
-          if (account.behavior === 'tax_payable')
+          if (account.behavior === 'tax_payable') {
             throw new Error('allocation failed');
+          }
         }
       );
       const response = await makeRequest().send({});

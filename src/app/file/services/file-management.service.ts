@@ -44,7 +44,9 @@ async function deleteInvalidFile(deps: IDependencies, key: string) {
   try {
     await deps.fileStorageClient.deleteFile(key);
   } catch (error) {
-    if (error instanceof fileAppError.DeleteUnexpected) throw error;
+    if (error instanceof fileAppError.DeleteUnexpected) {
+      throw error;
+    }
     throw new fileAppError.DeleteUnexpected();
   }
 }
@@ -169,7 +171,9 @@ function makePreSignUploads(
 
       return signedUploads;
     } catch (error) {
-      if (error instanceof fileAppError.Base) throw error;
+      if (error instanceof fileAppError.Base) {
+        throw error;
+      }
       throw new fileAppError.UploadUnexpected();
     }
   };

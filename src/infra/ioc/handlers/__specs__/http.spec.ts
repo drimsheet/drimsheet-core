@@ -111,7 +111,9 @@ describe('HTTP MCP handler composition', () => {
     let startedCalls = 0;
     jest.mocked(getLedgerAccountsUseCase).mockImplementation(async (input) => {
       startedCalls += 1;
-      if (startedCalls === 2) releaseCalls();
+      if (startedCalls === 2) {
+        releaseCalls();
+      }
       await bothStarted;
       return input.limit === 1 ? firstResult : secondResult;
     });

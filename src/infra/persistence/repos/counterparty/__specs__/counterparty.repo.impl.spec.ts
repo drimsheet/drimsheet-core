@@ -253,7 +253,9 @@ describe('Counterparty repository reads', () => {
     const where = jest.fn().mockReturnValue(counts ? { orderBy } : { limit });
     const countWhere = jest.fn().mockResolvedValue(counts);
     const from = jest.fn().mockReturnValue({ where });
-    if (counts) from.mockReturnValueOnce({ where: countWhere });
+    if (counts) {
+      from.mockReturnValueOnce({ where: countWhere });
+    }
     const db = {
       _brand: 'DrimsheetTransactionContext' as const,
       select: jest.fn().mockReturnValue({ from }),
@@ -485,19 +487,22 @@ describe('versioned counterparty updates', () => {
     async (stage) => {
       const { tx, query, where } = writeQuery();
       const error = new Error(stage);
-      if (stage === 'state') where.mockRejectedValue(error);
-      else if (stage === 'history')
+      if (stage === 'state') {
+        where.mockRejectedValue(error);
+      } else if (stage === 'history') {
         jest.mocked(counterpartyHistoryRepo.save).mockRejectedValue(error);
-      else
+      } else {
         query.transaction.mockImplementation(async (fn) => {
           await fn(tx);
           throw error;
         });
+      }
       await expect(
         counterpartyRepo.update(updated, updateOptions)
       ).rejects.toBe(error);
-      if (stage === 'state')
+      if (stage === 'state') {
         expect(counterpartyHistoryRepo.save).not.toHaveBeenCalled();
+      }
     }
   );
 });

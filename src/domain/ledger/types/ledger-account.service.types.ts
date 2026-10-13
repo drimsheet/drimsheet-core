@@ -21,6 +21,13 @@ type TLedgerAccountDeletionEligibility =
   | { canDelete: false; reason: ULedgerAccountDeletionReason };
 
 export default interface ILedgerAccountService {
+  /** Validates a requested currency against journal references and hierarchy under caller-owned family/account locks. Never persists. */
+  validateCurrencyChange(
+    account: ILedgerAccount,
+    currency: NonNullable<ILedgerAccount['currency']> | undefined,
+    repoOptions: IReadRepoOptions
+  ): Promise<void>;
+
   /**
    * A non-header account is eligible when it is draft or has no associated
    * journal entries in any state. Checks only the supplied account, never its

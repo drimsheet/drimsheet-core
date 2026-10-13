@@ -46,7 +46,9 @@ function makeUserAuth(): IUserAuthAppService['make'] {
  */
 function makeAddStrategy(): IUserAuthAppService['addStrategy'] {
   return (userAuth, strategy) => {
-    if (userAuth.strategy.includes(strategy)) return userAuth;
+    if (userAuth.strategy.includes(strategy)) {
+      return userAuth;
+    }
 
     return makeTransition(userAuth, {
       password: userAuth.password,
@@ -90,7 +92,9 @@ function makeRecordFailedLogin(): IUserAuthAppService['recordFailedLogin'] {
  */
 function makeResetFailedLoginAttempts(): IUserAuthAppService['resetFailedLoginAttempts'] {
   return (userAuth) => {
-    if (userAuth.failedLoginAttempts === 0) return userAuth;
+    if (userAuth.failedLoginAttempts === 0) {
+      return userAuth;
+    }
 
     return makeTransition(userAuth, {
       password: userAuth.password,

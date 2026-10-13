@@ -14,7 +14,9 @@ function makeFailureReporter(logger?: ILogger) {
   let failureReported = false;
 
   return (operation: string, error: unknown) => {
-    if (failureReported || !logger) return;
+    if (failureReported || !logger) {
+      return;
+    }
     failureReported = true;
 
     try {
@@ -55,7 +57,9 @@ export function makeOpenTelemetryMetrics(
     const key = getInstrumentKey(name, unit);
     const instrument = instruments.get(key);
 
-    if (instrument) return instrument;
+    if (instrument) {
+      return instrument;
+    }
 
     const createdInstrument = create();
     instruments.set(key, createdInstrument);

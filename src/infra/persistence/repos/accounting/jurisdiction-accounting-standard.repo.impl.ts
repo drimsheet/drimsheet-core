@@ -13,7 +13,9 @@ const jurisdictionAccountingStandardRepo: IJurisdictionAccountingStandardRepo =
         ? domain.map(jurisdictionAccountingStandardMapper.toRepo)
         : [jurisdictionAccountingStandardMapper.toRepo(domain)];
 
-      if (values.length === 0) return;
+      if (values.length === 0) {
+        return;
+      }
 
       await query
         .insert(jurisdictionAccountingStandardsInCore)

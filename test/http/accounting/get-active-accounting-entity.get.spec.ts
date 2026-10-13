@@ -205,7 +205,9 @@ describe('GET /accounting/accounting-entity', () => {
       const requestBuilder = request(app)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
-      if (id) requestBuilder.set('x-accounting-entity-id', id);
+      if (id) {
+        requestBuilder.set('x-accounting-entity-id', id);
+      }
 
       const response = await requestBuilder;
 

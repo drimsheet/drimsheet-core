@@ -65,7 +65,9 @@ winston.addColors({
 });
 
 const omitEmptyMessageFormat = winston.format((info) => {
-  if (info.message === '') delete info.message;
+  if (info.message === '') {
+    delete info.message;
+  }
   return info;
 });
 

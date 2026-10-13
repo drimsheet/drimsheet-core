@@ -100,10 +100,8 @@ describe('update petty cash account workflow', () => {
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
       throw error;
     });
-    mockLedgerAccountRepo.findById.mockResolvedValue(account);
     mockAssetAccountService.updatePettyCashSubAccount.mockImplementation(
-      (current, changes) =>
-        ledgerAccountEntity.update(current as IPettyCashAccount, changes)
+      async (changes) => ledgerAccountEntity.update(account, changes)
     );
     mockLedgerAccountBalanceEnrichmentAppService.enrich.mockImplementation(
       async ([updated]) => [
@@ -112,16 +110,53 @@ describe('update petty cash account workflow', () => {
     );
   });
 
+  it('passes currency edits to the domain and persists the audited account', async () => {
+    await makeUpdatePettyCashAccountUseCase(deps)(account.id, {
+      currencyCode: 'USD',
+    });
+    expect(
+      mockAssetAccountService.updatePettyCashSubAccount
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: account.id,
+        accountingEntityId: accountingEntity.id,
+        currency: SYSTEM_CURRENCIES.USD,
+      }),
+      transactionOptions
+    );
+    expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
+      expect.objectContaining({ currency: SYSTEM_CURRENCIES.USD }),
+      expect.objectContaining({
+        ...transactionOptions,
+        expectedVersion: account.version,
+      })
+    );
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
+    expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+  });
+
+  it('does not persist an account audit for an unchanged currency', async () => {
+    await makeUpdatePettyCashAccountUseCase(deps)(account.id, {
+      currencyCode: 'NGN',
+    });
+    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+  });
+
   it('orchestrates the audited account and journal persistence in one transaction', async () => {
     const response = await makeUpdatePettyCashAccountUseCase(deps)(account.id, {
       name: 'Branch cash',
     });
 
     expect(response).toMatchObject({ id: account.id, name: 'Branch cash' });
-    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
-      account.id,
-      accountingEntity.id,
-      { ...transactionOptions, lock: 'update' }
+    expect(
+      mockAssetAccountService.updatePettyCashSubAccount
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: account.id,
+        accountingEntityId: accountingEntity.id,
+        name: 'Branch cash',
+      }),
+      transactionOptions
     );
     expect(
       mockOpeningBalanceEntryAppService.createOrRevise
@@ -220,9 +255,8 @@ describe('update petty cash account workflow', () => {
     [account] = ledgerAccountEntity.make<IPettyCashAccount>({
       ...account,
       status: 'active',
-      currency: SYSTEM_CURRENCIES.USD,
+      currency: SYSTEM_CURRENCIES.NGN,
     });
-    mockLedgerAccountRepo.findById.mockResolvedValue(account);
     const exchangeRate = exchangeRateValue.make({
       baseCurrencyCode: 'USD',
       targetCurrencyCode: 'NGN',
@@ -290,9 +324,21 @@ describe('update petty cash account workflow', () => {
     });
 
     const response = await makeUpdatePettyCashAccountUseCase(deps)(account.id, {
+      currencyCode: 'USD',
       openingBalance: foreignOpeningBalance,
     });
 
+    expect(
+      mockOpeningBalanceEntryAppService.createOrRevise
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: expect.objectContaining({
+          currency: SYSTEM_CURRENCIES.USD,
+          openingBalanceDate: null,
+        }),
+      }),
+      transactionOptions
+    );
     expect(response).toMatchObject({
       id: account.id,
       name: account.name,
@@ -316,8 +362,10 @@ describe('update petty cash account workflow', () => {
     });
     expect(mockEventBus.publish).toHaveBeenCalledWith([
       ...[
-        ...mockAssetAccountService.updatePettyCashSubAccount.mock.results[0]
-          .value[1],
+        ...(
+          await mockAssetAccountService.updatePettyCashSubAccount.mock
+            .results[0].value
+        )[1],
         ...creation[1],
         fxEvent,
       ].map((event) => ({

@@ -232,8 +232,12 @@ describe('makeCreateReceiptUsecase', () => {
     } as IAppContextData);
 
     mockLedgerAccountRepo.findById.mockImplementation(async (id: TEntityId) => {
-      if (id === sourceAccount.id) return sourceAccount;
-      if (id === destinationAccount.id) return destinationAccount;
+      if (id === sourceAccount.id) {
+        return sourceAccount;
+      }
+      if (id === destinationAccount.id) {
+        return destinationAccount;
+      }
       return null;
     });
 
@@ -668,7 +672,9 @@ describe('makeCreateReceiptUsecase', () => {
     const usecase = getUseCase();
 
     mockLedgerAccountRepo.findById.mockImplementation(async (id: TEntityId) => {
-      if (id === sourceAccount.id) return sourceAccount;
+      if (id === sourceAccount.id) {
+        return sourceAccount;
+      }
       return null;
     });
 

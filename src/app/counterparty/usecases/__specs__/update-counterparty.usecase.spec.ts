@@ -218,42 +218,57 @@ describe('update counterparty use case', () => {
     'preserves the %s failure while disposing the transaction',
     async (stage) => {
       const failure = new Error(stage);
-      if (stage === 'acquire')
+      if (stage === 'acquire') {
         mockRepoService.createTransaction.mockRejectedValue(failure);
-      if (stage === 'read')
+      }
+      if (stage === 'read') {
         mockCounterpartyRepo.findById.mockRejectedValue(failure);
-      if (stage === 'domain')
+      }
+      if (stage === 'domain') {
         mockCounterpartyService.update.mockRejectedValue(failure);
-      if (stage === 'history')
+      }
+      if (stage === 'history') {
         mockAppContext.get.mockReturnValue({
           ...mockAppContext.get(),
           actor: { ...actor, id: 'invalid' },
         } as never);
-      if (stage === 'write')
+      }
+      if (stage === 'write') {
         mockCounterpartyRepo.update.mockRejectedValue(failure);
-      if (stage === 'commit')
+      }
+      if (stage === 'commit') {
         mockRepoTransaction.commit.mockRejectedValue(failure);
-      if (stage === 'publish') mockEventBus.publish.mockRejectedValue(failure);
+      }
+      if (stage === 'publish') {
+        mockEventBus.publish.mockRejectedValue(failure);
+      }
 
       const result = usecase(before.id, { status: 'active' });
-      if (stage === 'history') await expect(result).rejects.toThrow();
-      else await expect(result).rejects.toBe(failure);
+      if (stage === 'history') {
+        await expect(result).rejects.toThrow();
+      } else {
+        await expect(result).rejects.toBe(failure);
+      }
 
-      if (stage === 'publish')
+      if (stage === 'publish') {
         expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-      else expect(mockEventBus.publish).not.toHaveBeenCalled();
-      if (stage === 'acquire')
+      } else {
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
+      }
+      if (stage === 'acquire') {
         expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
-      else {
+      } else {
         expect(mockRepoTransaction.handleError).toHaveBeenCalledTimes(1);
         expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
           stage === 'history' ? expect.any(Error) : failure
         );
       }
-      if (!['commit', 'publish'].includes(stage))
+      if (!['commit', 'publish'].includes(stage)) {
         expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
-      if (['read', 'domain', 'history'].includes(stage))
+      }
+      if (['read', 'domain', 'history'].includes(stage)) {
         expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
+      }
     }
   );
 
@@ -332,9 +347,9 @@ describe('update counterparty use case', () => {
         await result;
       }
       expect(settled).toBe(true);
-      if (stage === 'commit')
+      if (stage === 'commit') {
         expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-      else {
+      } else {
         expect(await result).toBe(failure);
         expect(mockEventBus.publish).not.toHaveBeenCalled();
       }

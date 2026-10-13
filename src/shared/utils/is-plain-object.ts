@@ -1,10 +1,14 @@
 /** Accepts plain objects across JavaScript contexts, including null prototypes. */
 export default function isPlainObject(value: unknown): boolean {
   const isObject = value !== null && typeof value === 'object';
-  if (!isObject) return false;
+  if (!isObject) {
+    return false;
+  }
 
   const prototype: object | null = Object.getPrototypeOf(value);
-  if (prototype === null) return true;
+  if (prototype === null) {
+    return true;
+  }
 
   const constructor: unknown = Object.getOwnPropertyDescriptor(
     prototype,

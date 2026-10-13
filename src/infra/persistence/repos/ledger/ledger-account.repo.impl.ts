@@ -39,14 +39,18 @@ import ledgerAccountHistoryRepo from './ledger-account-history.repo.impl';
 /** Recognizes only the suspense uniqueness index, including Drizzle cause wrappers. */
 function isSuspenseDuplicate(error: unknown): boolean {
   const isObject = typeof error === 'object' && error !== null;
-  if (!isObject) return false;
+  if (!isObject) {
+    return false;
+  }
 
   const isDuplicate =
     'code' in error &&
     error.code === '23505' &&
     'constraint' in error &&
     error.constraint === 'ledger_accounts_suspense_entity_type_currency_uk';
-  if (isDuplicate) return true;
+  if (isDuplicate) {
+    return true;
+  }
   return 'cause' in error && isSuspenseDuplicate(error.cause);
 }
 
@@ -188,7 +192,9 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
     materializedPaths,
     options
   ) => {
-    if (materializedPaths.length === 0) return [];
+    if (materializedPaths.length === 0) {
+      return [];
+    }
 
     const result = await getDbQuery(options)
       .select({

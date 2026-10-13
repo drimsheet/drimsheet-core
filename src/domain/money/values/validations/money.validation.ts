@@ -3,7 +3,9 @@ import moneyError from '@domain/money/errors/money.error';
 import { IMoney } from '@domain/money/types/money.types';
 
 function isSameCurrency(...moneyValues: IMoney[]) {
-  if (!moneyValues.length) return false;
+  if (!moneyValues.length) {
+    return false;
+  }
 
   return moneyValues.every(
     (money) => money.currency.code === moneyValues[0].currency.code

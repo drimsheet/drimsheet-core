@@ -40,7 +40,9 @@ async function validateExistingIndividualEntity(
   input: IAccountingEntityCreationInput,
   repoOptions: IReadRepoOptions
 ) {
-  if (input.type !== EAccountingEntityType.Individual) return;
+  if (input.type !== EAccountingEntityType.Individual) {
+    return;
+  }
 
   const existingIndividualEntities = await repo.findByUserId(
     input.ownerId,

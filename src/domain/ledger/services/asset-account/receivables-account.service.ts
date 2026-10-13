@@ -84,8 +84,9 @@ function makeCreateStatutoryReceivableSubAccount(
   deps: IDependencies
 ): IReceivablesAccountService['createStatutoryReceivableSubAccount'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
+    }
 
     const controlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
@@ -154,8 +155,9 @@ function makeCreateTradeReceivableSubAccount(
   deps: IDependencies
 ): IReceivablesAccountService['createTradeReceivableSubAccount'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
+    }
 
     const controlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,

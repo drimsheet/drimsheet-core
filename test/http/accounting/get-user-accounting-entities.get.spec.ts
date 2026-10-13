@@ -173,7 +173,9 @@ describe('GET /accounting/accounting-entities', () => {
       ['authorization with extra segments', 'Bearer token extra'],
     ])('rejects %s', async (_label, authorization) => {
       const requestBuilder = request(app).get(ENDPOINT);
-      if (authorization) requestBuilder.set('Authorization', authorization);
+      if (authorization) {
+        requestBuilder.set('Authorization', authorization);
+      }
 
       const response = await requestBuilder;
 

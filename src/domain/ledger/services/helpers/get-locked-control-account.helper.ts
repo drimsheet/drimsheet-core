@@ -33,10 +33,11 @@ export default async function getLockedControlAccountHelper(
     payload.accountingEntityId,
     lockedOptions
   );
-  if (!header)
+  if (!header) {
     throw new ledgerAccountError.ControlAccountNotFound({
       controlAccountLedgerCode: payload.allocationHeaderCode,
     });
+  }
   controlAccountAvailabilityValidation.validate(header);
 
   if (payload.controlAccountId) {
@@ -45,25 +46,29 @@ export default async function getLockedControlAccountHelper(
       payload.accountingEntityId,
       lockedOptions
     );
-    if (!controlAccount)
+    if (!controlAccount) {
       throw new ledgerAccountError.ControlAccountIdNotFound({
         id: payload.controlAccountId,
       });
+    }
     return controlAccount;
   }
 
   const isDefaultRoot =
     payload.defaultControlAccountCode === payload.allocationHeaderCode;
-  if (isDefaultRoot) return header;
+  if (isDefaultRoot) {
+    return header;
+  }
 
   const controlAccount = await ledgerAccountRepo.findByCode(
     payload.defaultControlAccountCode,
     payload.accountingEntityId,
     lockedOptions
   );
-  if (!controlAccount)
+  if (!controlAccount) {
     throw new ledgerAccountError.ControlAccountNotFound({
       controlAccountLedgerCode: payload.defaultControlAccountCode,
     });
+  }
   return controlAccount;
 }

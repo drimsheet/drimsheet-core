@@ -110,7 +110,9 @@ describe('POST /ledger/revenue/{accountId}/activate', () => {
       accountingEntity
     );
     mockLedgerAccountRepo.findById.mockImplementation(async (id) => {
-      if (id === account.id) return account;
+      if (id === account.id) {
+        return account;
+      }
       return {
         ...account,
         id: account.controlAccountId!,

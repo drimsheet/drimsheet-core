@@ -9,7 +9,9 @@ import {
 function makeStatutoryMeta(
   meta: IStatutoryPayableAccountMeta | null
 ): IStatutoryPayableAccountMeta | null {
-  if (!meta) return null;
+  if (!meta) {
+    return null;
+  }
 
   const taxAuthority = stringUtils.sanitizeAndValidate(
     meta.taxAuthority,
@@ -38,7 +40,9 @@ function makeStatutoryMeta(
 function makeTradeMeta(
   meta: ITradePayableAccountMeta | null
 ): ITradePayableAccountMeta | null {
-  if (!meta) return null;
+  if (!meta) {
+    return null;
+  }
 
   stringUtils.validateUUID(
     meta.counterpartyId,

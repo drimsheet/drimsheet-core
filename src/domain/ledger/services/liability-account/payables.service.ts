@@ -85,8 +85,9 @@ function makeCreateStatutoryPayableSubAccount(
   deps: IDependencies
 ): IPayablesAccountService['createStatutoryPayableSubAccount'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
+    }
 
     const meta = payablesMetaValue.makeStatutoryMeta(payload.meta);
 
@@ -157,8 +158,9 @@ function makeCreateTradePayableAccount(
   deps: IDependencies
 ): IPayablesAccountService['createTradePayableSubAccount'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
+    }
 
     const meta = payablesMetaValue.makeTradeMeta(payload.meta);
 

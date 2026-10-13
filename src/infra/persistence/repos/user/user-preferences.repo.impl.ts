@@ -34,7 +34,9 @@ const userPreferencesRepo: IUserPreferencesRepo = {
       .where(eq(userPreferencesInCore.id, id))
       .limit(1);
 
-    if (!result) return null;
+    if (!result) {
+      return null;
+    }
 
     return userPreferencesMapper.toDomain(result);
   },

@@ -17,7 +17,9 @@ import counterpartyMetaValidation from '@domain/counterparty/values/validations/
 
 function validateVersion(version: number): void {
   const isInvalidVersion = !Number.isInteger(version) || version < 1;
-  if (isInvalidVersion) throw new counterpartyError.InvalidVersion({ version });
+  if (isInvalidVersion) {
+    throw new counterpartyError.InvalidVersion({ version });
+  }
 }
 
 function validateAccountingEntityId(accountingEntityId: TEntityId): void {
@@ -55,7 +57,9 @@ function validateDraftCreationType(
 ): void {
   const isMissingDraftType =
     status === ECounterpartyStatus.Draft && type === undefined;
-  if (isMissingDraftType) throw new counterpartyError.InvalidType();
+  if (isMissingDraftType) {
+    throw new counterpartyError.InvalidType();
+  }
 }
 
 // TODO: Rename this value-returning validation to a check; reserve validate
@@ -112,8 +116,9 @@ function validateCounterparty(counterparty: ICounterparty): void {
   const hasInconsistentRoles =
     counterparty.roles.length !== expectedRoles.length ||
     expectedRoles.some((role) => !counterparty.roles.includes(role));
-  if (hasInconsistentRoles)
+  if (hasInconsistentRoles) {
     throw new counterpartyError.InvalidRole({ roles: counterparty.roles });
+  }
 
   dateUtils.validateDate(counterparty.createdAt, counterpartyError.InvalidDate);
   dateUtils.validateDate(counterparty.updatedAt, counterpartyError.InvalidDate);
@@ -124,16 +129,20 @@ function validateUpdateStatus(
   currentStatus: UCounterpartyStatus,
   status: UCounterpartyStatus | undefined
 ): void {
-  if (currentStatus === ECounterpartyStatus.Archived)
+  if (currentStatus === ECounterpartyStatus.Archived) {
     throw new counterpartyError.Archived();
+  }
   const invalidTarget =
     status !== undefined && status !== ECounterpartyStatus.Active;
-  if (invalidTarget)
+  if (invalidTarget) {
     throw new counterpartyError.InvalidStatus({ field: 'status' });
+  }
   const alreadyActive =
     status === ECounterpartyStatus.Active &&
     currentStatus === ECounterpartyStatus.Active;
-  if (alreadyActive) throw new counterpartyError.AlreadyActive();
+  if (alreadyActive) {
+    throw new counterpartyError.AlreadyActive();
+  }
 }
 
 const counterpartyValidation = Object.freeze({

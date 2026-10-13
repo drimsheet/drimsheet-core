@@ -66,7 +66,9 @@ const journalLineRepo: IJournalLineRepo = {
   },
 
   delete: async (ids, options) => {
-    if (!ids.length) return;
+    if (!ids.length) {
+      return;
+    }
 
     await getDbQuery(options)
       .delete(journalLinesInCore)

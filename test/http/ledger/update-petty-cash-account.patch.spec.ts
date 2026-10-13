@@ -11,6 +11,7 @@ import repoError from '@shared/values/errors/repo.error';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import { IPettyCashAccount } from '@domain/ledger/types/asset-account.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -125,6 +126,9 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
   });
   beforeEach(() => {
     jest.resetAllMocks();
+    mockLedgerAccountService.validateCurrencyChange.mockResolvedValue(
+      undefined
+    );
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     jest.mocked(tokenAppService.getAuthUser).mockResolvedValue({ id: userId });
     mockActorService.resolveUser.mockResolvedValue(actor);
@@ -173,6 +177,20 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
       .send(payload);
 
   describe('200 Response', () => {
+    it('accepts a currency-only edit and persists the audited account', async () => {
+      mockLedgerAccountRepo.findByCode.mockResolvedValue({
+        ...account,
+        isControlAccount: true,
+        controlAccountId: null,
+        status: 'active',
+      });
+      const response = await patch({ currencyCode: 'USD' });
+      expect(response.status).toBe(200);
+      expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
+        expect.objectContaining({ currency: SYSTEM_CURRENCIES.USD }),
+        expect.objectContaining({ tx: mockRepoTransaction.context })
+      );
+    });
     it.each(['active', 'draft'] as const)(
       'updates the name of an %s account with trusted audit attribution',
       async (status) => {
@@ -326,7 +344,9 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
       mockLedgerAccountRepo.findById.mockResolvedValue(null);
       const response = await patch({ name: 'Changed' });
       expect(response.status).toBe(404);
-      expect(response.body.errorKey).toBe('app_error_ledger_account_not_found');
+      expect(response.body.errorKey).toBe(
+        'ledger_error_ledger_account_not_found'
+      );
       expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
         account.id,
         accountingEntity.id,
@@ -336,6 +356,24 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
     });
   });
   describe('409 Response', () => {
+    it('rejects changing a currency with existing journal references', async () => {
+      mockLedgerAccountRepo.findByCode.mockResolvedValue({
+        ...account,
+        isControlAccount: true,
+        controlAccountId: null,
+        status: 'active',
+      });
+      mockLedgerAccountService.validateCurrencyChange.mockRejectedValue(
+        new ledgerAccountError.CurrencyChangeHasJournalEntries()
+      );
+      const response = await patch({ currencyCode: 'USD' });
+      expect(response.status).toBe(409);
+      expect(response.body.errorKey).toBe(
+        'ledger_error_currency_change_has_journal_entries_conflict'
+      );
+      expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+    });
     it('propagates a version conflict without publishing events', async () => {
       mockLedgerAccountRepo.update.mockRejectedValue(
         new repoError.VersionNotFound()
@@ -352,7 +390,7 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
       { name: 'x'.repeat(101) },
       { openingBalance: null },
       { name: 'Changed', status: 'active' },
-      { name: 'Changed', currencyCode: 'USD' },
+      { name: 'Changed', currencyCode: 'US' },
       { name: 'Changed', bankAccount: { accountNumber: '0123456789' } },
       { name: 'Changed', expectedVersion: 1 },
       { openingBalance: { ...openingBalance, date: 'invalid' } },

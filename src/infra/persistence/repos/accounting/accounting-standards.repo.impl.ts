@@ -12,7 +12,9 @@ const accountingStandardRepo: IAccountingStandardRepo = {
       ? domain.map((value) => accountingStandardMapper.toRepo(value, createdBy))
       : [accountingStandardMapper.toRepo(domain, createdBy)];
 
-    if (values.length === 0) return;
+    if (values.length === 0) {
+      return;
+    }
 
     await query
       .insert(accountingStandardsInCore)

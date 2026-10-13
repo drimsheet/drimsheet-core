@@ -261,6 +261,7 @@ export default [
       },
     },
     rules: {
+      curly: ['error', 'all'],
       'local/layer-import-paths': 'error',
       'local/require-transaction-disposal': 'error',
     },

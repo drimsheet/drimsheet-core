@@ -51,7 +51,9 @@ const runtimeHealth = jest.requireMock<typeof import('@infra/server/health')>(
 
 function getListenCallback(): () => Promise<void> {
   const callback = mockListen.mock.calls[0][1];
-  if (!callback) throw new Error('Expected server listen callback');
+  if (!callback) {
+    throw new Error('Expected server listen callback');
+  }
   return callback;
 }
 

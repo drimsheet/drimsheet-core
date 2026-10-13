@@ -176,10 +176,12 @@ describe('POST /mcp', () => {
     // Fixture-only enrichment exercises real use cases without choosing MCP auth.
     httpMiddlewares.appContextEnrichment = (_req, _res, next) => {
       const { correlationId } = appContext.get();
-      if (correlationId === firstCorrelationId)
+      if (correlationId === firstCorrelationId) {
         appContext.set({ accountingEntity: firstEntity });
-      if (correlationId === secondCorrelationId)
+      }
+      if (correlationId === secondCorrelationId) {
         appContext.set({ accountingEntity: secondEntity });
+      }
       next();
     };
     httpHandlers.error = makeHttpErrorHandler({
@@ -422,7 +424,9 @@ describe('POST /mcp', () => {
 
   describe('429 Response', () => {
     it('retains the global limiter before the MCP route', async () => {
-      for (let index = 0; index < 20; index += 1) await post('tools/list');
+      for (let index = 0; index < 20; index += 1) {
+        await post('tools/list');
+      }
       const response = await post('tools/list');
       expect(response.status).toBe(429);
       expect(response.body.errorKey).toBe('app_error_too_many_requests');

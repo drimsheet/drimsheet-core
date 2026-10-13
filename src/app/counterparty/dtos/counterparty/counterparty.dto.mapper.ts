@@ -91,22 +91,25 @@ const counterpartyDtoMapper = {
   },
   toDto(counterparty: ICounterparty): ICounterpartyDto {
     const meta: ICounterpartyDto['meta'] = {};
-    if (counterparty.meta.employer)
+    if (counterparty.meta.employer) {
       meta.employer = {
         displayName: counterparty.meta.employer.displayName,
         address: toAddressDto(counterparty.meta.employer.address),
       };
-    if (counterparty.meta.vendor)
+    }
+    if (counterparty.meta.vendor) {
       meta.vendor = {
         address:
           counterparty.meta.vendor.address === null
             ? null
             : toAddressDto(counterparty.meta.vendor.address),
       };
-    if (counterparty.meta.contractor)
+    }
+    if (counterparty.meta.contractor) {
       meta.contractor = {
         address: toAddressDto(counterparty.meta.contractor.address),
       };
+    }
     return {
       id: counterparty.id,
       createdBy: counterparty.createdBy,

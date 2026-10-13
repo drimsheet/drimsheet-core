@@ -725,6 +725,37 @@ describe('Ledger Account Shared Entity', () => {
       expect(Object.isFrozen(updatedAccount)).toBe(true);
     });
 
+    it('retains a multi-currency account when editing its name', () => {
+      const [account] = ledgerAccountEntity.make({
+        ...validPayload,
+        currency: null,
+      });
+      const [updated] = ledgerAccountEntity.update(account, {
+        name: 'Renamed account',
+      });
+      expect(updated.currency).toBeNull();
+      expect(updated.name).toBe('Renamed account');
+    });
+
+    it('changes currency in one audited version and retains identity', () => {
+      const [account] = ledgerAccountEntity.make({
+        ...validPayload,
+        currency: SYSTEM_CURRENCIES.NGN,
+      });
+      const [updated, events, audit] = ledgerAccountEntity.update(account, {
+        currency: SYSTEM_CURRENCIES.USD,
+      });
+      expect(updated.currency).toEqual(SYSTEM_CURRENCIES.USD);
+      expect(updated.id).toBe(account.id);
+      expect(updated.version).toBe(account.version + 1);
+      expect(events).toHaveLength(1);
+      expect(audit?.diff).toEqual({ before: account, after: updated });
+      expect(Object.isFrozen(updated.currency)).toBe(true);
+      expect(
+        ledgerAccountEntity.update(updated, { currency: SYSTEM_CURRENCIES.USD })
+      ).toEqual([updated, [], null]);
+    });
+
     it('updates metadata in the same audited transition as editable details', () => {
       const [account] = ledgerAccountEntity.make({
         ...validPayload,
@@ -776,8 +807,9 @@ describe('initial ledger opening balance date', () => {
       expect(events).toHaveLength(1);
       expect(events[0].data).toEqual(account);
       expect(audit.diff).toMatchObject({ before: null, after: account });
-      if (openingBalanceDate)
+      if (openingBalanceDate) {
         expect(account.openingBalanceDate).not.toBe(openingBalanceDate);
+      }
     }
   );
   it.each([new Date('invalid'), new Date(Date.now() + 86400000)])(

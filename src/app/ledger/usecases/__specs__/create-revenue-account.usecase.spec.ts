@@ -249,16 +249,19 @@ describe('complete revenue creation workflow', () => {
     'cleans up after %s failure without publishing',
     async (stage) => {
       const failure = new Error(stage);
-      if (stage === 'creation')
+      if (stage === 'creation') {
         mockServicesAccountService.createSubAccount.mockRejectedValueOnce(
           failure
         );
-      if (stage === 'write')
+      }
+      if (stage === 'write') {
         mockLedgerAccountPersistenceAppService.create.mockRejectedValueOnce(
           failure
         );
-      if (stage === 'commit')
+      }
+      if (stage === 'commit') {
         mockRepoTransaction.commit.mockRejectedValueOnce(failure);
+      }
       await expect(usecase(valid)).rejects.toBe(failure);
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
       expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();

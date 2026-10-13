@@ -14,14 +14,18 @@ import vendorMetaValue from '@domain/counterparty/values/vendor-meta.vo';
 export default function getUpdatedCounterpartyMetaHelper(
   requestedMeta: ICreateCounterpartyMeta | undefined
 ): ICounterpartyMeta | undefined {
-  if (requestedMeta === undefined) return undefined;
+  if (requestedMeta === undefined) {
+    return undefined;
+  }
 
   counterpartyMetaValidation.validateCreate(requestedMeta);
   const meta: ICounterpartyMeta = {};
 
   for (const role of ['employer', 'vendor', 'contractor'] as const) {
     const isOmittedRole = requestedMeta[role] === undefined;
-    if (isOmittedRole) continue;
+    if (isOmittedRole) {
+      continue;
+    }
 
     try {
       switch (role) {
@@ -37,7 +41,9 @@ export default function getUpdatedCounterpartyMetaHelper(
       }
     } catch (error) {
       const isAddressError = error instanceof addressError.Base;
-      if (!isAddressError) throw error;
+      if (!isAddressError) {
+        throw error;
+      }
       throw new counterpartyError.InvalidAddress({
         field: `meta.${role}.address`,
       });

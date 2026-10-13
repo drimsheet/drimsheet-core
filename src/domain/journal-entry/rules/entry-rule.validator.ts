@@ -12,7 +12,9 @@ export default function journalEntryRuleValidator(
   const isWrongType =
     permits.permittedTypes !== '*' && !permits.permittedTypes.has(account.type);
 
-  if (isWrongType) return false;
+  if (isWrongType) {
+    return false;
+  }
 
   const isWrongSubType =
     permits.permittedSubTypes !== '*' &&

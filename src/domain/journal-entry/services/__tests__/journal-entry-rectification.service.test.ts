@@ -596,8 +596,9 @@ describe('makeJournalEntryRectificationService', () => {
       mode: 'reverse' | 'rectify',
       original: IJournalEntry
     ) {
-      if (mode === 'reverse')
+      if (mode === 'reverse') {
         return service.reverse(original, createdBy, repoOptions);
+      }
       return service.rectify(
         makePayload(original, makeEntry({ posted: true, amount: 150 })),
         repoOptions
@@ -635,7 +636,9 @@ describe('makeJournalEntryRectificationService', () => {
           const [original] = makeEntry({ posted: true });
           const snapshot = structuredClone(original);
           periods[9] = { ...periods[9], accountingEntityId: generateUUID() };
-          if (coverage === 'uncovered') periods.splice(9, 1);
+          if (coverage === 'uncovered') {
+            periods.splice(9, 1);
+          }
 
           await expect(prepare(mode, original)).rejects.toBeInstanceOf(
             periodError.PostingDateNotCovered
@@ -713,7 +716,9 @@ describe('makeJournalEntryRectificationService', () => {
       async (kind) => {
         const [original] = makeEntry({ posted: true });
         periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
-        if (kind === 'uncovered') periods.splice(8, 1);
+        if (kind === 'uncovered') {
+          periods.splice(8, 1);
+        }
         const snapshot = structuredClone(original);
         await expect(
           service.rectify(
@@ -744,9 +749,12 @@ describe('makeJournalEntryRectificationService', () => {
         const [original] = makeEntry();
         const payload = makePayload(original, makeEntry({ posted: true }));
         const snapshot = structuredClone(original);
-        if (kind === 'closed')
+        if (kind === 'closed') {
           periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
-        if (kind === 'uncovered') periods.splice(8, 1);
+        }
+        if (kind === 'uncovered') {
+          periods.splice(8, 1);
+        }
         const result = service.rectify(payload, repoOptions);
         if (kind === 'open') {
           await expect(result).resolves.toMatchObject({

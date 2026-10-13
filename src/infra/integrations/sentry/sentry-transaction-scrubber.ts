@@ -65,7 +65,9 @@ function projectTraceContext(
   contexts: TSentryTransaction['contexts']
 ): TSentryTransaction['contexts'] {
   const trace = contexts?.trace;
-  if (!trace || typeof trace !== 'object') return undefined;
+  if (!trace || typeof trace !== 'object') {
+    return undefined;
+  }
 
   const traceId = safeIdentifier(trace.trace_id, TRACE_ID_PATTERN);
   const spanId = safeIdentifier(trace.span_id, SPAN_ID_PATTERN);
@@ -74,7 +76,9 @@ function projectTraceContext(
   const status = safeTraceField(trace.status);
   const origin = safeTraceField(trace.origin);
 
-  if (!traceId || !spanId) return undefined;
+  if (!traceId || !spanId) {
+    return undefined;
+  }
 
   const projectedTrace = {
     trace_id: traceId,

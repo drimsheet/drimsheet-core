@@ -26,7 +26,9 @@ const userSessionRepo: IUserSessionRepo = {
       );
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
     const [result] = await query;
-    if (!result) return null;
+    if (!result) {
+      return null;
+    }
     return userSessionMapper.toDomain(result);
   },
 

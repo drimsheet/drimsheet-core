@@ -280,8 +280,9 @@ describe('createAccountingEntityUseCase', () => {
       ...accounting.reportingContext[1],
     ];
     const published = mockEventBus.publish.mock.calls[0][0];
-    if (!Array.isArray(published))
+    if (!Array.isArray(published)) {
       throw new Error('Expected a batch of events');
+    }
     expect(published).toHaveLength(expectedEvents.length);
     expect(published.map((event) => event.type)).toEqual(
       expectedEvents.map((event) => event.type)

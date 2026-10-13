@@ -170,14 +170,17 @@ describe('getLockedControlAccountHelper', () => {
     'preserves a %s repository failure',
     async (stage) => {
       const failure = new Error('repository unavailable');
-      if (stage === 'root')
+      if (stage === 'root') {
         ledgerAccountRepo.findByCode.mockRejectedValueOnce(failure);
-      if (stage === 'explicit')
+      }
+      if (stage === 'explicit') {
         ledgerAccountRepo.findById.mockRejectedValueOnce(failure);
-      if (stage === 'default')
+      }
+      if (stage === 'default') {
         ledgerAccountRepo.findByCode
           .mockResolvedValueOnce(header)
           .mockRejectedValueOnce(failure);
+      }
       await expect(
         getLockedControlAccountHelper(
           ledgerAccountRepo,

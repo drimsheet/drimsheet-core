@@ -4,7 +4,9 @@ import IObservabilityMetrics from '@shared/contracts/observability-metrics.contr
 import metricCatalogue from './metric-catalogue';
 
 function getStatusClass(statusCode: number): string {
-  if (statusCode < 100 || statusCode > 599) return 'unknown';
+  if (statusCode < 100 || statusCode > 599) {
+    return 'unknown';
+  }
 
   return `${Math.floor(statusCode / 100)}xx`;
 }

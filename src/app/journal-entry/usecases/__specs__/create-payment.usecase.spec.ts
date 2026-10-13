@@ -270,9 +270,15 @@ describe('makeCreatePaymentUsecase', () => {
       clientSession: mockClientSession,
     } as IAppContextData);
     mockLedgerAccountRepo.findById.mockImplementation(async (id: TEntityId) => {
-      if (id === sourceAccount.id) return sourceAccount;
-      if (id === rentAccount.id) return rentAccount;
-      if (id === payableAccount.id) return payableAccount;
+      if (id === sourceAccount.id) {
+        return sourceAccount;
+      }
+      if (id === rentAccount.id) {
+        return rentAccount;
+      }
+      if (id === payableAccount.id) {
+        return payableAccount;
+      }
       return null;
     });
     mockCounterpartyAppService.findOrCreateMany.mockResolvedValue(

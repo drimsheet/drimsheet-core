@@ -69,7 +69,9 @@ function makeRotateSession(
         writeOptions
       );
 
-      if (!wasConsumed) return false;
+      if (!wasConsumed) {
+        return false;
+      }
 
       await removeGeneratedTokenCollision(
         deps,

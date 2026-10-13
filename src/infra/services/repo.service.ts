@@ -32,7 +32,9 @@ function makeCommit(
 ): IRepoTransaction['commit'] {
   return async (options) => {
     const isInactive = state.completed || state.released;
-    if (isInactive) throw new repoError.TransactionInactive();
+    if (isInactive) {
+      throw new repoError.TransactionInactive();
+    }
 
     state.completed = true;
 
@@ -51,17 +53,23 @@ function makeCommit(
     }
 
     const shouldDispose = options?.dispose !== false;
-    if (shouldDispose) await dispose();
+    if (shouldDispose) {
+      await dispose();
+    }
   };
 }
 
 /** Roll back unfinished work, then release once. Call only after prior work settles. */
 function makeDispose(state: ITransactionState): IRepoTransaction['dispose'] {
   return async (operationError) => {
-    if (state.released) return;
+    if (state.released) {
+      return;
+    }
 
     try {
-      if (!state.completed) await state.client.query('ROLLBACK');
+      if (!state.completed) {
+        await state.client.query('ROLLBACK');
+      }
     } catch (cleanupError) {
       state.discard = true;
       throw new repoError.TransactionCleanupFailed({
@@ -147,7 +155,9 @@ function makeCreateTransaction(): IRepoService['createTransaction'] {
 /** Join a supplied context, or let Drizzle own a callback transaction's lifecycle. */
 function makeRunInTransaction(): IRepoService['runInTransaction'] {
   return async (fn, tx) => {
-    if (tx) return await fn(tx);
+    if (tx) {
+      return await fn(tx);
+    }
 
     return await postgres.transaction(async (tx) => {
       return await fn(tx as ITransactionContext);

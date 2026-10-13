@@ -41,6 +41,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
   canDelete: jest.fn(),
+  validateCurrencyChange: jest.fn(),
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
@@ -109,6 +110,7 @@ describe('journal entry rules', () => {
     },
     ledgerAccountService: {
       canDelete: jest.fn(),
+      validateCurrencyChange: jest.fn(),
       archive: jest.fn(),
       delete: jest.fn(),
       getNextCode: jest.fn(),

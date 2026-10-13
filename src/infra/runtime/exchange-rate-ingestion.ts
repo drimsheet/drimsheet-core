@@ -177,7 +177,9 @@ export function makeExchangeRateIngestionRuntime(deps: IRuntimeDependencies) {
             deps.isRetryableProviderError
           );
 
-        if (!canRetry) throw error;
+        if (!canRetry) {
+          throw error;
+        }
 
         const delayMs =
           deps.getRetryAfterMs(error) ?? makeRetryDelayMs(attempt, deps.random);
@@ -240,8 +242,9 @@ export function makeExchangeRateIngestionRuntime(deps: IRuntimeDependencies) {
     try {
       await deps.closeDatabase();
     } catch (error) {
-      if (terminalError === undefined) terminalError = error;
-      else {
+      if (terminalError === undefined) {
+        terminalError = error;
+      } else {
         deps.logger.warn('integration.cbn_exchange_rate.cleanup_failed', {
           error,
           outcome: ELogOutcome.Failure,

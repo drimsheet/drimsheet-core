@@ -25,7 +25,9 @@ function getCostBasisConsumed(lot: IFxCostBasisLot, quantity: IMoney) {
 
   // Closing a lot consumes its exact stored residual so rounding cannot leave
   // cost-basis dust on a zero-quantity lot.
-  if (consumesEntireLot) return lot.remainingCostBasis;
+  if (consumesEntireLot) {
+    return lot.remainingCostBasis;
+  }
 
   const convertedBasis = moneyValue.convert(
     quantity,
@@ -78,7 +80,9 @@ export default function consumeLotsInFifoOrder(
   const allocationSegments: TDispositionAllocationSegment[] = [];
 
   for (const lot of lots) {
-    if (moneyValue.isZeroAmount(remainingQuantity)) break;
+    if (moneyValue.isZeroAmount(remainingQuantity)) {
+      break;
+    }
 
     const quantity = moneyValue.min(remainingQuantity, lot.remainingQuantity);
     const basis = getCostBasisConsumed(lot, quantity);

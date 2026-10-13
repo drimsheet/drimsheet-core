@@ -337,10 +337,11 @@ describe('petty cash account creation workflow', () => {
           expect.any(Array),
           options
         );
-      } else
+      } else {
         expect(
           mockJournalEntryPersistenceAppService.create
         ).not.toHaveBeenCalled();
+      }
       expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
       expect(
         mockFxLotCostBasisAppService.persistence.persistAcquisition
@@ -501,11 +502,12 @@ describe('petty cash account creation workflow', () => {
         outbox: mockOutboxAppService.createBalancePropagation,
         commit: mockRepoTransaction.commit,
       };
-      if (stage === 'fx-write')
+      if (stage === 'fx-write') {
         mockFxLotAppService.acquire.mockResolvedValue({
           records: {} as TFxLotAcquisitionAppResult['records'],
           events: [],
         });
+      }
       mocks[stage].mockRejectedValueOnce(failure);
       await expect(
         makeCreatePettyCashAccountUseCase(deps)(openingPayload)
@@ -574,11 +576,13 @@ describe('petty cash account creation workflow', () => {
     'retains the commit when post-commit %s fails',
     async (stage) => {
       const failure = new Error(stage);
-      if (stage === 'queue')
+      if (stage === 'queue') {
         mockLedgerAccountBalanceAdjustmentQueue.add.mockRejectedValueOnce(
           failure
         );
-      else mockEventBus.publish.mockRejectedValueOnce(failure);
+      } else {
+        mockEventBus.publish.mockRejectedValueOnce(failure);
+      }
       await expect(
         makeCreatePettyCashAccountUseCase(deps)(openingPayload)
       ).rejects.toBe(failure);

@@ -34,7 +34,9 @@ export default function updateJournalEntryLines(payload: IPayload): IResult {
       );
 
       events.push(...lineEvents);
-      if (audit) audits.push(audit);
+      if (audit) {
+        audits.push(audit);
+      }
 
       return line;
     }

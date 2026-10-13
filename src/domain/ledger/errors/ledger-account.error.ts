@@ -3,6 +3,10 @@ import errorUtils from '@shared/utils/error';
 import DomainError from '@shared/values/errors/domain.error';
 
 const EErrorKeys = {
+  CurrencyChangeHasJournalEntries:
+    'ledger_error_currency_change_has_journal_entries_conflict',
+  CurrencyChangeTransactionRequired:
+    'ledger_error_currency_change_transaction_required_unexpected',
   NonDraftAccountDeletion: 'ledger_error_non_draft_account_deletion_invalid',
   InvalidDraftAccountJournalEntry:
     'ledger_error_draft_account_journal_entry_unexpected',

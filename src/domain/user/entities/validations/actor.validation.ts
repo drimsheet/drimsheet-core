@@ -15,14 +15,20 @@ function validateAgentName(name: string): void {
     typeof name === 'string' &&
     /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) &&
     name.length <= 64;
-  if (!isValid) throw new actorError.InvalidAgentName();
+  if (!isValid) {
+    throw new actorError.InvalidAgentName();
+  }
 }
 
 function validateOwner(user: IUser): void {
-  if (!user) throw new actorError.InvalidOwner();
+  if (!user) {
+    throw new actorError.InvalidOwner();
+  }
   stringUtils.validateUUID(user.actorId, actorError.InvalidOwner);
   emailValue.validate(user.email);
-  if (user.deletedAt !== null) throw new actorError.InvalidOwner();
+  if (user.deletedAt !== null) {
+    throw new actorError.InvalidOwner();
+  }
 }
 
 function validate(actor: IActor): void {
@@ -41,7 +47,9 @@ function validate(actor: IActor): void {
   );
   const isInvalidVersion =
     !Number.isInteger(actor.version) || actor.version < 1;
-  if (isInvalidVersion) throw new actorError.InvalidVersion();
+  if (isInvalidVersion) {
+    throw new actorError.InvalidVersion();
+  }
   dateUtils.validateDate(actor.createdAt, actorError.InvalidDate);
   dateUtils.validateDate(actor.updatedAt, actorError.InvalidDate);
 
@@ -49,7 +57,9 @@ function validate(actor: IActor): void {
     typeof actor.username !== 'string' ||
     actor.username.length > 319 ||
     actor.username !== actor.username.trim().toLowerCase();
-  if (isInvalidUsername) throw new actorError.InvalidUsername();
+  if (isInvalidUsername) {
+    throw new actorError.InvalidUsername();
+  }
 
   const isOwnedAgent =
     actor.type === EActorType.AiAgent && actor.ownerActorId !== null;
@@ -59,14 +69,18 @@ function validate(actor: IActor): void {
     const separator = actor.username.lastIndexOf('/');
     const isInvalidSuffix =
       separator < 1 || actor.username.slice(separator + 1) !== actor.agentName;
-    if (isInvalidSuffix) throw new actorError.InvalidUsername();
+    if (isInvalidSuffix) {
+      throw new actorError.InvalidUsername();
+    }
     emailValue.validate(actor.username.slice(0, separator));
     return;
   }
 
   const hasUnexpectedOwner =
     actor.ownerActorId !== null || actor.agentName !== null;
-  if (hasUnexpectedOwner) throw new actorError.InvalidOwner();
+  if (hasUnexpectedOwner) {
+    throw new actorError.InvalidOwner();
+  }
 
   if (actor.type === EActorType.User) {
     emailValue.validate(actor.username);
@@ -80,8 +94,9 @@ function validate(actor: IActor): void {
     expectedUsername = 'drimsheet-migration';
   }
 
-  if (actor.username !== expectedUsername)
+  if (actor.username !== expectedUsername) {
     throw new actorError.InvalidUsername();
+  }
 }
 
 const actorValidation = Object.freeze({

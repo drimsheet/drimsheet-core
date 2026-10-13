@@ -40,7 +40,9 @@ const journalEntryRepo: IJournalEntryRepo = {
   },
 
   async findAllByAccountIds(accountIds, accountingEntityId, options) {
-    if (accountIds.length === 0) return [];
+    if (accountIds.length === 0) {
+      return [];
+    }
 
     const db = getDbQuery(options);
     const entryIds = db

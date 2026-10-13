@@ -9,7 +9,9 @@ import { getTransactionalEmailQueue } from '@infra/messaging/queues/transactiona
 let bullMqDashboardRouter: ReturnType<ExpressAdapter['getRouter']> | undefined;
 
 function getBullMqDashboardRouter() {
-  if (bullMqDashboardRouter) return bullMqDashboardRouter;
+  if (bullMqDashboardRouter) {
+    return bullMqDashboardRouter;
+  }
 
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath('/bullmq-board-admin');

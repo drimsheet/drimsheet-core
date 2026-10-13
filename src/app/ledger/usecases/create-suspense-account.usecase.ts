@@ -62,7 +62,9 @@ export default function makeCreateSuspenseAccountUsecase(
         accountingEntity.id,
         { ...transactionOptions, lock: ERepoLock.Update }
       );
-      if (!lockedEntity) throw new accountingAppError.ActiveEntityNotFound();
+      if (!lockedEntity) {
+        throw new accountingAppError.ActiveEntityNotFound();
+      }
 
       // Prepare the final account under the lock, across all currencies of this entity.
       const auditedAccount = await create(

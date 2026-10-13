@@ -158,6 +158,7 @@ export const mockLedgerAccountBalanceAdjustmentService: jest.Mocked<ILedgerAccou
 
 export const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
   canDelete: jest.fn(),
+  validateCurrencyChange: jest.fn(),
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),

@@ -147,8 +147,9 @@ describe('Counterparty DTO validation', () => {
     it('coerces null role to undefined', () => {
       const query = { roles: null };
       const result = getCounterpartiesQueryValidationSchema.safeParse(query);
-      if (!result.success)
+      if (!result.success) {
         console.error(JSON.stringify(result.error.issues, null, 2));
+      }
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.roles).toBeUndefined();
@@ -268,7 +269,9 @@ describe('creation metadata request validation', () => {
       meta: { contractor: { address: { ...address, city: '' } } },
     });
     expect(parsed.success).toBe(false);
-    if (parsed.success) throw new Error('Expected invalid city');
+    if (parsed.success) {
+      throw new Error('Expected invalid city');
+    }
     expect(parsed.error.issues[0].path).toEqual([
       'meta',
       'contractor',

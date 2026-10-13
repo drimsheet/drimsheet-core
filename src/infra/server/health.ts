@@ -18,7 +18,9 @@ async function probePostgres(): Promise<void> {
 
 /** Require successful startup and a bounded database probe; failures are unready. */
 async function isReady(): Promise<boolean> {
-  if (startupState !== 'ready') return false;
+  if (startupState !== 'ready') {
+    return false;
+  }
 
   try {
     await probePostgres();

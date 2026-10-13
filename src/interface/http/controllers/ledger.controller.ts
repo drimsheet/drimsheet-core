@@ -30,6 +30,7 @@ import {
   IUpdateExpenseAccountDto,
 } from '@app/ledger/dtos/expense-account/expense-account.dto';
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
+import { ILedgerAccountOpeningBalanceDto } from '@app/ledger/dtos/ledger-account-opening-balance/ledger-account-opening-balance.dto';
 import {
   IGetLedgerAccountsQuery,
   ILedgerAccountDto,
@@ -69,6 +70,7 @@ import {
   getAccountTransactionsUseCase,
   getBankDetailsUseCase,
   getLedgerAccountDeletionEligibilityUseCase,
+  getLedgerAccountOpeningBalanceUseCase,
   getLedgerAccountsUseCase,
   getLedgerAccountUseCase,
   getLedgerSubAccountsUseCase,
@@ -194,6 +196,26 @@ export class LedgerController extends Controller {
     @Path() accountId: string
   ): Promise<TLedgerAccountDeletionEligibilityDto> {
     return getLedgerAccountDeletionEligibilityUseCase(accountId);
+  }
+
+  /** Get the current draft or posted opening balance, or null when none exists. */
+  @Get('/{accountId}/opening-balance')
+  @OperationId('getLedgerAccountOpeningBalance')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getLedgerAccountOpeningBalance(
+    @Path() accountId: string
+  ): Promise<ILedgerAccountOpeningBalanceDto> {
+    return getLedgerAccountOpeningBalanceUseCase(accountId as TEntityId);
   }
 
   /** Get direct sub accounts only, returning an empty array when there are none. */

@@ -25,7 +25,9 @@ export default function getNewCounterpartiesHelper(
   const events: INewCounterparties['events'] = [];
 
   for (const foundOrCreatedCounterparty of counterparties.values()) {
-    if (!foundOrCreatedCounterparty.new) continue;
+    if (!foundOrCreatedCounterparty.new) {
+      continue;
+    }
 
     const [counterparty, counterpartyEvents, audit] =
       foundOrCreatedCounterparty.data;

@@ -195,10 +195,12 @@ describe('activate cash account use case', () => {
     'handles %s failure without publishing',
     async (phase) => {
       const error = new repoError.VersionNotFound();
-      if (phase === 'write')
+      if (phase === 'write') {
         mockLedgerAccountRepo.update.mockRejectedValue(error);
-      if (phase === 'commit')
+      }
+      if (phase === 'commit') {
         mockRepoTransaction.commit.mockRejectedValue(error);
+      }
       await expect(usecase(account.id)).rejects.toBe(error);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(error);
@@ -262,11 +264,12 @@ describe('activate cash account use case', () => {
       'commits the account, existing journal, audits and outbox together, FX=%s',
       async (hasFx) => {
         const fxRecords = {} as TFxLotAcquisitionAppResult['records'];
-        if (hasFx)
+        if (hasFx) {
           mockFxLotAppService.acquire.mockResolvedValue({
             records: fxRecords,
             events: [],
           });
+        }
         await usecase(account.id);
         const transactionOptions = {
           ...repoOptions,
@@ -313,14 +316,15 @@ describe('activate cash account use case', () => {
           },
           transactionOptions
         );
-        if (hasFx)
+        if (hasFx) {
           expect(
             mockFxLotCostBasisAppService.persistence.persistAcquisition
           ).toHaveBeenCalledWith(fxRecords, transactionOptions);
-        else
+        } else {
           expect(
             mockFxLotCostBasisAppService.persistence.persistAcquisition
           ).not.toHaveBeenCalled();
+        }
         expect(
           mockOutboxAppService.createBalancePropagation
         ).toHaveBeenCalledWith(originalEntry.id, transactionOptions);
@@ -360,12 +364,15 @@ describe('activate cash account use case', () => {
       'rejects %s preparation failure before any writes',
       async (phase) => {
         const failure = new journalEntryError.RectificationNotPermitted();
-        if (phase === 'lookup')
+        if (phase === 'lookup') {
           mockJournalEntryQueryRepo.findAll.mockRejectedValue(failure);
-        if (phase === 'posting')
+        }
+        if (phase === 'posting') {
           mockJournalEntryService.postOpeningBalance.mockRejectedValue(failure);
-        if (phase === 'FX')
+        }
+        if (phase === 'FX') {
           mockFxLotAppService.acquire.mockRejectedValue(failure);
+        }
         await expect(usecase(account.id)).rejects.toBe(failure);
         expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
         expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
@@ -384,22 +391,27 @@ describe('activate cash account use case', () => {
           records: {} as TFxLotAcquisitionAppResult['records'],
           events: [],
         });
-        if (phase === 'account')
+        if (phase === 'account') {
           mockLedgerAccountRepo.update.mockRejectedValue(failure);
-        if (phase === 'journal')
+        }
+        if (phase === 'journal') {
           mockJournalEntryPersistenceAppService.rectify.mockRejectedValue(
             failure
           );
-        if (phase === 'FX')
+        }
+        if (phase === 'FX') {
           mockFxLotCostBasisAppService.persistence.persistAcquisition.mockRejectedValue(
             failure
           );
-        if (phase === 'outbox')
+        }
+        if (phase === 'outbox') {
           mockOutboxAppService.createBalancePropagation.mockRejectedValue(
             failure
           );
-        if (phase === 'commit')
+        }
+        if (phase === 'commit') {
           mockRepoTransaction.commit.mockRejectedValue(failure);
+        }
         await expect(usecase(account.id)).rejects.toBe(failure);
         expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
         expect(mockEventBus.publish).not.toHaveBeenCalled();

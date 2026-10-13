@@ -28,11 +28,12 @@ const counterpartyRepo: ICounterpartyRepo = {
         )
       );
 
-    if (deleted.rowCount === 0)
+    if (deleted.rowCount === 0) {
       throw new repoError.VersionNotFound({
         id,
         version: options.expectedVersion,
       });
+    }
   },
 
   update: async (counterparty, options) => {
@@ -53,11 +54,12 @@ const counterpartyRepo: ICounterpartyRepo = {
           )
         );
 
-      if (updated.rowCount === 0)
+      if (updated.rowCount === 0) {
         throw new repoError.VersionNotFound({
           id: counterparty.id,
           version: options.expectedVersion,
         });
+      }
       await counterpartyHistoryRepo.save(
         counterparty,
         options.history,

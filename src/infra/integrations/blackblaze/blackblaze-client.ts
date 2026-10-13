@@ -53,7 +53,9 @@ function getFileUrl(config: IBlackblazeConfig, key: string) {
  * Identifies provider responses that mean the requested object does not exist.
  */
 function isMissingObjectError(error: unknown) {
-  if (typeof error !== 'object' || error === null) return false;
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
   const response = error as {
     name?: string;
     $metadata?: { httpStatusCode?: number };
@@ -139,7 +141,9 @@ function makeReadFile(deps: IDependencies): IFileStorageClient['readFile'] {
         data,
       });
     } catch (error) {
-      if (isMissingObjectError(error)) return null;
+      if (isMissingObjectError(error)) {
+        return null;
+      }
       throw new fileAppError.ReadUnexpected();
     }
   };
