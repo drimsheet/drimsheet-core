@@ -6,6 +6,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 export const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> =
   {
     create: jest.fn(),
+    update: jest.fn(),
     adjustBalance: jest.fn(),
     findByAccountId: jest.fn(),
     findAdjustmentsByAccountId: jest.fn(),

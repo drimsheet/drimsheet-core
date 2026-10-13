@@ -32,7 +32,14 @@ edits, they first lock the cash-family header, matching child creation. The
 reference and hierarchy checks run in the use case’s transaction.
 The cash domain service validates eligibility and returns only the audited ledger
 account tuple, following the account-creation convention. The use case persists
-the account and its actor-attributed history. Opening-journal work remains a
+the account, its actor-attributed history, and the balance currency together.
+The ledger-account-balance domain service compares the previous and updated
+accounts and returns the previous balance when the currency is unchanged.
+It delegates a changed currency to the balance entity, which only changes the denomination of a zero transaction and
+functional balance, preserving identity and creation attribution. Its update
+uses the version read under the account lock and creates no journal adjustment.
+A missing balance, nonzero balance, or version conflict rolls back the update.
+Opening-journal work remains a
 separate application capability when explicitly supplied in the update request.
 
 Journal persistence takes Share locks on referenced accounts and checks current

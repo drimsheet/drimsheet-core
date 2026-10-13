@@ -11,6 +11,7 @@ import makeRentAndUtilitiesAccountService from '@domain/ledger/services/expense-
 import makeTaxExpenseAccountService from '@domain/ledger/services/expense-account/tax-expense.service';
 import makeUnrealizedLossAccountService from '@domain/ledger/services/expense-account/unrealized-loss.service';
 import ledgerAccountBalanceAdjustmentService from '@domain/ledger/services/ledger-account-balance-adjustment.service';
+import makeLedgerAccountBalanceService from '@domain/ledger/services/ledger-account-balance.service';
 import makeLedgerAccountService from '@domain/ledger/services/ledger-account.service';
 import makePayablesAccountService from '@domain/ledger/services/liability-account/payables.service';
 import makeShortTermLoanService from '@domain/ledger/services/liability-account/short-term-loan.service';
@@ -166,3 +167,5 @@ export const ledgerAccountBalanceEnrichmentAppService =
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
     reporter: observability.reporter,
   });
+
+export const ledgerAccountBalanceService = makeLedgerAccountBalanceService();

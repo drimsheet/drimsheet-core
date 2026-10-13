@@ -1,5 +1,6 @@
 import { TCreationOmits } from '@shared/types/creation-omits.types';
 import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
 
 import ledgerAccountBalanceAdjustmentValidation from '@domain/accounting/entities/validations/ledger-account-balance-adjustment.validation';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
@@ -96,6 +97,60 @@ describe('ledgerAccountBalanceEntity', () => {
         functionalCurrencyCode: 'INVALID',
       };
       expect(() => ledgerAccountBalanceEntity.make(payload)).toThrow();
+    });
+  });
+
+  describe('changeCurrency', () => {
+    const makeBalance = () =>
+      ledgerAccountBalanceEntity.make({
+        createdBy: generateUUID(),
+        ledgerAccountId: generateUUID(),
+        accountingEntityId: generateUUID(),
+        accountMaterializedPath: '100000.100001',
+        currencyCode: 'NGN',
+        functionalCurrencyCode: 'NGN',
+      });
+
+    it('changes only the zero balance denomination and update metadata, then accepts the new-currency opening amount', () => {
+      const original = makeBalance();
+      jest.setSystemTime(new Date('2026-04-02T00:00:00.000Z'));
+      const updated = ledgerAccountBalanceEntity.changeCurrency(
+        original,
+        currencyEntity.getByCode('USD')
+      );
+      expect(updated).toEqual({
+        ...original,
+        amount: { amount: 0n, currency: currencyEntity.getByCode('USD') },
+        version: original.version + 1,
+        updatedAt: new Date('2026-04-02T00:00:00.000Z'),
+      });
+      expect(Object.isFrozen(updated)).toBe(true);
+      expect(Object.isFrozen(updated.amount)).toBe(true);
+      expect(original.amount.currency.code).toBe('NGN');
+      expect(original.version).toBe(1);
+      const applied = ledgerAccountBalanceEntity.adjust(updated, {
+        ledgerAccountId: original.ledgerAccountId,
+        journalEntryId: generateUUID(),
+        createdBy: original.createdBy,
+        amount: { amount: 100n, currency: currencyEntity.getByCode('USD') },
+        functionalAmount: {
+          amount: 150_000n,
+          currency: currencyEntity.getByCode('NGN'),
+        },
+      });
+      expect(applied.newBalance.amount.amount).toBe(100n);
+      expect(applied.newBalance.functionalAmount.amount).toBe(150_000n);
+      expect(applied.newBalance.version).toBe(3);
+    });
+
+    it('returns the same balance when its currency is unchanged', () => {
+      const original = makeBalance();
+      expect(
+        ledgerAccountBalanceEntity.changeCurrency(
+          original,
+          currencyEntity.getByCode('NGN')
+        )
+      ).toBe(original);
     });
   });
 
