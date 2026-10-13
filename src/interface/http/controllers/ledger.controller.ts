@@ -53,6 +53,7 @@ import { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/sus
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   activateCashAccountUseCase,
+  activateExpenseAccountUseCase,
   activateRevenueAccountUseCase,
   archiveLedgerAccountUseCase,
   createBankAccountUseCase,
@@ -574,6 +575,26 @@ export class LedgerController extends Controller {
   )
   public activateCashAccount(@Path() accountId: string) {
     return activateCashAccountUseCase(accountId);
+  }
+
+  /** Activates a draft expense account beneath an active parent. Requires no body; non-expense and non-draft accounts return 400. */
+  @Tags('Expense Accounts')
+  @Post('/expense/{accountId}/activate')
+  @OperationId('activateExpenseAccount')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public activateExpenseAccount(@Path() accountId: string): Promise<void> {
+    return activateExpenseAccountUseCase(accountId);
   }
 
   /** Activates a draft revenue account beneath an active parent. Requires no body; non-revenue and non-draft accounts return 400. */

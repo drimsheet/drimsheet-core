@@ -1,4 +1,5 @@
 import makeActivateCashAccountUsecase from '@app/ledger/usecases/activate-cash-account.usecase';
+import makeActivateExpenseAccountUsecase from '@app/ledger/usecases/activate-expense-account.usecase';
 import makeActivateRevenueAccountUsecase from '@app/ledger/usecases/activate-revenue-account.usecase';
 import makeAdjustLedgerAccountBalanceUseCase from '@app/ledger/usecases/adjust-ledger-account-balance.usecase';
 import makeArchiveLedgerAccountUsecase from '@app/ledger/usecases/archive-ledger-account.usecase';
@@ -115,6 +116,16 @@ export const activateCashAccountUseCase = makeTracedUseCase(
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
+  })
+);
+
+export const activateExpenseAccountUseCase = makeTracedUseCase(
+  'ledger.activateExpenseAccountUseCase',
+  makeActivateExpenseAccountUsecase({
+    appContext,
+    eventBus: messaging.eventBus,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    expenseAccountService,
   })
 );
 

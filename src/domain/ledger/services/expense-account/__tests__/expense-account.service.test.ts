@@ -2,9 +2,25 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
+import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeExpenseAccountService from '@domain/ledger/services/expense-account/expense-account.service';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+
+const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  delete: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  findById: jest.fn(),
+  findAllByIds: jest.fn(),
+  findAllByMaterializedPath: jest.fn(),
+  findDescendants: jest.fn(),
+  findByCode: jest.fn(),
+  findBySubType: jest.fn(),
+  findByBehavior: jest.fn(),
+  findLatestBySubType: jest.fn(),
+  findAll: jest.fn(),
+};
 
 const families = [
   { behavior: 'default_direct_cost', subType: 'direct_costs', code: '500000' },
@@ -54,7 +70,9 @@ function makeAccount(
 }
 
 describe('expenseAccountService', () => {
-  const service = makeExpenseAccountService();
+  const service = makeExpenseAccountService({
+    ledgerAccountRepo: mockLedgerAccountRepo,
+  });
   it.each(families)(
     'allows active and draft posting, control, and header accounts for $behavior',
     (family) => {
@@ -134,5 +152,111 @@ describe('expenseAccountService', () => {
     expect(() => service.update(account, { name: 'Updated expense' })).toThrow(
       ledgerAccountError.InvalidStatus
     );
+  });
+});
+
+describe('expense account activation', () => {
+  const service = makeExpenseAccountService({
+    ledgerAccountRepo: mockLedgerAccountRepo,
+  });
+  const options = { correlationId: 'activate-expense' };
+  const parent = makeAccount(families[0]);
+  const draft = (overrides: Partial<ILedgerAccount> = {}) =>
+    makeAccount(families[0], {
+      code: '500001',
+      materializedPath: '500000.500001',
+      accountingEntityId: parent.accountingEntityId,
+      controlAccountId: parent.id,
+      isControlAccount: false,
+      status: 'draft',
+      ...overrides,
+    });
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockLedgerAccountRepo.findById.mockResolvedValue(parent);
+  });
+
+  it.each(families)(
+    'activates posting and control accounts for $behavior',
+    async (family) => {
+      for (const isControlAccount of [true, false]) {
+        const account = draft({
+          behavior: family.behavior,
+          subType: family.subType,
+          isControlAccount,
+        });
+        const [activated, events, audit] = await service.activate(
+          account,
+          options
+        );
+        expect(activated).toEqual({
+          ...account,
+          status: 'active',
+          version: account.version + 1,
+          updatedAt: expect.any(Date),
+        });
+        expect(account.status).toBe('draft');
+        expect(Object.isFrozen(activated)).toBe(true);
+        expect(Object.isFrozen(activated.currency)).toBe(true);
+        expect(events).toEqual([expect.objectContaining({ data: activated })]);
+        expect(audit.diff).toEqual({ before: account, after: activated });
+        expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
+          parent.id,
+          account.accountingEntityId,
+          options
+        );
+        expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  it.each(['active', 'archived'] as const)(
+    'rejects %s accounts',
+    async (status) => {
+      await expect(
+        service.activate(draft({ status }), options)
+      ).rejects.toThrow(ledgerAccountError.InvalidStatus);
+    }
+  );
+
+  it.each(['asset', 'liability', 'equity', 'revenue'] as const)(
+    'rejects %s accounts before parent lookup',
+    async (type) => {
+      await expect(service.activate(draft({ type }), options)).rejects.toThrow(
+        ledgerAccountError.InvalidType
+      );
+      expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rejects accounts without a parent', async () => {
+    await expect(
+      service.activate(makeAccount(families[0], { status: 'draft' }), options)
+    ).rejects.toThrow(ledgerAccountError.InvalidControlAccountId);
+    expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing parent', async () => {
+    mockLedgerAccountRepo.findById.mockResolvedValue(null);
+    await expect(service.activate(draft(), options)).rejects.toThrow(
+      ledgerAccountError.ControlAccountNotFound
+    );
+  });
+
+  it.each([
+    ['draft', ledgerAccountError.NonDraftChildOfDraftControlAccount],
+    ['archived', ledgerAccountError.ArchivedControlAccount],
+  ] as const)('rejects a %s parent', async (status, error) => {
+    mockLedgerAccountRepo.findById.mockResolvedValue(
+      makeAccount(families[0], { status })
+    );
+    await expect(service.activate(draft(), options)).rejects.toThrow(error);
+  });
+
+  it('propagates parent lookup failures', async () => {
+    const error = new ledgerAccountError.ControlAccountNotFound();
+    mockLedgerAccountRepo.findById.mockRejectedValue(error);
+    await expect(service.activate(draft(), options)).rejects.toBe(error);
   });
 });

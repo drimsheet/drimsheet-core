@@ -164,5 +164,6 @@ export const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
 };
 
 export const mockExpenseAccountService: jest.Mocked<IExpenseAccountService> = {
+  activate: jest.fn(),
   update: jest.fn(),
 };
