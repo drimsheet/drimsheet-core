@@ -34,7 +34,7 @@ jest.mock('drizzle-orm', () => {
   };
 });
 
-describe('ledgerAccountRepo draft deletion', () => {
+describe('ledgerAccountRepo deletion', () => {
   beforeEach(() => jest.clearAllMocks());
 
   function mockDeletion(rowCount: number) {
@@ -49,17 +49,17 @@ describe('ledgerAccountRepo draft deletion', () => {
     return { where, tx };
   }
 
-  it('guards version, draft status, and absence of journal lines before removing history in the same transaction', async () => {
+  it('guards version and absence of journal lines for any status before removing history in the same transaction', async () => {
     const id = generateUUID();
     const options = { correlationId: 'delete', expectedVersion: 4, tx: {} };
     const { where, tx } = mockDeletion(1);
     await ledgerAccountRepo.delete(id, options);
     const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0] as SQL);
     expect(predicate.sql).toContain('"version" =');
-    expect(predicate.sql).toContain('"status" =');
+    expect(predicate.sql).not.toContain('"status"');
     expect(predicate.sql).toContain('not exists (select');
     expect(predicate.sql).toContain('"core"."journal_lines"');
-    expect(predicate.params).toEqual([id, 4, 'draft', id]);
+    expect(predicate.params).toEqual([id, 4, id]);
     expect(tx.delete).toHaveBeenCalledWith(ledgerAccountsInCore);
     expect(ledgerAccountHistoryRepo.deleteByAccountId).toHaveBeenCalledWith(
       id,

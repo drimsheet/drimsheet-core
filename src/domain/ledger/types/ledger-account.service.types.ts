@@ -8,10 +8,33 @@ import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 
 import { ILedgerAccount, TAuditedLedgerAccount } from './ledger.types';
 
+export const ELedgerAccountDeletionReason = {
+  HeaderAccount: 'header_account',
+  HasJournalEntries: 'has_journal_entries',
+} as const;
+
+export type ULedgerAccountDeletionReason =
+  (typeof ELedgerAccountDeletionReason)[keyof typeof ELedgerAccountDeletionReason];
+
+type TLedgerAccountDeletionEligibility =
+  | { canDelete: true }
+  | { canDelete: false; reason: ULedgerAccountDeletionReason };
+
 export default interface ILedgerAccountService {
   /**
-   * Rejects accounts without a controlAccountId. Prepares deletion of a draft
-   * account and its complete subtree child-first.
+   * A non-header account is eligible when it is draft or has no associated
+   * journal entries in any state. Checks only the supplied account, never its
+   * descendants. Ineligible results identify the blocking reason.
+   * Advisory read only; repository failures propagate.
+   */
+  canDelete(
+    account: ILedgerAccount,
+    repoOptions: IReadRepoOptions
+  ): Promise<TLedgerAccountDeletionEligibility>;
+
+  /**
+   * Checks canDelete for the account and every descendant, then prepares
+   * deletion of the complete subtree child-first.
    * Associated journals must be valid drafts; any other state is an unexpected
    * invariant violation. Never persists. The caller holds target and descendant
    * account locks until deletion commits.

@@ -15,6 +15,13 @@ import {
 } from '@domain/journal-entry/types/journal-entry.types';
 
 export default interface IJournalEntryRepo {
+  /** Checks for any associated journal entry, without filtering by state. */
+  existsByAccountId(
+    accountId: TEntityId,
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<boolean>;
+
   /** Returns each associated entry once, without pagination or status filtering. */
   findAllByAccountIds(
     accountIds: TEntityId[],

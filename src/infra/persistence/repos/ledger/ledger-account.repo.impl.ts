@@ -24,7 +24,6 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo, {
   ELedgerAccountSortBy,
 } from '@domain/ledger/repos/ledger-account.repo';
-import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 
 import {
   currenciesInCore,
@@ -58,7 +57,6 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
         and(
           eq(ledgerAccountsInCore.id, id),
           eq(ledgerAccountsInCore.version, options.expectedVersion),
-          eq(ledgerAccountsInCore.status, ELedgerAccountStatus.Draft),
           // Never let the account FK cascade remove only one side of a journal.
           notExists(
             tx

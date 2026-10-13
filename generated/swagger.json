@@ -755,6 +755,39 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ULedgerAccountDeletionReason": {
+        "type": "string",
+        "enum": ["header_account", "has_journal_entries"]
+      },
+      "TLedgerAccountDeletionEligibilityDto": {
+        "anyOf": [
+          {
+            "properties": {
+              "canDelete": {
+                "type": "boolean",
+                "enum": [true],
+                "nullable": false
+              }
+            },
+            "required": ["canDelete"],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "reason": {
+                "$ref": "#/components/schemas/ULedgerAccountDeletionReason"
+              },
+              "canDelete": {
+                "type": "boolean",
+                "enum": [false],
+                "nullable": false
+              }
+            },
+            "required": ["reason", "canDelete"],
+            "type": "object"
+          }
+        ]
+      },
       "ULedgerAccountBalanceEffect": {
         "type": "string",
         "enum": ["increase", "decrease", "noop"]
@@ -4085,7 +4118,7 @@
             }
           }
         },
-        "description": "Deletes a draft account and its draft subtree with all associated draft journals. Accounts without a controlAccountId and non-draft accounts return 400; a non-draft journal associated with a draft account is an unexpected invariant violation (500).",
+        "description": "Deletes an eligible account and its eligible subtree with all associated draft journals. Accounts without a controlAccountId and non-draft accounts with journal entries return 400; a non-draft journal associated with a draft account is an unexpected invariant violation (500).",
         "tags": ["Ledger"],
         "security": [],
         "parameters": [
@@ -4166,6 +4199,86 @@
           }
         },
         "description": "Get the bank details of a ledger account with bank behavior.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/ledger/{accountId}/deletion-eligibility": {
+      "get": {
+        "operationId": "getLedgerAccountDeletionEligibility",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TLedgerAccountDeletionEligibilityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Check whether a ledger account is not a header and is either draft or has\nno associated journal entries. Ineligible results include the blocking reason.\nThis result is advisory.",
         "tags": ["Ledger"],
         "security": [],
         "parameters": [

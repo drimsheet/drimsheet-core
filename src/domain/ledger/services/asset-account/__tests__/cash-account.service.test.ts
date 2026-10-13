@@ -43,6 +43,7 @@ const bankRepo: jest.Mocked<IBankAccountRepo> = {
   create: jest.fn(),
 };
 const allocation: jest.Mocked<ILedgerAccountService> = {
+  canDelete: jest.fn(),
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),

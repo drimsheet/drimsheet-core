@@ -634,6 +634,41 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountDeletionReason: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['header_account'] },
+        { dataType: 'enum', enums: ['has_journal_entries'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  TLedgerAccountDeletionEligibilityDto: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            canDelete: { dataType: 'enum', enums: [true], required: true },
+          },
+        },
+        {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            reason: { ref: 'ULedgerAccountDeletionReason', required: true },
+            canDelete: { dataType: 'enum', enums: [false], required: true },
+          },
+        },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ULedgerAccountBalanceEffect: {
     dataType: 'refAlias',
     type: {
@@ -3002,6 +3037,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getBankDetails',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_getLedgerAccountDeletionEligibility: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+  };
+  app.get(
+    '/api/v1/ledger/:accountId/deletion-eligibility',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.getLedgerAccountDeletionEligibility
+    ),
+
+    async function LedgerController_getLedgerAccountDeletionEligibility(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_getLedgerAccountDeletionEligibility,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'getLedgerAccountDeletionEligibility',
           controller,
           response,
           next,

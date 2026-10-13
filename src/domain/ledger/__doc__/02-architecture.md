@@ -57,9 +57,10 @@ balances, FX records, or propagation work.
 
 `DELETE /ledger/{accountId}` requires accounting-entity ownership and returns
 HTTP 204 with no content. Accounts without a `controlAccountId` cannot be
-deleted, regardless of status. Only draft accounts can be deleted. A control account
-includes its complete draft subtree; a non-draft descendant rejects the entire
-request. All journals associated with draft accounts must themselves be draft.
+deleted, regardless of status. Each account must be draft or have no associated
+journal entries. A control account includes its complete subtree; every
+descendant must pass the same `canDelete` check or the entire request is rejected.
+All journals associated with draft accounts must themselves be draft.
 A non-draft journal (including an archived never-posted entry), or a draft with
 posting history, is an unexpected invariant violation and aborts deletion.
 
