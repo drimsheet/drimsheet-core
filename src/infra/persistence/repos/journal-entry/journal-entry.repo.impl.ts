@@ -10,13 +10,39 @@ import {
   EJournalEntryStatus,
 } from '@domain/journal-entry/types/journal-entry.types';
 
-import { journalEntriesInCore } from '@infra/config/drizzle/schema';
+import {
+  journalEntriesInCore,
+  journalLinesInCore,
+} from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import journalEntryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry.mapper';
 
 import journalEntryHistoryRepo from './journal-entry-history.repo.impl';
 
 const journalEntryRepo: IJournalEntryRepo = {
+  async findAllByAccountIds(accountIds, accountingEntityId, options) {
+    if (accountIds.length === 0) return [];
+
+    const db = getDbQuery(options);
+    const entryIds = db
+      .select({ id: journalLinesInCore.entryId })
+      .from(journalLinesInCore)
+      .where(inArray(journalLinesInCore.accountId, accountIds));
+    const entries = await db.query.journalEntriesInCore.findMany({
+      where: and(
+        eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
+        inArray(journalEntriesInCore.id, entryIds)
+      ),
+      with: {
+        journalEntryAttachmentsInCores: true,
+        journalLinesInCores: true,
+      },
+      orderBy: journalEntriesInCore.id,
+    });
+
+    return entries.map((entry) => journalEntryMapper.toDomain(entry));
+  },
+
   create: async (payload, options) => {
     const entriesArray = Array.isArray(payload) ? payload : [payload];
     const historiesArray = Array.isArray(options.history)

@@ -15,6 +15,13 @@ import {
 } from '@domain/journal-entry/types/journal-entry.types';
 
 export default interface IJournalEntryRepo {
+  /** Returns each associated entry once, without pagination or status filtering. */
+  findAllByAccountIds(
+    accountIds: TEntityId[],
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IJournalEntry[]>;
+
   create(
     payload: IJournalHeader | IJournalHeader[],
     options: IWriteRepoOptions<IJournalEntryHistory | IJournalEntryHistory[]>

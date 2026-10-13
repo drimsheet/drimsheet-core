@@ -21,10 +21,12 @@ export const mockBankAccountRepo: jest.Mocked<IBankAccountRepo> = {
 
 export const mockLedgerAccountHistoryRepo: jest.Mocked<ILedgerAccountHistoryRepo> =
   {
+    deleteByAccountId: jest.fn(),
     save: jest.fn(),
   };
 
 export const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  delete: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),

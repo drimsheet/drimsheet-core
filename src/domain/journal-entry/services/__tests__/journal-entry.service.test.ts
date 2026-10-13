@@ -64,6 +64,7 @@ import moneyValue from '@domain/money/values/money.vo';
 import userEntity from '@domain/user/entities/user.entity';
 
 const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
+  delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
 };
@@ -82,6 +83,7 @@ const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
 };
 
 const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  delete: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),
@@ -127,7 +129,11 @@ describe('journalEntryService', () => {
       update: jest.fn(),
       create: jest.fn(),
     },
-    ledgerAccountService: { archive: jest.fn(), getNextCode: jest.fn() },
+    ledgerAccountService: {
+      archive: jest.fn(),
+      delete: jest.fn(),
+      getNextCode: jest.fn(),
+    },
   });
   const servicesAccountService = makeServicesAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,

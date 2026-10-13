@@ -1,12 +1,16 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
+import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
+import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeLedgerAccountService from '@domain/ledger/services/ledger-account.service';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import moneyValue from '@domain/money/values/money.vo';
 
 const accountingEntityId = generateUUID();
 const createdBy = generateUUID();
@@ -36,6 +40,7 @@ function account(
   })[0];
 }
 const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  delete: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),
@@ -48,7 +53,15 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findLatestBySubType: jest.fn(),
   findAll: jest.fn(),
 };
+const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  findById: jest.fn(),
+  findAllByAccountIds: jest.fn(),
+};
 const service = makeLedgerAccountService({
+  journalEntryRepo: mockJournalEntryRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
 const repoOptions = { correlationId: 'archive', tx: {} };
@@ -203,6 +216,7 @@ describe('ledgerAccountService.archive', () => {
 
 describe('ledgerAccountService.getNextCode', () => {
   const service = makeLedgerAccountService({
+    journalEntryRepo: mockJournalEntryRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
   const [header] = ledgerAccountEntity.make({
@@ -283,5 +297,196 @@ describe('ledgerAccountService.getNextCode', () => {
     const failure = new Error('database unavailable');
     mockLedgerAccountRepo.findLatestBySubType.mockRejectedValue(failure);
     await expect(service.getNextCode(payload, options)).rejects.toBe(failure);
+  });
+});
+
+describe('ledgerAccountService.delete', () => {
+  const [target] = ledgerAccountEntity.make({
+    accountingEntityId: generateUUID(),
+    createdBy: generateUUID(),
+    code: '100001',
+    materializedPath: '100000.100001',
+    name: 'Draft cash control',
+    type: 'asset',
+    subType: 'cash_and_cash_equivalent',
+    behavior: 'default_cash',
+    normalBalance: 'debit',
+    isControlAccount: true,
+    controlAccountId: generateUUID(),
+    currency: null,
+    status: 'draft',
+    meta: null,
+    contraAccountRule: 'contra_permitted',
+    adjunctAccountRule: 'adjunct_permitted',
+  });
+  const [child] = ledgerAccountEntity.make({
+    ...target,
+    code: '100002',
+    materializedPath: '100000.100001.100002',
+    controlAccountId: target.id,
+  });
+  const [leaf] = ledgerAccountEntity.make({
+    ...child,
+    code: '100003',
+    materializedPath: '100000.100001.100002.100003',
+    controlAccountId: child.id,
+    isControlAccount: false,
+  });
+  const options = { correlationId: 'delete', tx: {}, lock: 'update' as const };
+  const amount = moneyValue.make(100, SYSTEM_CURRENCIES.NGN, false);
+  const [draftEntry] = journalEntryEntity.make({
+    accountingEntityId: target.accountingEntityId,
+    sourceType: 'payment',
+    effectiveDate: new Date('2026-01-01'),
+    postedAt: null,
+    memo: null,
+    createdBy: target.createdBy,
+    functionalCurrency: SYSTEM_CURRENCIES.NGN,
+    lines: [
+      {
+        accountId: leaf.id,
+        sequenceOrder: 1,
+        amount,
+        exchangeRate: null,
+        side: 'debit',
+        description: null,
+        functionalCurrency: SYSTEM_CURRENCIES.NGN,
+      },
+      {
+        accountId: generateUUID(),
+        sequenceOrder: 2,
+        amount,
+        exchangeRate: null,
+        side: 'credit',
+        description: null,
+        functionalCurrency: SYSTEM_CURRENCIES.NGN,
+      },
+    ],
+  });
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockLedgerAccountRepo.findDescendants.mockResolvedValue([child, leaf]);
+    mockJournalEntryRepo.findAllByAccountIds.mockResolvedValue([draftEntry]);
+  });
+  afterEach(() => {
+    expect(mockLedgerAccountRepo.delete).not.toHaveBeenCalled();
+    expect(mockJournalEntryRepo.delete).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['draft', true],
+    ['draft', false],
+    ['active', true],
+    ['active', false],
+    ['archived', true],
+    ['archived', false],
+  ] as const)(
+    'rejects a parentless %s account with isControlAccount=%s before any reads',
+    async (status, isControlAccount) => {
+      const [header] = ledgerAccountEntity.make({
+        ...target,
+        code: '100000',
+        materializedPath: '100000',
+        controlAccountId: null,
+        status,
+        isControlAccount,
+      });
+
+      await expect(service.delete(header, options)).rejects.toMatchObject({
+        errorKey: 'ledger_error_header_account_delete_invalid',
+      });
+      expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
+      expect(mockJournalEntryRepo.findAllByAccountIds).not.toHaveBeenCalled();
+    }
+  );
+
+  it('prepares the complete subtree child-first and keeps the authoritative journal version', async () => {
+    const removal = await service.delete(target, options);
+    expect(removal.accounts).toEqual([leaf, child, target]);
+    expect(removal.journalEntries).toEqual([draftEntry]);
+    expect(mockLedgerAccountRepo.findDescendants).toHaveBeenCalledWith(
+      target.accountingEntityId,
+      target.materializedPath,
+      options
+    );
+    expect(mockJournalEntryRepo.findAllByAccountIds).toHaveBeenCalledWith(
+      [target.id, child.id, leaf.id],
+      target.accountingEntityId,
+      options
+    );
+  });
+
+  it('does not query descendants for a posting account', async () => {
+    expect((await service.delete(leaf, options)).accounts).toEqual([leaf]);
+    expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
+  });
+
+  it('allows an empty draft control and an account without entries', async () => {
+    mockLedgerAccountRepo.findDescendants.mockResolvedValue([]);
+    mockJournalEntryRepo.findAllByAccountIds.mockResolvedValue([]);
+    expect(await service.delete(target, options)).toEqual({
+      accounts: [target],
+      journalEntries: [],
+    });
+  });
+
+  it.each(['active', 'archived'] as const)(
+    'rejects a %s target before querying journals',
+    async (status) => {
+      const [account] = ledgerAccountEntity.make({ ...target, status });
+      await expect(service.delete(account, options)).rejects.toBeInstanceOf(
+        ledgerAccountError.NonDraftAccountDeletion
+      );
+      expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
+      expect(mockJournalEntryRepo.findAllByAccountIds).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['active', 'archived'] as const)(
+    'rejects the entire subtree for a %s descendant',
+    async (status) => {
+      const [account] = ledgerAccountEntity.make({ ...leaf, status });
+      mockLedgerAccountRepo.findDescendants.mockResolvedValue([child, account]);
+      await expect(service.delete(target, options)).rejects.toBeInstanceOf(
+        ledgerAccountError.NonDraftAccountDeletion
+      );
+      expect(mockJournalEntryRepo.findAllByAccountIds).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each<IJournalEntry>([
+    { ...draftEntry, status: 'posted', postedAt: new Date('2026-01-01') },
+    { ...draftEntry, status: 'voided', postedAt: new Date('2026-01-01') },
+    { ...draftEntry, status: 'archived', postedAt: new Date('2026-01-01') },
+    { ...draftEntry, status: 'archived' },
+    { ...draftEntry, postedAt: new Date('2026-01-01') },
+    { ...draftEntry, status: 'posted' },
+    { ...draftEntry, status: 'voided' },
+    { ...draftEntry, sourceType: 'reversal' },
+  ])(
+    'rejects an invalid draft journal as an unexpected invariant violation: %p',
+    async (entry) => {
+      mockJournalEntryRepo.findAllByAccountIds.mockResolvedValue([
+        draftEntry,
+        entry,
+      ]);
+      await expect(service.delete(target, options)).rejects.toMatchObject({
+        errorKey: 'ledger_error_draft_account_journal_entry_unexpected',
+      });
+    }
+  );
+
+  it('includes all descendants beyond a page boundary', async () => {
+    const descendants = Array.from({ length: 60 }, (_, index) => {
+      const code = `100${String(index + 2).padStart(3, '0')}`;
+      return ledgerAccountEntity.make({
+        ...leaf,
+        code,
+        materializedPath: `${target.materializedPath}.${code}`,
+      })[0];
+    });
+    mockLedgerAccountRepo.findDescendants.mockResolvedValue(descendants);
+    expect((await service.delete(target, options)).accounts).toHaveLength(61);
+    expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
   });
 });

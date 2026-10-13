@@ -22,6 +22,7 @@ describe('journalEntryRuleValidator', () => {
     functionalCurrencyCode: SYSTEM_CURRENCIES.NGN.code,
   } as IAccountingEntity;
   const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+    delete: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     findById: jest.fn(),
@@ -42,7 +43,11 @@ describe('journalEntryRuleValidator', () => {
       update: jest.fn(),
       create: jest.fn(),
     },
-    ledgerAccountService: { archive: jest.fn(), getNextCode: jest.fn() },
+    ledgerAccountService: {
+      archive: jest.fn(),
+      delete: jest.fn(),
+      getNextCode: jest.fn(),
+    },
   });
   let account: ILedgerAccount;
 

@@ -1,10 +1,13 @@
 import { SQL } from 'drizzle-orm';
-import { PgDialect } from 'drizzle-orm/pg-core';
+import { PgDialect, QueryBuilder } from 'drizzle-orm/pg-core';
 
 import { TEntityId } from '@shared/types/uuid';
 import repoError from '@shared/values/errors/repo.error';
 
-import { journalEntriesInCore } from '@infra/config/drizzle/schema';
+import {
+  journalEntriesInCore,
+  journalLinesInCore,
+} from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import journalEntryRepo from '@infra/persistence/repos/journal-entry/journal-entry.repo.impl';
 import journalEntryHistoryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-history.mapper';
@@ -70,6 +73,67 @@ describe('journalEntryRepo', () => {
       journalEntryRepo.findById(journalEntryId, options)
     ).resolves.toBeNull();
     expect(journalEntryMapper.toDomain).not.toHaveBeenCalled();
+  });
+
+  it('returns no entries without querying for an empty account set', async () => {
+    jest.mocked(getDbQuery).mockClear();
+    expect(
+      await journalEntryRepo.findAllByAccountIds([], journalEntryId, options)
+    ).toEqual([]);
+    expect(getDbQuery).not.toHaveBeenCalled();
+  });
+
+  it('loads complete entries once per header, across all states, scoped to the entity', async () => {
+    const storedEntries = [{ id: journalEntryId }, { id: 'other-entry' }];
+    const entries = storedEntries.map((entry) => ({
+      ...entry,
+      lines: [],
+      attachments: [],
+    }));
+    const findMany = jest.fn().mockResolvedValue(storedEntries);
+    const builder = new QueryBuilder();
+    const select = jest.fn((fields) => builder.select(fields));
+    jest.mocked(getDbQuery).mockReturnValue({
+      select,
+      query: { journalEntriesInCore: { findMany } },
+    } as never);
+    jest
+      .mocked(journalEntryMapper.toDomain)
+      .mockReturnValueOnce(entries[0] as never)
+      .mockReturnValueOnce(entries[1] as never);
+    const accountIds = [
+      'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      'b2222222-2222-4222-8222-222222222222' as TEntityId,
+    ];
+    expect(
+      await journalEntryRepo.findAllByAccountIds(
+        accountIds,
+        journalEntryId,
+        options
+      )
+    ).toEqual(entries);
+    expect(findMany).toHaveBeenCalledWith({
+      where: expect.anything(),
+      with: { journalEntryAttachmentsInCores: true, journalLinesInCores: true },
+      orderBy: journalEntriesInCore.id,
+    });
+    const predicate = new PgDialect().sqlToQuery(
+      findMany.mock.calls[0][0].where as SQL
+    );
+    expect(predicate.sql).toContain('"accounting_entity_id" = $1');
+    expect(predicate.sql).toContain('in (select');
+    expect(predicate.sql).toContain('"account_id" in ($2, $3)');
+    expect(predicate.sql).not.toContain('"status"');
+    expect(predicate.params).toEqual([journalEntryId, ...accountIds]);
+    expect(select).toHaveBeenCalledWith({ id: journalLinesInCore.entryId });
+    expect(journalEntryMapper.toDomain).toHaveBeenNthCalledWith(
+      1,
+      storedEntries[0]
+    );
+    expect(journalEntryMapper.toDomain).toHaveBeenNthCalledWith(
+      2,
+      storedEntries[1]
+    );
   });
 
   it('creates entries and their history in a transaction', async () => {
