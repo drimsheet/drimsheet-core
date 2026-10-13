@@ -94,7 +94,9 @@ export const grantsAccountService = makeGrantsAccountService({
 
 export const expenseAccountService = makeExpenseAccountService();
 
-export const revenueAccountService = makeRevenueAccountService();
+export const revenueAccountService = makeRevenueAccountService({
+  ledgerAccountRepo: ledgerRepos.ledgerAccount,
+});
 
 export const giftsAccountService = makeGiftsAccountService({
   ledgerAccountRepo: ledgerRepos.ledgerAccount,

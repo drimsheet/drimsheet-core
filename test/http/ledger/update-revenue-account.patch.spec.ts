@@ -123,7 +123,9 @@ describe('PATCH /ledger/revenue/{accountId}', () => {
         appContext,
         eventBus: mockEventBus,
         ledgerAccountRepo: mockLedgerAccountRepo,
-        revenueAccountService: makeRevenueAccountService(),
+        revenueAccountService: makeRevenueAccountService({
+          ledgerAccountRepo: mockLedgerAccountRepo,
+        }),
         balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
       })
     );

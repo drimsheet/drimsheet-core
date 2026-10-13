@@ -53,6 +53,7 @@ export const mockGrantsAccountService: jest.Mocked<IGrantsAccountService> = {
 };
 
 export const mockRevenueAccountService: jest.Mocked<IRevenueAccountService> = {
+  activate: jest.fn(),
   update: jest.fn(),
 };
 
