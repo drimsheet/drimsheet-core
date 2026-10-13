@@ -16,7 +16,9 @@ function getBalance(
   accountCurrency: ICurrency,
   accountLine?: IJournalLine
 ) {
-  if (!accountLine) return moneyValue.makeZeroAmount(accountCurrency);
+  if (!accountLine) {
+    return moneyValue.makeZeroAmount(accountCurrency);
+  }
 
   return account.currency === null
     ? accountLine.functionalAmount

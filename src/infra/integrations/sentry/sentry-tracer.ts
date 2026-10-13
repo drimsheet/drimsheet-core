@@ -28,7 +28,9 @@ function runBestEffort<T>(
   let result!: T;
 
   const runOperation = () => {
-    if (operationCalled) return result;
+    if (operationCalled) {
+      return result;
+    }
     operationCalled = true;
 
     try {
@@ -43,7 +45,9 @@ function runBestEffort<T>(
   try {
     return instrument(runOperation);
   } catch (error) {
-    if (operationFailed) throw error;
+    if (operationFailed) {
+      throw error;
+    }
     return runOperation();
   }
 }
@@ -139,7 +143,9 @@ function getPropagationCarrier(): ITraceCarrier {
 function getActiveTrace(): ITraceIdentity | undefined {
   try {
     const activeSpan = Sentry.getActiveSpan();
-    if (!activeSpan) return undefined;
+    if (!activeSpan) {
+      return undefined;
+    }
 
     const span = Sentry.spanToJSON(activeSpan);
     if (

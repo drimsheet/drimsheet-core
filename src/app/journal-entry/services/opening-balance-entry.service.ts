@@ -170,8 +170,9 @@ function makeCreateInitialOpeningBalance(
   deps: IDependencies
 ): IOpeningBalanceEntryAppService['createInitialOpeningBalance'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new journalEntryError.InitialOpeningBalanceTransactionRequired();
+    }
     const { account } = payload;
     openingBalanceValidation.validateInitialDate(
       account,

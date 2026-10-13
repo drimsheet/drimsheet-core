@@ -19,12 +19,13 @@ async function validateTypeChangeAllowed(
 
   const hasUsage = journalLines.length > 0;
 
-  if (hasUsage)
+  if (hasUsage) {
     throw new counterpartyError.TypeChangeAfterTransactionUse({
       field: 'type',
       reason: 'transaction_usage',
       nextAction: 'create_counterparty',
     });
+  }
 }
 
 /** Rejects remaining references across every journal status in the caller's locked transaction. */
@@ -42,11 +43,12 @@ async function validateDeletionAllowed(
 
   const hasTransactionReferences = journalLines.length > 0;
 
-  if (hasTransactionReferences)
+  if (hasTransactionReferences) {
     throw new counterpartyError.DeletionWithTransactionReferences({
       reason: 'transaction_usage',
       nextAction: 'archive_counterparty',
     });
+  }
 }
 
 const counterpartyServiceValidation = Object.freeze({

@@ -9,7 +9,9 @@ import metricCatalogue from './metric-catalogue';
 const MAX_ATTEMPT_ATTRIBUTE = 10;
 
 function getBoundedAttempt(attempt: number): number {
-  if (!Number.isFinite(attempt)) return 1;
+  if (!Number.isFinite(attempt)) {
+    return 1;
+  }
 
   return Math.min(Math.max(Math.trunc(attempt), 1), MAX_ATTEMPT_ATTRIBUTE);
 }
@@ -63,7 +65,9 @@ export default function makeQueueMetrics(
       },
     });
 
-    if (waitingDurationMs === undefined) return;
+    if (waitingDurationMs === undefined) {
+      return;
+    }
 
     metrics.observe({
       ...metricCatalogue.MESSAGING_PROCESS_WAIT_DURATION.metadata,

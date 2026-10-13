@@ -136,14 +136,15 @@ describe('accountingPeriodService', () => {
             ? [existing]
             : []
         );
-        if (allowed)
+        if (allowed) {
           await expect(
             service.generate(input, repoOptions)
           ).resolves.toHaveLength(12);
-        else
+        } else {
           await expect(
             service.generate(input, repoOptions)
           ).rejects.toBeInstanceOf(periodError.OverlappingPeriods);
+        }
         expect(repo.create).not.toHaveBeenCalled();
       }
     );

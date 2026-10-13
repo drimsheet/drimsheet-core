@@ -157,17 +157,24 @@ describe('archive counterparty use case', () => {
     'propagates a %s failure',
     async (stage) => {
       const failure = new Error(stage);
-      if (stage === 'read')
+      if (stage === 'read') {
         mockCounterpartyRepo.findById.mockRejectedValue(failure);
-      if (stage === 'write')
+      }
+      if (stage === 'write') {
         mockCounterpartyRepo.update.mockRejectedValue(failure);
-      if (stage === 'publish') mockEventBus.publish.mockRejectedValue(failure);
+      }
+      if (stage === 'publish') {
+        mockEventBus.publish.mockRejectedValue(failure);
+      }
       await expect(usecase(before.id)).rejects.toBe(failure);
-      if (stage === 'read')
+      if (stage === 'read') {
         expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-      if (stage === 'publish')
+      }
+      if (stage === 'publish') {
         expect(mockCounterpartyRepo.update).toHaveBeenCalledTimes(1);
-      else expect(mockEventBus.publish).not.toHaveBeenCalled();
+      } else {
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
+      }
     }
   );
 });

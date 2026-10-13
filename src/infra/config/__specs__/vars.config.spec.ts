@@ -64,8 +64,11 @@ function loadVars(
     ENVIRONMENT_VARIABLES.forEach((key) => {
       const originalValue = originalValues.get(key);
 
-      if (originalValue === undefined) delete process.env[key];
-      else process.env[key] = originalValue;
+      if (originalValue === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalValue;
+      }
     });
   }
 

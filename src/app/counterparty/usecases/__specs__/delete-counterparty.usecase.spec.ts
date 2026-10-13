@@ -168,29 +168,38 @@ describe('delete counterparty use case', () => {
     'preserves %s failures and disposes acquired transactions',
     async (stage) => {
       const failure = new Error(stage);
-      if (stage === 'context')
+      if (stage === 'context') {
         mockAppContext.get.mockImplementation(() => {
           throw failure;
         });
-      if (stage === 'acquire')
+      }
+      if (stage === 'acquire') {
         mockRepoService.createTransaction.mockRejectedValue(failure);
-      if (stage === 'read')
+      }
+      if (stage === 'read') {
         mockCounterpartyRepo.findById.mockRejectedValue(failure);
-      if (stage === 'usage')
+      }
+      if (stage === 'usage') {
         mockJournalLineRepo.findAllByCounterpartyId.mockRejectedValue(failure);
-      if (stage === 'write')
+      }
+      if (stage === 'write') {
         mockCounterpartyRepo.delete.mockRejectedValue(failure);
-      if (stage === 'commit')
+      }
+      if (stage === 'commit') {
         mockRepoTransaction.commit.mockRejectedValue(failure);
+      }
       await expect(usecase(counterparty.id)).rejects.toBe(failure);
-      if (['context', 'acquire'].includes(stage))
+      if (['context', 'acquire'].includes(stage)) {
         expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
-      else
+      } else {
         expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
-      if (stage !== 'commit')
+      }
+      if (stage !== 'commit') {
         expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
-      if (['context', 'acquire', 'read', 'usage'].includes(stage))
+      }
+      if (['context', 'acquire', 'read', 'usage'].includes(stage)) {
         expect(mockCounterpartyRepo.delete).not.toHaveBeenCalled();
+      }
     }
   );
 
@@ -229,12 +238,12 @@ describe('delete counterparty use case', () => {
         started = resolve;
       });
       const failure = new Error('delete failed');
-      if (stage === 'commit')
+      if (stage === 'commit') {
         mockRepoTransaction.commit.mockImplementation(async () => {
           started();
           await blocked;
         });
-      else {
+      } else {
         mockCounterpartyRepo.delete.mockRejectedValue(failure);
         mockRepoTransaction.handleError.mockImplementation(async (error) => {
           started();
@@ -260,7 +269,9 @@ describe('delete counterparty use case', () => {
         await request;
       }
       expect(settled).toBe(true);
-      if (stage === 'handleError') expect(await request).toBe(failure);
+      if (stage === 'handleError') {
+        expect(await request).toBe(failure);
+      }
     }
   );
 });

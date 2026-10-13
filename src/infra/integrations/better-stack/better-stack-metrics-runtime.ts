@@ -62,7 +62,9 @@ export default function makeMetricsRuntime(
   config: IBetterStackConfig,
   logger: ILogger
 ): IMetricsRuntime {
-  if (!config.enabled) return makeDisabledRuntime();
+  if (!config.enabled) {
+    return makeDisabledRuntime();
+  }
 
   if (!config.metricsEndpoint || !config.sourceToken) {
     warnSafely(logger, 'observability.metrics.configuration_invalid', {
@@ -114,7 +116,9 @@ export default function makeMetricsRuntime(
     let shutdownStarted = false;
 
     async function shutdown() {
-      if (shutdownStarted) return;
+      if (shutdownStarted) {
+        return;
+      }
       shutdownStarted = true;
 
       try {

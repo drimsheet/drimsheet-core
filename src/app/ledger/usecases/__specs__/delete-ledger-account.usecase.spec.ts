@@ -209,24 +209,29 @@ describe('delete ledger account use case', () => {
         stage === 'foreign key'
           ? Object.assign(new Error('foreign key violation'), { code: '23503' })
           : new repoError.VersionNotFound();
-      if (stage === 'journal')
+      if (stage === 'journal') {
         mockJournalEntryPersistenceAppService.delete
           .mockResolvedValueOnce()
           .mockRejectedValueOnce(error);
+      }
       const isAccountFailure = stage === 'account' || stage === 'foreign key';
-      if (isAccountFailure)
+      if (isAccountFailure) {
         mockLedgerAccountRepo.delete
           .mockResolvedValueOnce()
           .mockRejectedValueOnce(error);
-      if (stage === 'commit')
+      }
+      if (stage === 'commit') {
         mockRepoTransaction.commit.mockRejectedValueOnce(error);
+      }
       await expect(usecase(account.id)).rejects.toBe(error);
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(error);
       expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
-      if (stage !== 'commit')
+      if (stage !== 'commit') {
         expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
-      if (stage === 'journal')
+      }
+      if (stage === 'journal') {
         expect(mockLedgerAccountRepo.delete).not.toHaveBeenCalled();
+      }
     }
   );
 });

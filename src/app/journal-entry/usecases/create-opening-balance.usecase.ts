@@ -50,7 +50,9 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
       repoOptions
     );
 
-    if (!account) throw new ledgerAppError.AccountNotFound();
+    if (!account) {
+      throw new ledgerAppError.AccountNotFound();
+    }
 
     const openingBalanceCreation =
       await deps.openingBalanceEntryAppService.create(

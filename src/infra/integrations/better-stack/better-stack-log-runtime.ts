@@ -42,7 +42,9 @@ function flushWithin(client: Logtail, timeoutMs: number): Promise<void> {
 export default function makeBetterStackLogRuntime(
   config: IBetterStackConfig
 ): IBetterStackLogRuntime {
-  if (!config.enabled) return makeDisabledRuntime();
+  if (!config.enabled) {
+    return makeDisabledRuntime();
+  }
 
   try {
     const client = new Logtail(config.sourceToken, {

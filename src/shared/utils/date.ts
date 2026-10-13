@@ -111,61 +111,76 @@ function validateLessThan<T extends Error>(
 }
 
 function getDaysDistance({ start, end }: IStartAndEndDates) {
-  if (!isValidDate(start) || !isValidDate(end))
+  if (!isValidDate(start) || !isValidDate(end)) {
     throw new dateError.InvalidDates();
+  }
   return Math.round(dayjs(end).add(1, 'day').diff(dayjs(start), 'day', true));
 }
 
 function getWeekDistance({ start, end }: IStartAndEndDates) {
-  if (!isValidDate(start) || !isValidDate(end))
+  if (!isValidDate(start) || !isValidDate(end)) {
     throw new dateError.InvalidDates();
+  }
   return Math.round(dayjs(end).add(1, 'day').diff(dayjs(start), 'week', true));
 }
 
 function getMonthDistance({ start, end }: IStartAndEndDates) {
-  if (!isValidDate(start) || !isValidDate(end))
+  if (!isValidDate(start) || !isValidDate(end)) {
     throw new dateError.InvalidDates();
+  }
   return Math.round(dayjs(end).add(1, 'day').diff(dayjs(start), 'month', true));
 }
 
 function getQuarterDistance({ start, end }: IStartAndEndDates) {
-  if (!isValidDate(start) || !isValidDate(end))
+  if (!isValidDate(start) || !isValidDate(end)) {
     throw new dateError.InvalidDates();
+  }
   return Math.round(
     dayjs(end).add(1, 'day').diff(dayjs(start), 'quarter', true)
   );
 }
 
 function getYearDistance({ start, end }: IStartAndEndDates) {
-  if (!isValidDate(start) || !isValidDate(end))
+  if (!isValidDate(start) || !isValidDate(end)) {
     throw new dateError.InvalidDates();
+  }
   return Math.round(dayjs(end).add(1, 'day').diff(dayjs(start), 'year', true));
 }
 
 function addDaysToDate(date: Date | string | number, days: number) {
-  if (!isValidDate(date)) throw new dateError.InvalidDate();
+  if (!isValidDate(date)) {
+    throw new dateError.InvalidDate();
+  }
   return dayjs(date).add(days, 'day').toDate();
 }
 
 function addWeeksToDate(date: Date | string | number, weeks: number) {
-  if (!isValidDate(date)) throw new dateError.InvalidDate();
+  if (!isValidDate(date)) {
+    throw new dateError.InvalidDate();
+  }
   return dayjs(date).add(weeks, 'week').toDate();
 }
 
 function addMonthsToDate(date: Date | string | number, months: number) {
-  if (!isValidDate(date)) throw new dateError.InvalidDate();
+  if (!isValidDate(date)) {
+    throw new dateError.InvalidDate();
+  }
   return dayjs(date).add(months, 'month').toDate();
 }
 
 function addQuartersToDate(date: Date | string | number, quarters: number) {
-  if (!isValidDate(date)) throw new dateError.InvalidDate();
+  if (!isValidDate(date)) {
+    throw new dateError.InvalidDate();
+  }
   return dayjs(date)
     .add(quarters * 3, 'month')
     .toDate();
 }
 
 function addYearsToDate(date: Date | string | number, years: number) {
-  if (!isValidDate(date)) throw new dateError.InvalidDate();
+  if (!isValidDate(date)) {
+    throw new dateError.InvalidDate();
+  }
   return dayjs(date).add(years, 'year').toDate();
 }
 

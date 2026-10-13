@@ -51,7 +51,9 @@ function isHttpMethod(value: string): boolean {
 }
 
 function projectData(data: TSentrySpan['data']): TSentrySpanAttributes {
-  if (!data || typeof data !== 'object') return {};
+  if (!data || typeof data !== 'object') {
+    return {};
+  }
 
   const projected: TSentrySpanAttributes = {};
 
@@ -89,8 +91,12 @@ function normalizeDescription(
     return description;
   }
 
-  if (operation?.startsWith('http')) return 'http.request';
-  if (operation?.startsWith('db')) return 'database.query';
+  if (operation?.startsWith('http')) {
+    return 'http.request';
+  }
+  if (operation?.startsWith('db')) {
+    return 'database.query';
+  }
   if (operation?.includes('cache') || operation?.includes('redis')) {
     return 'cache.operation';
   }

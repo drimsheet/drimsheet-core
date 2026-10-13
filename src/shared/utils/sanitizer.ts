@@ -80,11 +80,21 @@ function normalizeKey(key: string): string {
 function isSensitiveKey(key: string): boolean {
   const normalizedKey = normalizeKey(key);
 
-  if (SENSITIVE_KEYS.has(normalizedKey)) return true;
-  if (normalizedKey.includes('email')) return true;
-  if (normalizedKey.includes('recipient')) return true;
-  if (normalizedKey.endsWith('url')) return true;
-  if (/amount|balance|delta/.test(normalizedKey)) return true;
+  if (SENSITIVE_KEYS.has(normalizedKey)) {
+    return true;
+  }
+  if (normalizedKey.includes('email')) {
+    return true;
+  }
+  if (normalizedKey.includes('recipient')) {
+    return true;
+  }
+  if (normalizedKey.endsWith('url')) {
+    return true;
+  }
+  if (/amount|balance|delta/.test(normalizedKey)) {
+    return true;
+  }
 
   return (
     normalizedKey.endsWith('id') && !SAFE_IDENTIFIER_KEYS.has(normalizedKey)

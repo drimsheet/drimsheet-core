@@ -12,7 +12,9 @@ const jurisdictionRepo: IJurisdictionRepo = {
       ? domain.map((value) => jurisdictionMapper.toRepo(value, createdBy))
       : [jurisdictionMapper.toRepo(domain, createdBy)];
 
-    if (values.length === 0) return;
+    if (values.length === 0) {
+      return;
+    }
 
     await query
       .insert(jurisdictionsInCore)

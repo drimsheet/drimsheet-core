@@ -25,7 +25,9 @@ function makeSentryError(error: unknown): Error {
   const sentryError = new Error(normalizedError.message);
 
   sentryError.name = normalizedError.name;
-  if (normalizedError.stack) sentryError.stack = normalizedError.stack;
+  if (normalizedError.stack) {
+    sentryError.stack = normalizedError.stack;
+  }
 
   if (normalizedError.errorKey) {
     Object.defineProperty(sentryError, 'errorKey', {
@@ -42,7 +44,9 @@ function projectReportContext(
   context: TReportContext | undefined
 ): Record<string, unknown> {
   try {
-    if (!context || typeof context !== 'object') return {};
+    if (!context || typeof context !== 'object') {
+      return {};
+    }
 
     const candidate = context as Record<string, unknown>;
     const projected: Record<string, unknown> = {};
@@ -81,14 +85,19 @@ function projectAbuseContext(
   context: TAbuseReportContext
 ): Record<string, unknown> {
   try {
-    if (!context || typeof context !== 'object') return {};
+    if (!context || typeof context !== 'object') {
+      return {};
+    }
 
     const candidate = context as unknown as Record<string, unknown>;
     const projected: Record<string, unknown> = {};
 
-    if (typeof candidate.method === 'string')
+    if (typeof candidate.method === 'string') {
       projected.method = candidate.method;
-    if (typeof candidate.scope === 'string') projected.scope = candidate.scope;
+    }
+    if (typeof candidate.scope === 'string') {
+      projected.scope = candidate.scope;
+    }
     if (typeof candidate.used === 'number' && Number.isFinite(candidate.used)) {
       projected.used = candidate.used;
     }
@@ -153,7 +162,9 @@ const reporter: IReporter = {
         message: sanitizedMessage,
       });
 
-      if (vars.APP_ENV === 'local') return;
+      if (vars.APP_ENV === 'local') {
+        return;
+      }
 
       Sentry.captureMessage(sanitizedMessage, {
         level: 'warning',

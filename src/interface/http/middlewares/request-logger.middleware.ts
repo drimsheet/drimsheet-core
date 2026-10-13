@@ -9,14 +9,20 @@ import { ELogOutcome } from '@shared/types/observability.types';
 function getHttpRoute(req: Request): string {
   const routePath = req.route?.path;
 
-  if (typeof routePath !== 'string') return 'unmatched';
+  if (typeof routePath !== 'string') {
+    return 'unmatched';
+  }
 
   return `${req.baseUrl || ''}${routePath}` || '/';
 }
 
 function getOutcome(statusCode: number) {
-  if (statusCode >= 500) return ELogOutcome.Failure;
-  if (statusCode >= 400) return ELogOutcome.Rejected;
+  if (statusCode >= 500) {
+    return ELogOutcome.Failure;
+  }
+  if (statusCode >= 400) {
+    return ELogOutcome.Rejected;
+  }
   return ELogOutcome.Success;
 }
 

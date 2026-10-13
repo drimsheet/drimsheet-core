@@ -25,7 +25,9 @@ const userAuthRepo: IUserAuthRepo = {
       .from(userAuth)
       .where(eq(userAuth.userId, userId));
 
-    if (!result.length) return null;
+    if (!result.length) {
+      return null;
+    }
 
     return userAuthMapper.toDomain(result[0]);
   },

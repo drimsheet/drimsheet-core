@@ -17,7 +17,9 @@ export default async function getAuthUserFromRequest(
 ): Promise<IUser | null> {
   const bearerToken = getHttpHeaderValue('authorization', req.headers);
 
-  if (!bearerToken) return null;
+  if (!bearerToken) {
+    return null;
+  }
 
   const parts = bearerToken.trim().split(/\s+/);
   if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer' || !parts[1]) {

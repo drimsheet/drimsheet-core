@@ -36,7 +36,9 @@ async function resolveOfficialRate(
   const transactionRate =
     accountLines.length === 1 ? accountLines[0].exchangeRate : null;
 
-  if (!transactionRate) return null;
+  if (!transactionRate) {
+    return null;
+  }
 
   return deps.exchangeRateAppService.getOfficialRate(
     transactionRate.currencyPair,
@@ -62,7 +64,9 @@ function makeMissingOfficialRateOutbox(
   },
   effectKind: UMissingOfficialFxRateEffectKind
 ): IMissingOfficialFxRateOutbox | null {
-  if (effect.officialRate !== null) return null;
+  if (effect.officialRate !== null) {
+    return null;
+  }
 
   return {
     id: effect.id,
@@ -86,7 +90,9 @@ function makeMissingOfficialRateOutbox(
  */
 function makeAcquire(deps: IDependencies): IFxLotAppService['acquire'] {
   return async (payload, repoOptions) => {
-    if (payload.journalEntry.status === EJournalEntryStatus.Draft) return null;
+    if (payload.journalEntry.status === EJournalEntryStatus.Draft) {
+      return null;
+    }
 
     const officialRate = await resolveOfficialRate(deps, payload, repoOptions);
     const domainResult = deps.fxCostBasisLotService.acquire({
@@ -96,7 +102,9 @@ function makeAcquire(deps: IDependencies): IFxLotAppService['acquire'] {
       officialRate,
     });
 
-    if (!domainResult) return null;
+    if (!domainResult) {
+      return null;
+    }
 
     const [lot, lotEvents, lotAudit] = domainResult.lot;
     const [acquisition, acquisitionEvents, acquisitionAudit] =
@@ -138,7 +146,9 @@ function makeAcquire(deps: IDependencies): IFxLotAppService['acquire'] {
  */
 function makeDispose(deps: IDependencies): IFxLotAppService['dispose'] {
   return async (payload, repoOptions) => {
-    if (payload.journalEntry.status === EJournalEntryStatus.Draft) return null;
+    if (payload.journalEntry.status === EJournalEntryStatus.Draft) {
+      return null;
+    }
 
     const officialRate = await resolveOfficialRate(deps, payload, repoOptions);
     const domainResult = await deps.fxCostBasisLotService.dispose(
@@ -151,7 +161,9 @@ function makeDispose(deps: IDependencies): IFxLotAppService['dispose'] {
       repoOptions
     );
 
-    if (!domainResult) return null;
+    if (!domainResult) {
+      return null;
+    }
 
     const lots = domainResult.lots.map((auditedLot) => {
       const [lot, , lotAudit] = auditedLot;
@@ -208,7 +220,9 @@ function makeReverse(deps: IDependencies): IFxLotAppService['reverse'] {
       repoOptions
     );
 
-    if (!domainResult) return null;
+    if (!domainResult) {
+      return null;
+    }
 
     return {
       records: {

@@ -144,7 +144,9 @@ async function prepareOpeningBalancePosting(
     }
   );
   const originalEntry = openingBalances.data[0];
-  if (!originalEntry) return null;
+  if (!originalEntry) {
+    return null;
+  }
 
   const posting = await deps.journalEntryService.postOpeningBalance(
     { entry: originalEntry, account, actor },

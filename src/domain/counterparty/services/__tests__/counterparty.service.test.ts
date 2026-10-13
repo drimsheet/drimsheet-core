@@ -133,13 +133,17 @@ describe('metadata-driven creation', () => {
       const meta: NonNullable<Parameters<typeof service.create>[0]['meta']> =
         {};
       // Deliberately supply keys in reverse order.
-      if (mask & 4)
+      if (mask & 4) {
         meta.contractor = {
           address: { ...rawAddress, line1: ' Contractor Road ' },
         };
-      if (mask & 2) meta.vendor = {};
-      if (mask & 1)
+      }
+      if (mask & 2) {
+        meta.vendor = {};
+      }
+      if (mask & 1) {
         meta.employer = { address: rawAddress, displayName: ' Employer ' };
+      }
       const before = structuredClone(meta);
       const [counterparty, events, audit] = service.create({
         ...payload,
@@ -159,18 +163,21 @@ describe('metadata-driven creation', () => {
       expect(audit.action).toBe('created');
       expect(audit.diff).toEqual({ before: null, after: counterparty });
       expect(meta).toEqual(before);
-      if (meta.employer)
+      if (meta.employer) {
         expect(counterparty.meta.employer).toEqual({
           displayName: 'Employer',
           address,
         });
-      if (meta.vendor)
+      }
+      if (meta.vendor) {
         expect(counterparty.meta.vendor).toEqual({ address: null });
-      if (meta.contractor)
+      }
+      if (meta.contractor) {
         expect(counterparty.meta.contractor?.address).toEqual({
           ...address,
           line1: 'Contractor Road',
         });
+      }
     }
   );
 
@@ -294,9 +301,15 @@ describe('counterparty updates', () => {
     async (mask) => {
       const meta: NonNullable<Parameters<typeof service.update>[1]['meta']> =
         {};
-      if (mask & 1) meta.employer = { address };
-      if (mask & 2) meta.vendor = {};
-      if (mask & 4) meta.contractor = { address };
+      if (mask & 1) {
+        meta.employer = { address };
+      }
+      if (mask & 2) {
+        meta.vendor = {};
+      }
+      if (mask & 4) {
+        meta.contractor = { address };
+      }
       const [after] = await service.update(draft(), { meta }, readOptions);
       expect(after.roles).toEqual(
         (['employer', 'vendor', 'contractor'] as const).filter(
@@ -304,11 +317,15 @@ describe('counterparty updates', () => {
         )
       );
       expect(Object.keys(after.meta)).toEqual(after.roles);
-      if (after.meta.employer)
+      if (after.meta.employer) {
         expect(after.meta.employer.displayName).toBeNull();
-      if (after.meta.vendor) expect(after.meta.vendor.address).toBeNull();
-      if (after.meta.contractor)
+      }
+      if (after.meta.vendor) {
+        expect(after.meta.vendor.address).toBeNull();
+      }
+      if (after.meta.contractor) {
         expect(Object.isFrozen(after.meta.contractor.address)).toBe(true);
+      }
     }
   );
 

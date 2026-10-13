@@ -32,7 +32,9 @@ function isTraceEnvelope(value: unknown): value is ISerializedTraceEnvelope {
 }
 
 function getTraceCarrier(value: unknown): ITraceCarrier {
-  if (!isRecord(value)) return {};
+  if (!isRecord(value)) {
+    return {};
+  }
 
   const carrier: ITraceCarrier = {};
 

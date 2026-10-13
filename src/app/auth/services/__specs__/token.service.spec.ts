@@ -41,7 +41,9 @@ const configureCacheStorage = () => {
   mockCacheStorage.setIfNotExists
     .mockReset()
     .mockImplementation(async <T>(key: string, value: T) => {
-      if (store.has(key)) return false;
+      if (store.has(key)) {
+        return false;
+      }
 
       store.set(key, value);
       return true;
@@ -50,7 +52,9 @@ const configureCacheStorage = () => {
     .mockReset()
     .mockImplementation(
       async <T>(key: string, value: T, additionalKeys: string[] = []) => {
-        if (store.get(key) !== value) return false;
+        if (store.get(key) !== value) {
+          return false;
+        }
 
         store.delete(key);
         additionalKeys.forEach((additionalKey) => store.delete(additionalKey));

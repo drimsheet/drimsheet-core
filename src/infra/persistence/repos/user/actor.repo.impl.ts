@@ -13,14 +13,18 @@ import actorHistoryRepo from './actor-history.repo.impl';
 
 /** Recognizes PostgreSQL's uniqueness violation, including Drizzle's cause wrapper. */
 function isUniqueViolation(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
   const isActorNameConflict =
     'code' in error &&
     error.code === '23505' &&
     'constraint' in error &&
     (error.constraint === 'actors_username_key' ||
       error.constraint === 'actors_owner_name_key');
-  if (isActorNameConflict) return true;
+  if (isActorNameConflict) {
+    return true;
+  }
   return 'cause' in error && isUniqueViolation(error.cause);
 }
 
@@ -35,7 +39,9 @@ const actorRepo: IActorRepo = {
         );
       });
     } catch (error) {
-      if (isUniqueViolation(error)) throw new actorError.UsernameConflict();
+      if (isUniqueViolation(error)) {
+        throw new actorError.UsernameConflict();
+      }
       throw error;
     }
   },

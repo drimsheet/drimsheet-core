@@ -160,9 +160,15 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     mockFxLotAppService.dispose.mockResolvedValue(null);
     mockFxLotAppService.acquire.mockResolvedValue(null);
     mockLedgerAccountRepo.findById.mockImplementation(async (id) => {
-      if (id === sourceAccount.id) return sourceAccount;
-      if (id === destinationAccount.id) return destinationAccount;
-      if (id === chargeAccount.id) return chargeAccount;
+      if (id === sourceAccount.id) {
+        return sourceAccount;
+      }
+      if (id === destinationAccount.id) {
+        return destinationAccount;
+      }
+      if (id === chargeAccount.id) {
+        return chargeAccount;
+      }
       return null;
     });
   });

@@ -53,8 +53,11 @@ const originalGoogleSecret = process.env.GOOGLE_AUTH_SECRET;
 const originalGoogleCallbackUrl = process.env.GOOGLE_AUTH_CALLBACK_URL;
 
 function restoreEnvironment(name: string, value: string | undefined) {
-  if (value === undefined) delete process.env[name];
-  else process.env[name] = value;
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
 }
 
 function getGoogleVerify(): TGoogleVerify {

@@ -181,7 +181,9 @@ function hasOnlyMetadataChanges(
   for (const line of lines) {
     const originalLine = entry.lines.find((item) => item.id === line.id);
 
-    if (!originalLine) return false;
+    if (!originalLine) {
+      return false;
+    }
 
     const hasAccountingLineChange =
       originalLine.accountId !== line.accountId ||
@@ -196,7 +198,9 @@ function hasOnlyMetadataChanges(
       originalLine.side !== line.side ||
       !isEqual(originalLine.meta, line.meta);
 
-    if (hasAccountingLineChange) return false;
+    if (hasAccountingLineChange) {
+      return false;
+    }
   }
 
   return true;

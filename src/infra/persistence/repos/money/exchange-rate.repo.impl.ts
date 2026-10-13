@@ -25,7 +25,9 @@ const exchangeRateRepo: IExchangeRateRepo = {
   },
 
   async findLatest(currencyPairs, options) {
-    if (currencyPairs.length === 0) return [];
+    if (currencyPairs.length === 0) {
+      return [];
+    }
 
     const dbQuery = getDbQuery(options);
     const results = await dbQuery

@@ -10,7 +10,9 @@ import {
 import paginationError from './pagination.error';
 
 function getLimit(limit?: number): number {
-  if (!limit) return 10;
+  if (!limit) {
+    return 10;
+  }
 
   numberUtils.validateInteger(limit, paginationError.InvalidLimit);
 
@@ -18,7 +20,9 @@ function getLimit(limit?: number): number {
 }
 
 function getOffset(offset?: number): number {
-  if (!offset) return 0;
+  if (!offset) {
+    return 0;
+  }
 
   numberUtils.validateInteger(offset, paginationError.InvalidOffset);
 

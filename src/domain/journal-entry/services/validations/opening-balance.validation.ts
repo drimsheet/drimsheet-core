@@ -25,7 +25,9 @@ function validateNoBalanceAdjustments(
 function validateEquityAccount(
   account: ILedgerAccount | undefined
 ): asserts account is ILedgerAccount {
-  if (!account) throw new journalEntryError.UnConfiguredOpeningBalanceAccount();
+  if (!account) {
+    throw new journalEntryError.UnConfiguredOpeningBalanceAccount();
+  }
 }
 
 function validateNoOpeningBalance(account: ILedgerAccount) {

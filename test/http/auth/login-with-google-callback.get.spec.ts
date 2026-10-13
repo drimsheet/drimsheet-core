@@ -88,7 +88,9 @@ describe('GET /api/v1/auth/google/callback', () => {
       ['array state', '?state=expected&state=other', 'oauth_state=expected'],
     ])('rejects %s and clears state', async (_case, query, cookie) => {
       const pending = request(app).get(`/api/v1/auth/google/callback${query}`);
-      if (cookie) pending.set('Cookie', [cookie]);
+      if (cookie) {
+        pending.set('Cookie', [cookie]);
+      }
       const response = await pending;
 
       expect(response.status).toBe(401);

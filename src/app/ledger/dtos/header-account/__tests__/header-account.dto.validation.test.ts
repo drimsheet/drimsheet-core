@@ -34,7 +34,9 @@ describe('headerAccountNameAliasesReqValidation', () => {
       );
       const result = schema.safeParse({ [key]: ' ' });
       expect(result.success).toBe(false);
-      if (result.success) throw new Error('Expected invalid alias');
+      if (result.success) {
+        throw new Error('Expected invalid alias');
+      }
       expect(result.error.issues[0]).toMatchObject({
         path: [key],
         message: invalidNameKey,
@@ -47,7 +49,9 @@ describe('headerAccountNameAliasesReqValidation', () => {
     (value) => {
       const result = schema.safeParse({ receivables: value });
       expect(result.success).toBe(false);
-      if (result.success) throw new Error('Expected invalid alias');
+      if (result.success) {
+        throw new Error('Expected invalid alias');
+      }
       for (const issue of result.error.issues) {
         expect(issue).toEqual(
           expect.objectContaining({
@@ -64,7 +68,9 @@ describe('headerAccountNameAliasesReqValidation', () => {
     (payload) => {
       const result = schema.safeParse(payload);
       expect(result.success).toBe(false);
-      if (result.success) throw new Error('Expected invalid payload');
+      if (result.success) {
+        throw new Error('Expected invalid payload');
+      }
       expect(result.error.issues[0].message).toBe(invalidNameKey);
     }
   );
@@ -84,7 +90,9 @@ describe('headerAccountNameAliasesReqValidation', () => {
   ])('rejects unknown property %s', (key) => {
     const result = schema.safeParse({ [key]: 'value' });
     expect(result.success).toBe(false);
-    if (result.success) throw new Error('Expected unknown property');
+    if (result.success) {
+      throw new Error('Expected unknown property');
+    }
     expect(result.error.issues[0].message).toBe(invalidNameKey);
   });
 });

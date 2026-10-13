@@ -44,7 +44,9 @@ function makeAcquire(): IFxCostBasisLotService['acquire'] {
       journalLine
     );
 
-    if (!hasFxEffect) return null;
+    if (!hasFxEffect) {
+      return null;
+    }
 
     lotServiceValidation.validateFxLine(
       payload,
@@ -101,8 +103,9 @@ function makeDispose(deps: IDependencies): IFxCostBasisLotService['dispose'] {
 
     if (
       !lotServiceValidation.hasFxCostBasisEffect(payload.account, journalLine)
-    )
+    ) {
       return null;
+    }
 
     lotServiceValidation.validateFxLine(
       payload,

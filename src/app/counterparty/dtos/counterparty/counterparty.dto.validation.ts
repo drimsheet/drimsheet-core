@@ -144,7 +144,9 @@ export const getCounterpartiesQueryValidationSchema = z.object({
   ...omit(paginationDtoValidation.shape, ['orderBy']),
   roles: z
     .preprocess((val) => {
-      if (val === undefined || val === null || val === '') return undefined;
+      if (val === undefined || val === null || val === '') {
+        return undefined;
+      }
       return Array.isArray(val) ? val : [val];
     }, z.array(counterpartyRoleValidation).optional())
     .optional(),

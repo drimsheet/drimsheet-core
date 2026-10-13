@@ -226,9 +226,11 @@ describe('accountingEntityRepo.findById', () => {
       expect(getDbQuery).toHaveBeenCalledWith(options);
       expect(where).toHaveBeenCalledWith(eq(accountingEntitiesInCore.id, id));
       expect(lock).toHaveBeenCalledWith('update');
-      if (exists)
+      if (exists) {
         expect(accountingEntityMapper.toDomain).toHaveBeenCalledWith(row);
-      else expect(accountingEntityMapper.toDomain).not.toHaveBeenCalled();
+      } else {
+        expect(accountingEntityMapper.toDomain).not.toHaveBeenCalled();
+      }
     }
   );
 });

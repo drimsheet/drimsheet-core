@@ -270,7 +270,9 @@ describe('Journal Entry Mapper', () => {
       });
       expect(dto).not.toHaveProperty('version');
       expect(dto.lines).toHaveLength(2);
-      for (const line of dto.lines) expect(line).not.toHaveProperty('version');
+      for (const line of dto.lines) {
+        expect(line).not.toHaveProperty('version');
+      }
     });
   });
 });

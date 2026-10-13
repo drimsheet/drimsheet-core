@@ -36,7 +36,9 @@ function makeResponse(
     statusCode,
     getHeader: jest.fn().mockReturnValue(contentLength),
     on: jest.fn((event: string, callback: () => void) => {
-      if (event === 'finish') finish = callback;
+      if (event === 'finish') {
+        finish = callback;
+      }
     }),
   } as unknown as Response;
 

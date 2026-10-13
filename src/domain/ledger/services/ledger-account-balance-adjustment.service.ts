@@ -121,7 +121,9 @@ function calculate(journalEntry: IJournalEntry, accounts: ILedgerAccount[]) {
       throw new journalEntryError.AccountNotFound({ cause: { accountId } });
     }
 
-    if (directAccount.subType === EEquitySubType.OpeningBalance) continue;
+    if (directAccount.subType === EEquitySubType.OpeningBalance) {
+      continue;
+    }
 
     const directDelta = calculateDirectDelta(directAccount, lines);
 

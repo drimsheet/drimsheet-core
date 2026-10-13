@@ -290,12 +290,13 @@ describe('setupHeaderAccountsUsecase', () => {
     mockLedgerAccountPersistenceAppService.create.mockImplementation(
       async (account, currency, options) => {
         expect(options.tx).toBe(tx);
-        if (account.controlAccountId)
+        if (account.controlAccountId) {
           expect(
             storedAccounts.some(
               (parent) => parent.id === account.controlAccountId
             )
           ).toBe(true);
+        }
         expect(
           storedAccounts.some((stored) => stored.code === account.code)
         ).toBe(false);
@@ -473,11 +474,12 @@ describe('setupHeaderAccountsUsecase', () => {
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
       expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       expect(mockEventBus.publish.mock.calls[0][0]).toHaveLength(24);
-      for (const entry of domainCalls)
+      for (const entry of domainCalls) {
         expect(entry[1]).toHaveBeenCalledWith(
           { name: entry[2], accountingEntity, createdBy: actor.id },
           { correlationId, tx }
         );
+      }
       for (const account of storedAccounts.slice(20)) {
         const parent = storedAccounts.find(
           (candidate) => candidate.id === account.controlAccountId
@@ -510,22 +512,28 @@ describe('setupHeaderAccountsUsecase', () => {
     'cleans up after a %s failure without publication',
     async (stage) => {
       const failure = new Error(stage);
-      if (stage === 'header')
+      if (stage === 'header') {
         mockAssetAccountService.createHeader.mockRejectedValueOnce(failure);
-      if (stage === 'control')
+      }
+      if (stage === 'control') {
         mockPayablesAccountService.createStatutoryPayableSubAccount.mockRejectedValueOnce(
           failure
         );
-      if (stage === 'write')
+      }
+      if (stage === 'write') {
         mockLedgerAccountPersistenceAppService.create.mockImplementation(
           async (account, currency, options) => {
             storedAccounts.push(account);
             storedHistories.push(...options.history);
-            if (storedAccounts.length === 24) throw failure;
+            if (storedAccounts.length === 24) {
+              throw failure;
+            }
           }
         );
-      if (stage === 'commit')
+      }
+      if (stage === 'commit') {
         mockRepoTransaction.commit.mockRejectedValueOnce(failure);
+      }
       await expect(usecase()).rejects.toBe(failure);
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
       expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
@@ -545,12 +553,13 @@ describe('setupHeaderAccountsUsecase', () => {
       async (payload, options) => {
         const accounts = Array.isArray(payload) ? payload : [payload];
         for (const account of accounts) {
-          if (account.controlAccountId)
+          if (account.controlAccountId) {
             expect(
               storedAccounts.some(
                 (parent) => parent.id === account.controlAccountId
               )
             ).toBe(true);
+          }
           expect(
             storedAccounts.some((stored) => stored.code === account.code)
           ).toBe(false);
@@ -582,11 +591,12 @@ describe('setupHeaderAccountsUsecase', () => {
     expect(storedAccounts).toHaveLength(24);
     expect(storedBalances).toHaveLength(24);
     expect(storedHistories).toHaveLength(24);
-    for (const account of storedAccounts)
+    for (const account of storedAccounts) {
       expect(
         storedBalances.find((balance) => balance.ledgerAccountId === account.id)
           ?.accountMaterializedPath
       ).toBe(account.materializedPath);
+    }
     expect(response.slice(20).map((account) => account.code)).toEqual([
       '102001',
       '102002',

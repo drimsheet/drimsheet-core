@@ -12,8 +12,12 @@ interface IDependencies {
 }
 
 function requireActive(actor: IActor | null): IActor {
-  if (!actor) throw new actorError.NotFound();
-  if (actor.status !== EActorStatus.Active) throw new actorError.Disabled();
+  if (!actor) {
+    throw new actorError.NotFound();
+  }
+  if (actor.status !== EActorStatus.Active) {
+    throw new actorError.Disabled();
+  }
   return actor;
 }
 
@@ -27,7 +31,9 @@ function makeResolveUser(deps: IDependencies): IActorService['resolveUser'] {
       actor.type !== EActorType.User ||
       actor.id !== user.actorId ||
       actor.username !== user.email;
-    if (hasInvalidLink) throw new actorError.InvalidUserLink();
+    if (hasInvalidLink) {
+      throw new actorError.InvalidUserLink();
+    }
     return actor;
   };
 }

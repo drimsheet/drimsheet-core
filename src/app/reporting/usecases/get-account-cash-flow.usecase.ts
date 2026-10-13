@@ -48,7 +48,9 @@ export default function makeGetAccountCashFlowUsecase(deps: IDependencies) {
       new Date(query.to),
       'day'
     );
-    if (days <= 0) throw new reportingError.InvalidPeriod();
+    if (days <= 0) {
+      throw new reportingError.InvalidPeriod();
+    }
     if (days > MAX_PERIOD_DAYS) {
       throw new reportingError.ReportPeriodLimitExceeded({
         maxDays: MAX_PERIOD_DAYS,
@@ -66,7 +68,9 @@ export default function makeGetAccountCashFlowUsecase(deps: IDependencies) {
       accountingEntity.id,
       repoOptions
     );
-    if (!account) throw new reportingError.AccountNotFound();
+    if (!account) {
+      throw new reportingError.AccountNotFound();
+    }
 
     const isCashBehavior =
       account.behavior === EAssetAccountBehavior.Bank ||
@@ -84,10 +88,14 @@ export default function makeGetAccountCashFlowUsecase(deps: IDependencies) {
       account.status !== ELedgerAccountStatus.Draft &&
       account.deletedAt === null;
 
-    if (!isEligible) throw new reportingError.UnsupportedAccount();
+    if (!isEligible) {
+      throw new reportingError.UnsupportedAccount();
+    }
 
     const { currency } = account;
-    if (!currency) throw new reportingError.UnsupportedAccount();
+    if (!currency) {
+      throw new reportingError.UnsupportedAccount();
+    }
 
     const aggregates = await deps.accountCashFlowQueryRepo.aggregateByAccount(
       {
@@ -134,7 +142,9 @@ export default function makeGetAccountCashFlowUsecase(deps: IDependencies) {
     for (const money of cashFlowAmounts) {
       const isOutOfRange =
         money.amount < 0n || !moneyValue.isSafeMinorUnitNumber(money);
-      if (isOutOfRange) throw new reportingError.AmountOutOfRange();
+      if (isOutOfRange) {
+        throw new reportingError.AmountOutOfRange();
+      }
     }
 
     const report = {

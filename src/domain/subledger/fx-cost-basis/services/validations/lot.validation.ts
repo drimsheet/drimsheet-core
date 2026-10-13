@@ -22,7 +22,9 @@ function hasFxCostBasisEffect(
     !account.isControlAccount &&
     account.currency !== null;
 
-  if (!isFxCashAccount) return false;
+  if (!isFxCashAccount) {
+    return false;
+  }
 
   return account.currency!.code !== journalLine.functionalAmount.currency.code;
 }

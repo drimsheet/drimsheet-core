@@ -21,7 +21,7 @@ describe('createExpenseAccountValidation', () => {
     (status) => {
       const result = schema.safeParse({ ...valid, status });
       expect(result.success).toBe(false);
-      if (!result.success)
+      if (!result.success) {
         expect(result.error.issues).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
@@ -30,6 +30,7 @@ describe('createExpenseAccountValidation', () => {
             }),
           ])
         );
+      }
     }
   );
   it('accepts a single account with an optional UUID parent', () => {

@@ -21,19 +21,25 @@ const EXTRA_STRING_FIELDS = [
 const EXTRA_NUMBER_FIELDS = ['attempt', 'used', 'limit'] as const;
 
 function sanitizeString(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
+  if (typeof value !== 'string') {
+    return undefined;
+  }
 
   const sanitizedValue = sanitizeData(value);
   return typeof sanitizedValue === 'string' ? sanitizedValue : undefined;
 }
 
 function sanitizeErrorString(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
+  if (typeof value !== 'string') {
+    return undefined;
+  }
   return sanitizeTelemetryErrorText(value, '');
 }
 
 function projectSdk(sdk: Event['sdk']): Event['sdk'] {
-  if (!sdk || typeof sdk !== 'object') return undefined;
+  if (!sdk || typeof sdk !== 'object') {
+    return undefined;
+  }
 
   const name = sanitizeString(sdk.name);
   const version = sanitizeString(sdk.version);
@@ -64,14 +70,18 @@ function projectSdk(sdk: Event['sdk']): Event['sdk'] {
 }
 
 function projectModules(modules: Event['modules']): Event['modules'] {
-  if (!modules || typeof modules !== 'object') return undefined;
+  if (!modules || typeof modules !== 'object') {
+    return undefined;
+  }
 
   const projected = Object.entries(modules).reduce<Record<string, string>>(
     (safeModules, [name, version]) => {
       const safeName = sanitizeString(name);
       const safeVersion = sanitizeString(version);
 
-      if (safeName && safeVersion) safeModules[safeName] = safeVersion;
+      if (safeName && safeVersion) {
+        safeModules[safeName] = safeVersion;
+      }
       return safeModules;
     },
     {}
@@ -81,15 +91,21 @@ function projectModules(modules: Event['modules']): Event['modules'] {
 }
 
 function projectDebugMeta(debugMeta: Event['debug_meta']): Event['debug_meta'] {
-  if (!Array.isArray(debugMeta?.images)) return undefined;
+  if (!Array.isArray(debugMeta?.images)) {
+    return undefined;
+  }
 
   const images = debugMeta.images.flatMap((image) => {
-    if (!image || typeof image !== 'object') return [];
+    if (!image || typeof image !== 'object') {
+      return [];
+    }
 
     const imageRecord = image as unknown as Record<string, unknown>;
     const type = sanitizeString(imageRecord.type);
     const debugId = sanitizeString(imageRecord.debug_id);
-    if (!type || !debugId) return [];
+    if (!type || !debugId) {
+      return [];
+    }
 
     const projected: Record<string, unknown> = {
       type,
@@ -98,7 +114,9 @@ function projectDebugMeta(debugMeta: Event['debug_meta']): Event['debug_meta'] {
 
     ['code_id', 'code_file', 'debug_file', 'image_addr'].forEach((field) => {
       const value = sanitizeString(imageRecord[field]);
-      if (value !== undefined) projected[field] = value;
+      if (value !== undefined) {
+        projected[field] = value;
+      }
     });
 
     if (
@@ -115,13 +133,17 @@ function projectDebugMeta(debugMeta: Event['debug_meta']): Event['debug_meta'] {
 }
 
 function projectExtra(extra: Event['extra']): Event['extra'] {
-  if (!extra || typeof extra !== 'object') return undefined;
+  if (!extra || typeof extra !== 'object') {
+    return undefined;
+  }
 
   const projected: Record<string, unknown> = {};
 
   EXTRA_STRING_FIELDS.forEach((field) => {
     const value = sanitizeString(extra[field]);
-    if (value !== undefined) projected[field] = value;
+    if (value !== undefined) {
+      projected[field] = value;
+    }
   });
 
   EXTRA_NUMBER_FIELDS.forEach((field) => {
@@ -147,7 +169,9 @@ function projectContext(
   context: Record<string, unknown> | undefined,
   fields: readonly string[]
 ): Record<string, unknown> | undefined {
-  if (!context || typeof context !== 'object') return undefined;
+  if (!context || typeof context !== 'object') {
+    return undefined;
+  }
 
   const projected: Record<string, unknown> = {};
 
@@ -163,14 +187,18 @@ function projectContext(
     }
 
     const sanitizedValue = sanitizeString(value);
-    if (sanitizedValue !== undefined) projected[field] = sanitizedValue;
+    if (sanitizedValue !== undefined) {
+      projected[field] = sanitizedValue;
+    }
   });
 
   return Object.keys(projected).length > 0 ? projected : undefined;
 }
 
 function projectContexts(contexts: Event['contexts']): Event['contexts'] {
-  if (!contexts || typeof contexts !== 'object') return undefined;
+  if (!contexts || typeof contexts !== 'object') {
+    return undefined;
+  }
 
   const projected: NonNullable<Event['contexts']> = {};
   const trace = projectContext(contexts.trace, [
@@ -197,10 +225,18 @@ function projectContexts(contexts: Event['contexts']): Event['contexts'] {
     'kernel_version',
   ]);
 
-  if (trace) projected.trace = trace as NonNullable<Event['contexts']>['trace'];
-  if (app) projected.app = app;
-  if (runtime) projected.runtime = runtime;
-  if (os) projected.os = os;
+  if (trace) {
+    projected.trace = trace as NonNullable<Event['contexts']>['trace'];
+  }
+  if (app) {
+    projected.app = app;
+  }
+  if (runtime) {
+    projected.runtime = runtime;
+  }
+  if (os) {
+    projected.os = os;
+  }
 
   return Object.keys(projected).length > 0 ? projected : undefined;
 }
@@ -210,7 +246,9 @@ function projectStacktrace(
     NonNullable<NonNullable<Event['exception']>['values']>[number]
   >['stacktrace']
 ) {
-  if (!stacktrace?.frames) return undefined;
+  if (!stacktrace?.frames) {
+    return undefined;
+  }
 
   const framesOmitted =
     Array.isArray(stacktrace.frames_omitted) &&
@@ -248,7 +286,9 @@ function projectStacktrace(
         ] as const
       ).reduce<Record<string, unknown>>((fields, field) => {
         const value = sanitizeString(frame[field]);
-        if (value !== undefined) fields[field] = value;
+        if (value !== undefined) {
+          fields[field] = value;
+        }
         return fields;
       }, {}),
     })),
@@ -258,7 +298,9 @@ function projectStacktrace(
 function projectException(exception: Event['exception']): Event['exception'] {
   const values = exception?.values;
   const sourceException = values?.[values.length - 1];
-  if (!sourceException) return undefined;
+  if (!sourceException) {
+    return undefined;
+  }
 
   const type = sanitizeString(sourceException.type) ?? 'UnknownError';
   const value = sanitizeErrorString(sourceException.value) ?? type;
@@ -298,7 +340,9 @@ function sanitizeBreadcrumbMessage(message: unknown): string | undefined {
 function projectBreadcrumbs(
   breadcrumbs: Event['breadcrumbs']
 ): Event['breadcrumbs'] {
-  if (!Array.isArray(breadcrumbs)) return undefined;
+  if (!Array.isArray(breadcrumbs)) {
+    return undefined;
+  }
 
   return breadcrumbs.map((breadcrumb) => ({
     ...(breadcrumb.type ? { type: sanitizeString(breadcrumb.type) } : {}),

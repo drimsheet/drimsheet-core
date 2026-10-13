@@ -21,7 +21,9 @@ interface IDependencies {
 function makeCreate(): ICounterpartyService['create'] {
   return (payload) => {
     const { meta } = payload;
-    if (meta !== undefined) counterpartyMetaValidation.validateCreate(meta);
+    if (meta !== undefined) {
+      counterpartyMetaValidation.validateCreate(meta);
+    }
 
     const assignments: TCounterpartyRoleDetails[] = [];
     if (meta?.employer) {
@@ -44,7 +46,9 @@ function makeCreate(): ICounterpartyService['create'] {
     }
 
     const creation = counterpartyEntity.make(payload);
-    if (assignments.length === 0) return creation;
+    if (assignments.length === 0) {
+      return creation;
+    }
 
     const [initialCounterparty, createdEvents] = creation;
     let counterparty = initialCounterparty;

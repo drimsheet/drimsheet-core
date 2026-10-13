@@ -31,9 +31,15 @@ describe('counterpartyMapper', () => {
       };
       const meta: NonNullable<Parameters<typeof service.create>[0]['meta']> =
         {};
-      if (combination & 1) meta.employer = { address };
-      if (combination & 2) meta.vendor = { address: null };
-      if (combination & 4) meta.contractor = { address };
+      if (combination & 1) {
+        meta.employer = { address };
+      }
+      if (combination & 2) {
+        meta.vendor = { address: null };
+      }
+      if (combination & 4) {
+        meta.contractor = { address };
+      }
 
       const [entity] = service.create({
         ...payload,

@@ -302,16 +302,20 @@ describe('DELETE /counterparties/{id}', () => {
       'sanitizes unexpected %s failure',
       async (stage) => {
         const failure = new Error('private database details');
-        if (stage === 'read')
+        if (stage === 'read') {
           mockCounterpartyRepo.findById.mockRejectedValue(failure);
-        if (stage === 'usage')
+        }
+        if (stage === 'usage') {
           mockJournalLineRepo.findAllByCounterpartyId.mockRejectedValue(
             failure
           );
-        if (stage === 'delete')
+        }
+        if (stage === 'delete') {
           mockCounterpartyRepo.delete.mockRejectedValue(failure);
-        if (stage === 'commit')
+        }
+        if (stage === 'commit') {
           mockRepoTransaction.commit.mockRejectedValue(failure);
+        }
         const response = await deleteRequest();
         expect(response.status).toBe(500);
         expect(response.body.errorKey).toBe('app_error_unexpected');

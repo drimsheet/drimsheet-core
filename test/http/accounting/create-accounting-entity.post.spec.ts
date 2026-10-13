@@ -265,7 +265,9 @@ describe('POST /accounting/accounting-entity', () => {
       ['authorization with extra segments', 'Bearer token extra'],
     ])('rejects %s', async (_label, authorization) => {
       const requestBuilder = request(app).post(ENDPOINT).send(validPayload);
-      if (authorization) requestBuilder.set('Authorization', authorization);
+      if (authorization) {
+        requestBuilder.set('Authorization', authorization);
+      }
 
       const response = await requestBuilder;
 

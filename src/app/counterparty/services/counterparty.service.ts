@@ -103,7 +103,9 @@ function makeFindOrCreateMany(
 
       const key = getKey(input);
 
-      if (counterparties.has(key)) continue;
+      if (counterparties.has(key)) {
+        continue;
+      }
 
       const counterparty = await findOrCreate(
         input,

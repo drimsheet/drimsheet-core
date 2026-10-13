@@ -136,7 +136,9 @@ function update(
     line.description === description &&
     isEqual(line.meta, payload.meta);
 
-  if (isUnchanged) return [line, [], null];
+  if (isUnchanged) {
+    return [line, [], null];
+  }
 
   const updatedLine: IJournalLine = Object.freeze({
     id: line.id,

@@ -11,7 +11,9 @@ const RAW_AUTH_VALUE_REGEX =
   /\b(?:bearer\s+[^\s,;]+|eyJ[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]+|[a-z0-9._~+/=-]*(?:(?:access|refresh|id)[_-]?token|password|secret)[a-z0-9._~+/=-]*|[a-z0-9._~+/=]+[-_]token)\b/gi;
 
 function sanitizeString(value: unknown, fallback: string): string {
-  if (typeof value !== 'string') return fallback;
+  if (typeof value !== 'string') {
+    return fallback;
+  }
 
   const sanitizedValue = sanitizeData(value);
   return typeof sanitizedValue === 'string' ? sanitizedValue : fallback;
@@ -28,8 +30,12 @@ export function sanitizeTelemetryErrorText(
 }
 
 function getThrownValueType(value: unknown): string {
-  if (value === null) return 'null';
-  if (Array.isArray(value)) return 'array';
+  if (value === null) {
+    return 'null';
+  }
+  if (Array.isArray(value)) {
+    return 'array';
+  }
 
   return typeof value;
 }

@@ -16,15 +16,21 @@ export default async function getAccountingEntityFromRequest(
   repoOptions: IReadRepoOptions,
   userId?: TEntityId
 ): Promise<IAccountingEntity | null> {
-  if (!userId) return null;
+  if (!userId) {
+    return null;
+  }
 
   const id = getHttpHeaderValue('x-accounting-entity-id', req.headers);
 
-  if (!id) return null;
+  if (!id) {
+    return null;
+  }
 
   const isValidUUID = stringUtils.isUUID(id);
 
-  if (!isValidUUID) throw new appError.BadRequest();
+  if (!isValidUUID) {
+    throw new appError.BadRequest();
+  }
 
   const accountingEntity = await repo.findByIdAndUserId(
     id as TEntityId,
@@ -32,7 +38,9 @@ export default async function getAccountingEntityFromRequest(
     repoOptions
   );
 
-  if (!accountingEntity) return null;
+  if (!accountingEntity) {
+    return null;
+  }
 
   return accountingEntity;
 }

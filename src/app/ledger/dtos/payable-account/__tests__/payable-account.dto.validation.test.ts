@@ -17,7 +17,7 @@ describe('createTradePayableAccountValidation', () => {
     (status) => {
       const result = schema.safeParse({ ...valid, status });
       expect(result.success).toBe(false);
-      if (!result.success)
+      if (!result.success) {
         expect(result.error.issues).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
@@ -26,6 +26,7 @@ describe('createTradePayableAccountValidation', () => {
             }),
           ])
         );
+      }
     }
   );
   it('accepts a single account with an optional UUID parent', () => {
@@ -90,8 +91,9 @@ describe('createTradePayableAccountValidation', () => {
     invoiceId: '123e4567-e89b-42d3-a456-426614174001',
   };
   it('accepts omitted, null or defined metadata', () => {
-    for (const value of [undefined, null, meta])
+    for (const value of [undefined, null, meta]) {
       expect(schema.safeParse({ ...valid, meta: value }).success).toBe(true);
+    }
   });
   it.each([{}, { ...meta, unexpected: true }, { ...meta, invoiceId: 42 }])(
     'rejects malformed metadata',
@@ -119,7 +121,7 @@ describe('createStatutoryPayableAccountValidation', () => {
     (status) => {
       const result = schema.safeParse({ ...valid, status });
       expect(result.success).toBe(false);
-      if (!result.success)
+      if (!result.success) {
         expect(result.error.issues).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
@@ -128,6 +130,7 @@ describe('createStatutoryPayableAccountValidation', () => {
             }),
           ])
         );
+      }
     }
   );
   it('accepts a single account with an optional UUID parent', () => {
@@ -190,8 +193,9 @@ describe('createStatutoryPayableAccountValidation', () => {
   );
   const meta = { taxAuthority: 'FIRS', taxType: 'income_tax' };
   it('accepts omitted, null or defined metadata', () => {
-    for (const value of [undefined, null, meta])
+    for (const value of [undefined, null, meta]) {
       expect(schema.safeParse({ ...valid, meta: value }).success).toBe(true);
+    }
   });
   it.each([{}, { ...meta, unexpected: true }, { ...meta, taxType: 42 }])(
     'rejects malformed metadata',

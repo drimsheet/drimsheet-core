@@ -149,7 +149,9 @@ describe('POST /accounting/accounting-entity/switch', () => {
       const requestBuilder = request(app)
         .post(ENDPOINT)
         .send({ accountingEntityId: entity.id });
-      if (authorization) requestBuilder.set('Authorization', authorization);
+      if (authorization) {
+        requestBuilder.set('Authorization', authorization);
+      }
 
       const response = await requestBuilder;
 

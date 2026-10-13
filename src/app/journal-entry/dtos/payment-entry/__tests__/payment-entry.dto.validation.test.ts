@@ -77,10 +77,11 @@ describe('Payment Entry DTO Validation', () => {
       ];
       for (const result of results) {
         expect(result.success).toBe(type !== 'invalid');
-        if (!result.success)
+        if (!result.success) {
           expect(result.error.issues[0].message).toBe(
             new counterpartyError.InvalidType().errorKey
           );
+        }
       }
     }
   );

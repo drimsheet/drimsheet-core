@@ -96,8 +96,9 @@ function makeAgent(payload: {
 }) {
   if ('user' in payload) {
     actorValidation.validateOwner(payload.user!);
-    if (typeof payload.name !== 'string')
+    if (typeof payload.name !== 'string') {
       throw new actorError.InvalidAgentName();
+    }
     const name = getAgentNameHelper(payload.name);
     return create(
       {
@@ -110,7 +111,9 @@ function makeAgent(payload: {
       payload.createdBy
     );
   }
-  if (payload.name !== undefined) throw new actorError.InvalidAgentName();
+  if (payload.name !== undefined) {
+    throw new actorError.InvalidAgentName();
+  }
   return create(
     {
       type: EActorType.AiAgent,

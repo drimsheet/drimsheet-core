@@ -74,8 +74,9 @@ function makeCreateSubAccount(
   deps: IDependencies
 ): IBankChargeAccountService['createSubAccount'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
+    }
 
     const controlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,

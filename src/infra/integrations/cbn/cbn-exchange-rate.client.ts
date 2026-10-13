@@ -36,7 +36,9 @@ export async function fetchCbnExchangeRates(
 }
 
 export function isRetryableCbnExchangeRateError(error: unknown): boolean {
-  if (!axios.isAxiosError(error)) return false;
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
 
   if (
     typeof error.response?.status === 'number' &&
@@ -63,14 +65,18 @@ export function getCbnRetryAfterMs(
 
   const retryAfter = error.response.headers?.['retry-after'];
   const headerValue = Array.isArray(retryAfter) ? retryAfter[0] : retryAfter;
-  if (typeof headerValue !== 'string') return undefined;
+  if (typeof headerValue !== 'string') {
+    return undefined;
+  }
 
   const seconds = Number(headerValue);
   const retryAfterMs = Number.isFinite(seconds)
     ? seconds * 1_000
     : Date.parse(headerValue) - nowMs;
 
-  if (!Number.isFinite(retryAfterMs) || retryAfterMs <= 0) return undefined;
+  if (!Number.isFinite(retryAfterMs) || retryAfterMs <= 0) {
+    return undefined;
+  }
 
   return Math.min(retryAfterMs, MAX_RETRY_AFTER_MS);
 }

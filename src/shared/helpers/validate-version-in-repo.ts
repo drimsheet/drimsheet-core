@@ -37,7 +37,9 @@ export default function validateVersionInRepo(
     });
   }
 
-  if (!('history' in options)) return;
+  if (!('history' in options)) {
+    return;
+  }
 
   const histories = Array.isArray(options.history)
     ? options.history

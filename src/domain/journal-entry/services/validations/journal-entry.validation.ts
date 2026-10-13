@@ -102,7 +102,9 @@ function validateAccounts(
       accountCurrencyCode === null ||
       accountCurrencyCode === amountCurrencyCode;
 
-    if (isValidCurrency) continue;
+    if (isValidCurrency) {
+      continue;
+    }
 
     mismatchedJournalLines.push({
       accountId: journalLine.account.id,
@@ -117,7 +119,9 @@ function validateAccounts(
     });
   }
 
-  if (header.postedAt === null) return;
+  if (header.postedAt === null) {
+    return;
+  }
 
   const draftAccounts = allAccounts.filter(
     (account) => account.status === ELedgerAccountStatus.Draft
@@ -152,7 +156,9 @@ function validateCounterparties(
     });
   }
 
-  if (header.postedAt === null) return;
+  if (header.postedAt === null) {
+    return;
+  }
 
   const draftCounterparties = Array.from(allCounterparties).filter(
     (counterparty) => counterparty.status === ECounterpartyStatus.Draft

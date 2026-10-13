@@ -263,11 +263,21 @@ describe('makeCreateTransferUsecase', () => {
       clientSession: mockClientSession,
     } as IAppContextData);
     mockLedgerAccountRepo.findById.mockImplementation(async (id: TEntityId) => {
-      if (id === sourceAccount.id) return sourceAccount;
-      if (id === destinationAccount.id) return destinationAccount;
-      if (id === usdSourceAccount.id) return usdSourceAccount;
-      if (id === usdDestinationAccount.id) return usdDestinationAccount;
-      if (id === bankChargeAccount.id) return bankChargeAccount;
+      if (id === sourceAccount.id) {
+        return sourceAccount;
+      }
+      if (id === destinationAccount.id) {
+        return destinationAccount;
+      }
+      if (id === usdSourceAccount.id) {
+        return usdSourceAccount;
+      }
+      if (id === usdDestinationAccount.id) {
+        return usdDestinationAccount;
+      }
+      if (id === bankChargeAccount.id) {
+        return bankChargeAccount;
+      }
       return null;
     });
     mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);

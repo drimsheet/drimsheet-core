@@ -31,8 +31,11 @@ describe('reporter', () => {
   const validCorrelationId = '0198ad49-0f4a-7709-a5bf-2f7cfbaea7c4';
 
   afterEach(() => {
-    if (originalAppEnv === undefined) delete process.env.APP_ENV;
-    else process.env.APP_ENV = originalAppEnv;
+    if (originalAppEnv === undefined) {
+      delete process.env.APP_ENV;
+    } else {
+      process.env.APP_ENV = originalAppEnv;
+    }
 
     jest.restoreAllMocks();
     jest.clearAllMocks();

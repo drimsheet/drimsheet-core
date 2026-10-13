@@ -62,7 +62,9 @@ export function mapCbnExchangeRates(
       continue;
     }
 
-    if (record.ratedate < CBN_EXCHANGE_RATE_INITIAL_CUTOFF) continue;
+    if (record.ratedate < CBN_EXCHANGE_RATE_INITIAL_CUTOFF) {
+      continue;
+    }
 
     exchangeRates.push({
       asOf: new Date(`${record.ratedate}T00:00:00.000Z`),

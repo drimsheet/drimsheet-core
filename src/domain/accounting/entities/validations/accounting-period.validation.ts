@@ -25,13 +25,17 @@ function validatePartition(
     ...intervals.flatMap((interval) => [interval.startDate, interval.endDate]),
   ];
   const hasInvalidDate = dates.some((date) => !dateUtils.isValidDate(date));
-  if (hasInvalidDate) throw new periodError.InvalidDateRange();
+  if (hasInvalidDate) {
+    throw new periodError.InvalidDateRange();
+  }
 
   const lastInterval = intervals[intervals.length - 1];
   const hasWrongEnd =
     !lastInterval ||
     !dateUtils.isSameUtcDay(lastInterval.endDate, fiscalYear.endDate);
-  if (hasWrongEnd) throw new periodError.InvalidInterval();
+  if (hasWrongEnd) {
+    throw new periodError.InvalidInterval();
+  }
 
   let expectedStart = fiscalYear.startDate;
   for (const interval of intervals) {
@@ -40,7 +44,9 @@ function validatePartition(
     const isInvalidInterval =
       !dateUtils.isSameUtcDay(start, expectedStart) ||
       dateUtils.isGreaterThan(start, end);
-    if (isInvalidInterval) throw new periodError.InvalidInterval();
+    if (isInvalidInterval) {
+      throw new periodError.InvalidInterval();
+    }
 
     expectedStart = dateUtils.addUtcCalendarUnits(end, 1, 'day');
   }
