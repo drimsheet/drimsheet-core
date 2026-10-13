@@ -44,6 +44,7 @@ const bankRepo: jest.Mocked<IBankAccountRepo> = {
 };
 const allocation: jest.Mocked<ILedgerAccountService> = {
   canDelete: jest.fn(),
+  validateCurrencyChange: jest.fn(),
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
@@ -61,6 +62,7 @@ describe('cashAccountService', () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-03-15T00:00:00.000Z'));
     jest.resetAllMocks();
+    allocation.validateCurrencyChange.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -138,7 +140,9 @@ describe('cashAccountService', () => {
         expect(account.status).toBe(ELedgerAccountStatus.Draft);
         expect(Object.isFrozen(activated)).toBe(true);
         expect(Object.isFrozen(activated.currency)).toBe(true);
-        if (activated.meta) expect(Object.isFrozen(activated.meta)).toBe(true);
+        if (activated.meta) {
+          expect(Object.isFrozen(activated.meta)).toBe(true);
+        }
         expect(events).toHaveLength(1);
         expect(events[0]).toMatchObject({
           type: 'domain:ledger:account:updated',
@@ -424,6 +428,93 @@ describe('cashAccountService', () => {
       }
     );
     describe('bank updates', () => {
+      it('rejects a missing account before validating the update', async () => {
+        mockLedgerAccountRepo.findById.mockResolvedValue(null);
+        await expect(
+          service.updateBankSubAccount(
+            {
+              id: parent.id,
+              accountingEntityId: accountingEntity.id,
+              name: 'Updated',
+            },
+            options
+          )
+        ).rejects.toThrow(ledgerAccountError.AccountNotFound);
+        expect(allocation.validateCurrencyChange).not.toHaveBeenCalled();
+      });
+
+      it('requires a transaction before acquiring currency-edit locks', async () => {
+        await expect(
+          service.updateBankSubAccount(
+            {
+              id: parent.id,
+              accountingEntityId: accountingEntity.id,
+              currency: SYSTEM_CURRENCIES.NGN,
+            },
+            mockOptions
+          )
+        ).rejects.toThrow(ledgerAccountError.CurrencyChangeTransactionRequired);
+        expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
+        expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+      });
+
+      it('validates changed currency before returning an audited bank update', async () => {
+        const [account] = await service.createBankSubAccount(
+          payload(),
+          options
+        );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
+        jest.clearAllMocks();
+        const updatedResult = await service.updateBankSubAccount(
+          {
+            id: account.id,
+            accountingEntityId: account.accountingEntityId,
+            currency: SYSTEM_CURRENCIES.USD,
+          },
+          options
+        );
+        const [updated] = updatedResult;
+        expect(allocation.validateCurrencyChange).toHaveBeenCalledWith(
+          account,
+          SYSTEM_CURRENCIES.USD,
+          options
+        );
+        expect(updated.currency).toBe(SYSTEM_CURRENCIES.USD);
+        expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
+          ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
+          account.accountingEntityId,
+          { ...options, lock: ERepoLock.Update }
+        );
+        expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
+          account.id,
+          account.accountingEntityId,
+          { ...options, lock: ERepoLock.Update }
+        );
+        expect(
+          mockLedgerAccountRepo.findByCode.mock.invocationCallOrder[0]
+        ).toBeLessThan(
+          mockLedgerAccountRepo.findById.mock.invocationCallOrder[0]
+        );
+        expect(
+          mockLedgerAccountRepo.findById.mock.invocationCallOrder[0]
+        ).toBeLessThan(
+          allocation.validateCurrencyChange.mock.invocationCallOrder[0]
+        );
+
+        allocation.validateCurrencyChange.mockRejectedValue(
+          new ledgerAccountError.CurrencyChangeHasJournalEntries()
+        );
+        await expect(
+          service.updateBankSubAccount(
+            {
+              id: account.id,
+              accountingEntityId: account.accountingEntityId,
+              currency: SYSTEM_CURRENCIES.USD,
+            },
+            options
+          )
+        ).rejects.toThrow(ledgerAccountError.CurrencyChangeHasJournalEntries);
+      });
       it.each(['active', 'draft'] as const)(
         'updates %s account details with audit and events, retaining identity',
         async (status) => {
@@ -431,12 +522,18 @@ describe('cashAccountService', () => {
             { ...payload(), status },
             options
           );
+          mockLedgerAccountRepo.findById.mockResolvedValue(account);
           const openingBalanceDate = new Date('2026-03-01');
-          const [updated, events, audit] = await service.updateBankSubAccount(
-            account,
-            { name: ' Updated Bank ', openingBalanceDate },
+          const updatedResult = await service.updateBankSubAccount(
+            {
+              id: account.id,
+              accountingEntityId: account.accountingEntityId,
+              name: ' Updated Bank ',
+              openingBalanceDate,
+            },
             options
           );
+          const [updated, events, audit] = updatedResult;
 
           expect(updated).toMatchObject({
             id: account.id,
@@ -467,10 +564,14 @@ describe('cashAccountService', () => {
           payload(),
           options
         );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
         expect(
           await service.updateBankSubAccount(
-            account,
-            { name: account.name },
+            {
+              id: account.id,
+              accountingEntityId: account.accountingEntityId,
+              name: account.name,
+            },
             options
           )
         ).toEqual([account, [], null]);
@@ -485,6 +586,7 @@ describe('cashAccountService', () => {
           payload(),
           options
         );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
         jest.clearAllMocks();
         const details = {
           bankName: 'Test Bank',
@@ -492,9 +594,10 @@ describe('cashAccountService', () => {
           accountNumber: '0123456789',
           ...changes,
         };
-        const [updated, events, audit] = await service.updateBankSubAccount(
-          account,
+        const updatedResult = await service.updateBankSubAccount(
           {
+            id: account.id,
+            accountingEntityId: account.accountingEntityId,
             bankDetails: {
               ...details,
               accountName: ` ${details.accountName} `,
@@ -502,6 +605,7 @@ describe('cashAccountService', () => {
           },
           options
         );
+        const [updated, events, audit] = updatedResult;
         expect(updated.meta).toEqual({ ...details, countryCode: 'NG' });
         expect(account.meta).toEqual({
           bankName: 'Test Bank',
@@ -530,9 +634,17 @@ describe('cashAccountService', () => {
           payload(),
           options
         );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
         jest.clearAllMocks();
         expect(
-          await service.updateBankSubAccount(account, { bankDetails }, options)
+          await service.updateBankSubAccount(
+            {
+              id: account.id,
+              accountingEntityId: account.accountingEntityId,
+              bankDetails,
+            },
+            options
+          )
         ).toEqual([account, [], null]);
         expect(bankRepo.findOne).not.toHaveBeenCalled();
       });
@@ -542,11 +654,15 @@ describe('cashAccountService', () => {
           payload(),
           options
         );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
         bankRepo.findOne.mockResolvedValue(bankDetails);
         await expect(
           service.updateBankSubAccount(
-            account,
-            { bankDetails: { ...bankDetails, bankName: ' Other Bank ' } },
+            {
+              id: account.id,
+              accountingEntityId: account.accountingEntityId,
+              bankDetails: { ...bankDetails, bankName: ' Other Bank ' },
+            },
             options
           )
         ).rejects.toBeInstanceOf(ledgerAccountError.DuplicateBankAccount);
@@ -562,11 +678,15 @@ describe('cashAccountService', () => {
           payload(),
           options
         );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
         jest.clearAllMocks();
         await expect(
           service.updateBankSubAccount(
-            account,
-            { bankDetails: { ...bankDetails, bankName: ' ' } },
+            {
+              id: account.id,
+              accountingEntityId: account.accountingEntityId,
+              bankDetails: { ...bankDetails, bankName: ' ' },
+            },
             options
           )
         ).rejects.toBeInstanceOf(ledgerAccountError.InvalidBankName);
@@ -582,14 +702,19 @@ describe('cashAccountService', () => {
           payload(),
           options
         );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
         const [otherAccount] = ledgerAccountEntity.make({
           ...account,
           ...changes,
         });
+        mockLedgerAccountRepo.findById.mockResolvedValue(otherAccount);
         await expect(
           service.updateBankSubAccount(
-            otherAccount,
-            { name: 'Changed' },
+            {
+              id: otherAccount.id,
+              accountingEntityId: otherAccount.accountingEntityId,
+              name: 'Changed',
+            },
             options
           )
         ).rejects.toThrow(ledgerAccountError.InvalidBehavior);
@@ -600,9 +725,18 @@ describe('cashAccountService', () => {
           payload(),
           options
         );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
         const [archived] = ledgerAccountEntity.archive(account);
+        mockLedgerAccountRepo.findById.mockResolvedValue(archived);
         await expect(
-          service.updateBankSubAccount(archived, { name: 'Changed' }, options)
+          service.updateBankSubAccount(
+            {
+              id: archived.id,
+              accountingEntityId: archived.accountingEntityId,
+              name: 'Changed',
+            },
+            options
+          )
         ).rejects.toThrow(ledgerAccountError.InvalidStatus);
       });
 
@@ -611,13 +745,22 @@ describe('cashAccountService', () => {
           payload(),
           options
         );
+        mockLedgerAccountRepo.findById.mockResolvedValue(account);
         await expect(
-          service.updateBankSubAccount(account, { name: ' ' }, options)
+          service.updateBankSubAccount(
+            {
+              id: account.id,
+              accountingEntityId: account.accountingEntityId,
+              name: ' ',
+            },
+            options
+          )
         ).rejects.toThrow(ledgerAccountError.InvalidName);
         await expect(
           service.updateBankSubAccount(
-            account,
             {
+              id: account.id,
+              accountingEntityId: account.accountingEntityId,
               openingBalanceDate: new Date('2030-01-01'),
             },
             options
@@ -770,11 +913,15 @@ describe('cashAccountService', () => {
       'propagates %s read failures without persistence',
       async (stage) => {
         const failure = new Error('database unavailable');
-        if (stage === 'duplicate') bankRepo.findOne.mockRejectedValue(failure);
-        if (stage === 'allocation')
+        if (stage === 'duplicate') {
+          bankRepo.findOne.mockRejectedValue(failure);
+        }
+        if (stage === 'allocation') {
           allocation.getNextCode.mockRejectedValue(failure);
-        if (stage === 'parent')
+        }
+        if (stage === 'parent') {
           mockLedgerAccountRepo.findByCode.mockRejectedValue(failure);
+        }
         await expect(
           service.createBankSubAccount(payload(), options)
         ).rejects.toBe(failure);
@@ -1035,15 +1182,102 @@ describe('cashAccountService', () => {
       );
     });
 
+    it('rejects a missing account before validating the update', async () => {
+      mockLedgerAccountRepo.findById.mockResolvedValue(null);
+      await expect(
+        service.updatePettyCashSubAccount(
+          {
+            id: header.id,
+            accountingEntityId: accountingEntity.id,
+            name: 'Updated',
+          },
+          options
+        )
+      ).rejects.toThrow(ledgerAccountError.AccountNotFound);
+      expect(allocation.validateCurrencyChange).not.toHaveBeenCalled();
+    });
+
+    it('requires a transaction before acquiring currency-edit locks', async () => {
+      await expect(
+        service.updatePettyCashSubAccount(
+          {
+            id: header.id,
+            accountingEntityId: accountingEntity.id,
+            currency: SYSTEM_CURRENCIES.NGN,
+          },
+          mockOptions
+        )
+      ).rejects.toThrow(ledgerAccountError.CurrencyChangeTransactionRequired);
+      expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
+      expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+    });
+
     it('updates only a non-archived petty-cash account', async () => {
       const [account] = await service.createPettyCashSubAccount(
         payload,
         options
       );
-      const [updated, events, audit] = service.updatePettyCashSubAccount(
-        account,
-        { name: 'Updated petty cash' }
+      mockLedgerAccountRepo.findById.mockResolvedValue(account);
+      const updatedResult = await service.updatePettyCashSubAccount(
+        {
+          id: account.id,
+          accountingEntityId: account.accountingEntityId,
+          name: 'Updated petty cash',
+        },
+        options
       );
+      const [updated, events, audit] = updatedResult;
+
+      jest.clearAllMocks();
+      const withCurrencyResult = await service.updatePettyCashSubAccount(
+        {
+          id: account.id,
+          accountingEntityId: account.accountingEntityId,
+          currency: SYSTEM_CURRENCIES.NGN,
+        },
+        options
+      );
+      const [withCurrency] = withCurrencyResult;
+      expect(withCurrency.currency).toBe(SYSTEM_CURRENCIES.NGN);
+      expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
+        ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS.HEADER,
+        account.accountingEntityId,
+        { ...options, lock: ERepoLock.Update }
+      );
+      expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
+        account.id,
+        account.accountingEntityId,
+        { ...options, lock: ERepoLock.Update }
+      );
+      expect(
+        mockLedgerAccountRepo.findByCode.mock.invocationCallOrder[0]
+      ).toBeLessThan(
+        mockLedgerAccountRepo.findById.mock.invocationCallOrder[0]
+      );
+      expect(
+        mockLedgerAccountRepo.findById.mock.invocationCallOrder[0]
+      ).toBeLessThan(
+        allocation.validateCurrencyChange.mock.invocationCallOrder[0]
+      );
+
+      expect(allocation.validateCurrencyChange).toHaveBeenCalledWith(
+        account,
+        SYSTEM_CURRENCIES.NGN,
+        options
+      );
+      allocation.validateCurrencyChange.mockRejectedValue(
+        new ledgerAccountError.CurrencyChangeHasJournalEntries()
+      );
+      await expect(
+        service.updatePettyCashSubAccount(
+          {
+            id: account.id,
+            accountingEntityId: account.accountingEntityId,
+            currency: SYSTEM_CURRENCIES.NGN,
+          },
+          options
+        )
+      ).rejects.toThrow(ledgerAccountError.CurrencyChangeHasJournalEntries);
 
       expect(updated).toMatchObject({
         id: account.id,
@@ -1053,18 +1287,34 @@ describe('cashAccountService', () => {
       expect(events).toHaveLength(1);
       expect(audit?.diff.before).toEqual(account);
 
-      expect(() =>
+      mockLedgerAccountRepo.findById.mockResolvedValue({
+        ...account,
+        behavior: EAssetAccountBehavior.Bank,
+      });
+      await expect(
         service.updatePettyCashSubAccount(
-          { ...account, behavior: EAssetAccountBehavior.Bank },
-          { name: 'Wrong family' }
+          {
+            id: account.id,
+            accountingEntityId: account.accountingEntityId,
+            name: 'Wrong family',
+          },
+          options
         )
-      ).toThrow(ledgerAccountError.InvalidBehavior);
-      expect(() =>
+      ).rejects.toThrow(ledgerAccountError.InvalidBehavior);
+      mockLedgerAccountRepo.findById.mockResolvedValue({
+        ...account,
+        status: ELedgerAccountStatus.Archived,
+      });
+      await expect(
         service.updatePettyCashSubAccount(
-          { ...account, status: ELedgerAccountStatus.Archived },
-          { name: 'Archived' }
+          {
+            id: account.id,
+            accountingEntityId: account.accountingEntityId,
+            name: 'Archived',
+          },
+          options
         )
-      ).toThrow(ledgerAccountError.InvalidStatus);
+      ).rejects.toThrow(ledgerAccountError.InvalidStatus);
     });
   });
 });

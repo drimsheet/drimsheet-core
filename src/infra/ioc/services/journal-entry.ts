@@ -49,6 +49,7 @@ export const openingBalanceEntryAppService = makeOpeningBalanceEntryAppService({
 
 export const journalEntryPersistenceAppService =
   makeJournalEntryPersistenceAppService({
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     repoService,
     journalEntryAttachmentRepo: journalEntryRepos.journalEntryAttachment,
     journalEntryHistoryRepo: journalEntryRepos.journalEntryHistory,

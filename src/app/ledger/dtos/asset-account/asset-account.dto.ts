@@ -13,12 +13,14 @@ export interface IPettyCashAccountCreationReq {
 }
 
 export interface IPettyCashAccountUpdateReq {
+  currencyCode?: string;
   name?: string;
   openingBalance?: IOpeningBalanceDto;
 }
 
-/** Editable bank ledger and bank details; currency is retained. */
+/** Editable bank ledger and bank details; currency changes require no journal references. */
 export interface IBankAccountUpdateReq {
+  currencyCode?: string;
   /** Replaces bank details when supplied; omitted details are retained. */
   bankAccount?: IBankDetailsCreationReq;
   name?: string;

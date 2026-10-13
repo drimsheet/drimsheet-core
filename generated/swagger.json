@@ -788,6 +788,81 @@
           }
         ]
       },
+      "UExchangeRateType": {
+        "type": "string",
+        "enum": ["official", "negotiated", "market"]
+      },
+      "IExchangeRateDto": {
+        "properties": {
+          "baseCurrencyCode": {
+            "type": "string"
+          },
+          "targetCurrencyCode": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "type": {
+            "$ref": "#/components/schemas/UExchangeRateType"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseCurrencyCode",
+          "targetCurrencyCode",
+          "rate",
+          "type",
+          "asOf",
+          "source"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IOpeningBalanceDto": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "exchangeRate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IExchangeRateDto"
+              }
+            ],
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["amount", "exchangeRate", "date"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ILedgerAccountOpeningBalanceDto": {
+        "properties": {
+          "openingBalance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IOpeningBalanceDto"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": ["openingBalance"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "ULedgerAccountBalanceEffect": {
         "type": "string",
         "enum": ["increase", "decrease", "noop"]
@@ -852,10 +927,6 @@
         ],
         "type": "object",
         "additionalProperties": false
-      },
-      "UExchangeRateType": {
-        "type": "string",
-        "enum": ["official", "negotiated", "market"]
       },
       "IExchangeRate": {
         "properties": {
@@ -1117,62 +1188,6 @@
           }
         },
         "required": ["bankName", "accountName", "accountNumber"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IExchangeRateDto": {
-        "properties": {
-          "baseCurrencyCode": {
-            "type": "string"
-          },
-          "targetCurrencyCode": {
-            "type": "string"
-          },
-          "rate": {
-            "type": "number",
-            "format": "double"
-          },
-          "type": {
-            "$ref": "#/components/schemas/UExchangeRateType"
-          },
-          "asOf": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "source": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "baseCurrencyCode",
-          "targetCurrencyCode",
-          "rate",
-          "type",
-          "asOf",
-          "source"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IOpeningBalanceDto": {
-        "properties": {
-          "amount": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          },
-          "exchangeRate": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IExchangeRateDto"
-              }
-            ],
-            "nullable": true
-          },
-          "date": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": ["amount", "exchangeRate", "date"],
         "type": "object",
         "additionalProperties": false
       },
@@ -1465,8 +1480,11 @@
         "additionalProperties": false
       },
       "IBankAccountUpdateReq": {
-        "description": "Editable bank ledger and bank details; currency is retained.",
+        "description": "Editable bank ledger and bank details; currency changes require no journal references.",
         "properties": {
+          "currencyCode": {
+            "type": "string"
+          },
           "bankAccount": {
             "$ref": "#/components/schemas/IBankDetailsCreationReq",
             "description": "Replaces bank details when supplied; omitted details are retained."
@@ -1483,6 +1501,9 @@
       },
       "IPettyCashAccountUpdateReq": {
         "properties": {
+          "currencyCode": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -4279,6 +4300,86 @@
           }
         },
         "description": "Check whether a ledger account is not a header and is either draft or has\nno associated journal entries. Ineligible results include the blocking reason.\nThis result is advisory.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/ledger/{accountId}/opening-balance": {
+      "get": {
+        "operationId": "getLedgerAccountOpeningBalance",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountOpeningBalanceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get the current draft or posted opening balance, or null when none exists.",
         "tags": ["Ledger"],
         "security": [],
         "parameters": [

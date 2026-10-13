@@ -1,6 +1,5 @@
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
-import { ERepoLock } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -12,6 +11,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
+import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
@@ -22,7 +22,6 @@ import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-
 import { IBankAccountUpdateReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { bankAccountUpdateReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
-import cashAccountUpdatePolicy from '@app/ledger/policies/cash-account-update.policy';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
@@ -57,34 +56,37 @@ export default function makeUpdateBankAccountUsecase(
 
     const repoOptions = { correlationId };
 
+    const currency =
+      payload.currencyCode === undefined
+        ? undefined
+        : currencyEntity.getByCode(payload.currencyCode);
+
     const transaction = await deps.repoService.createTransaction();
 
     try {
       const transactionOptions = { ...repoOptions, tx: transaction.context };
-      // Serialize opening-balance creation/revision for this account until commit.
-      const existingAccount = await deps.ledgerAccountRepo.findById(
-        id as TEntityId,
-        accountingEntity.id,
-        { ...transactionOptions, lock: ERepoLock.Update }
-      );
-      cashAccountUpdatePolicy.validateAccountExists(id, existingAccount);
 
       const updatePayload = {
+        id: id as TEntityId,
+        accountingEntityId: accountingEntity.id,
+        currency,
         name: payload.name,
         openingBalanceDate: payload.openingBalance?.date,
         bankDetails: payload.bankAccount,
       };
-      const [account, accountEvents, accountAudit] =
-        await deps.cashAccountService.updateBankSubAccount(
-          existingAccount,
-          updatePayload,
-          transactionOptions
-        );
+      const update = await deps.cashAccountService.updateBankSubAccount(
+        updatePayload,
+        transactionOptions
+      );
 
+      const [account, accountEvents, accountAudit] = update;
+      const existingAccount = accountAudit?.diff.before ?? account;
+
+      // Opening-journal eligibility needs the original opening date and the requested currency.
       const openingBalanceEntryMutation = payload.openingBalance
         ? await deps.openingBalanceEntryAppService.createOrRevise(
             {
-              account: existingAccount,
+              account: { ...existingAccount, currency: account.currency },
               openingBalance: payload.openingBalance,
               accountingEntity,
               actor: actor.id,

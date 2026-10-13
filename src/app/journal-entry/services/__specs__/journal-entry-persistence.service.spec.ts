@@ -7,6 +7,7 @@ import { SYSTEM_JURISDICTIONS } from '@domain/accounting/config/jurisdictions.co
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import {
   IJournalEntryHistory,
   IJournalLineHistory,
@@ -37,6 +38,7 @@ import {
 
 describe('journalEntryPersistenceAppService', () => {
   const service = makeJournalEntryPersistenceAppService({
+    ledgerAccountRepo: mockLedgerAccountRepo,
     repoService: mockRepoService,
     journalEntryAttachmentRepo: mockJournalEntryAttachmentRepo,
     journalEntryHistoryRepo: mockJournalEntryHistoryRepo,
@@ -192,10 +194,15 @@ describe('journalEntryPersistenceAppService', () => {
       })
     );
 
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValue([
+      cashAccount,
+      equityAccount,
+    ]);
     return {
       headerHistory,
       journalEntry,
       linesHistory,
+      accounts: [cashAccount, equityAccount],
     };
   }
 
@@ -222,6 +229,97 @@ describe('journalEntryPersistenceAppService', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  describe('currency edit serialization', () => {
+    it('locks accounts in the journal write transaction', async () => {
+      const fixture = await makeFixture([]);
+      await service.create(
+        fixture.journalEntry,
+        fixture.headerHistory,
+        fixture.linesHistory,
+        mockOptions
+      );
+      expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+        fixture.journalEntry.lines.map((line) => line.accountId),
+        { ...mockOptions, tx: 'mock-tx', lock: 'share' }
+      );
+      expect(
+        mockLedgerAccountRepo.findAllByIds.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockJournalEntryRepo.create.mock.invocationCallOrder[0]);
+    });
+    it.each(['create', 'rectify'] as const)(
+      'rejects a stale currency before %s writes any journal records',
+      async (operation) => {
+        const fixture = await makeFixture([]);
+        // The current persisted account changed after the journal was prepared.
+        const persisted = fixture.accounts;
+        mockLedgerAccountRepo.findAllByIds.mockResolvedValue(
+          persisted.map((account) => ({
+            ...account,
+            currency: SYSTEM_CURRENCIES.USD,
+          }))
+        );
+        const writing =
+          operation === 'create'
+            ? service.create(
+                fixture.journalEntry,
+                fixture.headerHistory,
+                fixture.linesHistory,
+                mockOptions
+              )
+            : service.rectify(
+                {
+                  entriesToCreate: [
+                    {
+                      entry: fixture.journalEntry,
+                      headerHistory: fixture.headerHistory,
+                      lineHistories: fixture.linesHistory,
+                    },
+                  ],
+                  entryUpdate: null,
+                },
+                mockOptions
+              );
+        await expect(writing).rejects.toThrow(
+          journalEntryError.JournalLineAccountCurrencyMismatch
+        );
+        expect(mockJournalEntryRepo.create).not.toHaveBeenCalled();
+        expect(mockJournalLineRepo.create).not.toHaveBeenCalled();
+      }
+    );
+    it('rejects a removed account before writing', async () => {
+      const fixture = await makeFixture([]);
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValue([]);
+      await expect(
+        service.create(
+          fixture.journalEntry,
+          fixture.headerHistory,
+          fixture.linesHistory,
+          mockOptions
+        )
+      ).rejects.toThrow(journalEntryError.AccountNotFound);
+      expect(mockJournalEntryRepo.create).not.toHaveBeenCalled();
+    });
+    it('allows multi-currency accounts and an empty rectification bundle', async () => {
+      const fixture = await makeFixture([]);
+      const accounts = fixture.accounts;
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValue(
+        accounts.map((account) => ({ ...account, currency: null }))
+      );
+      await service.create(
+        fixture.journalEntry,
+        fixture.headerHistory,
+        fixture.linesHistory,
+        mockOptions
+      );
+      mockLedgerAccountRepo.findAllByIds.mockClear();
+      await service.rectify(
+        { entriesToCreate: [], entryUpdate: null },
+        mockOptions
+      );
+      expect(mockLedgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
+    });
   });
 
   describe('create', () => {

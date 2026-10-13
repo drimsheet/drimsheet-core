@@ -669,6 +669,64 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UExchangeRateType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['official'] },
+        { dataType: 'enum', enums: ['negotiated'] },
+        { dataType: 'enum', enums: ['market'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IExchangeRateDto: {
+    dataType: 'refObject',
+    properties: {
+      baseCurrencyCode: { dataType: 'string', required: true },
+      targetCurrencyCode: { dataType: 'string', required: true },
+      rate: { dataType: 'double', required: true },
+      type: { ref: 'UExchangeRateType', required: true },
+      asOf: { dataType: 'datetime', required: true },
+      source: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IOpeningBalanceDto: {
+    dataType: 'refObject',
+    properties: {
+      amount: { ref: 'IMoneyDto', required: true },
+      exchangeRate: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IExchangeRateDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      date: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ILedgerAccountOpeningBalanceDto: {
+    dataType: 'refObject',
+    properties: {
+      openingBalance: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IOpeningBalanceDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ULedgerAccountBalanceEffect: {
     dataType: 'refAlias',
     type: {
@@ -739,19 +797,6 @@ const models: TsoaRoute.Models = {
       updatedAt: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UExchangeRateType: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['official'] },
-        { dataType: 'enum', enums: ['negotiated'] },
-        { dataType: 'enum', enums: ['market'] },
-      ],
-      validators: {},
-    },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IExchangeRate: {
@@ -898,36 +943,6 @@ const models: TsoaRoute.Models = {
       bankName: { dataType: 'string', required: true },
       accountName: { dataType: 'string', required: true },
       accountNumber: { dataType: 'string', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IExchangeRateDto: {
-    dataType: 'refObject',
-    properties: {
-      baseCurrencyCode: { dataType: 'string', required: true },
-      targetCurrencyCode: { dataType: 'string', required: true },
-      rate: { dataType: 'double', required: true },
-      type: { ref: 'UExchangeRateType', required: true },
-      asOf: { dataType: 'datetime', required: true },
-      source: { dataType: 'string', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IOpeningBalanceDto: {
-    dataType: 'refObject',
-    properties: {
-      amount: { ref: 'IMoneyDto', required: true },
-      exchangeRate: {
-        dataType: 'union',
-        subSchemas: [
-          { ref: 'IExchangeRateDto' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      date: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
   },
@@ -1129,6 +1144,7 @@ const models: TsoaRoute.Models = {
   IBankAccountUpdateReq: {
     dataType: 'refObject',
     properties: {
+      currencyCode: { dataType: 'string' },
       bankAccount: { ref: 'IBankDetailsCreationReq' },
       name: { dataType: 'string' },
       openingBalance: { ref: 'IOpeningBalanceDto' },
@@ -1139,6 +1155,7 @@ const models: TsoaRoute.Models = {
   IPettyCashAccountUpdateReq: {
     dataType: 'refObject',
     properties: {
+      currencyCode: { dataType: 'string' },
       name: { dataType: 'string' },
       openingBalance: { ref: 'IOpeningBalanceDto' },
     },
@@ -3086,6 +3103,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getLedgerAccountDeletionEligibility',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_getLedgerAccountOpeningBalance: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+  };
+  app.get(
+    '/api/v1/ledger/:accountId/opening-balance',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.getLedgerAccountOpeningBalance
+    ),
+
+    async function LedgerController_getLedgerAccountOpeningBalance(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_getLedgerAccountOpeningBalance,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'getLedgerAccountOpeningBalance',
           controller,
           response,
           next,

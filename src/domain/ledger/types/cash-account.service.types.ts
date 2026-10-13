@@ -50,6 +50,9 @@ interface IMakeBankPayload {
 }
 
 interface IUpdateCashAccountPayload {
+  id: TEntityId;
+  accountingEntityId: TEntityId;
+  currency?: ICurrency;
   name?: string;
   openingBalanceDate?: Date;
 }
@@ -78,17 +81,18 @@ export default interface ICashAccountService {
   ): Promise<TReturnType>;
 
   updatePettyCashSubAccount(
-    account: ILedgerAccount,
-    payload: IUpdateCashAccountPayload
-  ): [
-    Readonly<IPettyCashAccount>,
-    IEvent<ILedgerAccount>[],
-    ILedgerAccountAudit | null,
-  ];
+    payload: IUpdateCashAccountPayload,
+    repoOptions: IReadRepoOptions
+  ): Promise<
+    [
+      Readonly<IPettyCashAccount>,
+      IEvent<ILedgerAccount>[],
+      ILedgerAccountAudit | null,
+    ]
+  >;
 
   /** Validates normalized bank details and uniqueness; returns one audited update without writes. */
   updateBankSubAccount(
-    account: ILedgerAccount,
     payload: IUpdateCashAccountPayload & {
       bankDetails?: Omit<IBankDetails, 'countryCode'>;
     },

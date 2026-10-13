@@ -645,3 +645,101 @@ describe('ledgerAccountService.delete', () => {
     expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
   });
 });
+
+describe('ledgerAccountService.validateCurrencyChange', () => {
+  const cash = ledgerAccountEntity.update(account('100001', '100000.100001'), {
+    currency: SYSTEM_CURRENCIES.NGN,
+  })[0];
+  const header = account('100000', '100000', 'active', true);
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockJournalEntryRepo.existsByAccountId.mockResolvedValue(false);
+    mockLedgerAccountRepo.findById.mockResolvedValue(header);
+    mockLedgerAccountRepo.findDescendants.mockResolvedValue([]);
+  });
+
+  it('does not inspect balances or journals when currency is omitted', async () => {
+    await expect(
+      service.validateCurrencyChange(cash, undefined, repoOptions)
+    ).resolves.toBeUndefined();
+    expect(mockJournalEntryRepo.existsByAccountId).not.toHaveBeenCalled();
+  });
+  it('allows an unreferenced account beneath the cash header', async () => {
+    await service.validateCurrencyChange(
+      cash,
+      SYSTEM_CURRENCIES.USD,
+      repoOptions
+    );
+    expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenCalledWith(
+      cash.id,
+      cash.accountingEntityId,
+      repoOptions
+    );
+    expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
+  });
+  it('treats the current currency as a no-op even with journal references', async () => {
+    mockJournalEntryRepo.existsByAccountId.mockResolvedValue(true);
+    await service.validateCurrencyChange(cash, SYSTEM_CURRENCIES.NGN, {
+      correlationId: 'currency',
+    });
+    expect(mockJournalEntryRepo.existsByAccountId).not.toHaveBeenCalled();
+  });
+  it('rejects any journal association regardless of balance or account status', async () => {
+    mockJournalEntryRepo.existsByAccountId.mockResolvedValue(true);
+    await expect(
+      service.validateCurrencyChange(cash, SYSTEM_CURRENCIES.USD, repoOptions)
+    ).rejects.toThrow(ledgerAccountError.CurrencyChangeHasJournalEntries);
+    expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+  });
+  it('requires a transaction for the reference check', async () => {
+    await expect(
+      service.validateCurrencyChange(cash, SYSTEM_CURRENCIES.USD, {
+        correlationId: 'currency',
+      })
+    ).rejects.toThrow(ledgerAccountError.CurrencyChangeTransactionRequired);
+  });
+  it('rejects roots and missing parents', async () => {
+    await expect(
+      service.validateCurrencyChange(header, SYSTEM_CURRENCIES.USD, repoOptions)
+    ).rejects.toThrow(ledgerAccountError.InvalidControlAccountId);
+    mockLedgerAccountRepo.findById.mockResolvedValue(null);
+    await expect(
+      service.validateCurrencyChange(cash, SYSTEM_CURRENCIES.USD, repoOptions)
+    ).rejects.toThrow(ledgerAccountError.ControlAccountNotFound);
+  });
+  it('preserves a nested parent currency', async () => {
+    mockLedgerAccountRepo.findById.mockResolvedValue({
+      ...cash,
+      isControlAccount: true,
+    });
+    await expect(
+      service.validateCurrencyChange(cash, SYSTEM_CURRENCIES.USD, repoOptions)
+    ).rejects.toThrow(ledgerAccountError.ControlAccountCurrencyMismatch);
+    await service.validateCurrencyChange(
+      { ...cash, currency: SYSTEM_CURRENCIES.USD },
+      SYSTEM_CURRENCIES.NGN,
+      repoOptions
+    );
+  });
+  it('allows an empty control account but rejects incompatible descendants', async () => {
+    const control = { ...cash, isControlAccount: true };
+    await service.validateCurrencyChange(
+      control,
+      SYSTEM_CURRENCIES.USD,
+      repoOptions
+    );
+    mockLedgerAccountRepo.findDescendants.mockResolvedValue([cash]);
+    await expect(
+      service.validateCurrencyChange(
+        control,
+        SYSTEM_CURRENCIES.USD,
+        repoOptions
+      )
+    ).rejects.toThrow(ledgerAccountError.ControlAccountCurrencyMismatch);
+    expect(mockLedgerAccountRepo.findDescendants).toHaveBeenCalledWith(
+      control.accountingEntityId,
+      control.materializedPath,
+      repoOptions
+    );
+  });
+});

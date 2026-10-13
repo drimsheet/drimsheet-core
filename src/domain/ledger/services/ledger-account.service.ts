@@ -7,6 +7,7 @@ import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-sub
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import ILedgerAccountService, {
   ELedgerAccountDeletionReason,
@@ -19,6 +20,74 @@ import {
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryRepo: IJournalEntryRepo;
+}
+
+/** Validates account currency eligibility under caller-owned family/target locks. Never writes. */
+function makeValidateCurrencyChange(
+  deps: IDependencies
+): ILedgerAccountService['validateCurrencyChange'] {
+  return async (account, currency, repoOptions) => {
+    if (currency === undefined) {
+      return;
+    }
+
+    if (currency.code === account.currency?.code) {
+      return;
+    }
+
+    if (!repoOptions.tx) {
+      throw new ledgerAccountError.CurrencyChangeTransactionRequired();
+    }
+
+    const hasJournalEntries = await deps.journalEntryRepo.existsByAccountId(
+      account.id,
+      account.accountingEntityId,
+      repoOptions
+    );
+    if (hasJournalEntries) {
+      throw new ledgerAccountError.CurrencyChangeHasJournalEntries({
+        id: account.id,
+      });
+    }
+
+    if (!account.controlAccountId) {
+      throw new ledgerAccountError.InvalidControlAccountId();
+    }
+
+    const parent = await deps.ledgerAccountRepo.findById(
+      account.controlAccountId,
+      account.accountingEntityId,
+      repoOptions
+    );
+    if (!parent) {
+      throw new ledgerAccountError.ControlAccountNotFound();
+    }
+
+    ledgerAccountCurrencyInvarianceRule.validate({
+      controlAccount: parent,
+      subAccountCurrency: currency,
+    });
+
+    if (account.isControlAccount) {
+      const descendants = await deps.ledgerAccountRepo.findDescendants(
+        account.accountingEntityId,
+        account.materializedPath,
+        repoOptions
+      );
+      for (const descendant of descendants) {
+        ledgerAccountCurrencyInvarianceRule.validate({
+          controlAccount: {
+            id: account.id,
+            code: account.code,
+            isControlAccount: account.isControlAccount,
+            controlAccountId: account.controlAccountId,
+            currency,
+          },
+          subAccountCurrency: descendant.currency,
+        });
+      }
+    }
+  };
 }
 
 /** Archives the supplied non-header account and its descendants, returning audited transitions. Never persists. */
@@ -79,8 +148,9 @@ function makeGetNextCode(
   deps: IDependencies
 ): ILedgerAccountService['getNextCode'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
+    }
 
     // A separate Read Committed statement sees the preceding lock holder's insert.
     const latest = await deps.ledgerAccountRepo.findLatestBySubType(
@@ -197,6 +267,7 @@ export default function makeLedgerAccountService(
   return Object.freeze({
     archive: makeArchive(deps),
     canDelete: makeCanDelete(deps),
+    validateCurrencyChange: makeValidateCurrencyChange(deps),
     delete: makeDelete(deps),
     getNextCode: makeGetNextCode(deps),
   });

@@ -35,6 +35,7 @@ export interface IDeleteJournalEntryPersistencePayload {
 }
 
 export default interface IJournalEntryPersistenceAppService {
+  /** Locks referenced accounts and rejects stale prepared line currencies before the atomic write. */
   create(
     entry: IJournalEntry,
     headerHistory: IJournalEntryHistory,
@@ -42,6 +43,7 @@ export default interface IJournalEntryPersistenceAppService {
     repoOptions: IRepoOptions
   ): Promise<void>;
 
+  /** Applies the same account-currency lock/check to every entry in the rectification bundle. */
   rectify(
     payload: IJournalEntryRectificationPersistencePayload,
     repoOptions: IRepoOptions

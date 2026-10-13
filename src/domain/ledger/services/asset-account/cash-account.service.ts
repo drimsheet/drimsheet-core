@@ -1,3 +1,5 @@
+import { ERepoLock } from '@shared/types/repo.types';
+
 import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
@@ -123,8 +125,9 @@ function makeCreatePettyCashSubAccount(
   deps: IDependencies
 ): ICashAccountService['createPettyCashSubAccount'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
+    }
 
     const controlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
@@ -190,32 +193,95 @@ function makeCreatePettyCashSubAccount(
   };
 }
 
-function updatePettyCashSubAccount(
-  account: Parameters<ICashAccountService['updatePettyCashSubAccount']>[0],
-  payload: Parameters<ICashAccountService['updatePettyCashSubAccount']>[1]
-): ReturnType<ICashAccountService['updatePettyCashSubAccount']> {
-  const isPettyCashAccount =
-    account.type === ELedgerType.Asset &&
-    account.subType === EAssetSubType.CashAndCashEquivalent &&
-    account.behavior === EAssetAccountBehavior.PettyCash;
-  if (!isPettyCashAccount) {
-    throw new ledgerAccountError.InvalidBehavior({
-      expected: EAssetAccountBehavior.PettyCash,
-      received: account.behavior,
-    });
-  }
-  if (account.status === ELedgerAccountStatus.Archived) {
-    throw new ledgerAccountError.InvalidStatus({ status: account.status });
-  }
+/** Updates petty cash details after checking journal references and hierarchy for a currency change. */
+function makeUpdatePettyCashSubAccount(
+  deps: IDependencies
+): ICashAccountService['updatePettyCashSubAccount'] {
+  return async (payload, repoOptions) => {
+    // Match child creation's family-before-account lock order during currency edits.
+    if (payload.currency) {
+      if (!repoOptions.tx) {
+        throw new ledgerAccountError.CurrencyChangeTransactionRequired();
+      }
+      await getLockedControlAccountHelper(
+        deps.ledgerAccountRepo,
+        {
+          accountingEntityId: payload.accountingEntityId,
+          allocationHeaderCode: LEDGER_CODE.HEADER,
+          defaultControlAccountCode: LEDGER_CODE.HEADER,
+        },
+        { ...repoOptions, tx: repoOptions.tx }
+      );
+    }
 
-  return ledgerAccountEntity.update(account as IPettyCashAccount, payload);
+    // Serialize account updates and opening-journal preparation until commit.
+    const account = await deps.ledgerAccountRepo.findById(
+      payload.id,
+      payload.accountingEntityId,
+      { ...repoOptions, lock: ERepoLock.Update }
+    );
+    if (!account) {
+      throw new ledgerAccountError.AccountNotFound({ id: payload.id });
+    }
+
+    const isPettyCashAccount =
+      account.type === ELedgerType.Asset &&
+      account.subType === EAssetSubType.CashAndCashEquivalent &&
+      account.behavior === EAssetAccountBehavior.PettyCash;
+    if (!isPettyCashAccount) {
+      throw new ledgerAccountError.InvalidBehavior({
+        expected: EAssetAccountBehavior.PettyCash,
+        received: account.behavior,
+      });
+    }
+    if (account.status === ELedgerAccountStatus.Archived) {
+      throw new ledgerAccountError.InvalidStatus({ status: account.status });
+    }
+
+    await deps.ledgerAccountService.validateCurrencyChange(
+      account,
+      payload.currency,
+      repoOptions
+    );
+    return ledgerAccountEntity.update(account as IPettyCashAccount, {
+      name: payload.name,
+      currency: payload.currency,
+      openingBalanceDate: payload.openingBalanceDate,
+    });
+  };
 }
 
 /** Normalizes bank details and checks changed identities for duplicates; rejects other families and archived accounts without writing. */
 function makeUpdateBankSubAccount(
   deps: IDependencies
 ): ICashAccountService['updateBankSubAccount'] {
-  return async (account, payload, repoOptions) => {
+  return async (payload, repoOptions) => {
+    // Match child creation's family-before-account lock order during currency edits.
+    if (payload.currency) {
+      if (!repoOptions.tx) {
+        throw new ledgerAccountError.CurrencyChangeTransactionRequired();
+      }
+      await getLockedControlAccountHelper(
+        deps.ledgerAccountRepo,
+        {
+          accountingEntityId: payload.accountingEntityId,
+          allocationHeaderCode: LEDGER_CODE.HEADER,
+          defaultControlAccountCode: LEDGER_CODE.HEADER,
+        },
+        { ...repoOptions, tx: repoOptions.tx }
+      );
+    }
+
+    // Serialize account updates and opening-journal preparation until commit.
+    const account = await deps.ledgerAccountRepo.findById(
+      payload.id,
+      payload.accountingEntityId,
+      { ...repoOptions, lock: ERepoLock.Update }
+    );
+    if (!account) {
+      throw new ledgerAccountError.AccountNotFound({ id: payload.id });
+    }
+
     const isBankAccount =
       account.type === ELedgerType.Asset &&
       account.subType === EAssetSubType.CashAndCashEquivalent &&
@@ -229,6 +295,12 @@ function makeUpdateBankSubAccount(
     if (account.status === ELedgerAccountStatus.Archived) {
       throw new ledgerAccountError.InvalidStatus({ status: account.status });
     }
+
+    await deps.ledgerAccountService.validateCurrencyChange(
+      account,
+      payload.currency,
+      repoOptions
+    );
 
     const bankAccount = account as IBankAccount;
     const bankDetails = payload.bankDetails
@@ -257,6 +329,7 @@ function makeUpdateBankSubAccount(
 
     return ledgerAccountEntity.update(bankAccount, {
       name: payload.name,
+      currency: payload.currency,
       openingBalanceDate: payload.openingBalanceDate,
       meta: bankDetails,
     });
@@ -275,8 +348,9 @@ function makeCreateBankSubAccount(
   deps: IDependencies
 ): ICashAccountService['createBankSubAccount'] {
   return async (payload, repoOptions) => {
-    if (!repoOptions.tx)
+    if (!repoOptions.tx) {
       throw new ledgerAccountError.BankCreationTransactionRequired();
+    }
 
     const bankDetails = bankDetailsValue.make(payload.bankDetails);
     const existing = await deps.bankAccountRepo.findOne(
@@ -284,10 +358,11 @@ function makeCreateBankSubAccount(
       bankDetails.accountNumber,
       repoOptions
     );
-    if (existing)
+    if (existing) {
       throw new ledgerAccountError.DuplicateBankAccount({
         details: bankDetails,
       });
+    }
 
     const controlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
@@ -364,7 +439,7 @@ export default function makeCashAccountService(
     activate: makeActivate(deps),
     createHeader: makeCreateHeader(deps),
     createPettyCashSubAccount: makeCreatePettyCashSubAccount(deps),
-    updatePettyCashSubAccount,
+    updatePettyCashSubAccount: makeUpdatePettyCashSubAccount(deps),
     updateBankSubAccount: makeUpdateBankSubAccount(deps),
     createBankSubAccount: makeCreateBankSubAccount(deps),
   };

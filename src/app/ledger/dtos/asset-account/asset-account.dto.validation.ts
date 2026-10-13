@@ -39,6 +39,7 @@ export const pettyCashCreationReqValidation = z
 
 const cashAccountUpdateReqValidation = z
   .strictObject({
+    currencyCode: currencyCodeValidation.optional(),
     name: z
       .string()
       .min(1, new ledgerAccountError.InvalidName().errorKey)
@@ -48,7 +49,9 @@ const cashAccountUpdateReqValidation = z
   })
   .refine(
     (payload) =>
-      payload.name !== undefined || payload.openingBalance !== undefined,
+      payload.currencyCode !== undefined ||
+      payload.name !== undefined ||
+      payload.openingBalance !== undefined,
     new ledgerAccountError.InvalidUpdate().errorKey
   );
 
@@ -78,6 +81,7 @@ export const bankAccountUpdateReqValidation = z
   })
   .refine(
     (payload) =>
+      payload.currencyCode !== undefined ||
       payload.name !== undefined ||
       payload.openingBalance !== undefined ||
       payload.bankAccount !== undefined,

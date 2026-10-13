@@ -109,18 +109,18 @@ describe('update bank account workflow', () => {
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
       throw error;
     });
-    mockLedgerAccountRepo.findById.mockResolvedValue(account);
     mockAssetAccountService.updateBankSubAccount.mockImplementation(
-      async (current, changes) =>
-        ledgerAccountEntity.update(current as IBankAccount, {
+      async (changes) =>
+        ledgerAccountEntity.update(account, {
           name: changes.name,
+          currency: changes.currency,
           openingBalanceDate: changes.openingBalanceDate,
           meta: changes.bankDetails
             ? {
-                countryCode: (current as IBankAccount).meta.countryCode,
+                countryCode: account.meta.countryCode,
                 ...changes.bankDetails,
               }
-            : (current as IBankAccount).meta,
+            : account.meta,
         })
     );
     mockLedgerAccountBalanceEnrichmentAppService.enrich.mockImplementation(
@@ -130,16 +130,49 @@ describe('update bank account workflow', () => {
     );
   });
 
+  it('passes currency edits to the domain and persists the audited account', async () => {
+    await makeUpdateBankAccountUsecase(deps)(account.id, {
+      currencyCode: 'USD',
+    });
+    expect(mockAssetAccountService.updateBankSubAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: account.id,
+        accountingEntityId: accountingEntity.id,
+        currency: SYSTEM_CURRENCIES.USD,
+      }),
+      transactionOptions
+    );
+    expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
+      expect.objectContaining({ currency: SYSTEM_CURRENCIES.USD }),
+      expect.objectContaining({
+        ...transactionOptions,
+        expectedVersion: account.version,
+      })
+    );
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
+    expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+  });
+
+  it('does not persist an account audit for an unchanged currency', async () => {
+    await makeUpdateBankAccountUsecase(deps)(account.id, {
+      currencyCode: 'NGN',
+    });
+    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+  });
+
   it('orchestrates the audited account and journal persistence in one transaction', async () => {
     const response = await makeUpdateBankAccountUsecase(deps)(account.id, {
       name: 'Branch cash',
     });
 
     expect(response).toMatchObject({ id: account.id, name: 'Branch cash' });
-    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
-      account.id,
-      accountingEntity.id,
-      { ...transactionOptions, lock: 'update' }
+    expect(mockAssetAccountService.updateBankSubAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: account.id,
+        accountingEntityId: accountingEntity.id,
+        name: 'Branch cash',
+      }),
+      transactionOptions
     );
     expect(
       mockOpeningBalanceEntryAppService.createOrRevise
@@ -180,8 +213,9 @@ describe('update bank account workflow', () => {
     };
     await makeUpdateBankAccountUsecase(deps)(account.id, { bankAccount });
     expect(mockAssetAccountService.updateBankSubAccount).toHaveBeenCalledWith(
-      account,
       {
+        id: account.id,
+        accountingEntityId: accountingEntity.id,
         bankDetails: bankAccount,
         name: undefined,
         openingBalanceDate: undefined,
@@ -304,9 +338,8 @@ describe('update bank account workflow', () => {
     [account] = ledgerAccountEntity.make<IBankAccount>({
       ...account,
       status: 'active',
-      currency: SYSTEM_CURRENCIES.USD,
+      currency: SYSTEM_CURRENCIES.NGN,
     });
-    mockLedgerAccountRepo.findById.mockResolvedValue(account);
     const exchangeRate = exchangeRateValue.make({
       baseCurrencyCode: 'USD',
       targetCurrencyCode: 'NGN',
@@ -374,9 +407,21 @@ describe('update bank account workflow', () => {
     });
 
     const response = await makeUpdateBankAccountUsecase(deps)(account.id, {
+      currencyCode: 'USD',
       openingBalance: foreignOpeningBalance,
     });
 
+    expect(
+      mockOpeningBalanceEntryAppService.createOrRevise
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: expect.objectContaining({
+          currency: SYSTEM_CURRENCIES.USD,
+          openingBalanceDate: null,
+        }),
+      }),
+      transactionOptions
+    );
     expect(response).toMatchObject({
       id: account.id,
       name: account.name,

@@ -114,6 +114,7 @@ describe('Asset Account DTO Validation', () => {
   ])('%s', (_name, schema) => {
     it.each([
       { name: 'Office cash' },
+      { currencyCode: 'USD' },
       {
         openingBalance: {
           amount: {
@@ -129,12 +130,15 @@ describe('Asset Account DTO Validation', () => {
       expect(schema.safeParse(payload).success).toBe(true);
     });
 
-    it.each([{}, { status: 'active' }, { openingBalance: null }])(
-      'rejects an empty, lifecycle, or clearing update: %p',
-      (payload) => {
-        expect(schema.safeParse(payload).success).toBe(false);
-      }
-    );
+    it.each([
+      {},
+      { status: 'active' },
+      { openingBalance: null },
+      { currencyCode: 'US' },
+      { currencyCode: null },
+    ])('rejects an empty, lifecycle, or clearing update: %p', (payload) => {
+      expect(schema.safeParse(payload).success).toBe(false);
+    });
   });
 
   describe('bankAccountUpdateReqValidation details', () => {

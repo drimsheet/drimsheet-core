@@ -68,8 +68,9 @@ function make<T extends ILedgerAccount>(
       openingBalanceDate,
       ledgerAccountError.InvalidOpeningBalanceDate
     );
-    if (payload.isControlAccount)
+    if (payload.isControlAccount) {
       throw new ledgerAccountError.ForbiddenControlAccountOpeningBalanceDate();
+    }
   }
 
   const timestamp = new Date();
@@ -178,8 +179,12 @@ function updateOpeningBalanceDate<T extends ILedgerAccount>(
 /** Applies editable account details while retaining accounting identity. */
 function update<T extends ILedgerAccount>(
   account: T,
-  details: Partial<Pick<T, 'name' | 'openingBalanceDate' | 'meta'>>
+  details: Partial<Pick<T, 'name' | 'openingBalanceDate' | 'meta' | 'currency'>>
 ): [Readonly<T>, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null] {
+  const currency = details.currency ?? account.currency;
+  if (currency) {
+    currencyEntity.validateCode(currency.code);
+  }
   const name =
     details.name === undefined
       ? account.name
@@ -210,7 +215,10 @@ function update<T extends ILedgerAccount>(
     { meta: account.meta }
   ).hasChanges;
   const isUnchanged =
-    name === account.name && !hasOpeningBalanceDateChanged && !hasMetaChanged;
+    currency?.code === account.currency?.code &&
+    name === account.name &&
+    !hasOpeningBalanceDateChanged &&
+    !hasMetaChanged;
   if (isUnchanged) {
     return [account, [], null];
   }
@@ -227,7 +235,7 @@ function update<T extends ILedgerAccount>(
     isControlAccount: account.isControlAccount,
     controlAccountId: account.controlAccountId,
     name,
-    currency: account.currency,
+    currency,
     status: account.status,
     contraAccountRule: account.contraAccountRule,
     adjunctAccountRule: account.adjunctAccountRule,

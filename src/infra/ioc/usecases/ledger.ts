@@ -17,6 +17,7 @@ import makeGetAccountTransactionsUseCase from '@app/ledger/usecases/get-account-
 import makeGetBankDetailsUsecase from '@app/ledger/usecases/get-bank-details.usecase';
 import makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
 import makeGetLedgerAccountDeletionEligibilityUsecase from '@app/ledger/usecases/get-ledger-account-deletion-eligibility.usecase';
+import makeGetLedgerAccountOpeningBalanceUsecase from '@app/ledger/usecases/get-ledger-account-opening-balance.usecase';
 import makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
 import makeGetLedgerSubAccountsUsecase from '@app/ledger/usecases/get-ledger-sub-accounts.usecase';
@@ -430,5 +431,14 @@ export const createSuspenseAccountUseCase = makeTracedUseCase(
     accountingEntityRepo: accountingRepos.accountingEntity,
     suspenseAccountService,
     ledgerAccountPersistenceAppService,
+  })
+);
+
+export const getLedgerAccountOpeningBalanceUseCase = makeTracedUseCase(
+  'ledger.getLedgerAccountOpeningBalanceUseCase',
+  makeGetLedgerAccountOpeningBalanceUsecase({
+    appContext,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    journalEntryQueryRepo: journalEntryRepos.queries.journalEntry,
   })
 );
