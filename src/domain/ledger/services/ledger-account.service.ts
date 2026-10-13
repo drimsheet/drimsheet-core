@@ -10,10 +10,12 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
 import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import ILedgerAccountService, {
+  ELedgerAccountCurrencyUpdateReason,
   ELedgerAccountDeletionReason,
 } from '@domain/ledger/types/ledger-account.service.types';
 import {
   ELedgerAccountStatus,
+  ELedgerType,
   TAuditedLedgerAccount,
 } from '@domain/ledger/types/ledger.types';
 
@@ -166,6 +168,36 @@ function makeGetNextCode(
   };
 }
 
+/** Checks currency update eligibility, skipping posting reads for non-assets. Never persists. */
+function makeCanUpdateCurrency(
+  deps: IDependencies
+): ILedgerAccountService['canUpdateCurrency'] {
+  return async (account, repoOptions) => {
+    if (account.type !== ELedgerType.Asset) {
+      return {
+        canUpdateCurrency: false,
+        reason: ELedgerAccountCurrencyUpdateReason.NotAssetAccount,
+      };
+    }
+
+    const hasPostedJournalEntries =
+      await deps.journalEntryRepo.existsPostedByAccountId(
+        account.id,
+        account.accountingEntityId,
+        repoOptions
+      );
+
+    if (hasPostedJournalEntries) {
+      return {
+        canUpdateCurrency: false,
+        reason: ELedgerAccountCurrencyUpdateReason.HasPostedJournalEntries,
+      };
+    }
+
+    return { canUpdateCurrency: true };
+  };
+}
+
 /** Checks account deletion eligibility, skipping reference reads for headers and drafts. Never persists. */
 function makeCanDelete(
   deps: IDependencies
@@ -267,6 +299,7 @@ export default function makeLedgerAccountService(
   return Object.freeze({
     archive: makeArchive(deps),
     canDelete: makeCanDelete(deps),
+    canUpdateCurrency: makeCanUpdateCurrency(deps),
     validateCurrencyChange: makeValidateCurrencyChange(deps),
     delete: makeDelete(deps),
     getNextCode: makeGetNextCode(deps),

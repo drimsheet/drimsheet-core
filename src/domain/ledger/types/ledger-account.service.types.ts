@@ -20,7 +20,29 @@ type TLedgerAccountDeletionEligibility =
   | { canDelete: true }
   | { canDelete: false; reason: ULedgerAccountDeletionReason };
 
+export const ELedgerAccountCurrencyUpdateReason = {
+  NotAssetAccount: 'not_asset_account',
+  HasPostedJournalEntries: 'has_posted_journal_entries',
+} as const;
+
+export type ULedgerAccountCurrencyUpdateReason =
+  (typeof ELedgerAccountCurrencyUpdateReason)[keyof typeof ELedgerAccountCurrencyUpdateReason];
+
+type TLedgerAccountCurrencyUpdateEligibility =
+  | { canUpdateCurrency: true }
+  | { canUpdateCurrency: false; reason: ULedgerAccountCurrencyUpdateReason };
+
 export default interface ILedgerAccountService {
+  /**
+   * An asset is eligible when it has no historically posted journal entries.
+   * Draft journals do not block eligibility. Checks only the supplied account.
+   * Advisory read only; repository failures propagate.
+   */
+  canUpdateCurrency(
+    account: ILedgerAccount,
+    repoOptions: IReadRepoOptions
+  ): Promise<TLedgerAccountCurrencyUpdateEligibility>;
+
   /** Validates a requested currency against journal references and hierarchy under caller-owned family/account locks. Never persists. */
   validateCurrencyChange(
     account: ILedgerAccount,

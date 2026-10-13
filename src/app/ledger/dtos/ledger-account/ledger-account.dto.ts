@@ -3,7 +3,10 @@ import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 
 import { ULedgerAccountSortBy } from '@domain/ledger/repos/ledger-account.repo';
 import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
-import { ULedgerAccountDeletionReason } from '@domain/ledger/types/ledger-account.service.types';
+import {
+  ULedgerAccountCurrencyUpdateReason,
+  ULedgerAccountDeletionReason,
+} from '@domain/ledger/types/ledger-account.service.types';
 import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
 import {
   UAdjunctAccountRule,
@@ -23,6 +26,10 @@ export interface IGetLedgerAccountsQuery extends IPaginationDto {
   isControlAccount?: boolean;
   orderBy?: ULedgerAccountSortBy;
 }
+
+export type TLedgerAccountCurrencyUpdateEligibilityDto =
+  | { canUpdateCurrency: true }
+  | { canUpdateCurrency: false; reason: ULedgerAccountCurrencyUpdateReason };
 
 export type TLedgerAccountDeletionEligibilityDto =
   | { canDelete: true }

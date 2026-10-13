@@ -66,6 +66,7 @@ import userEntity from '@domain/user/entities/user.entity';
 
 const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
   canDelete: jest.fn(),
+  canUpdateCurrency: jest.fn(),
   validateCurrencyChange: jest.fn(),
   delete: jest.fn(),
   archive: jest.fn(),
@@ -135,6 +136,7 @@ describe('journalEntryService', () => {
     },
     ledgerAccountService: {
       canDelete: jest.fn(),
+      canUpdateCurrency: jest.fn(),
       validateCurrencyChange: jest.fn(),
       archive: jest.fn(),
       delete: jest.fn(),

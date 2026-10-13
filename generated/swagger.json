@@ -755,6 +755,39 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ULedgerAccountCurrencyUpdateReason": {
+        "type": "string",
+        "enum": ["not_asset_account", "has_posted_journal_entries"]
+      },
+      "TLedgerAccountCurrencyUpdateEligibilityDto": {
+        "anyOf": [
+          {
+            "properties": {
+              "canUpdateCurrency": {
+                "type": "boolean",
+                "enum": [true],
+                "nullable": false
+              }
+            },
+            "required": ["canUpdateCurrency"],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "reason": {
+                "$ref": "#/components/schemas/ULedgerAccountCurrencyUpdateReason"
+              },
+              "canUpdateCurrency": {
+                "type": "boolean",
+                "enum": [false],
+                "nullable": false
+              }
+            },
+            "required": ["reason", "canUpdateCurrency"],
+            "type": "object"
+          }
+        ]
+      },
       "ULedgerAccountDeletionReason": {
         "type": "string",
         "enum": ["header_account", "has_journal_entries"]
@@ -4220,6 +4253,86 @@
           }
         },
         "description": "Get the bank details of a ledger account with bank behavior.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/ledger/{accountId}/currency-update-eligibility": {
+      "get": {
+        "operationId": "getLedgerAccountCurrencyUpdateEligibility",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TLedgerAccountCurrencyUpdateEligibilityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Check whether an account is an asset with no historically posted journal entries.\nDraft entries do not block eligibility. Ineligible results include the reason.\nThis result is advisory; currency updates also enforce their own validation.",
         "tags": ["Ledger"],
         "security": [],
         "parameters": [

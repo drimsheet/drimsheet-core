@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
 
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
 import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
@@ -20,6 +20,26 @@ import journalEntryMapper from '@infra/persistence/repos/journal-entry/mappers/j
 import journalEntryHistoryRepo from './journal-entry-history.repo.impl';
 
 const journalEntryRepo: IJournalEntryRepo = {
+  async existsPostedByAccountId(accountId, accountingEntityId, options) {
+    const references = await getDbQuery(options)
+      .select({ id: journalLinesInCore.id })
+      .from(journalLinesInCore)
+      .innerJoin(
+        journalEntriesInCore,
+        eq(journalEntriesInCore.id, journalLinesInCore.entryId)
+      )
+      .where(
+        and(
+          eq(journalLinesInCore.accountId, accountId),
+          eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
+          isNotNull(journalEntriesInCore.postedAt)
+        )
+      )
+      .limit(1);
+
+    return references.length > 0;
+  },
+
   async existsByAccountId(accountId, accountingEntityId, options) {
     const references = await getDbQuery(options)
       .select({ id: journalLinesInCore.id })
