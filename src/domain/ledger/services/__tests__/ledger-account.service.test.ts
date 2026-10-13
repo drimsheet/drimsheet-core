@@ -58,6 +58,7 @@ const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
   update: jest.fn(),
   delete: jest.fn(),
   findById: jest.fn(),
+  existsByAccountId: jest.fn(),
   findAllByAccountIds: jest.fn(),
 };
 const service = makeLedgerAccountService({
@@ -65,6 +66,86 @@ const service = makeLedgerAccountService({
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
 const repoOptions = { correlationId: 'archive', tx: {} };
+
+describe('ledgerAccountService.canDelete', () => {
+  const options = { correlationId: 'eligibility' };
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  afterEach(() => {
+    expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
+    expect(mockLedgerAccountRepo.delete).not.toHaveBeenCalled();
+    expect(mockJournalEntryRepo.delete).not.toHaveBeenCalled();
+    expect(mockJournalEntryRepo.findAllByAccountIds).not.toHaveBeenCalled();
+  });
+
+  describe.each(['draft', 'active', 'archived'] as const)(
+    '%s account',
+    (status) => {
+      it.each([true, false])(
+        'rejects a header with isControlAccount=%s without reading journals',
+        async (isControlAccount) => {
+          const header = account('100000', '100000', status, isControlAccount);
+
+          await expect(service.canDelete(header, options)).resolves.toEqual({
+            canDelete: false,
+            reason: 'header_account',
+          });
+          expect(mockJournalEntryRepo.existsByAccountId).not.toHaveBeenCalled();
+        }
+      );
+
+      describe.each([true, false])(
+        'isControlAccount=%s',
+        (isControlAccount) => {
+          it.each([true, false])(
+            'checks eligibility when hasJournalEntries=%s',
+            async (hasJournalEntries) => {
+              const target = account(
+                '100001',
+                '100000.100001',
+                status,
+                isControlAccount
+              );
+              mockJournalEntryRepo.existsByAccountId.mockResolvedValue(
+                hasJournalEntries
+              );
+
+              const expectedEligibility =
+                status === 'draft' || !hasJournalEntries
+                  ? { canDelete: true }
+                  : { canDelete: false, reason: 'has_journal_entries' };
+              await expect(service.canDelete(target, options)).resolves.toEqual(
+                expectedEligibility
+              );
+
+              if (status === 'draft') {
+                expect(
+                  mockJournalEntryRepo.existsByAccountId
+                ).not.toHaveBeenCalled();
+              } else {
+                expect(
+                  mockJournalEntryRepo.existsByAccountId
+                ).toHaveBeenCalledWith(target.id, accountingEntityId, options);
+              }
+            }
+          );
+        }
+      );
+    }
+  );
+
+  it('propagates journal reference query failures', async () => {
+    const failure = new Error('query failed');
+    mockJournalEntryRepo.existsByAccountId.mockRejectedValue(failure);
+
+    await expect(
+      service.canDelete(account('100001', '100000.100001'), options)
+    ).rejects.toBe(failure);
+  });
+});
 
 describe('ledgerAccountService.archive', () => {
   beforeEach(() => {
@@ -431,11 +512,17 @@ describe('ledgerAccountService.delete', () => {
   });
 
   it.each(['active', 'archived'] as const)(
-    'rejects a %s target before querying journals',
+    'rejects a %s target with journal references before preparing the subtree',
     async (status) => {
       const [account] = ledgerAccountEntity.make({ ...target, status });
+      mockJournalEntryRepo.existsByAccountId.mockResolvedValue(true);
       await expect(service.delete(account, options)).rejects.toBeInstanceOf(
         ledgerAccountError.NonDraftAccountDeletion
+      );
+      expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenCalledWith(
+        account.id,
+        account.accountingEntityId,
+        options
       );
       expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
       expect(mockJournalEntryRepo.findAllByAccountIds).not.toHaveBeenCalled();
@@ -443,16 +530,84 @@ describe('ledgerAccountService.delete', () => {
   );
 
   it.each(['active', 'archived'] as const)(
-    'rejects the entire subtree for a %s descendant',
+    'rejects the entire subtree for a %s descendant with journal references',
     async (status) => {
       const [account] = ledgerAccountEntity.make({ ...leaf, status });
       mockLedgerAccountRepo.findDescendants.mockResolvedValue([child, account]);
+      mockJournalEntryRepo.existsByAccountId.mockResolvedValue(true);
       await expect(service.delete(target, options)).rejects.toBeInstanceOf(
         ledgerAccountError.NonDraftAccountDeletion
       );
       expect(mockJournalEntryRepo.findAllByAccountIds).not.toHaveBeenCalled();
+      expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenCalledWith(
+        account.id,
+        account.accountingEntityId,
+        options
+      );
     }
   );
+
+  it.each(['active', 'archived'] as const)(
+    'allows a %s posting account without journal references',
+    async (status) => {
+      const [account] = ledgerAccountEntity.make({ ...leaf, status });
+      mockJournalEntryRepo.existsByAccountId.mockResolvedValue(false);
+      mockJournalEntryRepo.findAllByAccountIds.mockResolvedValue([]);
+
+      await expect(service.delete(account, options)).resolves.toEqual({
+        accounts: [account],
+        journalEntries: [],
+      });
+      expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenCalledWith(
+        account.id,
+        account.accountingEntityId,
+        options
+      );
+    }
+  );
+
+  it('allows unreferenced non-draft controls and descendants alongside a draft posting account', async () => {
+    const [activeTarget] = ledgerAccountEntity.make({
+      ...target,
+      status: 'active',
+    });
+    const [archivedChild] = ledgerAccountEntity.make({
+      ...child,
+      status: 'archived',
+    });
+    mockLedgerAccountRepo.findDescendants.mockResolvedValue([
+      archivedChild,
+      leaf,
+    ]);
+    mockJournalEntryRepo.existsByAccountId.mockResolvedValue(false);
+
+    await expect(service.delete(activeTarget, options)).resolves.toEqual({
+      accounts: [leaf, archivedChild, activeTarget],
+      journalEntries: [draftEntry],
+    });
+    expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenCalledTimes(2);
+    expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenNthCalledWith(
+      1,
+      activeTarget.id,
+      activeTarget.accountingEntityId,
+      options
+    );
+    expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenNthCalledWith(
+      2,
+      archivedChild.id,
+      archivedChild.accountingEntityId,
+      options
+    );
+  });
+
+  it('propagates eligibility query failures before preparing journal deletion', async () => {
+    const [account] = ledgerAccountEntity.make({ ...leaf, status: 'active' });
+    const failure = new Error('journal reference query failed');
+    mockJournalEntryRepo.existsByAccountId.mockRejectedValue(failure);
+
+    await expect(service.delete(account, options)).rejects.toBe(failure);
+    expect(mockJournalEntryRepo.findAllByAccountIds).not.toHaveBeenCalled();
+  });
 
   it.each<IJournalEntry>([
     { ...draftEntry, status: 'posted', postedAt: new Date('2026-01-01') },

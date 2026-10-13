@@ -33,6 +33,7 @@ import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/he
 import {
   IGetLedgerAccountsQuery,
   ILedgerAccountDto,
+  TLedgerAccountDeletionEligibilityDto,
 } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import {
   ICreateStatutoryPayableAccountDto,
@@ -64,6 +65,7 @@ import {
   deleteLedgerAccountUseCase,
   getAccountTransactionsUseCase,
   getBankDetailsUseCase,
+  getLedgerAccountDeletionEligibilityUseCase,
   getLedgerAccountsUseCase,
   getLedgerAccountUseCase,
   getLedgerSubAccountsUseCase,
@@ -165,6 +167,30 @@ export class LedgerController extends Controller {
   )
   public async getBankDetails(@Path() accountId: string) {
     return getBankDetailsUseCase(accountId as TEntityId);
+  }
+
+  /**
+   * Check whether a ledger account is not a header and is either draft or has
+   * no associated journal entries. Ineligible results include the blocking reason.
+   * This result is advisory.
+   */
+  @Get('/{accountId}/deletion-eligibility')
+  @OperationId('getLedgerAccountDeletionEligibility')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getLedgerAccountDeletionEligibility(
+    @Path() accountId: string
+  ): Promise<TLedgerAccountDeletionEligibilityDto> {
+    return getLedgerAccountDeletionEligibilityUseCase(accountId);
   }
 
   /** Get direct sub accounts only, returning an empty array when there are none. */
@@ -547,7 +573,7 @@ export class LedgerController extends Controller {
     return archiveLedgerAccountUseCase(accountId);
   }
 
-  /** Deletes a draft account and its draft subtree with all associated draft journals. Accounts without a controlAccountId and non-draft accounts return 400; a non-draft journal associated with a draft account is an unexpected invariant violation (500). */
+  /** Deletes an eligible account and its eligible subtree with all associated draft journals. Accounts without a controlAccountId and non-draft accounts with journal entries return 400; a non-draft journal associated with a draft account is an unexpected invariant violation (500). */
   @Delete('/{accountId}')
   @OperationId('deleteLedgerAccount')
   @SuccessResponse('204')

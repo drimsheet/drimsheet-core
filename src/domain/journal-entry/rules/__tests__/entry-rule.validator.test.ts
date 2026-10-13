@@ -44,6 +44,7 @@ describe('journalEntryRuleValidator', () => {
       create: jest.fn(),
     },
     ledgerAccountService: {
+      canDelete: jest.fn(),
       archive: jest.fn(),
       delete: jest.fn(),
       getNextCode: jest.fn(),

@@ -8,7 +8,9 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
-import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
+import ILedgerAccountService, {
+  ELedgerAccountDeletionReason,
+} from '@domain/ledger/types/ledger-account.service.types';
 import {
   ELedgerAccountStatus,
   TAuditedLedgerAccount,
@@ -94,17 +96,54 @@ function makeGetNextCode(
   };
 }
 
-/** Enforces draft-subtree removal and preservation of all accepted financial activity. */
-function makeDelete(deps: IDependencies): ILedgerAccountService['delete'] {
+/** Checks account deletion eligibility, skipping reference reads for headers and drafts. Never persists. */
+function makeCanDelete(
+  deps: IDependencies
+): ILedgerAccountService['canDelete'] {
   return async (account, repoOptions) => {
     if (account.controlAccountId === null) {
-      throw new ledgerAccountError.HeaderAccountNotDeletable({
-        id: account.id,
-      });
+      return {
+        canDelete: false,
+        reason: ELedgerAccountDeletionReason.HeaderAccount,
+      };
     }
 
-    if (account.status !== ELedgerAccountStatus.Draft) {
-      throw new ledgerAccountError.NonDraftAccountDeletion({ id: account.id });
+    if (account.status === ELedgerAccountStatus.Draft) {
+      return { canDelete: true };
+    }
+
+    const hasJournalEntries = await deps.journalEntryRepo.existsByAccountId(
+      account.id,
+      account.accountingEntityId,
+      repoOptions
+    );
+
+    if (hasJournalEntries) {
+      return {
+        canDelete: false,
+        reason: ELedgerAccountDeletionReason.HasJournalEntries,
+      };
+    }
+
+    return { canDelete: true };
+  };
+}
+
+/** Enforces eligibility for the complete subtree and preserves all accepted financial activity. */
+function makeDelete(deps: IDependencies): ILedgerAccountService['delete'] {
+  const canDelete = makeCanDelete(deps);
+
+  const deletionReasonErrorMap = {
+    [ELedgerAccountDeletionReason.HeaderAccount]:
+      ledgerAccountError.HeaderAccountNotDeletable,
+    [ELedgerAccountDeletionReason.HasJournalEntries]:
+      ledgerAccountError.NonDraftAccountDeletion,
+  };
+
+  return async (account, repoOptions) => {
+    const eligibility = await canDelete(account, repoOptions);
+    if (eligibility.canDelete === false) {
+      throw new deletionReasonErrorMap[eligibility.reason]({ id: account.id });
     }
 
     const descendants = account.isControlAccount
@@ -118,8 +157,9 @@ function makeDelete(deps: IDependencies): ILedgerAccountService['delete'] {
     const accounts = [account, ...descendants];
 
     for (const candidate of descendants) {
-      if (candidate.status !== ELedgerAccountStatus.Draft) {
-        throw new ledgerAccountError.NonDraftAccountDeletion({
+      const descendantEligibility = await canDelete(candidate, repoOptions);
+      if (descendantEligibility.canDelete === false) {
+        throw new deletionReasonErrorMap[descendantEligibility.reason]({
           id: candidate.id,
         });
       }
@@ -136,6 +176,7 @@ function makeDelete(deps: IDependencies): ILedgerAccountService['delete'] {
         entry.postedAt !== null ||
         entry.status !== EJournalEntryStatus.Draft ||
         entry.sourceType === EJournalEntrySourceType.Reversal;
+
       if (isInvalidDraftJournal) {
         throw new ledgerAccountError.InvalidDraftAccountJournalEntry({
           id: account.id,
@@ -155,6 +196,7 @@ export default function makeLedgerAccountService(
 ): ILedgerAccountService {
   return Object.freeze({
     archive: makeArchive(deps),
+    canDelete: makeCanDelete(deps),
     delete: makeDelete(deps),
     getNextCode: makeGetNextCode(deps),
   });

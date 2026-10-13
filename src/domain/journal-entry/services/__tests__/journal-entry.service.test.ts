@@ -64,6 +64,7 @@ import moneyValue from '@domain/money/values/money.vo';
 import userEntity from '@domain/user/entities/user.entity';
 
 const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
+  canDelete: jest.fn(),
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
@@ -130,6 +131,7 @@ describe('journalEntryService', () => {
       create: jest.fn(),
     },
     ledgerAccountService: {
+      canDelete: jest.fn(),
       archive: jest.fn(),
       delete: jest.fn(),
       getNextCode: jest.fn(),
