@@ -59,6 +59,7 @@ const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
   delete: jest.fn(),
   findById: jest.fn(),
   existsByAccountId: jest.fn(),
+  existsPostedByAccountId: jest.fn(),
   findAllByAccountIds: jest.fn(),
 };
 const service = makeLedgerAccountService({
@@ -66,6 +67,80 @@ const service = makeLedgerAccountService({
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
 const repoOptions = { correlationId: 'archive', tx: {} };
+
+describe('ledgerAccountService.canUpdateCurrency', () => {
+  const options = { correlationId: 'currency-eligibility' };
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it.each(['liability', 'equity', 'revenue', 'expense'] as const)(
+    'rejects %s accounts without reading journals',
+    async (type) => {
+      const [target] = ledgerAccountEntity.make({
+        ...account('100001', '100000.100001'),
+        type,
+      });
+      await expect(service.canUpdateCurrency(target, options)).resolves.toEqual(
+        {
+          canUpdateCurrency: false,
+          reason: 'not_asset_account',
+        }
+      );
+      expect(
+        mockJournalEntryRepo.existsPostedByAccountId
+      ).not.toHaveBeenCalled();
+    }
+  );
+
+  describe.each(['draft', 'active', 'archived'] as const)(
+    '%s asset',
+    (status) => {
+      it.each([false, true])(
+        'checks historical posting activity=%s without treating account status as eligibility',
+        async (hasPostedJournalEntries) => {
+          const target = account('100001', '100000.100001', status);
+          mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(
+            hasPostedJournalEntries
+          );
+
+          await expect(
+            service.canUpdateCurrency(target, options)
+          ).resolves.toEqual(
+            hasPostedJournalEntries
+              ? {
+                  canUpdateCurrency: false,
+                  reason: 'has_posted_journal_entries',
+                }
+              : { canUpdateCurrency: true }
+          );
+          expect(
+            mockJournalEntryRepo.existsPostedByAccountId
+          ).toHaveBeenCalledWith(target.id, accountingEntityId, options);
+          expect(mockJournalEntryRepo.existsByAccountId).not.toHaveBeenCalled();
+        }
+      );
+    }
+  );
+
+  it('allows asset headers and controls with no direct posting activity', async () => {
+    mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(false);
+    const target = account('100000', '100000', 'active', true);
+    await expect(service.canUpdateCurrency(target, options)).resolves.toEqual({
+      canUpdateCurrency: true,
+    });
+    expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
+  });
+
+  it('propagates posting query failures', async () => {
+    const failure = new Error('posting query failed');
+    mockJournalEntryRepo.existsPostedByAccountId.mockRejectedValue(failure);
+    await expect(
+      service.canUpdateCurrency(account('100001', '100000.100001'), options)
+    ).rejects.toBe(failure);
+  });
+});
 
 describe('ledgerAccountService.canDelete', () => {
   const options = { correlationId: 'eligibility' };

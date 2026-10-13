@@ -16,6 +16,7 @@ import makeDeleteLedgerAccountUsecase from '@app/ledger/usecases/delete-ledger-a
 import makeGetAccountTransactionsUseCase from '@app/ledger/usecases/get-account-transactions.usecase';
 import makeGetBankDetailsUsecase from '@app/ledger/usecases/get-bank-details.usecase';
 import makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
+import makeGetLedgerAccountCurrencyUpdateEligibilityUsecase from '@app/ledger/usecases/get-ledger-account-currency-update-eligibility.usecase';
 import makeGetLedgerAccountDeletionEligibilityUsecase from '@app/ledger/usecases/get-ledger-account-deletion-eligibility.usecase';
 import makeGetLedgerAccountOpeningBalanceUsecase from '@app/ledger/usecases/get-ledger-account-opening-balance.usecase';
 import makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
@@ -76,6 +77,16 @@ import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import outboxRepo from '@infra/persistence/repos/outbox';
 import appContext from '@infra/runtime/app-context';
+
+export const getLedgerAccountCurrencyUpdateEligibilityUseCase =
+  makeTracedUseCase(
+    'ledger.getLedgerAccountCurrencyUpdateEligibilityUseCase',
+    makeGetLedgerAccountCurrencyUpdateEligibilityUsecase({
+      appContext,
+      ledgerAccountRepo: ledgerRepos.ledgerAccount,
+      ledgerAccountService,
+    })
+  );
 
 export const getLedgerAccountDeletionEligibilityUseCase = makeTracedUseCase(
   'ledger.getLedgerAccountDeletionEligibilityUseCase',

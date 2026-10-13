@@ -15,6 +15,13 @@ import {
 } from '@domain/journal-entry/types/journal-entry.types';
 
 export default interface IJournalEntryRepo {
+  /** Checks historical posting activity, including entries later archived or reversed. */
+  existsPostedByAccountId(
+    accountId: TEntityId,
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<boolean>;
+
   /** Checks for any associated journal entry, without filtering by state. */
   existsByAccountId(
     accountId: TEntityId,

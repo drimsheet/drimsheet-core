@@ -44,6 +44,7 @@ const bankRepo: jest.Mocked<IBankAccountRepo> = {
 };
 const allocation: jest.Mocked<ILedgerAccountService> = {
   canDelete: jest.fn(),
+  canUpdateCurrency: jest.fn(),
   validateCurrencyChange: jest.fn(),
   delete: jest.fn(),
   archive: jest.fn(),

@@ -34,6 +34,7 @@ import { ILedgerAccountOpeningBalanceDto } from '@app/ledger/dtos/ledger-account
 import {
   IGetLedgerAccountsQuery,
   ILedgerAccountDto,
+  TLedgerAccountCurrencyUpdateEligibilityDto,
   TLedgerAccountDeletionEligibilityDto,
 } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import {
@@ -69,6 +70,7 @@ import {
   deleteLedgerAccountUseCase,
   getAccountTransactionsUseCase,
   getBankDetailsUseCase,
+  getLedgerAccountCurrencyUpdateEligibilityUseCase,
   getLedgerAccountDeletionEligibilityUseCase,
   getLedgerAccountOpeningBalanceUseCase,
   getLedgerAccountsUseCase,
@@ -172,6 +174,30 @@ export class LedgerController extends Controller {
   )
   public async getBankDetails(@Path() accountId: string) {
     return getBankDetailsUseCase(accountId as TEntityId);
+  }
+
+  /**
+   * Check whether an account is an asset with no historically posted journal entries.
+   * Draft entries do not block eligibility. Ineligible results include the reason.
+   * This result is advisory; currency updates also enforce their own validation.
+   */
+  @Get('/{accountId}/currency-update-eligibility')
+  @OperationId('getLedgerAccountCurrencyUpdateEligibility')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getLedgerAccountCurrencyUpdateEligibility(
+    @Path() accountId: string
+  ): Promise<TLedgerAccountCurrencyUpdateEligibilityDto> {
+    return getLedgerAccountCurrencyUpdateEligibilityUseCase(accountId);
   }
 
   /**

@@ -634,6 +634,52 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountCurrencyUpdateReason: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['not_asset_account'] },
+        { dataType: 'enum', enums: ['has_posted_journal_entries'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  TLedgerAccountCurrencyUpdateEligibilityDto: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            canUpdateCurrency: {
+              dataType: 'enum',
+              enums: [true],
+              required: true,
+            },
+          },
+        },
+        {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            reason: {
+              ref: 'ULedgerAccountCurrencyUpdateReason',
+              required: true,
+            },
+            canUpdateCurrency: {
+              dataType: 'enum',
+              enums: [false],
+              required: true,
+            },
+          },
+        },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ULedgerAccountDeletionReason: {
     dataType: 'refAlias',
     type: {
@@ -3054,6 +3100,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getBankDetails',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_getLedgerAccountCurrencyUpdateEligibility: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+  };
+  app.get(
+    '/api/v1/ledger/:accountId/currency-update-eligibility',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.getLedgerAccountCurrencyUpdateEligibility
+    ),
+
+    async function LedgerController_getLedgerAccountCurrencyUpdateEligibility(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_getLedgerAccountCurrencyUpdateEligibility,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'getLedgerAccountCurrencyUpdateEligibility',
           controller,
           response,
           next,

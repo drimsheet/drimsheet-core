@@ -81,6 +81,51 @@ describe('journalEntryRepo', () => {
     }
   );
 
+  it.each([
+    { references: [], expected: false },
+    { references: [{ id: journalEntryId }], expected: true },
+  ])(
+    'reports historical posted activity as $expected, excluding drafts',
+    async ({ references, expected }) => {
+      const accountId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
+      const limit = jest.fn().mockResolvedValue(references);
+      const where = jest.fn().mockReturnValue({ limit });
+      const innerJoin = jest.fn().mockReturnValue({ where });
+      const from = jest.fn().mockReturnValue({ innerJoin });
+      const select = jest.fn().mockReturnValue({ from });
+      jest.mocked(getDbQuery).mockReturnValue({ select } as never);
+
+      await expect(
+        journalEntryRepo.existsPostedByAccountId(
+          accountId,
+          journalEntryId,
+          options
+        )
+      ).resolves.toBe(expected);
+
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(select).toHaveBeenCalledWith({ id: journalLinesInCore.id });
+      expect(from).toHaveBeenCalledWith(journalLinesInCore);
+      expect(innerJoin).toHaveBeenCalledWith(
+        journalEntriesInCore,
+        expect.anything()
+      );
+      expect(limit).toHaveBeenCalledWith(1);
+      const dialect = new PgDialect();
+      const join = dialect.sqlToQuery(innerJoin.mock.calls[0][1] as SQL);
+      expect(join.sql).toBe(
+        '"core"."journal_entries"."id" = "core"."journal_lines"."entry_id"'
+      );
+      const predicate = dialect.sqlToQuery(where.mock.calls[0][0] as SQL);
+      expect(predicate.sql).toContain('"account_id" = $1');
+      expect(predicate.sql).toContain('"accounting_entity_id" = $2');
+      expect(predicate.params).toEqual([accountId, journalEntryId]);
+      expect(predicate.sql).toContain('"posted_at" is not null');
+      expect(predicate.sql).not.toMatch(/status|deleted_at/);
+      expect(journalEntryMapper.toDomain).not.toHaveBeenCalled();
+    }
+  );
+
   it('loads lines and the attachment collection before mapping', async () => {
     const repoResult = { id: journalEntryId };
     const entry = {
