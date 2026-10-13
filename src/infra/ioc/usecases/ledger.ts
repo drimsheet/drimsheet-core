@@ -9,6 +9,7 @@ import makeCreateStatutoryReceivableAccountUsecase from '@app/ledger/usecases/cr
 import makeCreateSuspenseAccountUsecase from '@app/ledger/usecases/create-suspense-account.usecase';
 import makeCreateTradePayableAccountUsecase from '@app/ledger/usecases/create-trade-payable-account.usecase';
 import makeCreateTradeReceivableAccountUsecase from '@app/ledger/usecases/create-trade-receivable-account.usecase';
+import makeDeleteLedgerAccountUsecase from '@app/ledger/usecases/delete-ledger-account.usecase';
 import makeGetAccountTransactionsUseCase from '@app/ledger/usecases/get-account-transactions.usecase';
 import makeGetBankDetailsUsecase from '@app/ledger/usecases/get-bank-details.usecase';
 import makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
@@ -68,6 +69,17 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import outboxRepo from '@infra/persistence/repos/outbox';
 import appContext from '@infra/runtime/app-context';
+
+export const deleteLedgerAccountUseCase = makeTracedUseCase(
+  'ledger.deleteLedgerAccountUseCase',
+  makeDeleteLedgerAccountUsecase({
+    ledgerAccountService,
+    appContext,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    journalEntryPersistenceAppService,
+    repoService,
+  })
+);
 
 export const getBanksUseCase = makeTracedUseCase(
   'ledger.getBanksUseCase',

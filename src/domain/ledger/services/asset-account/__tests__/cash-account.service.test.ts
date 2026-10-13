@@ -23,6 +23,7 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  delete: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),
@@ -42,6 +43,7 @@ const bankRepo: jest.Mocked<IBankAccountRepo> = {
   create: jest.fn(),
 };
 const allocation: jest.Mocked<ILedgerAccountService> = {
+  delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
 };

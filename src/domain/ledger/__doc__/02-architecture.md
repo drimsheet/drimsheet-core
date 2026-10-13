@@ -53,6 +53,32 @@ separate account-validation call. These preparation checks do not hold account
 locks through journal persistence. The archive workflow never changes journals,
 balances, FX records, or propagation work.
 
+## Account Deletion
+
+`DELETE /ledger/{accountId}` requires accounting-entity ownership and returns
+HTTP 204 with no content. Accounts without a `controlAccountId` cannot be
+deleted, regardless of status. Only draft accounts can be deleted. A control account
+includes its complete draft subtree; a non-draft descendant rejects the entire
+request. All journals associated with draft accounts must themselves be draft.
+A non-draft journal (including an archived never-posted entry), or a draft with
+posting history, is an unexpected invariant violation and aborts deletion.
+
+All associated draft journal aggregates are removed, including every line
+(also lines for accounts outside the deleted subtree), attachment association,
+and journal audit record. `ledgerAccountService.delete` validates the subtree
+and returns the prepared deletion records without persisting. Accounts are
+then removed child-first with their audit history; existing database cascades
+remove bank details and initial balances. The complete operation commits or
+rolls back together.
+
+The use case locks the target and fetched descendants while validating and
+deleting their journal entries. A concurrent descendant insertion that escapes
+the subtree read causes a foreign-key conflict and rolls back the deletion.
+Journal and account version checks reject concurrent changes. The account
+repository additionally requires no remaining journal lines, preventing
+partial journal deletion through database cascades. This preserves LED-LA-009
+and LED-LA-012, and the journal guarantees JE-006, JE-011, and JE-012.
+
 ## Chart of Accounts Structure
 
 Our Chart of Accounts follows a **6-digit** hierarchical coding structure: **A-BB-CCC**. Where:

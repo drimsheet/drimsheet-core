@@ -26,6 +26,7 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  delete: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),

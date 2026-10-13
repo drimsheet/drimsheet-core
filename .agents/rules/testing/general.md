@@ -2,6 +2,13 @@
 
 ## General Rules
 
+- All tests in this repository are unit or integration tests that run without
+  external platforms. Mock external boundaries or use in-process fakes; never
+  require a real PostgreSQL database, Redis, queue, cloud service, or external API.
+- Tests must not require platform credentials, connection URLs, containers,
+  migrations, or database setup, or skip themselves when those are unavailable.
+- Platform-dependent behavior and database execution plans belong in the
+  separate E2E suite, not this repository's test suite.
 - Keep coverage at 100% for touched behavior.
 - Do not use `any`.
 - Prefer existing shared mocks from `__mocks__`.

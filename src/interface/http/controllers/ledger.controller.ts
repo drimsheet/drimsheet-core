@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Middlewares,
   OperationId,
@@ -60,6 +61,7 @@ import {
   createSuspenseAccountUseCase,
   createTradePayableAccountUseCase,
   createTradeReceivableAccountUseCase,
+  deleteLedgerAccountUseCase,
   getAccountTransactionsUseCase,
   getBankDetailsUseCase,
   getLedgerAccountsUseCase,
@@ -543,5 +545,24 @@ export class LedgerController extends Controller {
   )
   public async archiveLedgerAccount(@Path() accountId: string): Promise<void> {
     return archiveLedgerAccountUseCase(accountId);
+  }
+
+  /** Deletes a draft account and its draft subtree with all associated draft journals. Accounts without a controlAccountId and non-draft accounts return 400; a non-draft journal associated with a draft account is an unexpected invariant violation (500). */
+  @Delete('/{accountId}')
+  @OperationId('deleteLedgerAccount')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async deleteLedgerAccount(@Path() accountId: string): Promise<void> {
+    return deleteLedgerAccountUseCase(accountId);
   }
 }

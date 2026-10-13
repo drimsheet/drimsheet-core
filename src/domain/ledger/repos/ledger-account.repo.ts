@@ -58,6 +58,9 @@ export interface IFindAllLedgerAccountsOptions extends Omit<
 }
 
 export default interface ILedgerAccountRepo {
+  /** Deletes an unreferenced draft account and its history at the expected version. */
+  delete(id: TEntityId, options: IVersionedRepoWriteOptions): Promise<void>;
+
   create(
     account: ILedgerAccount | ILedgerAccount[],
     options: IWriteRepoOptions<ILedgerAccountHistory | ILedgerAccountHistory[]>

@@ -15,7 +15,7 @@ import toSchemaString from '../utils/to-schema-string';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export function up(pgm: MigrationBuilder) {
   pgm.createType(ledgerType, [
     'asset',
     'liability',
@@ -188,7 +188,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 }
 
-export async function down(pgm: MigrationBuilder): Promise<void> {
+export function down(pgm: MigrationBuilder) {
   pgm.dropTable(ledgerAccountsTable);
   pgm.dropType(adjunctAccountRule);
   pgm.dropType(contraAccountRule);

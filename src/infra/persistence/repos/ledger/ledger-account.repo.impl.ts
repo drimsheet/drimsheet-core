@@ -8,6 +8,7 @@ import {
   inArray,
   isNull,
   like,
+  notExists,
   or,
   sql,
 } from 'drizzle-orm';
@@ -23,9 +24,11 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo, {
   ELedgerAccountSortBy,
 } from '@domain/ledger/repos/ledger-account.repo';
+import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 
 import {
   currenciesInCore,
+  journalLinesInCore,
   ledgerAccountBalancesInCore,
   ledgerAccountsInCore,
 } from '@infra/config/drizzle/schema';
@@ -49,6 +52,37 @@ function isSuspenseDuplicate(error: unknown): boolean {
 }
 
 const ledgerAccountRepoImpl: ILedgerAccountRepo = {
+  delete: async (id, options) => {
+    await getDbQuery(options).transaction(async (tx) => {
+      const deleted = await tx.delete(ledgerAccountsInCore).where(
+        and(
+          eq(ledgerAccountsInCore.id, id),
+          eq(ledgerAccountsInCore.version, options.expectedVersion),
+          eq(ledgerAccountsInCore.status, ELedgerAccountStatus.Draft),
+          // Never let the account FK cascade remove only one side of a journal.
+          notExists(
+            tx
+              .select({ id: journalLinesInCore.id })
+              .from(journalLinesInCore)
+              .where(eq(journalLinesInCore.accountId, id))
+          )
+        )
+      );
+
+      if (deleted.rowCount === 0) {
+        throw new repoError.VersionNotFound({
+          id,
+          version: options.expectedVersion,
+        });
+      }
+
+      await ledgerAccountHistoryRepo.deleteByAccountId(
+        id,
+        passOnRepoTransaction(options, tx)
+      );
+    });
+  },
+
   create: async (payload, options) => {
     try {
       await getDbQuery(options).transaction(async (tx) => {

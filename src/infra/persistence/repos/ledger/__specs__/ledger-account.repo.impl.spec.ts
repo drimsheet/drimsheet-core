@@ -1,4 +1,5 @@
-import { eq, inArray, isNull, like, or } from 'drizzle-orm';
+import { eq, inArray, isNull, like, or, SQL } from 'drizzle-orm';
+import { PgDialect, QueryBuilder } from 'drizzle-orm/pg-core';
 
 import { ERepoLock, ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
@@ -31,6 +32,65 @@ jest.mock('drizzle-orm', () => {
     isNull: jest.fn(drizzle.isNull),
     or: jest.fn(drizzle.or),
   };
+});
+
+describe('ledgerAccountRepo draft deletion', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  function mockDeletion(rowCount: number) {
+    const where = jest.fn().mockResolvedValue({ rowCount });
+    const tx = {
+      delete: jest.fn().mockReturnValue({ where }),
+      select: new QueryBuilder().select.bind(new QueryBuilder()),
+    };
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn(async (callback) => callback(tx as never)),
+    } as never);
+    return { where, tx };
+  }
+
+  it('guards version, draft status, and absence of journal lines before removing history in the same transaction', async () => {
+    const id = generateUUID();
+    const options = { correlationId: 'delete', expectedVersion: 4, tx: {} };
+    const { where, tx } = mockDeletion(1);
+    await ledgerAccountRepo.delete(id, options);
+    const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0] as SQL);
+    expect(predicate.sql).toContain('"version" =');
+    expect(predicate.sql).toContain('"status" =');
+    expect(predicate.sql).toContain('not exists (select');
+    expect(predicate.sql).toContain('"core"."journal_lines"');
+    expect(predicate.params).toEqual([id, 4, 'draft', id]);
+    expect(tx.delete).toHaveBeenCalledWith(ledgerAccountsInCore);
+    expect(ledgerAccountHistoryRepo.deleteByAccountId).toHaveBeenCalledWith(
+      id,
+      { ...options, tx }
+    );
+  });
+
+  it('rejects an unmatched deletion without removing account history', async () => {
+    mockDeletion(0);
+    await expect(
+      ledgerAccountRepo.delete(generateUUID(), {
+        correlationId: 'delete',
+        expectedVersion: 1,
+      })
+    ).rejects.toBeInstanceOf(repoError.VersionNotFound);
+    expect(ledgerAccountHistoryRepo.deleteByAccountId).not.toHaveBeenCalled();
+  });
+
+  it('propagates history deletion failure so the transaction rolls back', async () => {
+    mockDeletion(1);
+    const error = new Error('history unavailable');
+    jest
+      .mocked(ledgerAccountHistoryRepo.deleteByAccountId)
+      .mockRejectedValueOnce(error);
+    await expect(
+      ledgerAccountRepo.delete(generateUUID(), {
+        correlationId: 'delete',
+        expectedVersion: 1,
+      })
+    ).rejects.toBe(error);
+  });
 });
 
 describe('ledgerAccountRepo strict updates', () => {

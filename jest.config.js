@@ -3,7 +3,7 @@ module.exports = {
   maxWorkers: 2,
   setupFilesAfterEnv: ['<rootDir>/test/setup/rate-limit-stores.ts'],
   roots: ['<rootDir>/src', '<rootDir>/test'],
-  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/test/db/'],
+  testPathIgnorePatterns: ['/node_modules/'],
   moduleNameMapper: {
     '^@domain/(.*)$': '<rootDir>/src/domain/$1',
     '^@app/(.*)$': '<rootDir>/src/app/$1',

@@ -37,6 +37,7 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
+import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import {
   mockAssetAccountService,
@@ -211,6 +212,7 @@ const dependencies = {
 const usecase = makeSetupHeaderAccountsUsecase(dependencies);
 
 const allocation = makeLedgerAccountService({
+  journalEntryRepo: mockJournalEntryRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
 let storedAccounts: ILedgerAccount[];

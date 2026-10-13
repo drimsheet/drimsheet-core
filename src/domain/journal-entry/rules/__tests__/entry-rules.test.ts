@@ -40,6 +40,7 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
+  delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
 };
@@ -84,6 +85,7 @@ describe('journal entry rules', () => {
     functionalCurrencyCode: currency.code,
   } as IAccountingEntity;
   const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+    delete: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     findById: jest.fn(),
@@ -104,7 +106,11 @@ describe('journal entry rules', () => {
       update: jest.fn(),
       create: jest.fn(),
     },
-    ledgerAccountService: { archive: jest.fn(), getNextCode: jest.fn() },
+    ledgerAccountService: {
+      archive: jest.fn(),
+      delete: jest.fn(),
+      getNextCode: jest.fn(),
+    },
   });
   const receivablesAccountService = makeReceivablesAccountService({
     ledgerAccountRepo,
