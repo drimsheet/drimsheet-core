@@ -170,9 +170,13 @@ exercise the real rate-limit implementation.
 
 Our project follows these guidelines for testing:
 
+- **External platforms**: All tests here are unit or integration tests with
+  mocked external boundaries or in-process fakes. Follow the
+  [General Testing rules](.agents/rules/testing/general.md); platform-dependent
+  checks belong in the separate E2E suite.
 - **Test Proximity**: Test files should be kept near their test subjects.
 - **Dependency-free tests**: Domain tests, DTO tests, mapper tests, and `src/shared/**` tests use nearby `__tests__` folders with `.test.ts` files.
-- **Dependency-bearing tests**: Other application, infrastructure, and interface tests use nearby `__specs__` folders with `.spec.ts` files.
+- **Tests with mocked dependencies**: Other application, infrastructure, and interface tests use nearby `__specs__` folders with `.spec.ts` files.
 - **Directory names**: Use plural test folders only: `__tests__` and `__specs__`.
 - **End-to-End (E2E) Tests**: All E2E testing is handled in the frontend repository.
 

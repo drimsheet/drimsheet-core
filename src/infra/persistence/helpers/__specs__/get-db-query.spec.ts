@@ -4,6 +4,8 @@ import repoError from '@shared/values/errors/repo.error';
 import { postgres } from '@infra/config/postgres.config';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 
+jest.mock('@infra/config/postgres.config', () => ({ postgres: {} }));
+
 describe('getDbQuery', () => {
   it.each(Object.values(ERepoLock))(
     'requires a transaction for %s locks',
