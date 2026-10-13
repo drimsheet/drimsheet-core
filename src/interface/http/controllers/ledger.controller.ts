@@ -52,6 +52,7 @@ import { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/sus
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
+  activateCashAccountUseCase,
   archiveLedgerAccountUseCase,
   createBankAccountUseCase,
   createExpenseAccountUseCase,
@@ -552,6 +553,26 @@ export class LedgerController extends Controller {
     @Body() body: IUpdateRevenueAccountDto
   ) {
     return await updateRevenueAccountUseCase(accountId, body);
+  }
+
+  /** Activates a draft petty cash or bank account beneath an active parent and posts its associated draft opening-balance journal atomically. Requires no body; other account families and non-draft accounts return 400. */
+  @Tags('Asset Accounts')
+  @Post('/asset/cash/{accountId}/activate')
+  @OperationId('activateCashAccount')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public activateCashAccount(@Path() accountId: string) {
+    return activateCashAccountUseCase(accountId);
   }
 
   /** Archives a non-header account and all control-account descendants, retaining history. Already archived accounts are no-ops. Header accounts return 400. Archived accounts cannot appear in new journals, including reversals. */

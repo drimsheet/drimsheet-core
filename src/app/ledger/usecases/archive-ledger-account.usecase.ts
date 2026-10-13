@@ -29,18 +29,6 @@ export default function makeArchiveLedgerAccountUsecase(deps: IDependencies) {
 
     const repoOptions = { correlationId };
 
-    const accountReference = await deps.ledgerAccountRepo.findById(
-      id as TEntityId,
-      accountingEntity.id,
-      repoOptions
-    );
-
-    if (!accountReference) {
-      throw new ledgerAccountError.AccountNotFound({ id });
-    }
-    const allocationHeaderCode =
-      accountReference.materializedPath.split('.')[0];
-
     const transaction = await deps.repoService.createTransaction();
     try {
       const transactionOptions = { ...repoOptions, tx: transaction.context };
@@ -48,25 +36,12 @@ export default function makeArchiveLedgerAccountUsecase(deps: IDependencies) {
         ...transactionOptions,
         lock: ERepoLock.Update,
       };
-      const allocationHeader = await deps.ledgerAccountRepo.findByCode(
-        allocationHeaderCode,
+
+      const account = await deps.ledgerAccountRepo.findById(
+        id as TEntityId,
         accountingEntity.id,
         lockedReadOptions
       );
-      if (!allocationHeader) {
-        throw new ledgerAccountError.AccountNotFound({
-          id: accountReference.id,
-        });
-      }
-
-      const account =
-        allocationHeader.id === accountReference.id
-          ? allocationHeader
-          : await deps.ledgerAccountRepo.findById(
-              id as TEntityId,
-              accountingEntity.id,
-              lockedReadOptions
-            );
       if (!account) {
         throw new ledgerAccountError.AccountNotFound({ id });
       }
@@ -100,8 +75,6 @@ export default function makeArchiveLedgerAccountUsecase(deps: IDependencies) {
       );
     } catch (error) {
       return await transaction.handleError(error);
-    } finally {
-      await transaction.dispose();
     }
   };
 }

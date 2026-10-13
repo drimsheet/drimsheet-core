@@ -114,6 +114,66 @@ describe('Ledger Account Shared Entity', () => {
     expect(Object.isFrozen(account)).toBe(true);
   });
 
+  describe('activate', () => {
+    it('returns the immutable active state, update event and audit while retaining account details', () => {
+      const [draft] = makeCashAccount(ELedgerAccountStatus.Draft);
+      const [account] = ledgerAccountEntity.make({
+        ...draft,
+        meta: { bankName: 'Test Bank' },
+        openingBalanceDate: new Date('2026-03-01T00:00:00.000Z'),
+      });
+      const activatedAt = new Date('2026-04-02T00:00:00.000Z');
+      jest.setSystemTime(activatedAt);
+
+      const [activated, events, audit] = ledgerAccountEntity.activate(account);
+
+      expect(activated).toEqual({
+        ...account,
+        status: ELedgerAccountStatus.Active,
+        version: account.version + 1,
+        updatedAt: activatedAt,
+      });
+      expect(account.status).toBe(ELedgerAccountStatus.Draft);
+      expect(account.version).toBe(1);
+      expect(Object.isFrozen(activated)).toBe(true);
+      expect(Object.isFrozen(activated.currency)).toBe(true);
+      expect(Object.isFrozen(activated.meta)).toBe(true);
+      expect(events).toEqual([
+        expect.objectContaining({
+          type: ELedgerAccountEvent.Updated,
+          data: activated,
+          occurredAt: activatedAt,
+        }),
+      ]);
+      expect(audit).toMatchObject({
+        entityId: account.id,
+        entityVersion: activated.version,
+        action: ELedgerAccountAuditAction.Updated,
+        occurredAt: activatedAt,
+        diff: {
+          before: {
+            status: ELedgerAccountStatus.Draft,
+            version: account.version,
+          },
+          after: {
+            status: ELedgerAccountStatus.Active,
+            version: activated.version,
+          },
+        },
+      });
+    });
+
+    it.each([ELedgerAccountStatus.Active, ELedgerAccountStatus.Archived])(
+      'rejects activation from %s',
+      (status) => {
+        const [account] = makeCashAccount(status);
+        expect(() => ledgerAccountEntity.activate(account)).toThrow(
+          ledgerAccountError.InvalidStatus
+        );
+      }
+    );
+  });
+
   describe('Validation Functions', () => {
     it('validateCode: should not throw for valid ledger codes', () => {
       expect(() =>
@@ -564,9 +624,43 @@ describe('Ledger Account Shared Entity', () => {
   });
 
   describe('update', () => {
-    it.each([new Date('2026-03-01T00:00:00.000Z'), null])(
-      'updates only the opening balance date to %s without changing the name',
-      (openingBalanceDate) => {
+    it('updates only the opening balance date without changing the name', () => {
+      const openingBalanceDate = new Date('2026-03-01T00:00:00.000Z');
+      const [account] = ledgerAccountEntity.make({
+        ...validPayload,
+        openingBalanceDate: new Date('2026-02-01T00:00:00.000Z'),
+      });
+
+      const [updatedAccount, events, audit] = ledgerAccountEntity.update(
+        account,
+        { openingBalanceDate }
+      );
+
+      expect(updatedAccount).toEqual({
+        ...account,
+        openingBalanceDate,
+        version: account.version + 1,
+        updatedAt: new Date(),
+      });
+      expect(account.openingBalanceDate).toEqual(
+        new Date('2026-02-01T00:00:00.000Z')
+      );
+      expect(Object.isFrozen(updatedAccount)).toBe(true);
+      expect(events).toEqual([
+        expect.objectContaining({
+          type: ELedgerAccountEvent.Updated,
+          data: updatedAccount,
+        }),
+      ]);
+      expect(audit).toMatchObject({
+        action: ELedgerAccountAuditAction.Updated,
+        diff: { before: account, after: updatedAccount },
+      });
+    });
+
+    it.each([undefined, null])(
+      'retains the opening balance date and metadata for %s updates without emitting a change',
+      (value) => {
         const [account] = ledgerAccountEntity.make({
           ...validPayload,
           openingBalanceDate: new Date('2026-02-01T00:00:00.000Z'),
@@ -574,29 +668,17 @@ describe('Ledger Account Shared Entity', () => {
 
         const [updatedAccount, events, audit] = ledgerAccountEntity.update(
           account,
-          { openingBalanceDate }
+          { openingBalanceDate: value, meta: value }
         );
 
-        expect(updatedAccount).toEqual({
-          ...account,
-          openingBalanceDate,
-          version: account.version + 1,
-          updatedAt: new Date(),
-        });
-        expect(account.openingBalanceDate).toEqual(
+        expect(updatedAccount).toBe(account);
+        expect(updatedAccount.openingBalanceDate).toEqual(
           new Date('2026-02-01T00:00:00.000Z')
         );
-        expect(Object.isFrozen(updatedAccount)).toBe(true);
-        expect(events).toEqual([
-          expect.objectContaining({
-            type: ELedgerAccountEvent.Updated,
-            data: updatedAccount,
-          }),
-        ]);
-        expect(audit).toMatchObject({
-          action: ELedgerAccountAuditAction.Updated,
-          diff: { before: account, after: updatedAccount },
-        });
+        expect(updatedAccount.meta).toEqual(validPayload.meta);
+        expect(updatedAccount.version).toBe(account.version);
+        expect(events).toEqual([]);
+        expect(audit).toBeNull();
       }
     );
 

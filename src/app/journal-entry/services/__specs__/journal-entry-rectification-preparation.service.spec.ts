@@ -399,6 +399,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           });
         }
         const domainService = makeJournalEntryService({
+          ledgerAccountRepo: mockLedgerAccountRepo,
           accountingPeriodService: mockAccountingPeriodService,
           ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
         });

@@ -471,7 +471,7 @@ describe('setupHeaderAccountsUsecase', () => {
         mockLedgerAccountPersistenceAppService.create
       ).toHaveBeenCalledTimes(24);
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
-      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       expect(mockEventBus.publish.mock.calls[0][0]).toHaveLength(24);
       for (const entry of domainCalls)
         expect(entry[1]).toHaveBeenCalledWith(
@@ -528,7 +528,7 @@ describe('setupHeaderAccountsUsecase', () => {
         mockRepoTransaction.commit.mockRejectedValueOnce(failure);
       await expect(usecase()).rejects.toBe(failure);
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
-      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       expect(storedAccounts).toHaveLength(0);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }

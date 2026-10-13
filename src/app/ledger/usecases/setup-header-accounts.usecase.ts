@@ -302,8 +302,6 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
       );
     } catch (error) {
       return await transaction.handleError(error);
-    } finally {
-      await transaction.dispose();
     }
   };
 }

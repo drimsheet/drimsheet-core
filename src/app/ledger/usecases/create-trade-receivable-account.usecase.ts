@@ -75,8 +75,6 @@ export default function makeCreateTradeReceivableAccountUsecase(
       );
     } catch (error) {
       return await transaction.handleError(error);
-    } finally {
-      await transaction.dispose();
     }
   };
 }

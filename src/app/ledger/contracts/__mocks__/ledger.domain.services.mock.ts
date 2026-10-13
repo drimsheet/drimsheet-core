@@ -110,6 +110,7 @@ export const mockAssetDisposalLossAccountService: jest.Mocked<IAssetDisposalLoss
   };
 
 export const mockAssetAccountService: jest.Mocked<ICashAccountService> = {
+  activate: jest.fn(),
   createHeader: jest.fn(),
   createPettyCashSubAccount: jest.fn(),
   updatePettyCashSubAccount: jest.fn(),

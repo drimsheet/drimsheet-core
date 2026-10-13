@@ -90,8 +90,6 @@ export default function makeCreateExpenseAccountUsecase(
       );
     } catch (error) {
       return await transaction.handleError(error);
-    } finally {
-      await transaction.dispose();
     }
   };
 }

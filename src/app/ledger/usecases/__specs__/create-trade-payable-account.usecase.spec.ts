@@ -132,7 +132,7 @@ describe('complete trade-payable creation workflow', () => {
         materializedPath: account.materializedPath,
       });
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
-      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       expect(
         mockRepoTransaction.commit.mock.invocationCallOrder[0]
       ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
@@ -186,7 +186,7 @@ describe('complete trade-payable creation workflow', () => {
         mockRepoTransaction.commit.mockRejectedValueOnce(failure);
       await expect(usecase(valid)).rejects.toBe(failure);
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
-      expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
@@ -199,7 +199,7 @@ describe('complete trade-payable creation workflow', () => {
       1
     );
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
-    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
   });
   it('passes absent metadata as null for domain normalization', async () => {
     const { meta, ...request } = valid;

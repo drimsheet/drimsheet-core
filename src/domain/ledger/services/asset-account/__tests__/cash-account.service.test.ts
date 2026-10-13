@@ -66,6 +66,152 @@ describe('cashAccountService', () => {
   afterEach(() => {
     jest.useRealTimers();
   });
+  describe('activate', () => {
+    const makeAccount = (overrides: Partial<ILedgerAccount> = {}) =>
+      ledgerAccountEntity.make<ILedgerAccount>({
+        code: '100001',
+        materializedPath: '100000.100001',
+        accountingEntityId: generateUUID(),
+        createdBy: generateUUID(),
+        name: 'Draft cash',
+        type: ELedgerType.Asset,
+        subType: EAssetSubType.CashAndCashEquivalent,
+        behavior: EAssetAccountBehavior.PettyCash,
+        normalBalance: 'debit',
+        isControlAccount: false,
+        controlAccountId: generateUUID(),
+        currency: SYSTEM_CURRENCIES.NGN,
+        status: ELedgerAccountStatus.Draft,
+        meta: null,
+        contraAccountRule: 'contra_permitted',
+        adjunctAccountRule: 'adjunct_permitted',
+        ...overrides,
+      })[0];
+
+    beforeEach(() => {
+      mockLedgerAccountRepo.findById.mockResolvedValue(
+        makeAccount({
+          status: ELedgerAccountStatus.Active,
+          isControlAccount: true,
+        })
+      );
+    });
+
+    it.each(
+      [
+        EAssetAccountBehavior.PettyCash,
+        EAssetAccountBehavior.Bank,
+        EAssetAccountBehavior.DefaultCash,
+      ].flatMap((behavior) =>
+        [false, true].map((isControlAccount) => ({
+          behavior,
+          isControlAccount,
+        }))
+      )
+    )(
+      'activates $behavior, control=$isControlAccount with one immutable update and audit',
+      async ({ behavior, isControlAccount }) => {
+        const account = makeAccount({
+          behavior,
+          isControlAccount,
+          openingBalanceDate: isControlAccount ? null : new Date('2026-01-01'),
+          meta:
+            behavior === EAssetAccountBehavior.Bank
+              ? {
+                  countryCode: 'NG',
+                  bankName: 'Test Bank',
+                  accountName: 'Cash',
+                  accountNumber: '0123456789',
+                }
+              : null,
+        });
+        const [activated, events, audit] = await service.activate(
+          account,
+          mockOptions
+        );
+
+        expect(activated).toEqual({
+          ...account,
+          status: ELedgerAccountStatus.Active,
+          version: 2,
+        });
+        expect(account.status).toBe(ELedgerAccountStatus.Draft);
+        expect(Object.isFrozen(activated)).toBe(true);
+        expect(Object.isFrozen(activated.currency)).toBe(true);
+        if (activated.meta) expect(Object.isFrozen(activated.meta)).toBe(true);
+        expect(events).toHaveLength(1);
+        expect(events[0]).toMatchObject({
+          type: 'domain:ledger:account:updated',
+          data: activated,
+        });
+        expect(audit).toMatchObject({
+          entityId: account.id,
+          entityVersion: 2,
+          action: 'updated',
+          diff: { before: { status: 'draft' }, after: { status: 'active' } },
+        });
+        expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
+          account.controlAccountId,
+          account.accountingEntityId,
+          mockOptions
+        );
+        expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+        expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
+        expect(bankRepo.update).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each([ELedgerAccountStatus.Active, ELedgerAccountStatus.Archived])(
+      'rejects %s accounts',
+      async (status) => {
+        await expect(
+          service.activate(makeAccount({ status }), mockOptions)
+        ).rejects.toBeInstanceOf(ledgerAccountError.InvalidStatus);
+      }
+    );
+
+    it.each([
+      { type: ELedgerType.Liability },
+      { subType: EAssetSubType.Receivables },
+    ])('rejects other account families: %o', async (overrides) => {
+      await expect(
+        service.activate(makeAccount(overrides), mockOptions)
+      ).rejects.toBeInstanceOf(ledgerAccountError.InvalidBehavior);
+      expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+    });
+
+    it('rejects an account without a parent', async () => {
+      await expect(
+        service.activate(makeAccount({ controlAccountId: null }), mockOptions)
+      ).rejects.toBeInstanceOf(ledgerAccountError.InvalidControlAccountId);
+    });
+
+    it('rejects a missing parent', async () => {
+      mockLedgerAccountRepo.findById.mockResolvedValue(null);
+      await expect(
+        service.activate(makeAccount(), mockOptions)
+      ).rejects.toBeInstanceOf(ledgerAccountError.ControlAccountNotFound);
+    });
+
+    it.each([
+      [
+        ELedgerAccountStatus.Draft,
+        ledgerAccountError.NonDraftChildOfDraftControlAccount,
+      ],
+      [
+        ELedgerAccountStatus.Archived,
+        ledgerAccountError.ArchivedControlAccount,
+      ],
+    ] as const)('rejects a %s parent', async (status, error) => {
+      mockLedgerAccountRepo.findById.mockResolvedValue(
+        makeAccount({ status, isControlAccount: true })
+      );
+      await expect(
+        service.activate(makeAccount(), mockOptions)
+      ).rejects.toBeInstanceOf(error);
+    });
+  });
+
   it('creates the cash header in functional currency', async () => {
     const ownerId = generateUUID();
     const accountingEntity = {
@@ -431,7 +577,6 @@ describe('cashAccountService', () => {
         { type: ELedgerType.Liability },
         { subType: EAssetSubType.Receivables },
         { behavior: EAssetAccountBehavior.PettyCash },
-        { behavior: EAssetAccountBehavior.DefaultCash },
       ])('rejects a different account family %j', async (changes) => {
         const [account] = await service.createBankSubAccount(
           payload(),

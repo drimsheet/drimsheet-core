@@ -1,3 +1,4 @@
+import makeActivateCashAccountUsecase from '@app/ledger/usecases/activate-cash-account.usecase';
 import makeAdjustLedgerAccountBalanceUseCase from '@app/ledger/usecases/adjust-ledger-account-balance.usecase';
 import makeArchiveLedgerAccountUsecase from '@app/ledger/usecases/archive-ledger-account.usecase';
 import makeCreateBankAccountUseCase from '@app/ledger/usecases/create-bank-account.usecase';
@@ -31,6 +32,7 @@ import {
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceAppService,
+  journalEntryService,
   openingBalanceEntryAppService,
 } from '@infra/ioc/services/journal-entry';
 import {
@@ -67,6 +69,7 @@ import messaging from '@infra/messaging';
 import observability from '@infra/observability';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import accountingRepos from '@infra/persistence/repos/accounting';
+import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import outboxRepo from '@infra/persistence/repos/outbox';
 import appContext from '@infra/runtime/app-context';
@@ -94,6 +97,24 @@ export const deleteLedgerAccountUseCase = makeTracedUseCase(
 export const getBanksUseCase = makeTracedUseCase(
   'ledger.getBanksUseCase',
   makeGetBanksUseCase()
+);
+
+export const activateCashAccountUseCase = makeTracedUseCase(
+  'ledger.activateCashAccountUseCase',
+  makeActivateCashAccountUsecase({
+    appContext,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    cashAccountService,
+    journalEntryQueryRepo: journalEntryRepos.queries.journalEntry,
+    journalEntryService,
+    journalEntryPersistenceAppService,
+    fxLotAppService,
+    fxCostBasisPersistenceAppService,
+    outboxAppService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
 );
 
 export const archiveLedgerAccountUseCase = makeTracedUseCase(
