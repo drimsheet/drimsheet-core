@@ -38,6 +38,20 @@
 
 ## Transactions
 
+### Lifecycle and cleanup ownership
+
+- Await `commit()` on success and `handleError(error)` in `catch`; both own
+  disposal. Do not add `finally` disposal or require it in use-case tests.
+- Call `dispose()` explicitly only when bypassing that cleanup, such as an
+  early exit or `commit({ dispose: false })`.
+- `runInTransaction()` manages its own transaction; when joining a supplied
+  context, leave lifecycle management to its caller.
+
+See the [transaction contract](../../src/shared/contracts/repo.contract.ts)
+for failure and cleanup semantics.
+
+### Transaction boundaries
+
 - Keep transaction functions small and focused on atomic writes and the
   committed state returned to the caller.
 - Perform preparation reads before the transaction with read repository options

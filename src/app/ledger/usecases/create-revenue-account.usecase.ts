@@ -83,8 +83,6 @@ export default function makeCreateRevenueAccountUsecase(
       );
     } catch (error) {
       return await transaction.handleError(error);
-    } finally {
-      await transaction.dispose();
     }
   };
 }

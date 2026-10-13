@@ -36,6 +36,40 @@ interface IDependencies {
 
 const LEDGER_CODE = ASSET_LEDGER_CODES.CASH_AND_EQUIVALENTS;
 
+/** Activates a draft cash account beneath an active parent, returning state, events and audit without writes. */
+function makeActivate(deps: IDependencies): ICashAccountService['activate'] {
+  return async (account, repoOptions) => {
+    const isCashAccount =
+      account.type === ELedgerType.Asset &&
+      account.subType === EAssetSubType.CashAndCashEquivalent;
+
+    if (!isCashAccount) {
+      throw new ledgerAccountError.InvalidBehavior({
+        behavior: account.behavior,
+      });
+    }
+    if (!account.controlAccountId) {
+      throw new ledgerAccountError.InvalidControlAccountId();
+    }
+
+    const controlAccount = await deps.ledgerAccountRepo.findById(
+      account.controlAccountId,
+      account.accountingEntityId,
+      repoOptions
+    );
+    if (!controlAccount) {
+      throw new ledgerAccountError.ControlAccountNotFound();
+    }
+    controlAccountAvailabilityValidation.validate(controlAccount);
+    controlAccountChildStatusValidation.validate(
+      controlAccount.status,
+      ELedgerAccountStatus.Active
+    );
+
+    return ledgerAccountEntity.activate(account);
+  };
+}
+
 /**
  *
  * Creates a new cash account header account
@@ -327,6 +361,7 @@ export default function makeCashAccountService(
   deps: IDependencies
 ): ICashAccountService {
   const service: ICashAccountService = {
+    activate: makeActivate(deps),
     createHeader: makeCreateHeader(deps),
     createPettyCashSubAccount: makeCreatePettyCashSubAccount(deps),
     updatePettyCashSubAccount,

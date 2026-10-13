@@ -189,9 +189,7 @@ function update<T extends ILedgerAccount>(
           ledgerAccountError.InvalidName
         );
   const openingBalanceDate =
-    details.openingBalanceDate === undefined
-      ? account.openingBalanceDate
-      : details.openingBalanceDate;
+    details?.openingBalanceDate ?? account.openingBalanceDate;
 
   if (openingBalanceDate !== null) {
     dateUtils.validateDateIsNotInTheFuture(
@@ -205,7 +203,7 @@ function update<T extends ILedgerAccount>(
 
   const hasOpeningBalanceDateChanged =
     account.openingBalanceDate?.getTime() !== openingBalanceDate?.getTime();
-  const meta = details.meta === undefined ? account.meta : details.meta;
+  const meta = details?.meta ?? account.meta;
   ledgerAccountValidation.validateMeta(meta);
   const hasMetaChanged = generateDiff(
     { meta },
@@ -249,6 +247,51 @@ function update<T extends ILedgerAccount>(
   });
 
   return [updatedAccount, [ledgerAccountEvents.updated(updatedAccount)], audit];
+}
+
+/** Activates a draft account while preserving its identity and accounting references. */
+function activate(
+  account: ILedgerAccount
+): TAuditedEntity<ILedgerAccount, ILedgerAccount, ILedgerAccount> {
+  if (account.status !== ELedgerAccountStatus.Draft) {
+    throw new ledgerAccountError.InvalidStatus({ status: account.status });
+  }
+
+  const activatedAccount: ILedgerAccount = deepFreeze({
+    id: account.id,
+    code: account.code,
+    materializedPath: account.materializedPath,
+    accountingEntityId: account.accountingEntityId,
+    type: account.type,
+    normalBalance: account.normalBalance,
+    subType: account.subType,
+    behavior: account.behavior,
+    isControlAccount: account.isControlAccount,
+    controlAccountId: account.controlAccountId,
+    name: account.name,
+    currency: account.currency,
+    status: ELedgerAccountStatus.Active,
+    contraAccountRule: account.contraAccountRule,
+    adjunctAccountRule: account.adjunctAccountRule,
+    meta: account.meta,
+    openingBalanceDate: account.openingBalanceDate,
+    version: account.version + 1,
+    createdBy: account.createdBy,
+    createdAt: account.createdAt,
+    updatedAt: new Date(),
+    deletedAt: account.deletedAt,
+  });
+  const audit = ledgerAccountAudit.make({
+    before: account,
+    after: activatedAccount,
+    action: ELedgerAccountAuditAction.Updated,
+  });
+
+  return [
+    activatedAccount,
+    [ledgerAccountEvents.updated(activatedAccount)],
+    audit,
+  ];
 }
 
 /** Archives lifecycle state without changing identity or accounting references. */
@@ -313,6 +356,7 @@ const ledgerAccountEntity = Object.freeze({
   make,
   update,
   archive,
+  activate,
   updateOpeningBalanceDate,
   getMaterializedPaths,
   ...ledgerAccountValidation,

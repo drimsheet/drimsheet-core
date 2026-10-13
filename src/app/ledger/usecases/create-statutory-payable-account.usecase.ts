@@ -74,8 +74,6 @@ export default function makeCreateStatutoryPayableAccountUsecase(
       );
     } catch (error) {
       return await transaction.handleError(error);
-    } finally {
-      await transaction.dispose();
     }
   };
 }

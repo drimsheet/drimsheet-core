@@ -7,7 +7,11 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 import { IMoney } from '@domain/money/types/money.types';
 
-import { TAuditedJournalEntry } from './journal-entry-audit.types';
+import {
+  TAuditedJournalEntry,
+  TAuditedJournalEntryUpdate,
+} from './journal-entry-audit.types';
+import { IJournalEntry } from './journal-entry.types';
 import { IJournalLineMeta } from './journal-line.types';
 
 export interface IJournalEntryHeaderPayload {
@@ -59,6 +63,16 @@ export interface ICreateTransferEntryResult {
 }
 
 export interface IJournalEntryService {
+  /** Posts a draft opening journal using the prepared active account; preserves its dates, amounts and line identities without writes. */
+  postOpeningBalance(
+    payload: {
+      entry: IJournalEntry;
+      account: ILedgerAccount;
+      actor: TEntityId;
+    },
+    repoOptions: IReadRepoOptions
+  ): Promise<TAuditedJournalEntryUpdate>;
+
   createReceipt(
     payload: ICreateReceiptEntryPayload,
     repoOptions: IReadRepoOptions

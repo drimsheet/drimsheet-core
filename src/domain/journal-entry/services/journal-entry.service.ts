@@ -1,21 +1,94 @@
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
+import openingBalanceEntryRule from '@domain/journal-entry/rules/opening-balance-entry.rule';
 import paymentEntryRule from '@domain/journal-entry/rules/payment-entry.rule';
 import receiptEntryRule from '@domain/journal-entry/rules/receipt-entry.rule';
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
+import openingBalanceRevisionValidation from '@domain/journal-entry/services/validations/opening-balance-revision.validation';
+import openingBalanceValidation from '@domain/journal-entry/services/validations/opening-balance.validation';
 import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
-import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
+import {
+  EJournalEntrySourceType,
+  EJournalEntryStatus,
+} from '@domain/journal-entry/types/journal-entry.types';
 import {
   EJournalSide,
   IJournalLineMakePayload,
 } from '@domain/journal-entry/types/journal-line.types';
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
+import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
+  ledgerAccountRepo: ILedgerAccountRepo;
   accountingPeriodService: IAccountingPeriodService;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
+}
+
+/** Validates opening-journal posting against the prepared account and current counterpart accounts, then delegates the immutable transition to the entity. Never persists. */
+function makePostOpeningBalance(
+  deps: IDependencies
+): IJournalEntryService['postOpeningBalance'] {
+  return async ({ entry, account, actor }, repoOptions) => {
+    openingBalanceRevisionValidation.validateSourceType(entry);
+    openingBalanceRevisionValidation.validateStatus(entry);
+    openingBalanceRevisionValidation.validateAccountAssociation(entry, account);
+    openingBalanceValidation.validateInitialDate(account, entry.effectiveDate);
+
+    const counterpartIds = [
+      ...new Set(
+        entry.lines
+          .filter((line) => line.accountId !== account.id)
+          .map((line) => line.accountId)
+      ),
+    ];
+    const counterparts = await deps.ledgerAccountRepo.findAllByIds(
+      counterpartIds,
+      repoOptions
+    );
+    const journalLines = entry.lines.map((line) => {
+      const lineAccount =
+        line.accountId === account.id
+          ? account
+          : counterparts.find((candidate) => candidate.id === line.accountId);
+      if (!lineAccount) {
+        throw new journalEntryError.AccountNotFound({
+          accountId: line.accountId,
+        });
+      }
+      return { account: lineAccount, amount: line.amount };
+    });
+
+    journalEntryServiceValidation.validateAccountsAgainstRule(
+      [account],
+      counterparts,
+      openingBalanceEntryRule
+    );
+    journalEntryServiceValidation.validateAccounts(
+      {
+        accountingEntityId: entry.accountingEntityId,
+        effectiveDate: entry.effectiveDate,
+        postedAt: entry.effectiveDate,
+      },
+      journalLines
+    );
+    await deps.accountingPeriodService.validatePostingPeriod(
+      entry.accountingEntityId,
+      entry.effectiveDate,
+      repoOptions
+    );
+
+    return journalEntryEntity.update(
+      entry,
+      {
+        id: entry.id,
+        status: EJournalEntryStatus.Posted,
+        postedAt: entry.effectiveDate,
+      },
+      actor
+    );
+  };
 }
 
 function makeCreateReceipt(
@@ -263,6 +336,7 @@ function makeCreateTransfer(
 
 export default function makeJournalEntryService(deps: IDependencies) {
   const service: IJournalEntryService = {
+    postOpeningBalance: makePostOpeningBalance(deps),
     createReceipt: makeCreateReceipt(deps),
 
     createPayment: makeCreatePayment(deps),

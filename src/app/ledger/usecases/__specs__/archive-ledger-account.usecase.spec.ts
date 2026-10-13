@@ -71,7 +71,6 @@ describe('archive ledger account use case', () => {
     mockLedgerAccountRepo.findById.mockImplementation(async (id) =>
       id === account.id ? account : header
     );
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(header);
     mockLedgerAccountRepo.findDescendants.mockResolvedValue([child]);
     mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
@@ -79,27 +78,17 @@ describe('archive ledger account use case', () => {
     });
   });
 
-  it('locks the allocation root and target before cascading and publishing', async () => {
+  it('locks the target and descendants without an allocation-header lookup', async () => {
     expect(await usecase(account.id)).toBeUndefined();
-    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(3);
-    expect(mockLedgerAccountRepo.findById).toHaveBeenNthCalledWith(
-      1,
-      account.id,
-      account.accountingEntityId,
-      { correlationId: 'archive' }
-    );
+    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(2);
     const lockedOptions = {
       correlationId: 'archive',
       tx: mockRepoTransaction.context,
       lock: 'update',
     };
-    expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledWith(
-      header.code,
-      account.accountingEntityId,
-      lockedOptions
-    );
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findById).toHaveBeenNthCalledWith(
-      2,
+      1,
       account.id,
       account.accountingEntityId,
       lockedOptions
@@ -136,7 +125,7 @@ describe('archive ledger account use case', () => {
       mockEventBus.publish.mock.invocationCallOrder[0]
     );
     expect(mockRepoTransaction.commit).toHaveBeenCalledWith();
-    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
   });
 
@@ -145,8 +134,8 @@ describe('archive ledger account use case', () => {
       id === child.id ? child : account
     );
     await usecase(child.id);
-    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(3);
-    expect(mockLedgerAccountRepo.findByCode).toHaveBeenCalledTimes(1);
+    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(2);
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledTimes(1);
     expect(mockLedgerAccountRepo.update.mock.calls[0][0].id).toBe(child.id);
@@ -176,50 +165,26 @@ describe('archive ledger account use case', () => {
     expect(mockEventBus.publish).toHaveBeenCalledWith([]);
   });
 
-  it('rejects a missing target before opening a transaction', async () => {
+  it('rejects a missing target through the transaction handler without writing', async () => {
     mockLedgerAccountRepo.findById.mockResolvedValue(null);
-    await expect(usecase(account.id)).rejects.toBeInstanceOf(
-      ledgerAccountError.AccountNotFound
-    );
-    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
-    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects when the allocation root disappears before it can be locked', async () => {
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(null);
 
     await expect(usecase(account.id)).rejects.toBeInstanceOf(
       ledgerAccountError.AccountNotFound
     );
 
+    expect(mockLedgerAccountRepo.findById).toHaveBeenCalledTimes(1);
+    expect(mockLedgerAccountRepo.findByCode).not.toHaveBeenCalled();
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
       expect.any(ledgerAccountError.AccountNotFound)
     );
-    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-
-  it('rejects when the target disappears after the allocation root is locked', async () => {
-    mockLedgerAccountRepo.findById
-      .mockResolvedValueOnce(account)
-      .mockResolvedValueOnce(null);
-
-    await expect(usecase(account.id)).rejects.toBeInstanceOf(
-      ledgerAccountError.AccountNotFound
-    );
-
-    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
-      expect.any(ledgerAccountError.AccountNotFound)
-    );
-    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
-    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('rejects a header through the domain service before writing', async () => {
     mockLedgerAccountRepo.findById.mockResolvedValue(header);
-    mockLedgerAccountRepo.findByCode.mockResolvedValue(header);
     await expect(usecase(header.id)).rejects.toBeInstanceOf(
       ledgerAccountError.HeaderAccountNotArchivable
     );
@@ -257,7 +222,7 @@ describe('archive ledger account use case', () => {
       .mockRejectedValueOnce(error);
     await expect(usecase(account.id)).rejects.toBe(error);
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(error);
-    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -267,7 +232,7 @@ describe('archive ledger account use case', () => {
     mockRepoTransaction.commit.mockRejectedValueOnce(error);
     await expect(usecase(account.id)).rejects.toBe(error);
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(error);
-    expect(mockRepoTransaction.dispose).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -281,7 +246,6 @@ describe('archive ledger account use case', () => {
       status: 'draft',
     });
     mockLedgerAccountRepo.findById
-      .mockResolvedValueOnce(account)
       .mockResolvedValueOnce(account)
       .mockResolvedValueOnce(draftParent);
     await expect(usecase(account.id)).rejects.toBeInstanceOf(

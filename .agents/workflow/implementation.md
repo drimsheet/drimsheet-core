@@ -27,7 +27,9 @@ Use this for ordinary code changes.
    - For transactions, review callback shape separately for responsibility
      creep, separate preparation reads from atomic writes, name preparation
      versus persistence phases, and verify the use case invokes every write or
-     persistence service.
+     persistence service. Verify cleanup ownership against
+     [Transaction Lifecycle](../rules/usecase.md#lifecycle-and-cleanup-ownership)
+     before adding explicit disposal.
    - For owner APIs, reject expansions that only re-export another helper for
      call-site convenience.
 7. Justify each proposed service as a named capability. If it only shortens a

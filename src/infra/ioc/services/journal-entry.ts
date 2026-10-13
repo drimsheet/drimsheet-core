@@ -15,6 +15,7 @@ import { fxLotAppService } from './fx-lot-cost-basis';
 import { repoService } from './repo';
 
 export const journalEntryService = makeJournalEntryService({
+  ledgerAccountRepo: ledgerRepos.ledgerAccount,
   accountingPeriodService,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
 });
