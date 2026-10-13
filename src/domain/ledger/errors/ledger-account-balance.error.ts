@@ -3,6 +3,8 @@ import errorUtils from '@shared/utils/error';
 import DomainError from '@shared/values/errors/domain.error';
 
 const EErrorKeys = {
+  CurrencyChangeNonZeroBalance:
+    'ledger_balance_error_currency_change_non_zero_balance_conflict',
   InvalidCreatedBy: 'ledger_balance_error_created_by_invalid',
   InvalidBalanceEffect: 'ledger_balance_error_balance_effect_invalid',
   InvalidLedgerAccountId: 'ledger_balance_error_ledger_account_id_invalid',

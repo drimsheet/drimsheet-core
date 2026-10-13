@@ -17,6 +17,12 @@ export default interface ILedgerAccountBalanceRepo {
     repoOptions: IWriteRepoOptions
   ): Promise<void>;
 
+  /** Persists a prepared balance transition without creating a journal adjustment. */
+  update(
+    payload: ILedgerAccountBalance,
+    repoOptions: IVersionedRepoWriteOptions
+  ): Promise<void>;
+
   adjustBalance(
     payload: INewLedgerAccountBalanceAndAdjustment,
     repoOptions: IVersionedRepoWriteOptions

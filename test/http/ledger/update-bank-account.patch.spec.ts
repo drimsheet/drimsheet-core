@@ -10,9 +10,11 @@ import repoError from '@shared/values/errors/repo.error';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
+import makeLedgerAccountBalanceService from '@domain/ledger/services/ledger-account-balance.service';
 import { IBankAccount } from '@domain/ledger/types/asset-account.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import actorEntity from '@domain/user/entities/actor.entity';
@@ -27,6 +29,7 @@ import mockBalanceQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adj
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
+  mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
@@ -131,6 +134,16 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
   });
   beforeEach(() => {
     jest.resetAllMocks();
+    mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(
+      ledgerAccountBalanceEntity.make({
+        createdBy: account.createdBy,
+        ledgerAccountId: account.id,
+        accountingEntityId: account.accountingEntityId,
+        accountMaterializedPath: account.materializedPath,
+        currencyCode: 'NGN',
+        functionalCurrencyCode: 'NGN',
+      })
+    );
     mockLedgerAccountService.validateCurrencyChange.mockResolvedValue(
       undefined
     );
@@ -162,6 +175,8 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
         eventBus: mockEventBus,
         repoService: mockRepoService,
         ledgerAccountRepo: mockLedgerAccountRepo,
+        ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
+        ledgerAccountBalanceService: makeLedgerAccountBalanceService(),
         bankAccountRepo: mockBankAccountRepo,
         cashAccountService,
         openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,

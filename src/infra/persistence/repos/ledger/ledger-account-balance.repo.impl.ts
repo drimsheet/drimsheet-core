@@ -28,6 +28,34 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
     await query.insert(ledgerAccountBalancesInCore).values(values);
   },
 
+  async update(balance, options) {
+    validateVersionInRepo(balance, options);
+
+    const updated = await getDbQuery(options)
+      .update(ledgerAccountBalancesInCore)
+      .set(ledgerAccountBalanceMapper.toRepo(balance))
+      .where(
+        and(
+          eq(
+            ledgerAccountBalancesInCore.ledgerAccountId,
+            balance.ledgerAccountId
+          ),
+          eq(
+            ledgerAccountBalancesInCore.accountingEntityId,
+            balance.accountingEntityId
+          ),
+          eq(ledgerAccountBalancesInCore.version, options.expectedVersion)
+        )
+      );
+
+    if (updated.rowCount === 0) {
+      throw new repoError.VersionNotFound({
+        id: balance.ledgerAccountId,
+        version: options.expectedVersion,
+      });
+    }
+  },
+
   async findByAccountId(ledgerAccountId, accountingEntityId, options) {
     const query = getDbQuery(options);
 

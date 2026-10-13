@@ -12,6 +12,7 @@ import {
   INewLedgerAccountBalanceAndAdjustment,
 } from '@domain/ledger/types/ledger-account-balance.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
+import { ICurrency } from '@domain/money/types/currency.types';
 import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 
@@ -64,6 +65,30 @@ function make(payload: IMakePayload): ILedgerAccountBalance {
     version: 1,
     createdAt: timestamp,
     updatedAt: timestamp,
+  });
+}
+
+/** Changes the denomination of an unused zero balance after account eligibility has been checked. */
+function changeCurrency(
+  existingBalance: ILedgerAccountBalance,
+  currency: ICurrency
+): ILedgerAccountBalance {
+  if (existingBalance.amount.currency.code === currency.code) {
+    return existingBalance;
+  }
+
+  ledgerAccountBalanceValidation.validateCurrencyChange(existingBalance);
+
+  return Object.freeze({
+    createdBy: existingBalance.createdBy,
+    ledgerAccountId: existingBalance.ledgerAccountId,
+    accountingEntityId: existingBalance.accountingEntityId,
+    accountMaterializedPath: existingBalance.accountMaterializedPath,
+    amount: moneyValue.makeZeroAmount(currency),
+    functionalAmount: existingBalance.functionalAmount,
+    version: existingBalance.version + 1,
+    createdAt: existingBalance.createdAt,
+    updatedAt: new Date(),
   });
 }
 
@@ -140,6 +165,7 @@ function adjust(
 
 const ledgerAccountBalanceEntity = Object.freeze({
   make,
+  changeCurrency,
   adjust,
   ...ledgerAccountBalanceValidation,
 });

@@ -135,3 +135,65 @@ describe('ledgerAccountBalanceRepo findAllByAccountIds', () => {
     expect(getDbQuery).not.toHaveBeenCalled();
   });
 });
+
+describe('ledgerAccountBalanceRepo update', () => {
+  const balance = {
+    ledgerAccountId: generateUUID(),
+    accountingEntityId: generateUUID(),
+    version: 2,
+  } as ILedgerAccountBalance;
+  const balanceRow = { currencyCode: 'USD', version: 2 } as ReturnType<
+    typeof ledgerAccountBalanceMapper.toRepo
+  >;
+  const options = { correlationId: 'currency-change', expectedVersion: 1 };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(ledgerAccountBalanceMapper.toRepo).mockReturnValue(balanceRow);
+  });
+
+  function mockUpdate(rowCount: number) {
+    const where = jest.fn().mockResolvedValue({ rowCount });
+    const set = jest.fn().mockReturnValue({ where });
+    const update = jest.fn().mockReturnValue({ set });
+    jest
+      .mocked(getDbQuery)
+      .mockReturnValue({ update } as unknown as ReturnType<typeof getDbQuery>);
+    return { update, set };
+  }
+
+  it('writes the prepared balance in the supplied transaction with account, entity and version predicates', async () => {
+    const { update, set } = mockUpdate(1);
+    await ledgerAccountBalanceRepo.update(balance, options);
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(update).toHaveBeenCalledWith(ledgerAccountBalancesInCore);
+    expect(set).toHaveBeenCalledWith(balanceRow);
+    expect(eq).toHaveBeenCalledWith(
+      ledgerAccountBalancesInCore.ledgerAccountId,
+      balance.ledgerAccountId
+    );
+    expect(eq).toHaveBeenCalledWith(
+      ledgerAccountBalancesInCore.accountingEntityId,
+      balance.accountingEntityId
+    );
+    expect(eq).toHaveBeenCalledWith(ledgerAccountBalancesInCore.version, 1);
+    expect(ledgerAccountBalanceMapper.toRepoAdjustment).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale balance write', async () => {
+    mockUpdate(0);
+    await expect(
+      ledgerAccountBalanceRepo.update(balance, options)
+    ).rejects.toBeInstanceOf(repoError.VersionNotFound);
+  });
+
+  it('rejects an incorrect next version before querying', async () => {
+    await expect(
+      ledgerAccountBalanceRepo.update(balance, {
+        ...options,
+        expectedVersion: 2,
+      })
+    ).rejects.toBeInstanceOf(repoError.VersionMismatch);
+    expect(getDbQuery).not.toHaveBeenCalled();
+  });
+});

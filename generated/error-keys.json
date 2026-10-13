@@ -286,6 +286,7 @@
   "ledger_balance_error_accounting_entity_id_invalid",
   "ledger_balance_error_balance_effect_invalid",
   "ledger_balance_error_created_by_invalid",
+  "ledger_balance_error_currency_change_non_zero_balance_conflict",
   "ledger_balance_error_journal_entry_id_invalid",
   "ledger_balance_error_ledger_account_id_invalid",
   "ledger_error_action_invalid",

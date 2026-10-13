@@ -9,8 +9,10 @@ import historyValue from '@shared/values/history/history.vo';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
+import ILedgerAccountBalanceService from '@domain/ledger/types/ledger-account-balance.service.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
@@ -22,6 +24,7 @@ import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-
 import { IBankAccountUpdateReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { bankAccountUpdateReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import ledgerAppError from '@app/ledger/errors/ledger.error';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
@@ -31,6 +34,8 @@ interface IDependencies {
   eventBus: IEventBus;
   repoService: IRepoService;
   ledgerAccountRepo: ILedgerAccountRepo;
+  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
+  ledgerAccountBalanceService: ILedgerAccountBalanceService;
   bankAccountRepo: IBankAccountRepo;
   cashAccountService: ICashAccountService;
   openingBalanceEntryAppService: IOpeningBalanceEntryAppService;
@@ -97,6 +102,29 @@ export default function makeUpdateBankAccountUsecase(
 
       const accountAudits = accountAudit ? [accountAudit] : [];
       for (const currentAccountAudit of accountAudits) {
+        // The account lock protects this read and write until the transaction commits.
+        const existingBalance =
+          await deps.ledgerAccountBalanceRepo.findByAccountId(
+            account.id,
+            accountingEntity.id,
+            transactionOptions
+          );
+        if (!existingBalance) {
+          throw new ledgerAppError.BalanceNotFound();
+        }
+
+        const balance = deps.ledgerAccountBalanceService.updateBalance({
+          existingAccount,
+          updatedAccount: account,
+          existingBalance,
+        });
+        if (balance !== existingBalance) {
+          await deps.ledgerAccountBalanceRepo.update(balance, {
+            ...transactionOptions,
+            expectedVersion: existingBalance.version,
+          });
+        }
+
         await deps.ledgerAccountRepo.update(account, {
           ...transactionOptions,
           expectedVersion: existingAccount.version,
