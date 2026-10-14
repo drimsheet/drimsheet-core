@@ -169,6 +169,39 @@ function divide(
   };
 }
 
+/**
+ * Returns part / total as a percentage rounded to two decimals, with ties away
+ * from zero. Requires matching currencies and returns null for a zero total.
+ * The total's minor units must fit divide's safe-integer factor constraint.
+ */
+function getPercentage(part: IMoney, total: IMoney): number | null {
+  if (!moneyValidation.isSameCurrency(part, total)) {
+    throw new moneyError.CurrencyMismatch({ args: [part, total] });
+  }
+  if (moneyValidation.isZeroAmount(total)) {
+    return null;
+  }
+
+  const division = divide(part, {
+    numerator: Number(total.amount),
+    denominator: 10_000,
+  });
+  const absoluteRemainder =
+    division.remainder.amount < 0n
+      ? -division.remainder.amount
+      : division.remainder.amount;
+  const absoluteTotal = total.amount < 0n ? -total.amount : total.amount;
+  let hundredths = division.value.amount;
+
+  if (absoluteRemainder * 2n >= absoluteTotal) {
+    const isPartNegative = part.amount < 0n;
+    const isTotalNegative = total.amount < 0n;
+    hundredths += isPartNegative === isTotalNegative ? 1n : -1n;
+  }
+
+  return Number(hundredths) / 100;
+}
+
 function min(...args: IMoney[]) {
   if (!args.length) {
     throw new moneyError.MissingArguments();
@@ -252,6 +285,7 @@ const moneyValue = Object.freeze({
   add,
   subtract,
   divide,
+  getPercentage,
   multiply,
   min,
   max,

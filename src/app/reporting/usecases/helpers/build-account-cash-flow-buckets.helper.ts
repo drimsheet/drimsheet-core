@@ -8,7 +8,7 @@ import { IAccountCashFlowReport } from '@app/reporting/types/account-cash-flow.t
 
 /** Builds ordered, zero-filled buckets for a validated inclusive period. */
 export default function buildAccountCashFlowBucketsHelper(
-  from: string,
+  from: Date,
   days: number,
   bucketDays: number,
   aggregates: IAccountCashFlowAggregate[],
@@ -17,7 +17,6 @@ export default function buildAccountCashFlowBucketsHelper(
   const aggregatesByIndex = new Map(
     aggregates.map((bucket) => [bucket.bucketIndex, bucket])
   );
-  const start = new Date(from);
   const buckets: IAccountCashFlowReport['buckets'] = [];
 
   for (let offset = 0; offset < days; offset += bucketDays) {
@@ -26,14 +25,8 @@ export default function buildAccountCashFlowBucketsHelper(
     const lastDayOffset = Math.min(offset + bucketDays - 1, days - 1);
 
     buckets.push({
-      from: dateUtils
-        .addUtcCalendarUnits(start, offset, 'day')
-        .toISOString()
-        .slice(0, 10),
-      to: dateUtils
-        .addUtcCalendarUnits(start, lastDayOffset, 'day')
-        .toISOString()
-        .slice(0, 10),
+      from: dateUtils.addUtcCalendarUnits(from, offset, 'day'),
+      to: dateUtils.addUtcCalendarUnits(from, lastDayOffset, 'day'),
       moneyIn: moneyValue.make(aggregate?.moneyIn ?? 0n, currency, true),
       moneyOut: moneyValue.make(aggregate?.moneyOut ?? 0n, currency, true),
     });

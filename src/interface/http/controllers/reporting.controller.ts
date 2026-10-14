@@ -14,9 +14,13 @@ import {
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import type { IGetAccountCashFlowQuery } from '@app/reporting/dtos/account-cash-flow/account-cash-flow.dto';
+import type { IDateRangeDto } from '@app/reporting/dtos/date/date-range.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
-import { getAccountCashFlowUseCase } from '@infra/ioc/usecases/reporting';
+import {
+  getAccountCashFlowUseCase,
+  getRevenueExpenseSummaryUseCase,
+} from '@infra/ioc/usecases/reporting';
 
 @Route('reporting')
 @Tags('Reporting')
@@ -48,5 +52,33 @@ export class ReportingController extends Controller {
     @Queries() query: IGetAccountCashFlowQuery
   ) {
     return await getAccountCashFlowUseCase(accountId, query);
+  }
+
+  /**
+   * Revenue, expenses and suspense activity in the entity's functional currency.
+   * Dates are inclusive, up to 366 days, compared with the immediately preceding
+   * equal-length period. Revenue is credits less debits; expenses are debits less
+   * credits. Suspense counts distinct entries and sums suspense-line amounts.
+   * Drafts, never-posted entries, voided originals, reversals and opening balances
+   * are excluded. Archived account activity remains included. Historical results
+   * can change after rectification. Zero denominators produce null percentages.
+   * Amount magnitudes above 1 trillion major units return 400; unsafe numeric
+   * serialization returns 500. Returns posting-account breakdowns, not rollups.
+   */
+  @Get('/revenue-expense-summary')
+  @OperationId('getRevenueExpenseSummary')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getRevenueExpenseSummary(@Queries() query: IDateRangeDto) {
+    return await getRevenueExpenseSummaryUseCase(query);
   }
 }

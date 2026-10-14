@@ -153,7 +153,9 @@ describe('GET /reporting/accounts/{accountId}/cash-flow', () => {
           accountId,
           accountingEntityId: entityId,
           currencyCode: 'NGN',
-          ...query,
+          from: new Date(query.from),
+          to: new Date(query.to),
+          bucketDays: query.bucketDays,
         },
         expect.any(Object)
       );

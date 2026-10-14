@@ -1,11 +1,11 @@
+import { IDateRange } from '@shared/types/date.types';
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import { UCurrencyCode } from '@domain/money/config/currencies.config';
 
-import { IGetAccountCashFlowQuery } from '@app/reporting/dtos/account-cash-flow/account-cash-flow.dto';
-
-export interface IAccountCashFlowCriteria extends IGetAccountCashFlowQuery {
+export interface IAccountCashFlowCriteria extends IDateRange {
+  bucketDays: number;
   accountId: TEntityId;
   accountingEntityId: TEntityId;
   currencyCode: UCurrencyCode;

@@ -15,8 +15,8 @@ describe('accountCashFlowQueryRepo', () => {
     accountId: '123e4567-e89b-12d3-a456-426614174001' as TEntityId,
     accountingEntityId: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
     currencyCode: 'NGN',
-    from: '2026-10-01',
-    to: '2026-10-12',
+    from: new Date('2026-10-01'),
+    to: new Date('2026-10-12'),
     bucketDays: 4,
   };
   const options = { correlationId: 'cash-flow-spec' };
@@ -40,13 +40,13 @@ describe('accountCashFlowQueryRepo', () => {
     const compiled = new PgDialect().sqlToQuery(execute.mock.calls[0][0]);
     expect(getDbQuery).toHaveBeenCalledWith(options);
     expect(compiled.params).toEqual([
-      criteria.from,
+      '2026-10-01',
       4,
       criteria.accountingEntityId,
       criteria.accountId,
       'NGN',
-      criteria.from,
-      criteria.to,
+      '2026-10-01',
+      '2026-10-12',
     ]);
     expect(compiled.sql).not.toContain(criteria.accountId);
     expect(compiled.sql).toContain('entry.accounting_entity_id = $3::uuid');

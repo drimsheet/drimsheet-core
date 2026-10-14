@@ -1,13 +1,15 @@
+import { IDateRange } from '@shared/types/date.types';
+
 import { IMoney } from '@domain/money/types/money.types';
 
+interface IAccountCashFlowBucket extends IDateRange {
+  moneyIn: IMoney;
+  moneyOut: IMoney;
+}
+
 export interface IAccountCashFlowReport {
-  period: { from: string; to: string };
+  period: IDateRange;
   totalMoneyIn: IMoney;
   totalMoneyOut: IMoney;
-  buckets: {
-    from: string;
-    to: string;
-    moneyIn: IMoney;
-    moneyOut: IMoney;
-  }[];
+  buckets: IAccountCashFlowBucket[];
 }

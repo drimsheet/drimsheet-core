@@ -12,9 +12,11 @@ interface IAggregateRow extends Record<string, unknown> {
 
 const accountCashFlowQueryRepo: IAccountCashFlowQueryRepo = {
   aggregateByAccount: async (criteria, options) => {
+    const from = criteria.from.toISOString().slice(0, 10);
+    const to = criteria.to.toISOString().slice(0, 10);
     const aggregates = await getDbQuery(options).execute<IAggregateRow>(sql`
       SELECT
-        floor((entry.effective_date - ${criteria.from}::date)::numeric
+        floor((entry.effective_date - ${from}::date)::numeric
           / ${criteria.bucketDays}::numeric)::integer AS bucket_index,
         coalesce(sum(line.amount) FILTER (WHERE line.side = 'debit'), 0)::text AS money_in,
         coalesce(sum(line.amount) FILTER (WHERE line.side = 'credit'), 0)::text AS money_out
@@ -23,8 +25,8 @@ const accountCashFlowQueryRepo: IAccountCashFlowQueryRepo = {
       WHERE entry.accounting_entity_id = ${criteria.accountingEntityId}::uuid
         AND line.account_id = ${criteria.accountId}::uuid
         AND line.currency_code = ${criteria.currencyCode}
-        AND entry.effective_date >= ${criteria.from}::date
-        AND entry.effective_date < ${criteria.to}::date + 1
+        AND entry.effective_date >= ${from}::date
+        AND entry.effective_date < ${to}::date + 1
         AND entry.status <> 'draft'
         AND entry.posted_at IS NOT NULL
         AND entry.voiding_entry_id IS NULL
