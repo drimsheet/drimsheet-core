@@ -3,6 +3,7 @@ import mockRepoService, {
   mockRepoTransaction,
 } from '@shared/contracts/__mocks__/repo.mock';
 import generateUUID from '@shared/utils/uuid-generator';
+import appError from '@shared/values/errors/app.error';
 import repoError from '@shared/values/errors/repo.error';
 
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -109,7 +110,9 @@ describe('activate cash account use case', () => {
   });
 
   it('reads the scoped account once and commits its versioned update before publication', async () => {
-    expect(await usecase(account.id)).toBeUndefined();
+    expect(
+      await usecase(account.id, { activateOpeningBalance: true })
+    ).toBeUndefined();
     expect(mockLedgerAccountRepo.findById).toHaveBeenNthCalledWith(
       1,
       account.id,
@@ -165,18 +168,36 @@ describe('activate cash account use case', () => {
   });
 
   it('rejects an invalid ID before reading context or repositories', async () => {
-    await expect(usecase('invalid')).rejects.toBeInstanceOf(
-      ledgerAccountError.InvalidId
-    );
+    await expect(
+      usecase('invalid', { activateOpeningBalance: false })
+    ).rejects.toBeInstanceOf(ledgerAccountError.InvalidId);
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
 
+  it.each([
+    undefined,
+    null,
+    {},
+    { activateOpeningBalance: null },
+    { activateOpeningBalance: 'true' },
+  ])(
+    'rejects invalid activation input %j before reading context or repositories',
+    async (payload) => {
+      await expect(
+        usecase(account.id, payload as unknown as Parameters<typeof usecase>[1])
+      ).rejects.toBeInstanceOf(appError.UnprocessableEntity);
+      expect(mockAppContext.get).not.toHaveBeenCalled();
+      expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+    }
+  );
+
   it('rejects missing or out-of-entity accounts before starting a transaction', async () => {
     mockLedgerAccountRepo.findById.mockResolvedValue(null);
-    await expect(usecase(account.id)).rejects.toBeInstanceOf(
-      ledgerAccountError.AccountNotFound
-    );
+    await expect(
+      usecase(account.id, { activateOpeningBalance: true })
+    ).rejects.toBeInstanceOf(ledgerAccountError.AccountNotFound);
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
 
@@ -184,7 +205,9 @@ describe('activate cash account use case', () => {
     const error = new ledgerAccountError.InvalidStatus();
     mockAssetAccountService.activate.mockRejectedValue(error);
 
-    await expect(usecase(account.id)).rejects.toBe(error);
+    await expect(
+      usecase(account.id, { activateOpeningBalance: true })
+    ).rejects.toBe(error);
 
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
@@ -201,7 +224,9 @@ describe('activate cash account use case', () => {
       if (phase === 'commit') {
         mockRepoTransaction.commit.mockRejectedValue(error);
       }
-      await expect(usecase(account.id)).rejects.toBe(error);
+      await expect(
+        usecase(account.id, { activateOpeningBalance: true })
+      ).rejects.toBe(error);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(error);
       expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
@@ -260,6 +285,37 @@ describe('activate cash account use case', () => {
       mockJournalEntryService.postOpeningBalance.mockResolvedValue(posting);
     });
 
+    it('activates only the account when opening-balance activation is false', async () => {
+      await usecase(account.id, { activateOpeningBalance: false });
+
+      expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
+        activated,
+        expect.objectContaining({ expectedVersion: account.version })
+      );
+      expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+      expect(mockJournalEntryQueryRepo.findAll).not.toHaveBeenCalled();
+      expect(mockJournalEntryService.postOpeningBalance).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryPersistenceAppService.rectify
+      ).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(
+        mockFxLotCostBasisAppService.persistence.persistAcquisition
+      ).not.toHaveBeenCalled();
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).toHaveBeenCalledWith([
+        expect.objectContaining({
+          type: 'domain:ledger:account:updated',
+          data: activated,
+        }),
+      ]);
+    });
+
     it.each([false, true])(
       'commits the account, existing journal, audits and outbox together, FX=%s',
       async (hasFx) => {
@@ -270,7 +326,7 @@ describe('activate cash account use case', () => {
             events: [],
           });
         }
-        await usecase(account.id);
+        await usecase(account.id, { activateOpeningBalance: true });
         const transactionOptions = {
           ...repoOptions,
           tx: mockRepoTransaction.context,
@@ -373,7 +429,9 @@ describe('activate cash account use case', () => {
         if (phase === 'FX') {
           mockFxLotAppService.acquire.mockRejectedValue(failure);
         }
-        await expect(usecase(account.id)).rejects.toBe(failure);
+        await expect(
+          usecase(account.id, { activateOpeningBalance: true })
+        ).rejects.toBe(failure);
         expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
         expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
         expect(
@@ -412,7 +470,9 @@ describe('activate cash account use case', () => {
         if (phase === 'commit') {
           mockRepoTransaction.commit.mockRejectedValue(failure);
         }
-        await expect(usecase(account.id)).rejects.toBe(failure);
+        await expect(
+          usecase(account.id, { activateOpeningBalance: true })
+        ).rejects.toBe(failure);
         expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
         expect(mockEventBus.publish).not.toHaveBeenCalled();
         expect(

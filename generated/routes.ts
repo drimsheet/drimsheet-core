@@ -1224,6 +1224,14 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICashAccountActivationDto: {
+    dataType: 'refObject',
+    properties: {
+      activateOpeningBalance: { dataType: 'boolean', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IFileAttachment: {
     dataType: 'refObject',
     properties: {
@@ -4077,6 +4085,12 @@ export function RegisterRoutes(app: Router) {
       name: 'accountId',
       required: true,
       dataType: 'string',
+    },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICashAccountActivationDto',
     },
   };
   app.post(

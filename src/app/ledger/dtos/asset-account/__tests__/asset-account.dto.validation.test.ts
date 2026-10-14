@@ -2,6 +2,7 @@ import {
   bankAccountCreationReqValidation,
   bankAccountUpdateReqValidation,
   bankDetailsCreationReqValidation,
+  cashAccountActivationDtoValidation,
   pettyCashCreationReqValidation,
   pettyCashUpdateReqValidation,
 } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
@@ -304,5 +305,44 @@ describe.each([
   });
   it.each(['archived', 'invalid', null])('rejects %s', (status) => {
     expect(schema.safeParse({ ...valid, status }).success).toBe(false);
+  });
+});
+
+describe('cashAccountActivationDtoValidation', () => {
+  it.each([true, false])(
+    'accepts explicit boolean %s',
+    (activateOpeningBalance) => {
+      expect(
+        cashAccountActivationDtoValidation.safeParse({ activateOpeningBalance })
+          .success
+      ).toBe(true);
+    }
+  );
+
+  it.each([undefined, null, 'true', 'false', 0, 1, [], {}])(
+    'rejects invalid activation flag %j without coercion',
+    (activateOpeningBalance) => {
+      const result = cashAccountActivationDtoValidation.safeParse({
+        activateOpeningBalance,
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]).toMatchObject({
+          path: ['activateOpeningBalance'],
+          message: 'app_error_ledger_activate_opening_balance_invalid',
+        });
+      }
+    }
+  );
+
+  it.each([
+    undefined,
+    null,
+    {},
+    { activateOpeningBalance: true, expectedVersion: 1 },
+  ])('rejects missing or unsupported input %j', (payload) => {
+    expect(cashAccountActivationDtoValidation.safeParse(payload).success).toBe(
+      false
+    );
   });
 });

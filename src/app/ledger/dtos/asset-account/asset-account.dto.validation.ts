@@ -7,7 +7,14 @@ import {
   openingBalanceJsonDtoValidation,
 } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
 import { ledgerAccountCreationStatusValidation } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
+import ledgerAppError from '@app/ledger/errors/ledger.error';
 import { currencyCodeValidation } from '@app/money/dtos/currency/currency.dto.validation';
+
+export const cashAccountActivationDtoValidation = z.strictObject({
+  activateOpeningBalance: z.boolean(
+    new ledgerAppError.InvalidActivateOpeningBalance().errorKey
+  ),
+});
 
 export const pettyCashCreationReqValidation = z
   .object({

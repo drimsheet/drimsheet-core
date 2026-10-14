@@ -1569,6 +1569,17 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ICashAccountActivationDto": {
+        "properties": {
+          "activateOpeningBalance": {
+            "type": "boolean",
+            "description": "Posts the associated draft opening balance atomically with account activation when true."
+          }
+        },
+        "required": ["activateOpeningBalance"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IFileAttachment": {
         "properties": {
           "url": {
@@ -6082,6 +6093,16 @@
               }
             }
           },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
           "500": {
             "description": "",
             "content": {
@@ -6093,7 +6114,7 @@
             }
           }
         },
-        "description": "Activates a draft petty cash or bank account beneath an active parent and posts its associated draft opening-balance journal atomically. Requires no body; other account families and non-draft accounts return 400.",
+        "description": "Activates a draft petty cash or bank account beneath an active parent. Requires activateOpeningBalance; when true, posts the associated draft opening-balance journal atomically. When false, leaves the opening balance untouched. Other account families and non-draft accounts return 400.",
         "tags": ["Asset Accounts", "Ledger"],
         "security": [],
         "parameters": [
@@ -6105,7 +6126,17 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICashAccountActivationDto"
+              }
+            }
+          }
+        }
       }
     },
     "/ledger/expense/{accountId}/activate": {

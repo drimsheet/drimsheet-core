@@ -36,11 +36,10 @@ export default function makeActivateExpenseAccountUsecase(deps: IDependencies) {
       throw new ledgerAppError.AccountNotFound({ id });
     }
 
-    const activation = await deps.expenseAccountService.activate(
+    const [account, events, audit] = await deps.expenseAccountService.activate(
       existingAccount,
       repoOptions
     );
-    const [account, events, audit] = activation;
 
     // The repository atomically saves the account and history; stale writes conflict.
     await deps.ledgerAccountRepo.update(account, {
