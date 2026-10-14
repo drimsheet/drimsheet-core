@@ -1224,6 +1224,14 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICashAccountActivationDto: {
+    dataType: 'refObject',
+    properties: {
+      activateOpeningBalance: { dataType: 'boolean', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IFileAttachment: {
     dataType: 'refObject',
     properties: {
@@ -4078,6 +4086,12 @@ export function RegisterRoutes(app: Router) {
       required: true,
       dataType: 'string',
     },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ICashAccountActivationDto',
+    },
   };
   app.post(
     '/api/v1/ledger/asset/cash/:accountId/activate',
@@ -4586,6 +4600,50 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_postOpeningBalance: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+  };
+  app.post(
+    '/api/v1/journal-entries/opening-balance/:id/post',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.postOpeningBalance
+    ),
+
+    async function JournalEntryController_postOpeningBalance(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_postOpeningBalance,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'postOpeningBalance',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 204,
         });
       } catch (err) {
         return next(err);

@@ -8,6 +8,8 @@ const EErrorKeys = {
   BalancePropagationOutboxNotFound:
     'app_error_ledger_balance_propagation_outbox_not_found',
   InvalidSubtype: 'app_error_ledger_sub_type_invalid',
+  InvalidActivateOpeningBalance:
+    'app_error_ledger_activate_opening_balance_invalid',
   ExchangeRateRequired: 'app_error_ledger_exchange_rate_required_invalid',
 } as const satisfies TErrorKeys<'app_error_ledger'>;
 

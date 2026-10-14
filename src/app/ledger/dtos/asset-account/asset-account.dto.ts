@@ -2,6 +2,11 @@ import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types'
 
 import { IOpeningBalanceDto } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
 
+export interface ICashAccountActivationDto {
+  /** Posts the associated draft opening balance atomically with account activation when true. */
+  activateOpeningBalance: boolean;
+}
+
 export interface IPettyCashAccountCreationReq {
   name: string;
   /** Defaults to active when omitted. */

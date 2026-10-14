@@ -22,6 +22,7 @@ import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 import {
   IBankAccountCreationReq,
   IBankAccountUpdateReq,
+  ICashAccountActivationDto,
   IPettyCashAccountCreationReq,
   IPettyCashAccountUpdateReq,
 } from '@app/ledger/dtos/asset-account/asset-account.dto';
@@ -605,7 +606,7 @@ export class LedgerController extends Controller {
     return await updateRevenueAccountUseCase(accountId, body);
   }
 
-  /** Activates a draft petty cash or bank account beneath an active parent and posts its associated draft opening-balance journal atomically. Requires no body; other account families and non-draft accounts return 400. */
+  /** Activates a draft petty cash or bank account beneath an active parent. Requires activateOpeningBalance; when true, posts the associated draft opening-balance journal atomically. When false, leaves the opening balance untouched. Other account families and non-draft accounts return 400. */
   @Tags('Asset Accounts')
   @Post('/asset/cash/{accountId}/activate')
   @OperationId('activateCashAccount')
@@ -615,14 +616,18 @@ export class LedgerController extends Controller {
   @Response<IHttpErrorDto>('403')
   @Response<IHttpErrorDto>('404')
   @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
   @Response<IHttpErrorDto>('500')
   @Middlewares(
     middlewares.isAuthenticatedUser,
     middlewares.featureFlagAccess.canAccessAlpha1,
     middlewares.accountingEntityAccess
   )
-  public activateCashAccount(@Path() accountId: string) {
-    return activateCashAccountUseCase(accountId);
+  public activateCashAccount(
+    @Path() accountId: string,
+    @Body() body: ICashAccountActivationDto
+  ) {
+    return activateCashAccountUseCase(accountId, body);
   }
 
   /** Activates a draft expense account beneath an active parent. Requires no body; non-expense and non-draft accounts return 400. */

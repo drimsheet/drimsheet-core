@@ -793,7 +793,7 @@ describe('journalEntryService', () => {
     }
 
     it.each([SYSTEM_CURRENCIES.NGN, SYSTEM_CURRENCIES.USD])(
-      'posts an existing $code opening journal with its original dates, lines and valuation',
+      'posts an existing $code opening journal at the current time while preserving its effective date, lines and valuation',
       async (currency) => {
         const payload = fixture(currency);
         const [posted, events, audit] = await service.postOpeningBalance(
@@ -804,7 +804,7 @@ describe('journalEntryService', () => {
         expect(posted).toEqual({
           ...payload.entry,
           status: 'posted',
-          postedAt: effectiveDate,
+          postedAt: timestamp,
           version: payload.entry.version + 1,
           updatedAt: timestamp,
         });
@@ -832,7 +832,7 @@ describe('journalEntryService', () => {
           mockAccountingPeriodService.validatePostingPeriod
         ).toHaveBeenCalledWith(
           payload.entry.accountingEntityId,
-          effectiveDate,
+          timestamp,
           repoOptions
         );
         expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();

@@ -2,6 +2,7 @@ import { Express } from 'express';
 import request from 'supertest';
 
 import generateUUID from '@shared/utils/uuid-generator';
+import appError from '@shared/values/errors/app.error';
 import repoError from '@shared/values/errors/repo.error';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
@@ -129,20 +130,25 @@ describe('POST /ledger/asset/cash/{accountId}/activate', () => {
     app = createApplication();
   });
 
-  const post = () =>
+  const post = (payload = { activateOpeningBalance: true }) =>
     request(app)
       .post(endpoint)
       .set('Authorization', 'Bearer valid-token')
-      .set('x-accounting-entity-id', accountingEntityId);
+      .set('x-accounting-entity-id', accountingEntityId)
+      .send(payload);
 
   describe('204 Response', () => {
-    it('returns 204 and passes the account ID to the activation use case', async () => {
-      const response = await post();
+    it.each([true, false])(
+      'passes the account ID and activation flag %s to the use case',
+      async (activateOpeningBalance) => {
+        const payload = { activateOpeningBalance };
+        const response = await post(payload);
 
-      expect(response.status).toBe(204);
-      expect(response.text).toBe('');
-      expect(activation).toHaveBeenCalledWith(accountId);
-    });
+        expect(response.status).toBe(204);
+        expect(response.text).toBe('');
+        expect(activation).toHaveBeenCalledWith(accountId, payload);
+      }
+    );
   });
 
   describe('400 Response', () => {
@@ -212,6 +218,46 @@ describe('POST /ledger/asset/cash/{accountId}/activate', () => {
       activation.mockRejectedValueOnce(new repoError.VersionNotFound());
 
       expect((await post()).status).toBe(409);
+    });
+  });
+
+  describe('422 Response', () => {
+    it.each([
+      undefined,
+      {},
+      { activateOpeningBalance: 'invalid' },
+      { activateOpeningBalance: 1 },
+      { activateOpeningBalance: true, expectedVersion: 1 },
+    ])('rejects invalid input %j before the use case', async (payload) => {
+      const pending = request(app)
+        .post(endpoint)
+        .set('Authorization', 'Bearer valid-token')
+        .set('x-accounting-entity-id', accountingEntityId);
+      const response = await (payload === undefined
+        ? pending
+        : pending.send(payload));
+
+      expect(response.status).toBe(422);
+      expect(response.body.errorKey).toBe('app_error_validation_error');
+      expect(activation).not.toHaveBeenCalled();
+    });
+
+    it('returns application validation errors from the use case', async () => {
+      const validationErrors = [
+        {
+          field: 'activateOpeningBalance',
+          message: 'app_error_ledger_activate_opening_balance_invalid',
+        },
+      ];
+      activation.mockRejectedValueOnce(
+        new appError.UnprocessableEntity(validationErrors)
+      );
+
+      const response = await post();
+
+      expect(response.status).toBe(422);
+      expect(response.body.errorKey).toBe('app_error_validation_error');
+      expect(response.body.validationErrors).toEqual(validationErrors);
     });
   });
 

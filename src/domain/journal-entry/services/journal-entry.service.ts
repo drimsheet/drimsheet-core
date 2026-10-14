@@ -26,7 +26,6 @@ interface IDependencies {
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
 }
 
-/** Validates opening-journal posting against the prepared account and current counterpart accounts, then delegates the immutable transition to the entity. Never persists. */
 function makePostOpeningBalance(
   deps: IDependencies
 ): IJournalEntryService['postOpeningBalance'] {
@@ -47,11 +46,13 @@ function makePostOpeningBalance(
       counterpartIds,
       repoOptions
     );
+
     const journalLines = entry.lines.map((line) => {
       const lineAccount =
         line.accountId === account.id
           ? account
           : counterparts.find((candidate) => candidate.id === line.accountId);
+
       if (!lineAccount) {
         throw new journalEntryError.AccountNotFound({
           accountId: line.accountId,
@@ -65,17 +66,19 @@ function makePostOpeningBalance(
       counterparts,
       openingBalanceEntryRule
     );
+
+    const postingDate = new Date();
     journalEntryServiceValidation.validateAccounts(
       {
         accountingEntityId: entry.accountingEntityId,
         effectiveDate: entry.effectiveDate,
-        postedAt: entry.effectiveDate,
+        postedAt: postingDate,
       },
       journalLines
     );
     await deps.accountingPeriodService.validatePostingPeriod(
       entry.accountingEntityId,
-      entry.effectiveDate,
+      postingDate,
       repoOptions
     );
 
@@ -84,7 +87,7 @@ function makePostOpeningBalance(
       {
         id: entry.id,
         status: EJournalEntryStatus.Posted,
-        postedAt: entry.effectiveDate,
+        postedAt: postingDate,
       },
       actor
     );
