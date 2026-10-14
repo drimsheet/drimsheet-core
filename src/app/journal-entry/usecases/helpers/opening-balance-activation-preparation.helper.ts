@@ -13,13 +13,13 @@ interface IDependencies {
 /** Prepares posting, FX acquisition, and histories for a caller-selected opening journal without initiating persistence. Domain validation failures reject before the atomic write phase. */
 export default async function openingBalanceActivationPreparationHelper(
   deps: IDependencies,
-  payload: Parameters<IJournalEntryService['postOpeningBalance']>[0],
+  payload: Parameters<IJournalEntryService['postDraftOpeningBalance']>[0],
   repoOptions: IReadRepoOptions
 ) {
   const { entry: originalEntry, account, actor } = payload;
 
   const [entry, events, audit] =
-    await deps.journalEntryService.postOpeningBalance(
+    await deps.journalEntryService.postDraftOpeningBalance(
       { entry: originalEntry, account, actor },
       repoOptions
     );

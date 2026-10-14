@@ -157,7 +157,9 @@ describe('activate cash account use case', () => {
       }),
     ]);
     expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.postOpeningBalance).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryService.postDraftOpeningBalance
+    ).not.toHaveBeenCalled();
     expect(
       mockJournalEntryPersistenceAppService.rectify
     ).not.toHaveBeenCalled();
@@ -282,7 +284,9 @@ describe('activate cash account use case', () => {
         data: [details],
         meta: { page: 1, limit: 1, total: 1, totalPages: 1 },
       });
-      mockJournalEntryService.postOpeningBalance.mockResolvedValue(posting);
+      mockJournalEntryService.postDraftOpeningBalance.mockResolvedValue(
+        posting
+      );
     });
 
     it('activates only the account when opening-balance activation is false', async () => {
@@ -294,7 +298,9 @@ describe('activate cash account use case', () => {
       );
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
       expect(mockJournalEntryQueryRepo.findAll).not.toHaveBeenCalled();
-      expect(mockJournalEntryService.postOpeningBalance).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryService.postDraftOpeningBalance
+      ).not.toHaveBeenCalled();
       expect(
         mockJournalEntryPersistenceAppService.rectify
       ).not.toHaveBeenCalled();
@@ -342,7 +348,9 @@ describe('activate cash account use case', () => {
             limit: 1,
           }
         );
-        expect(mockJournalEntryService.postOpeningBalance).toHaveBeenCalledWith(
+        expect(
+          mockJournalEntryService.postDraftOpeningBalance
+        ).toHaveBeenCalledWith(
           { entry: details, account: activated, actor: actorId },
           repoOptions
         );
@@ -424,7 +432,9 @@ describe('activate cash account use case', () => {
           mockJournalEntryQueryRepo.findAll.mockRejectedValue(failure);
         }
         if (phase === 'posting') {
-          mockJournalEntryService.postOpeningBalance.mockRejectedValue(failure);
+          mockJournalEntryService.postDraftOpeningBalance.mockRejectedValue(
+            failure
+          );
         }
         if (phase === 'FX') {
           mockFxLotAppService.acquire.mockRejectedValue(failure);

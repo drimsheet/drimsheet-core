@@ -6,7 +6,8 @@ import makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transf
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 import makeGetJournalEntryUsecase from '@app/journal-entry/usecases/get-journal-entry.usecase';
-import makePostOpeningBalanceUsecase from '@app/journal-entry/usecases/post-opening-balance.usecase';
+import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post-draft-opening-balance.usecase';
+import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-payment.usecase';
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
 
 import { counterpartyAppService } from '@infra/ioc/services/counterparty';
@@ -31,10 +32,28 @@ import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import appContext from '@infra/runtime/app-context';
 
-export const postOpeningBalanceUseCase = makeTracedUseCase(
-  'journalEntry.postOpeningBalanceUseCase',
-  makePostOpeningBalanceUsecase({
+export const postDraftOpeningBalanceUseCase = makeTracedUseCase(
+  'journalEntry.postDraftOpeningBalanceUseCase',
+  makePostDraftOpeningBalanceUsecase({
     appContext,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    journalEntryService,
+    journalEntryPersistenceAppService,
+    fxLotAppService,
+    fxCostBasisPersistenceAppService,
+    outboxAppService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const postDraftPaymentUseCase = makeTracedUseCase(
+  'journalEntry.postDraftPaymentUseCase',
+  makePostDraftPaymentUsecase({
+    appContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryRepo: journalEntryRepos.journalEntry,
     journalEntryService,
