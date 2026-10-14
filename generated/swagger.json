@@ -288,6 +288,123 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ULedgerAccountStatus": {
+        "type": "string",
+        "enum": ["active", "archived", "draft"]
+      },
+      "IRevenueExpenseAccountDto": {
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["revenue", "expense", "asset", "liability"]
+          },
+          "subType": {
+            "type": "string",
+            "description": "Suspense accounts supply the UI's Uncategorized rows."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountStatus"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Current accumulated functional balance of this posting account."
+          },
+          "sharePercentage": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "Share of root header balances of this type; null for suspense or a zero total."
+          },
+          "transactionCount": {
+            "type": "number",
+            "format": "double",
+            "description": "Journal lines on this posting account, including all journal states."
+          }
+        },
+        "required": [
+          "accountId",
+          "accountName",
+          "code",
+          "type",
+          "subType",
+          "status",
+          "amount",
+          "sharePercentage",
+          "transactionCount"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPaginationResponseMeta": {
+        "properties": {
+          "page": {
+            "type": "number",
+            "format": "double"
+          },
+          "limit": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalPages": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": ["page", "limit", "total", "totalPages"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPaginatedResponse_IRevenueExpenseAccountDto_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IRevenueExpenseAccountDto"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/IPaginationResponseMeta"
+          }
+        },
+        "required": ["data", "meta"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetRevenueExpenseAccountsQuery": {
+        "properties": {
+          "page": {
+            "type": "number",
+            "format": "double"
+          },
+          "limit": {
+            "type": "number",
+            "format": "double"
+          },
+          "search": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["revenue", "expense"],
+            "description": "Omit for all revenue, expense and suspense posting accounts."
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "IRevenueExpenseSectionDto": {
         "properties": {
           "total": {
@@ -444,10 +561,6 @@
           "other_loss"
         ]
       },
-      "ULedgerAccountStatus": {
-        "type": "string",
-        "enum": ["active", "archived", "draft"]
-      },
       "UContraAccountRule": {
         "type": "string",
         "enum": [
@@ -559,29 +672,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IPaginationResponseMeta": {
-        "properties": {
-          "page": {
-            "type": "number",
-            "format": "double"
-          },
-          "limit": {
-            "type": "number",
-            "format": "double"
-          },
-          "total": {
-            "type": "number",
-            "format": "double"
-          },
-          "totalPages": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "required": ["page", "limit", "total", "totalPages"],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IPaginatedResponse_ILedgerAccountDto_": {
         "properties": {
           "data": {
@@ -664,14 +754,14 @@
             "type": "number",
             "format": "double"
           },
+          "search": {
+            "type": "string"
+          },
           "orderBy": {
             "type": "string"
           },
           "sortDirection": {
             "$ref": "#/components/schemas/UPaginationSortDirection"
-          },
-          "search": {
-            "type": "string"
           }
         },
         "type": "object",
@@ -683,14 +773,14 @@
             "type": "number",
             "format": "double"
           },
+          "search": {
+            "type": "string"
+          },
           "orderBy": {
             "$ref": "#/components/schemas/ULedgerAccountSortBy"
           },
           "sortDirection": {
             "$ref": "#/components/schemas/UPaginationSortDirection"
-          },
-          "search": {
-            "type": "string"
           },
           "page": {
             "type": "number",
@@ -1215,14 +1305,14 @@
             "type": "number",
             "format": "double"
           },
+          "search": {
+            "type": "string"
+          },
           "orderBy": {
             "type": "string"
           },
           "sortDirection": {
             "$ref": "#/components/schemas/UPaginationSortDirection"
-          },
-          "search": {
-            "type": "string"
           },
           "page": {
             "type": "number",
@@ -1903,14 +1993,14 @@
             "type": "number",
             "format": "double"
           },
+          "search": {
+            "type": "string"
+          },
           "orderBy": {
             "$ref": "#/components/schemas/UJournalEntrySortBy"
           },
           "sortDirection": {
             "$ref": "#/components/schemas/UPaginationSortDirection"
-          },
-          "search": {
-            "type": "string"
           },
           "page": {
             "type": "number",
@@ -2782,16 +2872,16 @@
       },
       "Pick_IPaginationDto.Exclude_keyofIPaginationDto.search-or-sortDirection__": {
         "properties": {
+          "page": {
+            "type": "number",
+            "format": "double"
+          },
           "limit": {
             "type": "number",
             "format": "double"
           },
           "orderBy": {
             "type": "string"
-          },
-          "page": {
-            "type": "number",
-            "format": "double"
           }
         },
         "type": "object",
@@ -2799,16 +2889,16 @@
       },
       "IExchangeRateQueryParam": {
         "properties": {
+          "page": {
+            "type": "number",
+            "format": "double"
+          },
           "limit": {
             "type": "number",
             "format": "double"
           },
           "orderBy": {
             "type": "string"
-          },
-          "page": {
-            "type": "number",
-            "format": "double"
           },
           "currencyPair": {
             "type": "string"
@@ -2975,14 +3065,14 @@
             "type": "number",
             "format": "double"
           },
+          "search": {
+            "type": "string"
+          },
           "orderBy": {
             "$ref": "#/components/schemas/UCounterpartySortBy"
           },
           "sortDirection": {
             "$ref": "#/components/schemas/UPaginationSortDirection"
-          },
-          "search": {
-            "type": "string"
           },
           "page": {
             "type": "number",
@@ -3858,6 +3948,114 @@
         ]
       }
     },
+    "/reporting/revenue-expense-accounts": {
+      "get": {
+        "operationId": "getRevenueExpenseAccounts",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IPaginatedResponse_IRevenueExpenseAccountDto_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Revenue/expense and suspense posting accounts (isControlAccount=false) with\ncurrent accumulated functional balances. Balances update asynchronously;\ncounts read each posting account's own live journal lines in all states.\nAll account statuses and zero balances remain visible. Shares use the summed\nbalances of root revenue/expense headers (controlAccountId=null) of the same\ntype before search/pagination; headers are never included as table rows;\nsuspense and zero totals have null shares. Omit type for All. Search matches\naccount name or code; rows sort by code then ID. No date range is applied.\nAmount magnitudes above 1 trillion major units return 400; missing balances\nor unsafe numeric serialization return 500.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Omit for all revenue, expense and suspense posting accounts.",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["revenue", "expense"]
+            }
+          }
+        ]
+      }
+    },
     "/reporting/revenue-expense-summary": {
       "get": {
         "operationId": "getRevenueExpenseSummary",
@@ -4008,6 +4206,14 @@
           },
           {
             "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "orderBy",
             "required": false,
             "schema": {
@@ -4020,14 +4226,6 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/UPaginationSortDirection"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -4846,6 +5044,14 @@
           },
           {
             "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "orderBy",
             "required": false,
             "schema": {
@@ -4858,14 +5064,6 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/UPaginationSortDirection"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -6665,6 +6863,14 @@
           },
           {
             "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "orderBy",
             "required": false,
             "schema": {
@@ -6677,14 +6883,6 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/UPaginationSortDirection"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -7544,6 +7742,15 @@
         "parameters": [
           {
             "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
@@ -7557,15 +7764,6 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "format": "double",
-              "type": "number"
             }
           },
           {
@@ -7676,6 +7874,14 @@
           },
           {
             "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "orderBy",
             "required": false,
             "schema": {
@@ -7688,14 +7894,6 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/UPaginationSortDirection"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
             }
           },
           {

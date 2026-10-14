@@ -15,10 +15,12 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import type { IGetAccountCashFlowQuery } from '@app/reporting/dtos/account-cash-flow/account-cash-flow.dto';
 import type { IDateRangeDto } from '@app/reporting/dtos/date/date-range.dto';
+import type { IGetRevenueExpenseAccountsQuery } from '@app/reporting/dtos/revenue-expense-accounts/revenue-expense-accounts.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAccountCashFlowUseCase,
+  getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
 } from '@infra/ioc/usecases/reporting';
 
@@ -52,6 +54,37 @@ export class ReportingController extends Controller {
     @Queries() query: IGetAccountCashFlowQuery
   ) {
     return await getAccountCashFlowUseCase(accountId, query);
+  }
+
+  /**
+   * Revenue/expense and suspense posting accounts (isControlAccount=false) with
+   * current accumulated functional balances. Balances update asynchronously;
+   * counts read each posting account's own live journal lines in all states.
+   * All account statuses and zero balances remain visible. Shares use the summed
+   * balances of root revenue/expense headers (controlAccountId=null) of the same
+   * type before search/pagination; headers are never included as table rows;
+   * suspense and zero totals have null shares. Omit type for All. Search matches
+   * account name or code; rows sort by code then ID. No date range is applied.
+   * Amount magnitudes above 1 trillion major units return 400; missing balances
+   * or unsafe numeric serialization return 500.
+   */
+  @Get('/revenue-expense-accounts')
+  @OperationId('getRevenueExpenseAccounts')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getRevenueExpenseAccounts(
+    @Queries() query: IGetRevenueExpenseAccountsQuery
+  ) {
+    return await getRevenueExpenseAccountsUseCase(query);
   }
 
   /**
