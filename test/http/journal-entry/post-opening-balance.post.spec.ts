@@ -69,7 +69,7 @@ jest.mock('@infra/ioc/usecases/auth', () => ({
 }));
 jest.mock('@infra/ioc/usecases/journal-entry', () => ({
   __esModule: true,
-  postOpeningBalanceUseCase: jest.fn(),
+  postDraftOpeningBalanceUseCase: jest.fn(),
   getJournalEntryUseCase: jest.fn(),
   archiveJournalEntryUseCase: jest.fn(),
 }));
@@ -113,7 +113,9 @@ const endpoint = `/api/v1/journal-entries/opening-balance/${entryId}/post`;
 
 describe('POST /journal-entries/opening-balance/{id}/post', () => {
   let app: Express;
-  const posting = jest.mocked(journalEntryUseCases.postOpeningBalanceUseCase);
+  const posting = jest.mocked(
+    journalEntryUseCases.postDraftOpeningBalanceUseCase
+  );
 
   beforeEach(() => {
     jest.resetAllMocks();

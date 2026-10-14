@@ -709,7 +709,7 @@ describe('journalEntryService', () => {
     jest.useRealTimers();
   });
 
-  describe('postOpeningBalance', () => {
+  describe('postDraftOpeningBalance', () => {
     function fixture(currency = SYSTEM_CURRENCIES.NGN) {
       const [draftAccount] = ledgerAccountEntity.make<ILedgerAccount>({
         name: 'Opening cash',
@@ -796,7 +796,7 @@ describe('journalEntryService', () => {
       'posts an existing $code opening journal at the current time while preserving its effective date, lines and valuation',
       async (currency) => {
         const payload = fixture(currency);
-        const [posted, events, audit] = await service.postOpeningBalance(
+        const [posted, events, audit] = await service.postDraftOpeningBalance(
           payload,
           repoOptions
         );
@@ -842,7 +842,7 @@ describe('journalEntryService', () => {
     it('rejects an account that has not been prepared as active', async () => {
       const payload = fixture();
       await expect(
-        service.postOpeningBalance(
+        service.postDraftOpeningBalance(
           { ...payload, account: payload.draftAccount },
           repoOptions
         )
@@ -857,7 +857,7 @@ describe('journalEntryService', () => {
           { ...payload.equity, status },
         ]);
         await expect(
-          service.postOpeningBalance(payload, repoOptions)
+          service.postDraftOpeningBalance(payload, repoOptions)
         ).rejects.toBeInstanceOf(journalEntryError.Base);
       }
     );
@@ -866,7 +866,7 @@ describe('journalEntryService', () => {
       const payload = fixture();
       mockLedgerAccountRepo.findAllByIds.mockResolvedValue([]);
       await expect(
-        service.postOpeningBalance(payload, repoOptions)
+        service.postDraftOpeningBalance(payload, repoOptions)
       ).rejects.toBeInstanceOf(journalEntryError.AccountNotFound);
     });
 
@@ -876,14 +876,14 @@ describe('journalEntryService', () => {
         { ...payload.equity, accountingEntityId: generateUUID() },
       ]);
       await expect(
-        service.postOpeningBalance(payload, repoOptions)
+        service.postDraftOpeningBalance(payload, repoOptions)
       ).rejects.toBeInstanceOf(journalEntryError.InvalidAccountingEntity);
     });
 
     it('rejects a non-opening journal', async () => {
       const payload = fixture();
       await expect(
-        service.postOpeningBalance(
+        service.postDraftOpeningBalance(
           { ...payload, entry: { ...payload.entry, sourceType: 'receipt' } },
           repoOptions
         )
@@ -893,7 +893,7 @@ describe('journalEntryService', () => {
     it('rejects a journal that is already posted', async () => {
       const payload = fixture();
       await expect(
-        service.postOpeningBalance(
+        service.postDraftOpeningBalance(
           {
             ...payload,
             entry: {
@@ -910,7 +910,7 @@ describe('journalEntryService', () => {
     it('rejects a journal associated with another account', async () => {
       const payload = fixture();
       await expect(
-        service.postOpeningBalance(
+        service.postDraftOpeningBalance(
           { ...payload, account: { ...payload.account, id: generateUUID() } },
           repoOptions
         )
@@ -920,7 +920,7 @@ describe('journalEntryService', () => {
     it('rejects an opening date mismatch', async () => {
       const payload = fixture();
       await expect(
-        service.postOpeningBalance(
+        service.postDraftOpeningBalance(
           {
             ...payload,
             account: { ...payload.account, openingBalanceDate: null },
@@ -937,7 +937,7 @@ describe('journalEntryService', () => {
         failure
       );
       await expect(
-        service.postOpeningBalance(payload, repoOptions)
+        service.postDraftOpeningBalance(payload, repoOptions)
       ).rejects.toBe(failure);
     });
   });

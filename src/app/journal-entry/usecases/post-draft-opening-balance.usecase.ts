@@ -35,7 +35,9 @@ interface IDependencies {
   eventBus: IEventBus;
 }
 
-export default function makePostOpeningBalanceUsecase(deps: IDependencies) {
+export default function makePostDraftOpeningBalanceUsecase(
+  deps: IDependencies
+) {
   return async (id: string): Promise<void> => {
     stringUtils.validateUUID(id, journalEntryError.InvalidJournalEntry);
 

@@ -26,9 +26,9 @@ interface IDependencies {
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
 }
 
-function makePostOpeningBalance(
+function makePostDraftOpeningBalance(
   deps: IDependencies
-): IJournalEntryService['postOpeningBalance'] {
+): IJournalEntryService['postDraftOpeningBalance'] {
   return async ({ entry, account, actor }, repoOptions) => {
     openingBalanceRevisionValidation.validateSourceType(entry);
     openingBalanceRevisionValidation.validateStatus(entry);
@@ -339,7 +339,7 @@ function makeCreateTransfer(
 
 export default function makeJournalEntryService(deps: IDependencies) {
   const service: IJournalEntryService = {
-    postOpeningBalance: makePostOpeningBalance(deps),
+    postDraftOpeningBalance: makePostDraftOpeningBalance(deps),
     createReceipt: makeCreateReceipt(deps),
 
     createPayment: makeCreatePayment(deps),

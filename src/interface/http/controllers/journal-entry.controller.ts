@@ -31,7 +31,7 @@ import {
   deleteJournalEntryUseCase,
   getJournalEntriesUseCase,
   getJournalEntryUseCase,
-  postOpeningBalanceUseCase,
+  postDraftOpeningBalanceUseCase,
   rectifyJournalEntryUseCase,
 } from '@infra/ioc/usecases/journal-entry';
 
@@ -179,7 +179,7 @@ export class JournalEntryController extends Controller {
     middlewares.accountingEntityAccess
   )
   public postOpeningBalance(@Path() id: string): Promise<void> {
-    return postOpeningBalanceUseCase(id);
+    return postDraftOpeningBalanceUseCase(id);
   }
 
   /**

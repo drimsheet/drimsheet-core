@@ -64,7 +64,7 @@ export interface ICreateTransferEntryResult {
 
 export interface IJournalEntryService {
   /** Posts a draft opening journal using the prepared active account; preserves its dates, amounts and line identities without writes. */
-  postOpeningBalance(
+  postDraftOpeningBalance(
     payload: {
       entry: IJournalEntry;
       account: ILedgerAccount;
