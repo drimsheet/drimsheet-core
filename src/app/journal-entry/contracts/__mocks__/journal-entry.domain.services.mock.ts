@@ -14,6 +14,7 @@ export const mockJournalEntryRemovalService: jest.Mocked<IJournalEntryRemovalSer
   };
 
 export const mockJournalEntryService: jest.Mocked<IJournalEntryService> = {
+  postDraftPayment: jest.fn(),
   postDraftOpeningBalance: jest.fn(),
   createPayment: jest.fn(),
   createReceipt: jest.fn(),

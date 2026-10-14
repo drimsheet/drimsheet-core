@@ -63,6 +63,20 @@ export interface ICreateTransferEntryResult {
 }
 
 export interface IJournalEntryService {
+  /** Validates and posts a draft payment without writes, preserving its financial content and returning its source account for FX disposition. */
+  postDraftPayment(
+    payload: {
+      entry: IJournalEntry;
+      accounts: ILedgerAccount[];
+      counterparties: (ICounterparty | null)[];
+      actor: TEntityId;
+    },
+    repoOptions: IReadRepoOptions
+  ): Promise<{
+    journalEntry: TAuditedJournalEntryUpdate;
+    sourceAccount: ILedgerAccount;
+  }>;
+
   /** Posts a draft opening journal using the prepared active account; preserves its dates, amounts and line identities without writes. */
   postDraftOpeningBalance(
     payload: {

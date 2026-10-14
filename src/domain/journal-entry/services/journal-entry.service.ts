@@ -4,10 +4,14 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import openingBalanceEntryRule from '@domain/journal-entry/rules/opening-balance-entry.rule';
 import paymentEntryRule from '@domain/journal-entry/rules/payment-entry.rule';
 import receiptEntryRule from '@domain/journal-entry/rules/receipt-entry.rule';
+import getPaymentJournalLinesHelper from '@domain/journal-entry/services/helpers/get-payment-journal-lines.helper';
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
 import openingBalanceRevisionValidation from '@domain/journal-entry/services/validations/opening-balance-revision.validation';
 import openingBalanceValidation from '@domain/journal-entry/services/validations/opening-balance.validation';
-import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
+import {
+  IJournalEntryHeaderPayload,
+  IJournalEntryService,
+} from '@domain/journal-entry/types/journal-entry.service.types';
 import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
@@ -24,6 +28,101 @@ interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
   accountingPeriodService: IAccountingPeriodService;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
+}
+
+/** Revalidates current payment participants and the effective posting period before preparing an audited, identity-preserving draft transition. */
+function makePostDraftPayment(
+  deps: IDependencies
+): IJournalEntryService['postDraftPayment'] {
+  return async ({ entry, accounts, counterparties, actor }, repoOptions) => {
+    const isDraftPayment =
+      entry.sourceType === EJournalEntrySourceType.Payment &&
+      entry.status === EJournalEntryStatus.Draft &&
+      entry.postedAt === null;
+    if (!isDraftPayment) {
+      throw new journalEntryError.RectificationNotPermitted({
+        journalEntryId: entry.id,
+        sourceType: entry.sourceType,
+        status: entry.status,
+      });
+    }
+
+    const journalLines = getPaymentJournalLinesHelper(
+      entry.lines,
+      accounts,
+      counterparties
+    );
+    const sourceLines = journalLines.filter(
+      (line) => line.side === EJournalSide.Credit
+    );
+    const destinationLines = journalLines.filter(
+      (line) => line.side === EJournalSide.Debit
+    );
+    if (sourceLines.length !== 1) {
+      throw new journalEntryError.InvalidSourceType({
+        journalEntryId: entry.id,
+      });
+    }
+    const sourceLine = sourceLines[0];
+    const postingDate = new Date();
+    const header: IJournalEntryHeaderPayload = {
+      accountingEntityId: entry.accountingEntityId,
+      effectiveDate: entry.effectiveDate,
+      postedAt: postingDate,
+      memo: entry.memo,
+      createdBy: entry.createdBy,
+      functionalCurrencyCode: sourceLine.functionalAmount.currency.code,
+    };
+
+    journalEntryServiceValidation.validateAccountsAgainstRule(
+      [sourceLine.account],
+      destinationLines.map((line) => line.account),
+      paymentEntryRule
+    );
+    journalEntryServiceValidation.validateAccounts(header, journalLines);
+    journalEntryServiceValidation.validateCounterparties(header, journalLines);
+
+    const sourceCurrencyCode = sourceLine.account.currency?.code ?? null;
+    const isForexSourceAccount =
+      sourceCurrencyCode !== null &&
+      sourceCurrencyCode !== header.functionalCurrencyCode;
+
+    if (isForexSourceAccount) {
+      const sourceBalance = await deps.ledgerAccountBalanceRepo.findByAccountId(
+        sourceLine.account.id,
+        entry.accountingEntityId,
+        repoOptions
+      );
+      journalEntryServiceValidation.validateSourceAccountBalance(
+        sourceLine.account.id,
+        sourceLine.amount,
+        sourceBalance
+      );
+    }
+
+    await deps.accountingPeriodService.validatePostingPeriod(
+      entry.accountingEntityId,
+      entry.effectiveDate,
+      repoOptions
+    );
+
+    const entryUpdateInput = {
+      id: entry.id,
+      status: EJournalEntryStatus.Posted,
+      postedAt: postingDate,
+    };
+
+    const updatedEntry = journalEntryEntity.update(
+      entry,
+      entryUpdateInput,
+      actor
+    );
+
+    return {
+      journalEntry: updatedEntry,
+      sourceAccount: sourceLine.account,
+    };
+  };
 }
 
 function makePostDraftOpeningBalance(
@@ -339,6 +438,7 @@ function makeCreateTransfer(
 
 export default function makeJournalEntryService(deps: IDependencies) {
   const service: IJournalEntryService = {
+    postDraftPayment: makePostDraftPayment(deps),
     postDraftOpeningBalance: makePostDraftOpeningBalance(deps),
     createReceipt: makeCreateReceipt(deps),
 
