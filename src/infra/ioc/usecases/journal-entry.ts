@@ -8,6 +8,7 @@ import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journa
 import makeGetJournalEntryUsecase from '@app/journal-entry/usecases/get-journal-entry.usecase';
 import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post-draft-opening-balance.usecase';
 import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-payment.usecase';
+import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
 
 import { counterpartyAppService } from '@infra/ioc/services/counterparty';
@@ -52,6 +53,24 @@ export const postDraftOpeningBalanceUseCase = makeTracedUseCase(
 export const postDraftPaymentUseCase = makeTracedUseCase(
   'journalEntry.postDraftPaymentUseCase',
   makePostDraftPaymentUsecase({
+    appContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    journalEntryService,
+    journalEntryPersistenceAppService,
+    fxLotAppService,
+    fxCostBasisPersistenceAppService,
+    outboxAppService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const postDraftReceiptUseCase = makeTracedUseCase(
+  'journalEntry.postDraftReceiptUseCase',
+  makePostDraftReceiptUsecase({
     appContext,
     counterpartyRepo: counterpartyRepos.counterparty,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,

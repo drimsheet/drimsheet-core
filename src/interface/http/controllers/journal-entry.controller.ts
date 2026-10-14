@@ -33,6 +33,7 @@ import {
   getJournalEntryUseCase,
   postDraftOpeningBalanceUseCase,
   postDraftPaymentUseCase,
+  postDraftReceiptUseCase,
   rectifyJournalEntryUseCase,
 } from '@infra/ioc/usecases/journal-entry';
 
@@ -200,6 +201,25 @@ export class JournalEntryController extends Controller {
   )
   public postPayment(@Path() id: string): Promise<void> {
     return postDraftPaymentUseCase(id);
+  }
+
+  /** Posts a draft receipt while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. No request body is required. */
+  @Post('/receipt/{id}/post')
+  @OperationId('postReceipt')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public postReceipt(@Path() id: string): Promise<void> {
+    return postDraftReceiptUseCase(id);
   }
 
   /**

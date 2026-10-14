@@ -4,7 +4,7 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import openingBalanceEntryRule from '@domain/journal-entry/rules/opening-balance-entry.rule';
 import paymentEntryRule from '@domain/journal-entry/rules/payment-entry.rule';
 import receiptEntryRule from '@domain/journal-entry/rules/receipt-entry.rule';
-import getPaymentJournalLinesHelper from '@domain/journal-entry/services/helpers/get-payment-journal-lines.helper';
+import getJournalEntryLinesHelper from '@domain/journal-entry/services/helpers/get-journal-entry-lines.helper';
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
 import openingBalanceRevisionValidation from '@domain/journal-entry/services/validations/opening-balance-revision.validation';
 import openingBalanceValidation from '@domain/journal-entry/services/validations/opening-balance.validation';
@@ -47,7 +47,7 @@ function makePostDraftPayment(
       });
     }
 
-    const journalLines = getPaymentJournalLinesHelper(
+    const journalLines = getJournalEntryLinesHelper(
       entry.lines,
       accounts,
       counterparties
@@ -121,6 +121,86 @@ function makePostDraftPayment(
     return {
       journalEntry: updatedEntry,
       sourceAccount: sourceLine.account,
+    };
+  };
+}
+
+/**
+ * Revalidates current receipt participants and the effective posting period before preparing an audited,
+ * identity-preserving draft transition.
+ */
+function makePostDraftReceipt(
+  deps: IDependencies
+): IJournalEntryService['postDraftReceipt'] {
+  return async ({ entry, accounts, counterparties, actor }, repoOptions) => {
+    const isDraftReceipt =
+      entry.sourceType === EJournalEntrySourceType.Receipt &&
+      entry.status === EJournalEntryStatus.Draft &&
+      entry.postedAt === null;
+    if (!isDraftReceipt) {
+      throw new journalEntryError.RectificationNotPermitted({
+        journalEntryId: entry.id,
+        sourceType: entry.sourceType,
+        status: entry.status,
+      });
+    }
+
+    const journalLines = getJournalEntryLinesHelper(
+      entry.lines,
+      accounts,
+      counterparties
+    );
+    const sourceLines = journalLines.filter(
+      (line) => line.side === EJournalSide.Credit
+    );
+    const destinationLines = journalLines.filter(
+      (line) => line.side === EJournalSide.Debit
+    );
+    if (destinationLines.length !== 1) {
+      throw new journalEntryError.InvalidDestinationAccount({
+        journalEntryId: entry.id,
+      });
+    }
+    const destinationLine = destinationLines[0];
+    const postingDate = new Date();
+    const header: IJournalEntryHeaderPayload = {
+      accountingEntityId: entry.accountingEntityId,
+      effectiveDate: entry.effectiveDate,
+      postedAt: postingDate,
+      memo: entry.memo,
+      createdBy: entry.createdBy,
+      functionalCurrencyCode: destinationLine.functionalAmount.currency.code,
+    };
+
+    journalEntryServiceValidation.validateAccountsAgainstRule(
+      sourceLines.map((line) => line.account),
+      [destinationLine.account],
+      receiptEntryRule
+    );
+    journalEntryServiceValidation.validateAccounts(header, journalLines);
+    journalEntryServiceValidation.validateCounterparties(header, journalLines);
+
+    await deps.accountingPeriodService.validatePostingPeriod(
+      entry.accountingEntityId,
+      entry.effectiveDate,
+      repoOptions
+    );
+
+    const entryUpdateInput = {
+      id: entry.id,
+      status: EJournalEntryStatus.Posted,
+      postedAt: postingDate,
+    };
+
+    const updatedEntry = journalEntryEntity.update(
+      entry,
+      entryUpdateInput,
+      actor
+    );
+
+    return {
+      journalEntry: updatedEntry,
+      destinationAccount: destinationLine.account,
     };
   };
 }
@@ -439,6 +519,7 @@ function makeCreateTransfer(
 export default function makeJournalEntryService(deps: IDependencies) {
   const service: IJournalEntryService = {
     postDraftPayment: makePostDraftPayment(deps),
+    postDraftReceipt: makePostDraftReceipt(deps),
     postDraftOpeningBalance: makePostDraftOpeningBalance(deps),
     createReceipt: makeCreateReceipt(deps),
 

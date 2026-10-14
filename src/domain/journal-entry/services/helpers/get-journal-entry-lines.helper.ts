@@ -3,8 +3,8 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
-/** Resolves payment lines to their accounts and optional counterparties, rejecting missing references without changing the stored lines. */
-export default function getPaymentJournalLinesHelper(
+/** Resolves journal entry lines to their accounts and optional counterparties, rejecting missing references without changing the stored lines. */
+export default function getJournalEntryLinesHelper(
   lines: IJournalLine[],
   accounts: ILedgerAccount[],
   counterparties: (ICounterparty | null)[]
