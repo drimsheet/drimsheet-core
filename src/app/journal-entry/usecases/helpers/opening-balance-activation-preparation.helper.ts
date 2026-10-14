@@ -1,45 +1,22 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
-import { TEntityId } from '@shared/types/uuid';
 
 import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
-import {
-  EJournalEntrySourceType,
-  EJournalEntryStatus,
-} from '@domain/journal-entry/types/journal-entry.types';
-import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
-import IJournalEntryQueryRepo from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
-  journalEntryQueryRepo: IJournalEntryQueryRepo;
   journalEntryService: IJournalEntryService;
   fxLotAppService: IFxLotAppService;
 }
 
-/** Prepares the associated draft opening journal and its FX/history effects before the atomic write phase. Other draft journals are not selected. */
+/** Prepares posting, FX acquisition, and histories for a caller-selected opening journal without initiating persistence. Domain validation failures reject before the atomic write phase. */
 export default async function openingBalanceActivationPreparationHelper(
   deps: IDependencies,
-  account: ILedgerAccount,
-  actor: TEntityId,
+  payload: Parameters<IJournalEntryService['postOpeningBalance']>[0],
   repoOptions: IReadRepoOptions
 ) {
-  const openingBalances = await deps.journalEntryQueryRepo.findAll(
-    account.accountingEntityId,
-    {
-      ...repoOptions,
-      accountId: account.id,
-      sourceType: EJournalEntrySourceType.OpeningBalance,
-      status: EJournalEntryStatus.Draft,
-      limit: 1,
-    }
-  );
-  const originalEntry = openingBalances.data[0];
-
-  if (!originalEntry) {
-    return null;
-  }
+  const { entry: originalEntry, account, actor } = payload;
 
   const [entry, events, audit] =
     await deps.journalEntryService.postOpeningBalance(

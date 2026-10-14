@@ -31,6 +31,7 @@ import {
   deleteJournalEntryUseCase,
   getJournalEntriesUseCase,
   getJournalEntryUseCase,
+  postOpeningBalanceUseCase,
   rectifyJournalEntryUseCase,
 } from '@infra/ioc/usecases/journal-entry';
 
@@ -160,6 +161,25 @@ export class JournalEntryController extends Controller {
     @Body() body: TJournalEntryRectificationReq
   ) {
     return rectifyJournalEntryUseCase(id, body);
+  }
+
+  /** Posts only the associated draft opening balance, preserving the ledger account's status. Requires a draft opening-balance journal and an active posting account. No request body is required. */
+  @Post('/opening-balance/{id}/post')
+  @OperationId('postOpeningBalance')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public postOpeningBalance(@Path() id: string): Promise<void> {
+    return postOpeningBalanceUseCase(id);
   }
 
   /**
