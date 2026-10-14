@@ -47,6 +47,7 @@ const totalAmount = itemMoney.amount + taxMoney.amount;
 - `makeZeroAmount(currency)`: Creates a zero-balance money object.
 - `add(...args)` / `subtract(...args)`: Safely add or subtract amounts of the same currency.
 - `multiply(money, factor)` / `divide(money, divisor)`: Uses algorithmic precision based on a `{ numerator, denominator }` factor to avoid float issues. `divide` returns both a `value` and `remainder`.
+- `getPercentage(part, total)`: Returns the percentage of two same-currency amounts, rounded to two decimal places with ties away from zero. Uses `divide` and its remainder for rounding; returns `null` for a zero total. Signed amounts are supported. The total's minor units must fit the safe-integer factor constraint of `divide`; otherwise it throws `InvalidFactor`.
 - `min(...args)` / `max(...args)`: Utilities to find extremums securely.
 - `validate(money)`: Asserts structural integrity and currency validity.
 

@@ -172,6 +172,15 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IDateRangeDto: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IMoneyDto: {
     dataType: 'refObject',
     properties: {
@@ -182,32 +191,28 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountCashFlowBucketDto: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      moneyIn: { ref: 'IMoneyDto', required: true },
+      moneyOut: { ref: 'IMoneyDto', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IAccountCashFlowDto: {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
       currencyCode: { dataType: 'string', required: true },
-      period: {
-        dataType: 'nestedObjectLiteral',
-        nestedProperties: {
-          to: { dataType: 'string', required: true },
-          from: { dataType: 'string', required: true },
-        },
-        required: true,
-      },
+      period: { ref: 'IDateRangeDto', required: true },
       totalMoneyIn: { ref: 'IMoneyDto', required: true },
       totalMoneyOut: { ref: 'IMoneyDto', required: true },
       buckets: {
         dataType: 'array',
-        array: {
-          dataType: 'nestedObjectLiteral',
-          nestedProperties: {
-            moneyOut: { ref: 'IMoneyDto', required: true },
-            moneyIn: { ref: 'IMoneyDto', required: true },
-            to: { dataType: 'string', required: true },
-            from: { dataType: 'string', required: true },
-          },
-        },
+        array: { dataType: 'refObject', ref: 'IAccountCashFlowBucketDto' },
         required: true,
       },
     },
@@ -220,6 +225,63 @@ const models: TsoaRoute.Models = {
       from: { dataType: 'string', required: true },
       to: { dataType: 'string', required: true },
       bucketDays: { dataType: 'double', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IRevenueExpenseSectionDto: {
+    dataType: 'refObject',
+    properties: {
+      total: { ref: 'IMoneyDto', required: true },
+      previousTotal: { ref: 'IMoneyDto', required: true },
+      percentageChange: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'double' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      accounts: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            sharePercentage: {
+              dataType: 'union',
+              subSchemas: [
+                { dataType: 'double' },
+                { dataType: 'enum', enums: [null] },
+              ],
+              required: true,
+            },
+            amount: { ref: 'IMoneyDto', required: true },
+            accountName: { dataType: 'string', required: true },
+            accountId: { dataType: 'string', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IRevenueExpenseSummaryDto: {
+    dataType: 'refObject',
+    properties: {
+      currencyCode: { dataType: 'string', required: true },
+      period: { ref: 'IDateRangeDto', required: true },
+      comparisonPeriod: { ref: 'IDateRangeDto', required: true },
+      revenue: { ref: 'IRevenueExpenseSectionDto', required: true },
+      expenses: { ref: 'IRevenueExpenseSectionDto', required: true },
+      suspense: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          amount: { ref: 'IMoneyDto', required: true },
+          transactionCount: { dataType: 'double', required: true },
+        },
+        required: true,
+      },
     },
     additionalProperties: false,
   },
@@ -2870,6 +2932,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getAccountCashFlow',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsReportingController_getRevenueExpenseSummary: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IDateRangeDto',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/revenue-expense-summary',
+    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      ReportingController.prototype.getRevenueExpenseSummary
+    ),
+
+    async function ReportingController_getRevenueExpenseSummary(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsReportingController_getRevenueExpenseSummary,
+          request,
+          response,
+        });
+
+        const controller = new ReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getRevenueExpenseSummary',
           controller,
           response,
           next,

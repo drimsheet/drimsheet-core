@@ -205,6 +205,88 @@ describe('Money Value Object', () => {
     });
   });
 
+  describe('getPercentage', () => {
+    it.each([
+      [1n, 3n, 33.33],
+      [2n, 3n, 66.67],
+      [1n, 32n, 3.13],
+      [-1n, 32n, -3.13],
+      [1n, -32n, -3.13],
+      [-1n, -32n, 3.13],
+      [-1n, 3n, -33.33],
+      [0n, 100n, 0],
+      [0n, -100n, 0],
+      [1n, 20_001n, 0],
+      [-1n, 20_001n, 0],
+      [132n, 112n, 117.86],
+      [100n, 1n, 10_000],
+    ])('calculates %s / %s as %s percent', (part, total, expected) => {
+      expect(
+        money.getPercentage(
+          money.make(part, NGN, true),
+          money.make(total, NGN, true)
+        )
+      ).toBe(expected);
+    });
+
+    it.each([0n, 1n, -1n])(
+      'returns null when the total is zero, for part %s',
+      (part) => {
+        expect(
+          money.getPercentage(
+            money.make(part, NGN, true),
+            money.makeZeroAmount(NGN)
+          )
+        ).toBeNull();
+      }
+    );
+
+    it.each([NGN, JPY])(
+      'computes the same ratio independently of $code precision',
+      (currency) => {
+        const part = money.make(1, currency, false);
+        const total = money.make(8, currency, false);
+        expect(money.getPercentage(part, total)).toBe(12.5);
+      }
+    );
+
+    it.each([1n, -1n])(
+      'keeps intermediate arithmetic exact at the safe divisor boundary with sign %s',
+      (sign) => {
+        const amount = BigInt(Number.MAX_SAFE_INTEGER) * sign;
+        const part = money.make(amount * 2n, NGN, true);
+        const total = money.make(amount, NGN, true);
+        expect(money.getPercentage(part, total)).toBe(200);
+        expect(part.amount).toBe(amount * 2n);
+        expect(total.amount).toBe(amount);
+      }
+    );
+
+    it.each([0n, 100n])(
+      'rejects different currencies even for a total of %s',
+      (amount) => {
+        expect(() =>
+          money.getPercentage(
+            money.make(100n, NGN, true),
+            money.make(amount, USD, true)
+          )
+        ).toThrow(moneyError.CurrencyMismatch);
+      }
+    );
+
+    it.each([9007199254740993n, -9007199254740993n])(
+      'rejects a total of %s that exceeds divide’s safe factor limit',
+      (amount) => {
+        expect(() =>
+          money.getPercentage(
+            money.make(100n, NGN, true),
+            money.make(amount, NGN, true)
+          )
+        ).toThrow(moneyError.InvalidFactor);
+      }
+    );
+  });
+
   describe('min', () => {
     it('should return the money object with the minimum amount', () => {
       const m1 = money.make(500, USD, true);

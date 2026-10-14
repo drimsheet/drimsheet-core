@@ -66,7 +66,9 @@ describe('getAccountCashFlowUsecase', () => {
         accountId,
         accountingEntityId: entityId,
         currencyCode: 'NGN',
-        ...query,
+        from: new Date(query.from),
+        to: new Date(query.to),
+        bucketDays: query.bucketDays,
       },
       { correlationId: 'cash-flow-spec' }
     );
@@ -364,22 +366,25 @@ describe('getAccountCashFlowUsecase', () => {
       }
     });
 
-    it('rejects negative totals and bucket values even when other buckets offset them', async () => {
-      mockAccountCashFlowQueryRepo.aggregateByAccount.mockResolvedValue([
-        { bucketIndex: 0, moneyIn: -1n, moneyOut: 0n },
-      ]);
-      await expect(usecase(accountId, query)).rejects.toThrow(
-        reportingError.AmountOutOfRange
-      );
-      for (const direction of ['moneyIn', 'moneyOut'] as const) {
+    it.each([-1n, -100_000_000_000_001n])(
+      'rejects negative totals of %s and bucket values even when other buckets offset them',
+      async (amount) => {
         mockAccountCashFlowQueryRepo.aggregateByAccount.mockResolvedValue([
-          { bucketIndex: 0, moneyIn: 0n, moneyOut: 0n, [direction]: -1n },
-          { bucketIndex: 1, moneyIn: 1n, moneyOut: 1n },
+          { bucketIndex: 0, moneyIn: amount, moneyOut: 0n },
         ]);
         await expect(usecase(accountId, query)).rejects.toThrow(
           reportingError.AmountOutOfRange
         );
+        for (const direction of ['moneyIn', 'moneyOut'] as const) {
+          mockAccountCashFlowQueryRepo.aggregateByAccount.mockResolvedValue([
+            { bucketIndex: 0, moneyIn: 0n, moneyOut: 0n, [direction]: -1n },
+            { bucketIndex: 1, moneyIn: 1n, moneyOut: 1n },
+          ]);
+          await expect(usecase(accountId, query)).rejects.toThrow(
+            reportingError.AmountOutOfRange
+          );
+        }
       }
-    });
+    );
   });
 });

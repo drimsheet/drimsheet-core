@@ -179,6 +179,21 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IDateRangeDto": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          }
+        },
+        "required": ["from", "to"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IMoneyDto": {
         "properties": {
           "amount": {
@@ -196,6 +211,27 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IAccountCashFlowBucketDto": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "moneyIn": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "moneyOut": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          }
+        },
+        "required": ["from", "to", "moneyIn", "moneyOut"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IAccountCashFlowDto": {
         "properties": {
           "accountId": {
@@ -205,16 +241,7 @@
             "type": "string"
           },
           "period": {
-            "properties": {
-              "to": {
-                "type": "string"
-              },
-              "from": {
-                "type": "string"
-              }
-            },
-            "required": ["to", "from"],
-            "type": "object"
+            "$ref": "#/components/schemas/IDateRangeDto"
           },
           "totalMoneyIn": {
             "$ref": "#/components/schemas/IMoneyDto"
@@ -224,22 +251,7 @@
           },
           "buckets": {
             "items": {
-              "properties": {
-                "moneyOut": {
-                  "$ref": "#/components/schemas/IMoneyDto"
-                },
-                "moneyIn": {
-                  "$ref": "#/components/schemas/IMoneyDto"
-                },
-                "to": {
-                  "type": "string"
-                },
-                "from": {
-                  "type": "string"
-                }
-              },
-              "required": ["moneyOut", "moneyIn", "to", "from"],
-              "type": "object"
+              "$ref": "#/components/schemas/IAccountCashFlowBucketDto"
             },
             "type": "array"
           }
@@ -256,6 +268,7 @@
         "additionalProperties": false
       },
       "IGetAccountCashFlowQuery": {
+        "description": "The requested period may span at most 366 days.",
         "properties": {
           "from": {
             "type": "string",
@@ -263,7 +276,7 @@
           },
           "to": {
             "type": "string",
-            "description": "Inclusive calendar date; the period may span at most 366 days."
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
           },
           "bucketDays": {
             "type": "number",
@@ -272,6 +285,100 @@
           }
         },
         "required": ["from", "to", "bucketDays"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IRevenueExpenseSectionDto": {
+        "properties": {
+          "total": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "previousTotal": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "percentageChange": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "Percentage change using the absolute previous total; null when it is zero."
+          },
+          "accounts": {
+            "items": {
+              "properties": {
+                "sharePercentage": {
+                  "type": "number",
+                  "format": "double",
+                  "nullable": true,
+                  "description": "Signed share of the total, rounded to two decimals; null when total is zero."
+                },
+                "amount": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "accountName": {
+                  "type": "string"
+                },
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sharePercentage",
+                "amount",
+                "accountName",
+                "accountId"
+              ],
+              "type": "object"
+            },
+            "type": "array",
+            "description": "Nonzero net amounts, descending by amount, with account ID as a tie-breaker."
+          }
+        },
+        "required": ["total", "previousTotal", "percentageChange", "accounts"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IRevenueExpenseSummaryDto": {
+        "properties": {
+          "currencyCode": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "comparisonPeriod": {
+            "$ref": "#/components/schemas/IDateRangeDto",
+            "description": "Immediately preceding equal-length period, with inclusive dates."
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/IRevenueExpenseSectionDto"
+          },
+          "expenses": {
+            "$ref": "#/components/schemas/IRevenueExpenseSectionDto"
+          },
+          "suspense": {
+            "properties": {
+              "amount": {
+                "$ref": "#/components/schemas/IMoneyDto",
+                "description": "Sum of suspense-line amounts; debit and credit activity do not cancel."
+              },
+              "transactionCount": {
+                "type": "number",
+                "format": "double",
+                "description": "Distinct journal entries with a suspense line in the selected period."
+              }
+            },
+            "required": ["amount", "transactionCount"],
+            "type": "object"
+          }
+        },
+        "required": [
+          "currencyCode",
+          "period",
+          "comparisonPeriod",
+          "revenue",
+          "expenses",
+          "suspense"
+        ],
         "type": "object",
         "additionalProperties": false
       },
@@ -3730,7 +3837,7 @@
             }
           },
           {
-            "description": "Inclusive calendar date; the period may span at most 366 days.",
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
             "in": "query",
             "name": "to",
             "required": true,
@@ -3746,6 +3853,96 @@
             "schema": {
               "format": "double",
               "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/revenue-expense-summary": {
+      "get": {
+        "operationId": "getRevenueExpenseSummary",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IRevenueExpenseSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Revenue, expenses and suspense activity in the entity's functional currency.\nDates are inclusive, up to 366 days, compared with the immediately preceding\nequal-length period. Revenue is credits less debits; expenses are debits less\ncredits. Suspense counts distinct entries and sums suspense-line amounts.\nDrafts, never-posted entries, voided originals, reversals and opening balances\nare excluded. Archived account activity remains included. Historical results\ncan change after rectification. Zero denominators produce null percentages.\nAmount magnitudes above 1 trillion major units return 400; unsafe numeric\nserialization returns 500. Returns posting-account breakdowns, not rollups.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
         ]
