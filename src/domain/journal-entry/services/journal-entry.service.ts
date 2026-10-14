@@ -125,6 +125,103 @@ function makePostDraftPayment(
   };
 }
 
+/** Revalidates current transfer participants and the effective posting period before preparing an audited, identity-preserving draft transition. */
+function makePostDraftTransfer(
+  deps: IDependencies
+): IJournalEntryService['postDraftTransfer'] {
+  return async ({ entry, accounts, counterparties, actor }, repoOptions) => {
+    const isDraftTransfer =
+      entry.sourceType === EJournalEntrySourceType.Transfer &&
+      entry.status === EJournalEntryStatus.Draft &&
+      entry.postedAt === null;
+    if (!isDraftTransfer) {
+      throw new journalEntryError.RectificationNotPermitted({
+        journalEntryId: entry.id,
+        sourceType: entry.sourceType,
+        status: entry.status,
+      });
+    }
+
+    const journalLines = getJournalEntryLinesHelper(
+      entry.lines,
+      accounts,
+      counterparties
+    );
+    const sourceLines = journalLines.filter(
+      (line) => line.side === EJournalSide.Credit
+    );
+    const destinationLines = journalLines.filter(
+      (line) => line.side === EJournalSide.Debit
+    );
+    if (sourceLines.length !== 1) {
+      throw new journalEntryError.InvalidSourceType({
+        journalEntryId: entry.id,
+      });
+    }
+    const sourceLine = sourceLines[0];
+    const postingDate = new Date();
+    const header: IJournalEntryHeaderPayload = {
+      accountingEntityId: entry.accountingEntityId,
+      effectiveDate: entry.effectiveDate,
+      postedAt: postingDate,
+      memo: entry.memo,
+      createdBy: entry.createdBy,
+      functionalCurrencyCode: sourceLine.functionalAmount.currency.code,
+    };
+
+    journalEntryServiceValidation.validateTransferAccountComposition(
+      sourceLine.account,
+      destinationLines
+    );
+    const destinationAssetAccount = destinationLines.find((line) =>
+      journalEntryServiceValidation.isTransferAssetAccount(line.account)
+    )!.account;
+    if (sourceLine.account.id === destinationAssetAccount.id) {
+      throw new journalEntryError.DuplicateAccountsNotPermitted({
+        accountIds: [sourceLine.account.id, destinationAssetAccount.id],
+      });
+    }
+
+    journalEntryServiceValidation.validateAccounts(header, journalLines);
+    journalEntryServiceValidation.validateCounterparties(header, journalLines);
+
+    const sourceBalance = await deps.ledgerAccountBalanceRepo.findByAccountId(
+      sourceLine.account.id,
+      entry.accountingEntityId,
+      repoOptions
+    );
+    journalEntryServiceValidation.validateSourceAccountBalance(
+      sourceLine.account.id,
+      sourceLine.amount,
+      sourceBalance
+    );
+
+    await deps.accountingPeriodService.validatePostingPeriod(
+      entry.accountingEntityId,
+      entry.effectiveDate,
+      repoOptions
+    );
+
+    const entryUpdateInput = {
+      id: entry.id,
+      status: EJournalEntryStatus.Posted,
+      postedAt: postingDate,
+    };
+
+    const updatedEntry = journalEntryEntity.update(
+      entry,
+      entryUpdateInput,
+      actor
+    );
+
+    return {
+      journalEntry: updatedEntry,
+      sourceAccount: sourceLine.account,
+      destinationAssetAccount,
+    };
+  };
+}
+
 /**
  * Revalidates current receipt participants and the effective posting period before preparing an audited,
  * identity-preserving draft transition.
@@ -520,6 +617,7 @@ export default function makeJournalEntryService(deps: IDependencies) {
   const service: IJournalEntryService = {
     postDraftPayment: makePostDraftPayment(deps),
     postDraftReceipt: makePostDraftReceipt(deps),
+    postDraftTransfer: makePostDraftTransfer(deps),
     postDraftOpeningBalance: makePostDraftOpeningBalance(deps),
     createReceipt: makeCreateReceipt(deps),
 

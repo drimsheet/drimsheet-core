@@ -77,6 +77,21 @@ export interface IJournalEntryService {
     sourceAccount: ILedgerAccount;
   }>;
 
+  /** Validates and posts a draft transfer without writes, preserving its financial content and returning both asset accounts for FX disposition and acquisition. */
+  postDraftTransfer(
+    payload: {
+      entry: IJournalEntry;
+      accounts: ILedgerAccount[];
+      counterparties: (ICounterparty | null)[];
+      actor: TEntityId;
+    },
+    repoOptions: IReadRepoOptions
+  ): Promise<{
+    journalEntry: TAuditedJournalEntryUpdate;
+    sourceAccount: ILedgerAccount;
+    destinationAssetAccount: ILedgerAccount;
+  }>;
+
   /** Validates and posts a draft receipt without writes, preserving its financial content and returning its destination account for FX acquisition. */
   postDraftReceipt(
     payload: {
