@@ -200,7 +200,7 @@ describe('expense account activation', () => {
         expect(Object.isFrozen(activated)).toBe(true);
         expect(Object.isFrozen(activated.currency)).toBe(true);
         expect(events).toEqual([expect.objectContaining({ data: activated })]);
-        expect(audit.diff).toEqual({ before: account, after: activated });
+        expect(audit?.diff).toEqual({ before: account, after: activated });
         expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
           parent.id,
           account.accountingEntityId,
@@ -211,14 +211,11 @@ describe('expense account activation', () => {
     }
   );
 
-  it.each(['active', 'archived'] as const)(
-    'rejects %s accounts',
-    async (status) => {
-      await expect(
-        service.activate(draft({ status }), options)
-      ).rejects.toThrow(ledgerAccountError.InvalidStatus);
-    }
-  );
+  it.each(['archived'] as const)('rejects %s accounts', async (status) => {
+    await expect(service.activate(draft({ status }), options)).rejects.toThrow(
+      ledgerAccountError.InvalidStatus
+    );
+  });
 
   it.each(['asset', 'liability', 'equity', 'revenue'] as const)(
     'rejects %s accounts before parent lookup',

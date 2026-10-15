@@ -74,7 +74,9 @@ export default function makeCreateRevenueAccountUsecase(
           ...transactionOptions,
           history: [
             historyValue.make(controlAudit, actor.id, correlationId),
-            historyValue.make(postingAudit, actor.id, correlationId),
+            ...(postingAudit
+              ? [historyValue.make(postingAudit, actor.id, correlationId)]
+              : []),
           ],
         });
         events.unshift(...controlEvents, ...postingEvents);

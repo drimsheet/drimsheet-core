@@ -131,12 +131,12 @@ describe('JournalEntry Entity', () => {
       expect(events[2].data).toEqual(entry.lines[1]);
 
       expect(Object.isFrozen(entry)).toBe(true);
-      expect(audit.header.action).toBe(EJournalEntryAuditAction.Created);
-      expect(audit.header.diff.before).toBeNull();
-      expect(audit.header.diff.after).not.toHaveProperty('lines');
-      expect(audit.header.diff.after).not.toHaveProperty('attachments');
-      expect(audit.lines).toHaveLength(2);
-      expect(audit.lines[0]).toEqual({
+      expect(audit?.header.action).toBe(EJournalEntryAuditAction.Created);
+      expect(audit?.header.diff.before).toBeNull();
+      expect(audit?.header.diff.after).not.toHaveProperty('lines');
+      expect(audit?.header.diff.after).not.toHaveProperty('attachments');
+      expect(audit?.lines).toHaveLength(2);
+      expect(audit?.lines[0]).toEqual({
         entityId: entry.lines[0].id,
         entityVersion: 1,
         action: EJournalLineAuditAction.Created,
@@ -447,6 +447,81 @@ describe('JournalEntry Entity', () => {
   });
 
   describe('lifecycle transitions', () => {
+    it.each([null, new Date('2026-04-01T00:00:00Z')])(
+      'preserves a journal for empty and equivalent updates (postedAt=%s)',
+      (postedAt) => {
+        const entry = makeEntry(postedAt);
+        for (const changes of [
+          { id: entry.id },
+          {
+            ...entry,
+            effectiveDate: new Date(entry.effectiveDate),
+            attachments: entry.attachments.map((item) => ({ ...item })),
+            lines: entry.lines.map((line) => ({ ...line })),
+          },
+        ]) {
+          const [unchanged, events, audit] = journalEntryEntity.update(
+            entry,
+            changes,
+            entry.createdBy
+          );
+          expect(unchanged).toBe(entry);
+          expect(unchanged.version).toBe(entry.version);
+          expect(unchanged.updatedAt).toBe(entry.updatedAt);
+          expect(events).toEqual([]);
+          expect(audit).toBeNull();
+        }
+      }
+    );
+
+    it('compares normalized memo values before rejecting posted accounting changes', () => {
+      const entry = makeEntry(new Date('2026-04-01T00:00:00Z'));
+      const [unchanged, events, audit] = journalEntryEntity.update(
+        entry,
+        { id: entry.id, memo: `  ${entry.memo}  ` },
+        entry.createdBy
+      );
+      expect(unchanged).toBe(entry);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+      expect(() =>
+        journalEntryEntity.update(
+          entry,
+          { id: entry.id, memo: 'Different' },
+          entry.createdBy
+        )
+      ).toThrow(journalEntryError.RectificationNotPermitted);
+    });
+
+    it('returns an archived journal unchanged on repeated archival', () => {
+      const [archived] = journalEntryEntity.archive(makeEntry(null));
+      const [unchanged, events, audit] = journalEntryEntity.archive(archived);
+      expect(unchanged).toBe(archived);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it('accepts an identical void retry but rejects conflicting or invalid lineage', () => {
+      const entry = makeEntry(new Date('2026-04-01T00:00:00Z'));
+      const payload = {
+        voidingEntryId: 'f7930be4-f709-4cf2-bf2f-a885b22421fd' as TEntityId,
+      };
+      const [voided] = journalEntryEntity.void(entry, payload);
+      const [unchanged, events, audit] = journalEntryEntity.void(
+        voided,
+        payload
+      );
+      expect(unchanged).toBe(voided);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+      expect(() =>
+        journalEntryEntity.void(voided, { voidingEntryId: entry.id })
+      ).toThrow(journalEntryError.InvalidStatusTransition);
+      expect(() =>
+        journalEntryEntity.void(voided, { voidingEntryId: 'bad' as TEntityId })
+      ).toThrow(journalEntryError.InvalidVoidingEntryId);
+    });
+
     function makeEntry(postedAt: Date | null) {
       return journalEntryEntity.make({
         accountingEntityId: '2b4c10ab-5c31-419b-ab29-688001d9f8e4' as TEntityId,
@@ -519,8 +594,8 @@ describe('JournalEntry Entity', () => {
           expect.objectContaining({ type: EJournalLineItemEvent.Updated }),
         ])
       );
-      expect(audit.header.action).toBe(EJournalEntryAuditAction.Updated);
-      expect(audit.lines).toHaveLength(2);
+      expect(audit?.header.action).toBe(EJournalEntryAuditAction.Updated);
+      expect(audit?.lines).toHaveLength(2);
     });
 
     it('updates only descriptions and attachments on a posted journal entry', () => {
@@ -550,7 +625,7 @@ describe('JournalEntry Entity', () => {
       expect(updatedEntry.attachments).toEqual(attachments);
       expect(updatedEntry.lines[0].description).toBe('Corrected description');
       expect(updatedEntry.memo).toBe(entry.memo);
-      expect(audit.header.diff).toMatchObject({
+      expect(audit?.header.diff).toMatchObject({
         before: { attachments: entry.attachments },
         after: { attachments },
       });
@@ -609,9 +684,9 @@ describe('JournalEntry Entity', () => {
       expect(events).toEqual([
         expect.objectContaining({ type: EJournalEntryEvent.Voided }),
       ]);
-      expect(audit.action).toBe(EJournalEntryAuditAction.Voided);
-      expect(audit.diff.before).not.toHaveProperty('lines');
-      expect(audit.diff.after).not.toHaveProperty('attachments');
+      expect(audit?.action).toBe(EJournalEntryAuditAction.Voided);
+      expect(audit?.diff.before).not.toHaveProperty('lines');
+      expect(audit?.diff.after).not.toHaveProperty('attachments');
     });
 
     it('should reject voiding a draft entry', () => {
@@ -672,9 +747,9 @@ describe('JournalEntry Entity', () => {
         expect.objectContaining({ type: EJournalEntryEvent.Archived }),
       ]);
       expect(archivedEntry.attachments).toBe(entry.attachments);
-      expect(audit.action).toBe(EJournalEntryAuditAction.Archived);
-      expect(audit.diff.before).not.toHaveProperty('attachments');
-      expect(audit.diff.after).not.toHaveProperty('attachments');
+      expect(audit?.action).toBe(EJournalEntryAuditAction.Archived);
+      expect(audit?.diff.before).not.toHaveProperty('attachments');
+      expect(audit?.diff.after).not.toHaveProperty('attachments');
     });
 
     it('should archive a draft entry', () => {

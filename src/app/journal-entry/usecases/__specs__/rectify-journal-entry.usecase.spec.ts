@@ -202,6 +202,38 @@ describe('makeRectifyJournalEntryUsecase', () => {
 
   afterEach(() => jest.useRealTimers());
 
+  it('returns an unchanged rectification without writes, events, or propagation', async () => {
+    const [originalEntry] = makeEntry(100);
+    mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
+    mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValueOnce(
+      {
+        rectification: {
+          mode: 'update_meta',
+          originalJournalEntryId: originalEntry.id,
+          currentJournalEntry: originalEntry,
+          reversingJournalEntry: null,
+          entriesToCreate: [],
+          entryUpdate: null,
+          events: [],
+        },
+        counterparties: new Map(),
+        fxReversal: null,
+        fxDisposition: null,
+        fxAcquisition: null,
+      }
+    );
+    await getUsecase()(originalEntry.id, makePayload(originalEntry));
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+  });
+
   it('blocks a correction when a persisted original account is archived', async () => {
     const [originalEntry] = makeEntry(100);
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);

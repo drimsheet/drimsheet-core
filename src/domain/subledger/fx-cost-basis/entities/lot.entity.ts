@@ -2,7 +2,11 @@ import { TCreationOmits } from '@shared/types/creation-omits.types';
 import dateUtils from '@shared/utils/date';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
-import { TAuditedEntity } from '@shared/values/events/types/event.types';
+import {
+  IEvent,
+  TAuditedEntity,
+} from '@shared/values/events/types/event.types';
+import { IEntityDelta } from '@shared/values/history/types/history.types';
 
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
@@ -187,12 +191,24 @@ function reverseDisposition(
   lot: IFxCostBasisLot,
   quantity: IFxCostBasisLot['remainingQuantity'],
   costBasis: IFxCostBasisLot['remainingCostBasis']
-): TAuditedEntity<IFxCostBasisLot, IFxCostBasisLot, IFxCostBasisLot> {
+): [
+  IFxCostBasisLot,
+  IEvent<IFxCostBasisLot>[],
+  IEntityDelta<IFxCostBasisLot> | null,
+] {
   const remainingQuantity = moneyValue.add(lot.remainingQuantity, quantity);
   const remainingCostBasis = moneyValue.add(lot.remainingCostBasis, costBasis);
 
   lotValidation.validateQuantity(lot.originalQuantity, remainingQuantity);
   lotValidation.validateCostBasis(lot.costBasis, remainingCostBasis);
+
+  const isUnchanged =
+    lot.status === EFxCostBasisLotStatus.Open &&
+    moneyValue.equals(lot.remainingQuantity, remainingQuantity) &&
+    moneyValue.equals(lot.remainingCostBasis, remainingCostBasis);
+  if (isUnchanged) {
+    return [lot, [], null];
+  }
 
   const timestamp = new Date();
   const entity: IFxCostBasisLot = Object.freeze({

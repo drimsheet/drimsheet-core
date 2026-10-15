@@ -41,6 +41,11 @@ export default function makeArchiveJournalEntryUsecase(deps: IDependencies) {
 
     const [archivedEntry, events, audit] =
       journalEntryEntity.archive(authorizedEntry);
+
+    if (!audit) {
+      return journalEntryDtoMapper.toDto(archivedEntry);
+    }
+
     const history = historyValue.make(audit, actor.id, correlationId);
 
     const {

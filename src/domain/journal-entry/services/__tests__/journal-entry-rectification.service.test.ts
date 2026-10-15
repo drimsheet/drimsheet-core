@@ -320,7 +320,7 @@ describe('makeJournalEntryRectificationService', () => {
         side: EJournalSide.Debit,
       }),
     ]);
-    expect(result.entryUpdate.entry).toMatchObject({
+    expect(result.entryUpdate?.entry).toMatchObject({
       id: originalEntry.id,
       status: EJournalEntryStatus.Voided,
       voidingEntryId: result.reversingJournalEntry.id,
@@ -510,15 +510,17 @@ describe('makeJournalEntryRectificationService', () => {
     expect(result.currentJournalEntry.memo).toBe('Before');
   });
 
-  it('rejects a rectification with no changes', async () => {
+  it('returns the original journal without persistence work for an unchanged rectification', async () => {
     const [originalEntry] = makeEntry();
     const newEntry = makeEntry();
 
-    await expect(
-      service.rectify(makePayload(originalEntry, newEntry), {
-        correlationId: 'test-correlation-id',
-      })
-    ).rejects.toThrow(journalEntryError.RectificationHasNoChanges);
+    const result = await service.rectify(makePayload(originalEntry, newEntry), {
+      correlationId: 'test-correlation-id',
+    });
+    expect(result.currentJournalEntry).toBe(originalEntry);
+    expect(result.entryUpdate).toBeNull();
+    expect(result.entriesToCreate).toEqual([]);
+    expect(result.events).toEqual([]);
   });
 
   it('rejects an already voided journal entry', async () => {
@@ -558,7 +560,7 @@ describe('makeJournalEntryRectificationService', () => {
       correlationId: 'test-correlation-id',
     });
     expect(reversal.reversingJournalEntry.createdBy).toBe(actorId);
-    expect(reversal.entryUpdate.entry.createdBy).toBe(originalEntry.createdBy);
+    expect(reversal.entryUpdate?.entry.createdBy).toBe(originalEntry.createdBy);
   });
 
   it('assigns the performer only to new lines while updating a draft', async () => {
@@ -686,7 +688,7 @@ describe('makeJournalEntryRectificationService', () => {
       periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
       const result = await service.reverse(original, createdBy, repoOptions);
       expect(result.reversingJournalEntry.effectiveDate).toEqual(reversalDate);
-      expect(result.entryUpdate.entry.status).toBe(EJournalEntryStatus.Voided);
+      expect(result.entryUpdate?.entry.status).toBe(EJournalEntryStatus.Voided);
       expect(periodRepo.findAllByDate).toHaveBeenCalledTimes(1);
     });
 

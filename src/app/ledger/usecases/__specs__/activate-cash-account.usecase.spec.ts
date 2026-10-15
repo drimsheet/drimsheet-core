@@ -109,6 +109,16 @@ describe('activate cash account use case', () => {
     });
   });
 
+  it('skips writes, publication and transaction creation for unchanged activation', async () => {
+    mockLedgerAccountRepo.findById.mockResolvedValue(activated);
+    mockAssetAccountService.activate.mockResolvedValue([activated, [], null]);
+    await usecase(activated.id, { activateOpeningBalance: false });
+    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+  });
+
   it('reads the scoped account once and commits its versioned update before publication', async () => {
     expect(
       await usecase(account.id, { activateOpeningBalance: true })

@@ -108,8 +108,8 @@ describe('Ledger Account Shared Entity', () => {
         data: account,
       }),
     ]);
-    expect(audit.action).toBe(ELedgerAccountAuditAction.Created);
-    expect(audit.diff.after.status).toBe(ELedgerAccountStatus.Draft);
+    expect(audit?.action).toBe(ELedgerAccountAuditAction.Created);
+    expect(audit?.diff.after.status).toBe(ELedgerAccountStatus.Draft);
     expect(Object.isFrozen(account)).toBe(true);
   });
 
@@ -162,7 +162,7 @@ describe('Ledger Account Shared Entity', () => {
       });
     });
 
-    it.each([ELedgerAccountStatus.Active, ELedgerAccountStatus.Archived])(
+    it.each([ELedgerAccountStatus.Archived])(
       'rejects activation from %s',
       (status) => {
         const [account] = makeCashAccount(status);
@@ -507,7 +507,7 @@ describe('Ledger Account Shared Entity', () => {
 
       expect(account.currency).toBeNull();
       expect(events[0].data.currency).toBeNull();
-      expect(audit.diff.after.currency).toBeNull();
+      expect(audit?.diff.after.currency).toBeNull();
     });
 
     it('should successfully create a ledger account with a control account ID', () => {
@@ -616,6 +616,22 @@ describe('Ledger Account Shared Entity', () => {
   });
 
   describe('updateOpeningBalanceDate', () => {
+    it('preserves state for an equivalent existing opening date', () => {
+      const [account] = ledgerAccountEntity.make(validPayload);
+      const date = new Date('2026-03-01T00:00:00Z');
+      const [dated] = ledgerAccountEntity.updateOpeningBalanceDate(
+        account,
+        date
+      );
+      const [unchanged, events, audit] =
+        ledgerAccountEntity.updateOpeningBalanceDate(dated, new Date(date));
+      expect(unchanged).toBe(dated);
+      expect(unchanged.version).toBe(dated.version);
+      expect(unchanged.updatedAt).toBe(dated.updatedAt);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
     it('should update openingBalanceDate and return updated entity, event, and audit', () => {
       const [account] = ledgerAccountEntity.make(validPayload);
       const openingDate = new Date('2026-01-01');
@@ -635,10 +651,10 @@ describe('Ledger Account Shared Entity', () => {
       expect(events[0].type).toBe(ELedgerAccountEvent.Updated);
       expect(events[0].data).toEqual(updatedAccount);
 
-      expect(audit.action).toBe(ELedgerAccountAuditAction.Updated);
-      expect(audit.entityVersion).toBe(updatedAccount.version);
-      expect(audit.diff.before).toEqual(account);
-      expect(audit.diff.after).toEqual(updatedAccount);
+      expect(audit?.action).toBe(ELedgerAccountAuditAction.Updated);
+      expect(audit?.entityVersion).toBe(updatedAccount.version);
+      expect(audit?.diff.before).toEqual(account);
+      expect(audit?.diff.after).toEqual(updatedAccount);
     });
 
     it('should throw when openingBalanceDate is invalid or in the future', () => {
@@ -883,7 +899,7 @@ describe('initial ledger opening balance date', () => {
       expect(account.version).toBe(1);
       expect(events).toHaveLength(1);
       expect(events[0].data).toEqual(account);
-      expect(audit.diff).toMatchObject({ before: null, after: account });
+      expect(audit?.diff).toMatchObject({ before: null, after: account });
       if (openingBalanceDate) {
         expect(account.openingBalanceDate).not.toBe(openingBalanceDate);
       }
@@ -979,7 +995,7 @@ describe('posting account reparenting', () => {
     });
     expect(Object.isFrozen(updated)).toBe(true);
     expect(events).toHaveLength(1);
-    expect(audit.diff.before).toMatchObject({
+    expect(audit?.diff.before).toMatchObject({
       code: original.code,
       controlAccountId: original.controlAccountId,
     });
@@ -1028,5 +1044,40 @@ describe('posting account reparenting', () => {
         '100002'
       )
     ).toThrow(ledgerAccountError.InvalidParentMaterializedPath);
+  });
+});
+
+describe('unchanged ledger transitions', () => {
+  it('returns an already active account without transition artifacts', () => {
+    const [account] = makeCashAccount();
+    const [unchanged, events, audit] = ledgerAccountEntity.activate(account);
+    expect(unchanged).toBe(account);
+    expect(events).toEqual([]);
+    expect(audit).toBeNull();
+  });
+
+  it('returns an already reparented account for equivalent parent, code and name', () => {
+    const [account] = makeCashAccount();
+    const [control] = ledgerAccountEntity.clonePostingAccountToControlAccount(
+      account,
+      account.createdBy
+    );
+    const [reparented] = ledgerAccountEntity.reparentPostingAccount(
+      account,
+      control,
+      '100002'
+    );
+    const [unchanged, events, audit] =
+      ledgerAccountEntity.reparentPostingAccount(
+        reparented,
+        control,
+        '100002',
+        `  ${reparented.name}  `
+      );
+    expect(unchanged).toBe(reparented);
+    expect(unchanged.version).toBe(reparented.version);
+    expect(unchanged.updatedAt).toBe(reparented.updatedAt);
+    expect(events).toEqual([]);
+    expect(audit).toBeNull();
   });
 });

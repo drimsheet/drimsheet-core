@@ -91,6 +91,12 @@ export default function makePostDraftTransferUsecase(deps: IDependencies) {
         transactionOptions
       );
       const [entry, journalEvents, audit] = posting.journalEntry;
+
+      if (!audit) {
+        await transaction.commit();
+        return;
+      }
+
       const fxDisposition = await deps.fxLotAppService.dispose(
         {
           journalEntry: entry,

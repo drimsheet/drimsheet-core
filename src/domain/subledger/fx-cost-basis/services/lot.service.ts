@@ -199,13 +199,15 @@ function makeReverse(deps: IDependencies): IFxCostBasisLotService['reverse'] {
           });
         }
 
-        lots.push(
+        const [restoredLot, events, audit] =
           fxCostBasisLotEntity.reverseDisposition(
             lot,
             allocation.quantity,
             allocation.costBasisConsumed
-          )
-        );
+          );
+        if (audit) {
+          lots.push([restoredLot, events, audit]);
+        }
       }
     }
 

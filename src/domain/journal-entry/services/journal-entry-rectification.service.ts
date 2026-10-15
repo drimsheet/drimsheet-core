@@ -89,15 +89,17 @@ function updateEntry(
     currentJournalEntry,
     reversingJournalEntry: null,
     entriesToCreate: [],
-    entryUpdate: {
-      entry: currentJournalEntry,
-      expectedVersion: payload.originalEntry.version,
-      headerAudit: audit.header,
-      lineAudits: audit.lines,
-      linesToCreate,
-      linesToUpdate,
-      lineIdsToDelete,
-    },
+    entryUpdate: audit
+      ? {
+          entry: currentJournalEntry,
+          expectedVersion: payload.originalEntry.version,
+          headerAudit: audit.header,
+          lineAudits: audit.lines,
+          linesToCreate,
+          linesToUpdate,
+          lineIdsToDelete,
+        }
+      : null,
     events,
   };
 }
@@ -206,15 +208,17 @@ async function reverseEntry(
     originalJournalEntryId: originalEntry.id,
     reversingJournalEntry,
     entriesToCreate: [reversalEntry],
-    entryUpdate: {
-      entry: voidedOriginal,
-      expectedVersion: originalEntry.version,
-      headerAudit: voidAudit,
-      lineAudits: [],
-      linesToCreate: [],
-      linesToUpdate: [],
-      lineIdsToDelete: [],
-    },
+    entryUpdate: voidAudit
+      ? {
+          entry: voidedOriginal,
+          expectedVersion: originalEntry.version,
+          headerAudit: voidAudit,
+          lineAudits: [],
+          linesToCreate: [],
+          linesToUpdate: [],
+          lineIdsToDelete: [],
+        }
+      : null,
     events: [...voidEvents, ...reversingEvents],
   };
 }
@@ -229,7 +233,6 @@ function makeRectify(
 ): IJournalEntryRectificationService['rectify'] {
   return async (payload, repoOptions) => {
     journalEntryRectificationValidation.validatePayload(payload);
-    journalEntryRectificationValidation.validateHasChanges(payload);
 
     const action = determineAction(payload);
 

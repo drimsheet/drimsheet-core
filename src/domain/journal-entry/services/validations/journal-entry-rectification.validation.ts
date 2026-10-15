@@ -46,53 +46,8 @@ function validatePayload(payload: IJournalEntryRectificationPayload) {
   }
 }
 
-function validateHasChanges(payload: IJournalEntryRectificationPayload) {
-  const { originalEntry, newEntry } = payload;
-  const hasHeaderChanges =
-    (newEntry.attachments !== undefined &&
-      !isEqual(newEntry.attachments, originalEntry.attachments)) ||
-    (newEntry.memo !== undefined && newEntry.memo !== originalEntry.memo) ||
-    (newEntry.status !== undefined &&
-      newEntry.status !== originalEntry.status) ||
-    (newEntry.effectiveDate !== undefined &&
-      !isEqual(newEntry.effectiveDate, originalEntry.effectiveDate)) ||
-    (newEntry.postedAt !== undefined &&
-      !isEqual(newEntry.postedAt, originalEntry.postedAt));
-  let hasLineChanges = false;
-
-  if (newEntry.lines) {
-    hasLineChanges = newEntry.lines.length !== originalEntry.lines.length;
-
-    for (const line of newEntry.lines) {
-      const originalLine = originalEntry.lines.find(
-        (item) => item.id === line.id
-      );
-      const lineHasChanged =
-        originalLine?.accountId !== line.accountId ||
-        originalLine.counterpartyId !== line.counterpartyId ||
-        originalLine.sequenceOrder !== line.sequenceOrder ||
-        !isEqual(originalLine.amount, line.amount) ||
-        !isEqual(originalLine.exchangeRate, line.exchangeRate) ||
-        !isEqual(originalLine.functionalAmount, line.functionalAmount) ||
-        originalLine.side !== line.side ||
-        originalLine.description !== line.description ||
-        !isEqual(originalLine.meta, line.meta);
-
-      if (lineHasChanged) {
-        hasLineChanges = true;
-        break;
-      }
-    }
-  }
-
-  if (!hasHeaderChanges && !hasLineChanges) {
-    throw new journalEntryError.RectificationHasNoChanges();
-  }
-}
-
 const journalEntryRectificationValidation = Object.freeze({
   validatePayload,
-  validateHasChanges,
 });
 
 export default journalEntryRectificationValidation;

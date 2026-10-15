@@ -124,7 +124,7 @@ function make<T extends ILedgerAccount>(
 function updateOpeningBalanceDate<T extends ILedgerAccount>(
   account: T,
   openingBalanceDate: Date
-): TAuditedEntity<Readonly<T>, T, ILedgerAccount> {
+): [Readonly<T>, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null] {
   dateUtils.validateDateIsNotInTheFuture(
     openingBalanceDate,
     ledgerAccountError.InvalidOpeningBalanceDate
@@ -132,6 +132,10 @@ function updateOpeningBalanceDate<T extends ILedgerAccount>(
 
   if (account.isControlAccount) {
     throw new ledgerAccountError.ForbiddenControlAccountOpeningBalanceDate();
+  }
+
+  if (account.openingBalanceDate?.getTime() === openingBalanceDate.getTime()) {
+    return [account, [], null];
   }
 
   if (account.openingBalanceDate !== null) {
@@ -272,7 +276,7 @@ function reparentPostingAccount(
   controlAccount: ILedgerAccount,
   code: string,
   newPostingAccountName?: string
-): TAuditedEntity<ILedgerAccount, ILedgerAccount, ILedgerAccount> {
+): [ILedgerAccount, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null] {
   ledgerAccountValidation.validatePostingAccountReparenting(
     account,
     controlAccount
@@ -291,6 +295,15 @@ function reparentPostingAccount(
     { min: 2, max: 100 },
     ledgerAccountError.InvalidName
   );
+
+  const isUnchanged =
+    account.controlAccountId === controlAccount.id &&
+    account.code === code &&
+    account.materializedPath === materializedPath &&
+    account.name === name;
+  if (isUnchanged) {
+    return [account, [], null];
+  }
 
   const updatedAccount: ILedgerAccount = deepFreeze({
     id: account.id,
@@ -356,7 +369,10 @@ function clonePostingAccountToControlAccount(
 /** Activates a draft account while preserving its identity and accounting references. */
 function activate(
   account: ILedgerAccount
-): TAuditedEntity<ILedgerAccount, ILedgerAccount, ILedgerAccount> {
+): [ILedgerAccount, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null] {
+  if (account.status === ELedgerAccountStatus.Active) {
+    return [account, [], null];
+  }
   if (account.status !== ELedgerAccountStatus.Draft) {
     throw new ledgerAccountError.InvalidStatus({ status: account.status });
   }

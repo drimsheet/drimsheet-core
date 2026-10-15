@@ -1,4 +1,5 @@
 import dateUtils from '@shared/utils/date';
+import generateDiff from '@shared/utils/diff-generator';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 import fileAttachmentValue from '@shared/values/file-attachments/file-attachment.vo';
@@ -146,6 +147,21 @@ function update(
     fileAttachmentValue.make
   );
   const attachments = Object.freeze(rawAttachments) as IFileAttachment[];
+  const hasChanges = generateDiff(
+    { memo, effectiveDate, postedAt, status, lines, attachments },
+    {
+      memo: entry.memo,
+      effectiveDate: entry.effectiveDate,
+      postedAt: entry.postedAt,
+      status: entry.status,
+      lines: entry.lines,
+      attachments: entry.attachments,
+    }
+  ).hasChanges;
+  if (!hasChanges) {
+    return [entry, [], null];
+  }
+
   const updatedEntry: IJournalEntry = Object.freeze({
     id: entry.id,
     accountingEntityId: entry.accountingEntityId,
@@ -163,6 +179,7 @@ function update(
     createdAt: entry.createdAt,
     updatedAt: timestamp,
   });
+
   const event = journalEntryEvents.updated(updatedEntry);
   const audit = journalEntryAudit.make({
     before: entry,
@@ -181,8 +198,14 @@ function voidEntry(
   entry: IJournalEntry,
   payload: IVoidJournalEntryPayload
 ): TAuditedJournalEntryTransition {
-  journalEntryValidation.validateVoid(entry);
   journalEntryValidation.validateVoidingEntryId(payload.voidingEntryId);
+  const isUnchanged =
+    entry.status === EJournalEntryStatus.Voided &&
+    entry.voidingEntryId === payload.voidingEntryId;
+  if (isUnchanged) {
+    return [entry, [], null];
+  }
+  journalEntryValidation.validateVoid(entry);
 
   const timestamp = new Date();
   const voidedEntry = makeTransitionedEntry(
@@ -209,6 +232,9 @@ function voidEntry(
 }
 
 function archive(entry: IJournalEntry): TAuditedJournalEntryTransition {
+  if (entry.status === EJournalEntryStatus.Archived) {
+    return [entry, [], null];
+  }
   journalEntryValidation.validateTransition(
     entry.status,
     EJournalEntryStatus.Archived,

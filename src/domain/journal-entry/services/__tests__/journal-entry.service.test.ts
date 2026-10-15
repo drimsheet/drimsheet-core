@@ -755,8 +755,8 @@ describe('journalEntryService', () => {
       );
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe(EJournalEntryEvent.Updated);
-      expect(audit.header.action).toBe(EJournalEntryAuditAction.Updated);
-      expect(audit.lines).toEqual([]);
+      expect(audit?.header.action).toBe(EJournalEntryAuditAction.Updated);
+      expect(audit?.lines).toEqual([]);
       expect(payload.entry.status).toBe('draft');
       expect(
         mockAccountingPeriodService.validatePostingPeriod
@@ -1051,8 +1051,8 @@ describe('journalEntryService', () => {
       );
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe(EJournalEntryEvent.Updated);
-      expect(audit.header.action).toBe(EJournalEntryAuditAction.Updated);
-      expect(audit.lines).toEqual([]);
+      expect(audit?.header.action).toBe(EJournalEntryAuditAction.Updated);
+      expect(audit?.lines).toEqual([]);
       expect(payload.entry.status).toBe('draft');
       expect(
         mockAccountingPeriodService.validatePostingPeriod
@@ -1330,8 +1330,8 @@ describe('journalEntryService', () => {
       );
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe(EJournalEntryEvent.Updated);
-      expect(audit.header.action).toBe(EJournalEntryAuditAction.Updated);
-      expect(audit.lines).toEqual([]);
+      expect(audit?.header.action).toBe(EJournalEntryAuditAction.Updated);
+      expect(audit?.lines).toEqual([]);
       expect(payload.entry.status).toBe('draft');
       expect(
         mockAccountingPeriodService.validatePostingPeriod
@@ -1649,8 +1649,8 @@ describe('journalEntryService', () => {
           updatedAt: timestamp,
         });
         expect(posted.lines).toEqual(payload.entry.lines);
-        expect(audit.lines).toEqual([]);
-        expect(audit.header).toMatchObject({
+        expect(audit?.lines).toEqual([]);
+        expect(audit?.header).toMatchObject({
           entityId: payload.entry.id,
           entityVersion: 2,
           diff: { before: { status: 'draft' }, after: { status: 'posted' } },
@@ -2020,8 +2020,8 @@ describe('journalEntryService', () => {
       EJournalLineItemEvent.Created,
       EJournalLineItemEvent.Created,
     ]);
-    expect(audit.header.action).toBe(EJournalEntryAuditAction.Created);
-    expect(audit.lines.map((lineAudit) => lineAudit.action)).toEqual([
+    expect(audit?.header.action).toBe(EJournalEntryAuditAction.Created);
+    expect(audit?.lines.map((lineAudit) => lineAudit.action)).toEqual([
       EJournalLineAuditAction.Created,
       EJournalLineAuditAction.Created,
       EJournalLineAuditAction.Created,
@@ -2342,8 +2342,8 @@ describe('journalEntryService', () => {
         EJournalLineItemEvent.Created,
         EJournalLineItemEvent.Created,
       ]);
-      expect(audit.header.action).toBe(EJournalEntryAuditAction.Created);
-      expect(audit.lines).toHaveLength(3);
+      expect(audit?.header.action).toBe(EJournalEntryAuditAction.Created);
+      expect(audit?.lines).toHaveLength(3);
       expect(
         mockAccountingPeriodService.validatePostingPeriod
       ).toHaveBeenCalledWith(
@@ -2521,8 +2521,8 @@ describe('journalEntryService', () => {
         EJournalLineItemEvent.Created,
         EJournalLineItemEvent.Created,
       ]);
-      expect(audit.header.action).toBe(EJournalEntryAuditAction.Created);
-      expect(audit.lines).toHaveLength(2);
+      expect(audit?.header.action).toBe(EJournalEntryAuditAction.Created);
+      expect(audit?.lines).toHaveLength(2);
       expect(destinationAssetAccount).toBe(destinationAccount);
       expect(
         mockAccountingPeriodService.validatePostingPeriod
@@ -2764,7 +2764,7 @@ describe('journalEntryService', () => {
         EJournalLineItemEvent.Created,
         EJournalLineItemEvent.Created,
       ]);
-      expect(audit.lines).toHaveLength(3);
+      expect(audit?.lines).toHaveLength(3);
     });
 
     it('rejects duplicate transfer accounts before period validation', async () => {

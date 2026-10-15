@@ -340,15 +340,17 @@ function getRevisionMutation(
 
   return {
     entriesToCreate: [],
-    entryUpdate: {
-      entry,
-      expectedVersion: originalEntry.version,
-      headerAudit: audit.header,
-      lineAudits: audit.lines,
-      linesToCreate: [],
-      linesToUpdate,
-      lineIdsToDelete: [],
-    },
+    entryUpdate: audit
+      ? {
+          entry,
+          expectedVersion: originalEntry.version,
+          headerAudit: audit.header,
+          lineAudits: audit.lines,
+          linesToCreate: [],
+          linesToUpdate,
+          lineIdsToDelete: [],
+        }
+      : null,
     events,
   };
 }

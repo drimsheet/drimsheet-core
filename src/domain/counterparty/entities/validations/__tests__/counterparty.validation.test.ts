@@ -226,10 +226,10 @@ describe('update status validation', () => {
       counterpartyValidation.validateUpdateStatus('draft', 'active')
     ).not.toThrow();
   });
-  it('rejects repeated activation', () => {
+  it('allows repeated activation', () => {
     expect(() =>
       counterpartyValidation.validateUpdateStatus('active', 'active')
-    ).toThrow(counterpartyError.AlreadyActive);
+    ).not.toThrow();
   });
   it('rejects an Archived source', () => {
     expect(() =>

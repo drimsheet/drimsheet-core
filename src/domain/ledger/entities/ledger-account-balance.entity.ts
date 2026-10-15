@@ -194,6 +194,18 @@ function updateBalance(
   moneyValue.validate(delta);
   moneyValue.validate(functionalDelta);
 
+  const amount = moneyValue.add(existingBalance.amount, delta);
+  const functionalAmount = moneyValue.add(
+    existingBalance.functionalAmount,
+    functionalDelta
+  );
+  const isUnchanged =
+    moneyValue.equals(existingBalance.amount, amount) &&
+    moneyValue.equals(existingBalance.functionalAmount, functionalAmount);
+  if (isUnchanged) {
+    return existingBalance;
+  }
+
   return Object.freeze({
     createdBy: existingBalance.createdBy,
     ledgerAccountId: existingBalance.ledgerAccountId,
@@ -202,11 +214,8 @@ function updateBalance(
     version: existingBalance.version + 1,
     createdAt: existingBalance.createdAt,
 
-    amount: moneyValue.add(existingBalance.amount, delta),
-    functionalAmount: moneyValue.add(
-      existingBalance.functionalAmount,
-      functionalDelta
-    ),
+    amount,
+    functionalAmount,
     updatedAt: new Date(),
   });
 }

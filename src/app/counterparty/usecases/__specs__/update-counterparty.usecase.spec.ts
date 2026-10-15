@@ -57,6 +57,14 @@ describe('update counterparty use case', () => {
     mockCounterpartyService.update.mockImplementation(service.update);
   });
 
+  it('commits the read transaction without writes or publication for unchanged details', async () => {
+    const response = await usecase(before.id, { name: before.name });
+    expect(response.id).toBe(before.id);
+    expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+  });
+
   it('prepares from a tenant-scoped read and saves versioned history before publishing', async () => {
     let persisted = false;
     mockCounterpartyRepo.update.mockImplementation(async () => {

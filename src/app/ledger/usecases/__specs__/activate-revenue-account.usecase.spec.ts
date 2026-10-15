@@ -63,6 +63,15 @@ describe('activate revenue account workflow', () => {
     );
   });
 
+  it('skips persistence and publication when activation is unchanged', async () => {
+    const [active] = ledgerAccountEntity.activate(account);
+    mockLedgerAccountRepo.findById.mockResolvedValue(active);
+    mockRevenueAccountService.activate.mockResolvedValue([active, [], null]);
+    await usecase(active.id);
+    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
   it('scopes the read and persists one versioned audit before publishing', async () => {
     await expect(usecase(account.id)).resolves.toBeUndefined();
     expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(

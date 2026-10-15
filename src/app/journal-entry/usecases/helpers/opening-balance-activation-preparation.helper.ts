@@ -24,6 +24,10 @@ export default async function openingBalanceActivationPreparationHelper(
       repoOptions
     );
 
+  if (!audit) {
+    return null;
+  }
+
   const fxAcquisition = await deps.fxLotAppService.acquire(
     { journalEntry: entry, account, actor },
     repoOptions

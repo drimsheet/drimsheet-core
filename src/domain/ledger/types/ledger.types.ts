@@ -118,7 +118,11 @@ export interface ILedgerAccountPromotionNames {
 /** Prepared promotion; the original posting identity survives with a new code. */
 export interface ILedgerAccountPromotionResult {
   controlAccount: TAuditedLedgerAccount;
-  postingAccount: TAuditedLedgerAccount;
+  postingAccount: [
+    ILedgerAccount,
+    TAuditedLedgerAccount[1],
+    TAuditedLedgerAccount[2] | null,
+  ];
   controlBalance: ILedgerAccountBalance;
   controlAdjustments: ILedgerAccountBalanceAdjustment[];
   postingBalance: ILedgerAccountBalance;

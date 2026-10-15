@@ -90,16 +90,21 @@ export default function makePostDraftOpeningBalanceUsecase(
         actor: actor.id,
       };
 
+      const posting = await openingBalanceActivationPreparationHelper(
+        deps,
+        preparationInput,
+        transactionOptions
+      );
+      if (!posting) {
+        await transaction.commit();
+        return;
+      }
       const {
         entry,
         events: journalEvents,
         fxAcquisition,
         persistence,
-      } = await openingBalanceActivationPreparationHelper(
-        deps,
-        preparationInput,
-        transactionOptions
-      );
+      } = posting;
 
       // Persist the prepared journal, FX acquisition, and propagation outbox atomically.
       await deps.journalEntryPersistenceAppService.rectify(

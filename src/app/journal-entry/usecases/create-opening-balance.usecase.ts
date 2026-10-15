@@ -77,11 +77,9 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
     );
     const [updatedAccount, accountEvents, accountAudit] = accountUpdate;
 
-    const accountHistory = historyValue.make(
-      accountAudit,
-      actor.id,
-      correlationId
-    );
+    const accountHistory = accountAudit
+      ? historyValue.make(accountAudit, actor.id, correlationId)
+      : null;
     const headerHistory = historyValue.make(
       audit.header,
       actor.id,
@@ -96,11 +94,13 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeRepoOptions = { ...repoOptions, tx };
 
-      await deps.ledgerAccountRepo.update(updatedAccount, {
-        ...writeRepoOptions,
-        expectedVersion: account.version,
-        history: accountHistory,
-      });
+      if (accountHistory) {
+        await deps.ledgerAccountRepo.update(updatedAccount, {
+          ...writeRepoOptions,
+          expectedVersion: account.version,
+          history: accountHistory,
+        });
+      }
 
       await deps.journalEntryPersistenceAppService.create(
         journalEntry,

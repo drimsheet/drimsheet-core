@@ -75,7 +75,7 @@ export type TAuditedJournalEntry = [
 export type TAuditedJournalEntryTransition = [
   IJournalEntry,
   IEvent<IJournalEntry>[],
-  IJournalEntryAudit,
+  IJournalEntryAudit | null,
 ];
 
 export type TAuditedJournalEntryUpdate = [
@@ -84,5 +84,5 @@ export type TAuditedJournalEntryUpdate = [
   {
     header: IJournalEntryRectificationAudit;
     lines: IJournalLineAudit[];
-  },
+  } | null,
 ];
