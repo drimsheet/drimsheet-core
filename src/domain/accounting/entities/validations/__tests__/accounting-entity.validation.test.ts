@@ -10,6 +10,7 @@ describe('accountingEntityValidation', () => {
     expect(Object.keys(accountingEntityValidation)).toEqual([
       'isValidType',
       'validateType',
+      'validateTypeChange',
       'isValidJurisdictionCode',
       'validateJurisdictionCode',
       'isValidHistoryAction',

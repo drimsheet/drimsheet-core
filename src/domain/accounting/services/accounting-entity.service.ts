@@ -13,9 +13,15 @@ import accountingEntityServiceValidation from '@domain/accounting/services/valid
 import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import { EPeriodStatus } from '@domain/accounting/types/period.types';
+import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
+import { ILedgerAccountBalance } from '@domain/ledger/types/ledger-account-balance.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
+  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
+  journalEntryRepo: IJournalEntryRepo;
   accountingPeriodService: IAccountingPeriodService;
   accountingEntityRepo: IAccountingEntityRepo;
 }
@@ -129,6 +135,59 @@ function makeCreate(deps: IDependencies): IAccountingEntityService['create'] {
   };
 }
 
+/** Checks currency eligibility and prepares entity and functional balance transitions without persisting. */
+function makeUpdate(deps: IDependencies): IAccountingEntityService['update'] {
+  return async (current, changes, repoOptions) => {
+    const hasCurrencyChange =
+      changes.functionalCurrencyCode !== undefined &&
+      changes.functionalCurrencyCode !== current.functionalCurrencyCode;
+    if (hasCurrencyChange) {
+      await accountingEntityServiceValidation.validateFunctionalCurrencyChange(
+        deps.journalEntryRepo,
+        current.id,
+        repoOptions
+      );
+    }
+    const accountingEntity = accountingEntityEntity.update(current, changes);
+    const [entity] = accountingEntity;
+    const updatedBalances: ILedgerAccountBalance[] = [];
+
+    if (hasCurrencyChange) {
+      const balances =
+        await deps.ledgerAccountBalanceRepo.findAllByAccountingEntityId(
+          entity.id,
+          repoOptions
+        );
+      const currency = currencyEntity.getByCode(entity.functionalCurrencyCode);
+
+      for (const balance of balances) {
+        const hasCurrencyMismatch =
+          balance.functionalAmount.currency.code !==
+          current.functionalCurrencyCode;
+
+        if (hasCurrencyMismatch) {
+          throw new errors.FunctionalCurrencyMismatch({
+            accountingEntityId: current.id,
+            ledgerAccountId: balance.ledgerAccountId,
+            expectedCurrencyCode: current.functionalCurrencyCode,
+            actualCurrencyCode: balance.functionalAmount.currency.code,
+          });
+        }
+
+        const updatedBalance =
+          ledgerAccountBalanceEntity.changeFunctionalCurrency(
+            balance,
+            currency
+          );
+
+        updatedBalances.push(updatedBalance);
+      }
+    }
+
+    return Object.freeze({ accountingEntity, updatedBalances });
+  };
+}
+
 /** Determines ownership-based access to the accounting entity. */
 function makeGrantUserAccess(): IAccountingEntityService['grantUserAccess'] {
   return (accountingEntity, userId) => accountingEntity.ownerId === userId;
@@ -151,6 +210,7 @@ export default function makeAccountingEntityService(
   const grantUserAccess = makeGrantUserAccess();
   return Object.freeze({
     create: makeCreate(deps),
+    update: makeUpdate(deps),
     grantUserAccess,
     validateAccess: makeValidateAccess(grantUserAccess),
   });

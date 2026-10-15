@@ -142,6 +142,28 @@ function updateAccountCode(
   });
 }
 
+/** Changes only functional denomination on an unused balance after entity eligibility checks. */
+function changeFunctionalCurrency(
+  existingBalance: ILedgerAccountBalance,
+  currency: ICurrency
+): ILedgerAccountBalance {
+  if (existingBalance.functionalAmount.currency.code === currency.code) {
+    return existingBalance;
+  }
+  ledgerAccountBalanceValidation.validateCurrencyChange(existingBalance);
+  return Object.freeze({
+    createdBy: existingBalance.createdBy,
+    ledgerAccountId: existingBalance.ledgerAccountId,
+    accountingEntityId: existingBalance.accountingEntityId,
+    accountMaterializedPath: existingBalance.accountMaterializedPath,
+    amount: existingBalance.amount,
+    functionalAmount: moneyValue.makeZeroAmount(currency),
+    version: existingBalance.version + 1,
+    createdAt: existingBalance.createdAt,
+    updatedAt: new Date(),
+  });
+}
+
 function updateBalance(
   existingBalance: ILedgerAccountBalance,
   delta: IMoney,
@@ -218,6 +240,7 @@ const ledgerAccountBalanceEntity = Object.freeze({
   cloneToControlAccount,
   updateAccountCode,
   changeCurrency,
+  changeFunctionalCurrency,
   adjust,
   ...ledgerAccountBalanceValidation,
 });

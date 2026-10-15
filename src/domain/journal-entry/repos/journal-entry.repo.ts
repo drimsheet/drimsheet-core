@@ -15,6 +15,12 @@ import {
 } from '@domain/journal-entry/types/journal-entry.types';
 
 export default interface IJournalEntryRepo {
+  /** Checks all entries belonging to an entity, including drafts and archived entries. */
+  existsByAccountingEntityId(
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<boolean>;
+
   /** Checks historical posting activity, including entries later archived or reversed. */
   existsPostedByAccountId(
     accountId: TEntityId,

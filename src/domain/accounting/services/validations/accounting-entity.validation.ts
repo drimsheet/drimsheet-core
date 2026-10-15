@@ -1,4 +1,5 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
+import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
@@ -7,6 +8,7 @@ import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.re
 import { IAccountingEntityCreationInput } from '@domain/accounting/types/accounting-entity.service.types';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import { IJurisdiction } from '@domain/accounting/types/jurisdiction.types';
+import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 
 function validateFiscalYearLimit(
   jurisdiction: IJurisdiction,
@@ -57,8 +59,25 @@ async function validateExistingIndividualEntity(
   }
 }
 
+async function validateFunctionalCurrencyChange(
+  repo: IJournalEntryRepo,
+  accountingEntityId: TEntityId,
+  repoOptions: IReadRepoOptions
+) {
+  const hasEntries = await repo.existsByAccountingEntityId(
+    accountingEntityId,
+    repoOptions
+  );
+  if (hasEntries) {
+    throw new accountingEntityError.FunctionalCurrencyChangeNotAllowed({
+      accountingEntityId,
+    });
+  }
+}
+
 const accountingEntityValidation = Object.freeze({
   validateFiscalYearLimit,
+  validateFunctionalCurrencyChange,
   validateExistingIndividualEntity,
 });
 

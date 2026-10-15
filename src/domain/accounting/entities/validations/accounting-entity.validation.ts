@@ -20,6 +20,20 @@ function validateType(type: UAccountingEntityType) {
   }
 }
 
+function validateTypeChange(
+  before: UAccountingEntityType,
+  after: UAccountingEntityType
+) {
+  validateType(after);
+  const isAllowed =
+    before === after ||
+    (before === EAccountingEntityType.SoleTrader &&
+      after === EAccountingEntityType.PrivateCompany);
+  if (!isAllowed) {
+    throw new accountingEntityError.TypeChangeNotAllowed({ before, after });
+  }
+}
+
 function isValidJurisdictionCode(code: unknown): code is UJurisdictionCode {
   return Object.keys(SYSTEM_JURISDICTIONS).includes(code as UJurisdictionCode);
 }
@@ -43,6 +57,7 @@ function validateHistoryAction(action: UAccountingEntityHistoryAction) {
 const accountingEntityValidation = Object.freeze({
   isValidType,
   validateType,
+  validateTypeChange,
 
   isValidJurisdictionCode,
   validateJurisdictionCode,

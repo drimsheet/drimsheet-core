@@ -43,6 +43,24 @@ export interface IAccountingEntityCreationDto {
   appPreferences: IUserAppPreferences;
 }
 
+export interface IAccountingEntityUpdateReq {
+  name?: string;
+  entityType?: UAccountingEntityType;
+  functionalCurrencyCode?: UCurrencyCode;
+}
+
+export interface IAccountingEntityDto {
+  id: string;
+  createdBy: string;
+  ownerId: string;
+  name: string;
+  type: UAccountingEntityType;
+  functionalCurrencyCode: UCurrencyCode;
+  jurisdictionCode: UJurisdictionCode;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IAccountingEntitySwitchReq {
   accountingEntityId: string;
 }

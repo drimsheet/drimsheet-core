@@ -9,6 +9,7 @@ import {
   UJurisdictionCode,
 } from '@domain/accounting/config/jurisdictions.config';
 import { MAX_GENERATED_PERIODS } from '@domain/accounting/config/period-limits.config';
+import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import periodError from '@domain/accounting/errors/period.error';
 import {
@@ -111,3 +112,15 @@ export const accountingEntityOnboardingDtoSchema = z.object({
   reportingPeriod: periodCreationDtoSchema,
   appPreferences: userAppPreferencesValidation,
 });
+
+export const accountingEntityUpdateReqSchema = z
+  .object({
+    name: z.string(new accountingEntityError.InvalidName().errorKey).optional(),
+    entityType: accountingEntityTypeValidation.optional(),
+    functionalCurrencyCode: currencyCodeValidation.optional(),
+  })
+  .strict()
+  .refine(
+    (payload) => Object.values(payload).some((value) => value !== undefined),
+    new accountingEntityError.InvalidUpdate().errorKey
+  );

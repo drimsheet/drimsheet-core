@@ -19,6 +19,7 @@ owner. Do not create a service merely to shorten a use case.
 - Own business invariants, domain decisions, and coordinated creation within
   one bounded context.
 - Remain dependency-free by default.
+- Invariants requiring repository checks belong in a domain service.
 - Depend on a repository only when persisted state is required to enforce an
   invariant. Use that repository for the invariant check, not to turn the
   domain service into a persistence workflow.

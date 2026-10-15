@@ -3825,6 +3825,67 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IAccountingEntityDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/UAccountingEntityType"
+          },
+          "functionalCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "jurisdictionCode": {
+            "$ref": "#/components/schemas/UJurisdictionCode"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "createdBy",
+          "ownerId",
+          "name",
+          "type",
+          "functionalCurrencyCode",
+          "jurisdictionCode",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingEntityUpdateReq": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "entityType": {
+            "$ref": "#/components/schemas/UAccountingEntityType"
+          },
+          "functionalCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "IAccountingEntitySwitchReq": {
         "properties": {
           "accountingEntityId": {
@@ -9720,6 +9781,95 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IAccountingEntityCreationDto"
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAccountingEntity",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountingEntityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IAccountingEntityUpdateReq"
               }
             }
           }

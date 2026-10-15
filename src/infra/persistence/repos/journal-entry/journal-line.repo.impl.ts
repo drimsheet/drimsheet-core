@@ -14,6 +14,7 @@ import {
   journalLinesInCore,
 } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import mapJournalFunctionalCurrencyErrorHelper from '@infra/persistence/helpers/map-journal-functional-currency-error.helper';
 import journalLineMapper from '@infra/persistence/repos/journal-entry/mappers/journal-line.mapper';
 
 import journalLineHistoryRepo from './journal-line-history.repo.impl';
@@ -22,47 +23,55 @@ const journalLineRepo: IJournalLineRepo = {
   create: async (payload, options) => {
     const lines = Array.isArray(payload) ? payload : [payload];
 
-    await getDbQuery(options).transaction(async (tx) => {
-      const mappedLines = lines.map(journalLineMapper.toRepo);
-      await tx.insert(journalLinesInCore).values(mappedLines);
+    try {
+      await getDbQuery(options).transaction(async (tx) => {
+        const mappedLines = lines.map(journalLineMapper.toRepo);
+        await tx.insert(journalLinesInCore).values(mappedLines);
 
-      await journalLineHistoryRepo.create(
-        lines,
-        options.history,
-        options.accountingEntityId,
-        passOnRepoTransaction(options, tx)
-      );
-    });
+        await journalLineHistoryRepo.create(
+          lines,
+          options.history,
+          options.accountingEntityId,
+          passOnRepoTransaction(options, tx)
+        );
+      });
+    } catch (error) {
+      throw mapJournalFunctionalCurrencyErrorHelper(error);
+    }
   },
 
   update: async (payload, options) => {
     validateVersionInRepo(payload, options);
 
-    await getDbQuery(options).transaction(async (tx) => {
-      const updated = await tx
-        .update(journalLinesInCore)
-        .set(journalLineMapper.toRepo(payload))
-        .where(
-          and(
-            eq(journalLinesInCore.id, payload.id),
-            eq(journalLinesInCore.version, options.expectedVersion)
-          )
+    try {
+      await getDbQuery(options).transaction(async (tx) => {
+        const updated = await tx
+          .update(journalLinesInCore)
+          .set(journalLineMapper.toRepo(payload))
+          .where(
+            and(
+              eq(journalLinesInCore.id, payload.id),
+              eq(journalLinesInCore.version, options.expectedVersion)
+            )
+          );
+
+        if (updated.rowCount === 0) {
+          throw new repoError.VersionNotFound({
+            id: payload.id,
+            version: options.expectedVersion,
+          });
+        }
+
+        await journalLineHistoryRepo.create(
+          payload,
+          options.history,
+          options.accountingEntityId,
+          passOnRepoTransaction(options, tx)
         );
-
-      if (updated.rowCount === 0) {
-        throw new repoError.VersionNotFound({
-          id: payload.id,
-          version: options.expectedVersion,
-        });
-      }
-
-      await journalLineHistoryRepo.create(
-        payload,
-        options.history,
-        options.accountingEntityId,
-        passOnRepoTransaction(options, tx)
-      );
-    });
+      });
+    } catch (error) {
+      throw mapJournalFunctionalCurrencyErrorHelper(error);
+    }
   },
 
   delete: async (ids, options) => {

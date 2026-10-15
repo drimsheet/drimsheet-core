@@ -35,6 +35,100 @@ describe('accountingEntityEntity', () => {
     jest.useRealTimers();
   });
 
+  describe('update', () => {
+    it('updates allowed fields, preserves identity, and emits an audit and event', () => {
+      const [current] = accountingEntityEntity.make({
+        ...validPayload,
+        type: 'sole_trader',
+      });
+      jest.setSystemTime(new Date('2026-04-02T00:00:00Z'));
+      const [updated, events, audit] = accountingEntityEntity.update(current, {
+        name: '  Renamed  ',
+        type: 'private_company',
+        functionalCurrencyCode: 'USD',
+      });
+      expect(updated).toEqual({
+        ...current,
+        name: 'Renamed',
+        type: 'private_company',
+        functionalCurrencyCode: 'USD',
+        updatedAt: new Date(),
+      });
+      expect(Object.isFrozen(updated)).toBe(true);
+      expect(current.name).toBe(validPayload.name);
+      expect(events).toEqual([
+        expect.objectContaining({
+          type: EAccountingEntityEvents.Updated,
+          data: updated,
+        }),
+      ]);
+      expect(audit).toMatchObject({
+        action: 'updated',
+        entityId: current.id,
+        diff: {
+          before: expect.objectContaining({ name: current.name }),
+          after: expect.objectContaining({ name: 'Renamed' }),
+        },
+      });
+    });
+
+    it.each([
+      {},
+      { name: '  Test Accounting Entity  ' },
+      { type: 'individual' as const },
+      { functionalCurrencyCode: 'NGN' as const },
+    ])(
+      'returns the same entity without events or audit for no-op %j',
+      (changes) => {
+        const [current] = accountingEntityEntity.make(validPayload);
+        const [updated, events, audit] = accountingEntityEntity.update(
+          current,
+          changes
+        );
+        expect(updated).toBe(current);
+        expect(events).toEqual([]);
+        expect(audit).toBeNull();
+      }
+    );
+
+    it.each([
+      ['individual', 'sole_trader'],
+      ['individual', 'private_company'],
+      ['sole_trader', 'individual'],
+      ['private_company', 'sole_trader'],
+      ['private_company', 'individual'],
+    ] as const)('rejects %s -> %s', (before, after) => {
+      const [current] = accountingEntityEntity.make({
+        ...validPayload,
+        type: before,
+      });
+      expect(() =>
+        accountingEntityEntity.update(current, { type: after })
+      ).toThrow(accountingEntityError.TypeChangeNotAllowed);
+    });
+
+    it.each(['', '   ', 'x'.repeat(101)])('rejects invalid name %j', (name) => {
+      const [current] = accountingEntityEntity.make(validPayload);
+      expect(() => accountingEntityEntity.update(current, { name })).toThrow(
+        accountingEntityError.InvalidName
+      );
+    });
+
+    it('rejects invalid currencies and entity types', () => {
+      const [current] = accountingEntityEntity.make(validPayload);
+      expect(() =>
+        accountingEntityEntity.update(current, {
+          // @ts-expect-error runtime validation
+          functionalCurrencyCode: 'ZZZ',
+        })
+      ).toThrow();
+      expect(() =>
+        // @ts-expect-error runtime validation
+        accountingEntityEntity.update(current, { type: 'invalid' })
+      ).toThrow(accountingEntityError.InvalidType);
+    });
+  });
+
   describe('make', () => {
     it('should successfully create an accounting entity with valid payload', () => {
       const [entity, events, audit] = accountingEntityEntity.make(validPayload);

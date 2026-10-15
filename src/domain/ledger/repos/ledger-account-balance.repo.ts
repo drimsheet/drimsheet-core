@@ -39,6 +39,11 @@ export default interface ILedgerAccountBalanceRepo {
     repoOptions: IReadRepoOptions
   ): Promise<ILedgerAccountBalanceAdjustment[]>;
 
+  findAllByAccountingEntityId(
+    accountingEntityId: TEntityId,
+    repoOptions: IReadRepoOptions
+  ): Promise<ILedgerAccountBalance[]>;
+
   findAllByAccountIds(
     accountingEntityId: TEntityId,
     ledgerAccountIds: TEntityId[],
