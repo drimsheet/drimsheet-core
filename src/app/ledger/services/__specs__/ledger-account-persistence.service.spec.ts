@@ -4,6 +4,7 @@ import {
   IWriteRepoOptions,
 } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
 import historyValue from '@shared/values/history/history.vo';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
@@ -196,8 +197,26 @@ describe('ledgerAccountPersistenceAppService', () => {
         accountMaterializedPath: original.materializedPath,
         currencyCode: 'NGN',
         functionalCurrencyCode: 'NGN',
+        amount: 12345n,
+        functionalAmount: 12345n,
       });
+      const sourceAdjustment = ledgerAccountBalanceEntity.adjust(
+        existingBalance,
+        {
+          createdBy: original.createdBy,
+          ledgerAccountId: original.id,
+          journalEntryId: generateUUID(),
+          amount: existingBalance.amount,
+          functionalAmount: existingBalance.functionalAmount,
+        }
+      ).adjustment;
       const promotion = {
+        controlAdjustments: [
+          ledgerAccountBalanceEntity.cloneAdjustmentToControlAccount(
+            sourceAdjustment,
+            control.id
+          ),
+        ],
         controlAccount,
         postingAccount,
         postingBalance: ledgerAccountBalanceEntity.updateAccountCode(
@@ -222,7 +241,7 @@ describe('ledgerAccountPersistenceAppService', () => {
         posting: mockLedgerAccountRepo.update,
         control: mockLedgerAccountRepo.create,
         postingBalance: mockLedgerAccountBalanceRepo.update,
-        controlBalance: mockLedgerAccountBalanceRepo.create,
+        controlBalance: mockLedgerAccountBalanceRepo.createWithAdjustments,
       };
       if (failureAt) {
         const failure = new Error(`${failureAt} write failed`);
@@ -261,7 +280,8 @@ describe('ledgerAccountPersistenceAppService', () => {
       expect(
         mockLedgerAccountBalanceRepo.update.mock.invocationCallOrder[0]
       ).toBeLessThan(
-        mockLedgerAccountBalanceRepo.create.mock.invocationCallOrder[0]
+        mockLedgerAccountBalanceRepo.createWithAdjustments.mock
+          .invocationCallOrder[0]
       );
       expect(mockLedgerAccountBalanceRepo.update).toHaveBeenCalledWith(
         promotion.postingBalance,
@@ -271,10 +291,18 @@ describe('ledgerAccountPersistenceAppService', () => {
           expectedVersion: existingBalance.version,
         }
       );
-      expect(mockLedgerAccountBalanceRepo.create).toHaveBeenCalledWith(
-        promotion.controlBalance,
+      expect(
+        mockLedgerAccountBalanceRepo.createWithAdjustments
+      ).toHaveBeenCalledWith(
+        {
+          balance: promotion.controlBalance,
+          adjustments: promotion.controlAdjustments,
+        },
         { ...options, tx: 'mock-tx' }
       );
+      expect(promotion.controlBalance.amount.amount).toBe(12345n);
+      expect(promotion.postingBalance.amount.amount).toBe(12345n);
+      expect(mockLedgerAccountBalanceRepo.adjustBalance).not.toHaveBeenCalled();
     }
   );
 });

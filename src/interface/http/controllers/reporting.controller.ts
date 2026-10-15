@@ -60,9 +60,9 @@ export class ReportingController extends Controller {
 
   /**
    * Counterparty contributions to the current balance of a posting or control
-   * account, including descendants. Reads applied journal lines through balance
-   * adjustments, excluding drafts, never-posted entries, voided originals and
-   * reversals. Archived records and opening balances remain included.
+   * account, including descendants. Reads journals through only the requested
+   * account's adjustments, excluding drafts, never-posted entries, voided
+   * originals and reversals. Archived records and opening balances remain included.
    * Amounts use account currency, falling back to functional currency. Shares
    * use the stored account balance before search/pagination, rounded to two
    * decimals; zero balances yield null. Balances update asynchronously.

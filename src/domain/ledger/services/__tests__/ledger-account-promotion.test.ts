@@ -54,6 +54,7 @@ const ledgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
   adjustBalance: jest.fn(),
   findByAccountId: jest.fn(),
   findAdjustmentsByAccountId: jest.fn(),
+  createWithAdjustments: jest.fn(),
   findAllByAccountIds: jest.fn(),
 };
 const journalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
@@ -220,6 +221,7 @@ const families = [
 
 beforeEach(() => {
   jest.resetAllMocks();
+  ledgerAccountBalanceRepo.findAdjustmentsByAccountId.mockResolvedValue([]);
   ledgerAccountService.promotePostingToControlAccount.mockImplementation(
     allocation.promotePostingToControlAccount
   );
@@ -290,6 +292,61 @@ async function prepare(family: (typeof families)[number]) {
     },
   };
 }
+
+it.each([false, true])(
+  'prepares control adjustment history without persisting it, empty=%s',
+  async (empty) => {
+    const { posting, balance } = await prepare(families[0]);
+    const adjustments = empty
+      ? []
+      : [15000n, -5000n, 0n].map(
+          (amount) =>
+            ledgerAccountBalanceEntity.adjust(balance, {
+              createdBy,
+              ledgerAccountId: posting.id,
+              journalEntryId: generateUUID(),
+              amount: moneyValue.make(amount, balance.amount.currency, true),
+              functionalAmount: moneyValue.make(
+                amount,
+                balance.functionalAmount.currency,
+                true
+              ),
+            }).adjustment
+        );
+    const originalHistory = structuredClone(adjustments);
+    ledgerAccountBalanceRepo.findAdjustmentsByAccountId.mockResolvedValue(
+      adjustments
+    );
+
+    const promotion = await allocation.promotePostingToControlAccount(
+      posting,
+      createdBy,
+      repoOptions
+    );
+    const [control] = promotion.controlAccount;
+
+    expect(
+      ledgerAccountBalanceRepo.findAdjustmentsByAccountId
+    ).toHaveBeenCalledWith(posting.id, repoOptions);
+    expect(promotion.controlAdjustments).toHaveLength(adjustments.length);
+    promotion.controlAdjustments.forEach((cloned, index) => {
+      expect(cloned).toEqual({
+        ...originalHistory[index],
+        id: expect.any(String),
+        ledgerAccountId: control.id,
+      });
+      expect(cloned.id).not.toBe(adjustments[index].id);
+    });
+    expect(adjustments).toEqual(originalHistory);
+    expect(promotion.controlBalance.amount).toEqual(balance.amount);
+    expect(promotion.postingBalance.amount).toEqual(balance.amount);
+    expect(ledgerAccountBalanceRepo.create).not.toHaveBeenCalled();
+    expect(
+      ledgerAccountBalanceRepo.createWithAdjustments
+    ).not.toHaveBeenCalled();
+    expect(ledgerAccountBalanceRepo.adjustBalance).not.toHaveBeenCalled();
+  }
+);
 
 it.each(families)(
   'promotes $name before child allocation and preserves posting identity and balances',

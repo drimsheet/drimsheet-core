@@ -36,16 +36,15 @@ const accountCounterpartyParticipationQueryRepo: IAccountCounterpartyParticipati
             ELSE line.amount END AS amount,
           line.functional_amount
         FROM requested_account AS requested
-        INNER JOIN core.ledger_accounts AS account
-          ON account.accounting_entity_id = requested.accounting_entity_id
-          AND (account.id = requested.id
-            OR account.materialized_path LIKE requested.materialized_path || '.%')
         INNER JOIN core.ledger_account_balance_adjustments AS adjustment
-          ON adjustment.ledger_account_id = account.id
+          ON adjustment.ledger_account_id = requested.id
         INNER JOIN core.journal_entries AS entry ON entry.id = adjustment.journal_entry_id
           AND entry.accounting_entity_id = requested.accounting_entity_id
         INNER JOIN core.journal_lines AS line ON line.entry_id = entry.id
-          AND line.account_id = account.id
+        INNER JOIN core.ledger_accounts AS account ON account.id = line.account_id
+          AND account.accounting_entity_id = requested.accounting_entity_id
+          AND (account.id = requested.id
+            OR account.materialized_path LIKE requested.materialized_path || '.%')
         WHERE entry.status NOT IN ('draft', 'voided')
           AND entry.posted_at IS NOT NULL
           AND entry.voiding_entry_id IS NULL

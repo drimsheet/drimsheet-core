@@ -33,6 +33,28 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
     }
   },
 
+  async createWithAdjustments(payload, options) {
+    try {
+      await getDbQuery(options).transaction(async (tx) => {
+        await tx
+          .insert(ledgerAccountBalancesInCore)
+          .values(ledgerAccountBalanceMapper.toRepo(payload.balance));
+
+        if (payload.adjustments.length > 0) {
+          await tx
+            .insert(ledgerAccountBalanceAdjustmentsInCore)
+            .values(
+              payload.adjustments.map(
+                ledgerAccountBalanceMapper.toRepoAdjustment
+              )
+            );
+        }
+      });
+    } catch (error) {
+      throw mapLedgerBalanceFunctionalCurrencyErrorHelper(error);
+    }
+  },
+
   async update(balance, options) {
     try {
       validateVersionInRepo(balance, options);

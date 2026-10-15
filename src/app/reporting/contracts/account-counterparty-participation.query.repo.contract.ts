@@ -16,10 +16,11 @@ export interface IAccountCounterpartyParticipationAggregate {
 }
 
 /**
- * Reads applied journal contributions for an account and its descendants through
- * their balance adjustments. Each line is counted once, excluding drafts,
- * never-posted entries, voided originals and reversals. Archived records and
- * opening balances remain eligible. Amounts use the requested account's currency
+ * Reads only the requested account's adjustments to identify applied journals.
+ * Within those journals, includes lines on the account or its descendants once,
+ * excluding drafts, never-posted entries, voided originals and reversals.
+ * Archived records and opening balances remain eligible.
+ * Amounts use the requested account's currency
  * or functional currency when unset. Groups by counterparty, self and the posting
  * account's normal balance, ordered by counterparty name/ID then self and side.
  */

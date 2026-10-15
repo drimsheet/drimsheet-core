@@ -51,6 +51,7 @@ describe('accountingEntityService', () => {
     adjustBalance: jest.fn(),
     findByAccountId: jest.fn(),
     findAdjustmentsByAccountId: jest.fn(),
+    createWithAdjustments: jest.fn(),
     findAllByAccountingEntityId: jest.fn(),
     findAllByAccountIds: jest.fn(),
   };

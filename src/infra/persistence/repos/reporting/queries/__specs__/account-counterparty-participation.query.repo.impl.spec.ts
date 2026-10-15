@@ -71,7 +71,7 @@ describe('accountCounterpartyParticipationQueryRepo', () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
-  it('follows applied posting-account adjustments, limits journal lines to their account, and includes descendants', async () => {
+  it('reads only the requested account adjustments and limits their journal lines to that account or its descendants', async () => {
     await accountCounterpartyParticipationQueryRepo.aggregateByAccount(
       criteria,
       options
@@ -81,15 +81,18 @@ describe('accountCounterpartyParticipationQueryRepo', () => {
       "account.id = requested.id OR account.materialized_path LIKE requested.materialized_path || '.%'"
     );
     expect(sql).toContain(
-      'INNER JOIN core.ledger_account_balance_adjustments AS adjustment ON adjustment.ledger_account_id = account.id'
+      'INNER JOIN core.ledger_account_balance_adjustments AS adjustment ON adjustment.ledger_account_id = requested.id'
     );
     expect(sql).toContain('entry.id = adjustment.journal_entry_id');
     expect(sql).toContain(
-      'line.entry_id = entry.id AND line.account_id = account.id'
+      'INNER JOIN core.journal_lines AS line ON line.entry_id = entry.id INNER JOIN core.ledger_accounts AS account ON account.id = line.account_id'
     );
-    // Joining all entry lines would count other accounts; joining ancestor
-    // adjustments to these lines would multiply propagated contributions.
-    expect(sql).not.toContain('adjustment.ledger_account_id = requested.id');
+    // The account/entry unique key selects each contributing journal once;
+    // descendant adjustments must never expand the requested account's history.
+    expect(sql).not.toContain('adjustment.ledger_account_id = account.id');
+    expect(
+      sql.match(/JOIN core\.ledger_account_balance_adjustments/g)
+    ).toHaveLength(1);
   });
 
   it.each([

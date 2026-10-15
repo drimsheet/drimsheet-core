@@ -20,6 +20,7 @@ const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
   adjustBalance: jest.fn(),
   findByAccountId: jest.fn(),
   findAdjustmentsByAccountId: jest.fn(),
+  createWithAdjustments: jest.fn(),
   findAllByAccountIds: jest.fn(),
 };
 const accountingEntityId = generateUUID();

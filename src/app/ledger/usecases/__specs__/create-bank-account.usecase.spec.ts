@@ -653,6 +653,7 @@ describe('bank account creation workflow', () => {
           existingBalance,
           posting.materializedPath
         ),
+        controlAdjustments: [],
         controlBalance: ledgerAccountBalanceEntity.make({
           createdBy: control.createdBy,
           ledgerAccountId: control.id,

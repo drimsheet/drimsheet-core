@@ -3,7 +3,10 @@ import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { ICurrency } from '@domain/money/types/currency.types';
 
-import { ILedgerAccountBalance } from './ledger-account-balance.types';
+import {
+  ILedgerAccountBalance,
+  ILedgerAccountBalanceAdjustment,
+} from './ledger-account-balance.types';
 
 export const ELedgerType = {
   Asset: 'asset',
@@ -117,5 +120,6 @@ export interface ILedgerAccountPromotionResult {
   controlAccount: TAuditedLedgerAccount;
   postingAccount: TAuditedLedgerAccount;
   controlBalance: ILedgerAccountBalance;
+  controlAdjustments: ILedgerAccountBalanceAdjustment[];
   postingBalance: ILedgerAccountBalance;
 }
