@@ -10,6 +10,28 @@ import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
 
 const ledgerAccountQueryRepo: ILedgerAccountQueryRepo = {
+  findChartOfAccounts: async (accountingEntityId, type, options) => {
+    const accounts = await getDbQuery(options)
+      .select({
+        ...getTableColumns(ledgerAccountsInCore),
+        currency: getTableColumns(currenciesInCore),
+      })
+      .from(ledgerAccountsInCore)
+      .leftJoin(
+        currenciesInCore,
+        eq(ledgerAccountsInCore.currencyCode, currenciesInCore.code)
+      )
+      .where(
+        and(
+          eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId),
+          eq(ledgerAccountsInCore.type, type)
+        )
+      )
+      .orderBy(ledgerAccountsInCore.materializedPath);
+
+    return accounts.map(ledgerAccountMapper.toDomain);
+  },
+
   findSubAccounts: async (accountId, accountingEntityId, options) => {
     const accounts = await getDbQuery(options)
       .select({

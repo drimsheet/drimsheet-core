@@ -42,7 +42,7 @@ export interface ILedgerAccountDto {
   accountingEntityId: TEntityId;
   type: ULedgerType;
   normalBalance: UNormalBalance;
-  subType: any;
+  subType: ULedgerAccountSubType;
   behavior: ULedgerAccountBehavior;
   isControlAccount: boolean;
   controlAccountId?: TEntityId;

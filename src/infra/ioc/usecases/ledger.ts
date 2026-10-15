@@ -16,6 +16,7 @@ import makeDeleteLedgerAccountUsecase from '@app/ledger/usecases/delete-ledger-a
 import makeGetAccountTransactionsUseCase from '@app/ledger/usecases/get-account-transactions.usecase';
 import makeGetBankDetailsUsecase from '@app/ledger/usecases/get-bank-details.usecase';
 import makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
+import makeGetChartOfAccountsUsecase from '@app/ledger/usecases/get-chart-of-accounts.usecase';
 import makeGetLedgerAccountCurrencyUpdateEligibilityUsecase from '@app/ledger/usecases/get-ledger-account-currency-update-eligibility.usecase';
 import makeGetLedgerAccountDeletionEligibilityUsecase from '@app/ledger/usecases/get-ledger-account-deletion-eligibility.usecase';
 import makeGetLedgerAccountOpeningBalanceUsecase from '@app/ledger/usecases/get-ledger-account-opening-balance.usecase';
@@ -173,6 +174,15 @@ export const getLedgerAccountsUseCase = makeTracedUseCase(
   makeGetLedgerAccountsUsecase({
     appContext: appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+  })
+);
+
+export const getChartOfAccountsUseCase = makeTracedUseCase(
+  'ledger.getChartOfAccountsUseCase',
+  makeGetChartOfAccountsUsecase({
+    appContext,
+    ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
     balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
   })
 );

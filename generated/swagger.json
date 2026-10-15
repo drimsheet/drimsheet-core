@@ -507,9 +507,83 @@
         "type": "string",
         "enum": ["debit", "credit"]
       },
+      "ULedgerAccountSubType": {
+        "type": "string",
+        "enum": [
+          "cash_and_cash_equivalent",
+          "short_term_investment",
+          "receivables",
+          "inventory",
+          "accrued_income",
+          "prepayments",
+          "long_term_investment",
+          "property_plant_and_equipment",
+          "intangible_assets",
+          "right_of_use_assets",
+          "goodwill",
+          "suspense",
+          "short_term_debt",
+          "payable",
+          "accrued_expense",
+          "deferred_revenue",
+          "long_term_loan",
+          "lease_liability",
+          "provision",
+          "capital",
+          "retained_earnings",
+          "reserve",
+          "opening_balance",
+          "sales",
+          "services",
+          "subscriptions",
+          "employment_income",
+          "interest_income",
+          "gain_on_asset_sale",
+          "unrealized_gains",
+          "grants",
+          "gifts",
+          "direct_costs",
+          "payroll_and_personnel",
+          "rent_and_utilities",
+          "admin_and_general",
+          "marketing_and_selling",
+          "research_and_development",
+          "depreciation_and_amortization",
+          "bank_charge",
+          "finance_cost",
+          "interest",
+          "income_tax_expense",
+          "unrealized_loss",
+          "loss_on_asset_disposal",
+          "impairment_loss",
+          "other_loss"
+        ]
+      },
       "ULedgerAccountBehavior": {
         "type": "string",
         "enum": [
+          "retained_earnings",
+          "sales",
+          "services",
+          "subscriptions",
+          "employment_income",
+          "interest_income",
+          "gain_on_asset_sale",
+          "unrealized_gains",
+          "grants",
+          "gifts",
+          "payroll_and_personnel",
+          "rent_and_utilities",
+          "admin_and_general",
+          "marketing_and_selling",
+          "research_and_development",
+          "depreciation_and_amortization",
+          "bank_charge",
+          "finance_cost",
+          "interest",
+          "unrealized_loss",
+          "impairment_loss",
+          "other_loss",
           "bank",
           "petty_cash",
           "default_cash",
@@ -529,36 +603,14 @@
           "mortgage",
           "other_long_term_loan",
           "owner_capital",
-          "retained_earnings",
           "revaluation_reserve",
           "opening_balance_equity",
-          "sales",
-          "services",
-          "subscriptions",
-          "employment_income",
-          "interest_income",
-          "gain_on_asset_sale",
-          "unrealized_gains",
-          "grants",
-          "gifts",
           "cogs",
           "cost_of_services",
           "cost_of_revenue",
           "default_direct_cost",
-          "payroll_and_personnel",
-          "rent_and_utilities",
-          "admin_and_general",
-          "marketing_and_selling",
-          "research_and_development",
-          "depreciation_and_amortization",
-          "bank_charge",
-          "finance_cost",
-          "interest",
           "tax_expense",
-          "unrealized_loss",
-          "asset_disposal_loss",
-          "impairment_loss",
-          "other_loss"
+          "asset_disposal_loss"
         ]
       },
       "UContraAccountRule": {
@@ -599,7 +651,9 @@
           "normalBalance": {
             "$ref": "#/components/schemas/UNormalBalance"
           },
-          "subType": {},
+          "subType": {
+            "$ref": "#/components/schemas/ULedgerAccountSubType"
+          },
           "behavior": {
             "$ref": "#/components/schemas/ULedgerAccountBehavior"
           },
@@ -688,58 +742,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "ULedgerAccountSubType": {
-        "type": "string",
-        "enum": [
-          "retained_earnings",
-          "sales",
-          "services",
-          "subscriptions",
-          "employment_income",
-          "interest_income",
-          "gain_on_asset_sale",
-          "unrealized_gains",
-          "grants",
-          "gifts",
-          "payroll_and_personnel",
-          "rent_and_utilities",
-          "admin_and_general",
-          "marketing_and_selling",
-          "research_and_development",
-          "depreciation_and_amortization",
-          "bank_charge",
-          "finance_cost",
-          "interest",
-          "unrealized_loss",
-          "impairment_loss",
-          "other_loss",
-          "cash_and_cash_equivalent",
-          "short_term_investment",
-          "receivables",
-          "inventory",
-          "accrued_income",
-          "prepayments",
-          "long_term_investment",
-          "property_plant_and_equipment",
-          "intangible_assets",
-          "right_of_use_assets",
-          "goodwill",
-          "suspense",
-          "short_term_debt",
-          "payable",
-          "accrued_expense",
-          "deferred_revenue",
-          "long_term_loan",
-          "lease_liability",
-          "provision",
-          "capital",
-          "reserve",
-          "opening_balance",
-          "direct_costs",
-          "income_tax_expense",
-          "loss_on_asset_disposal"
-        ]
-      },
       "ULedgerAccountSortBy": {
         "type": "string",
         "enum": ["accountName", "createdAt", "balance"]
@@ -802,6 +804,126 @@
             "type": "boolean"
           }
         },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IChartOfAccountsNodeDto": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "code": {
+            "type": "string"
+          },
+          "materializedPath": {
+            "type": "string"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ULedgerType"
+          },
+          "normalBalance": {
+            "$ref": "#/components/schemas/UNormalBalance"
+          },
+          "subType": {
+            "$ref": "#/components/schemas/ULedgerAccountSubType"
+          },
+          "behavior": {
+            "$ref": "#/components/schemas/ULedgerAccountBehavior"
+          },
+          "isControlAccount": {
+            "type": "boolean"
+          },
+          "controlAccountId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountStatus"
+          },
+          "contraAccountRule": {
+            "$ref": "#/components/schemas/UContraAccountRule"
+          },
+          "adjunctAccountRule": {
+            "$ref": "#/components/schemas/UAdjunctAccountRule"
+          },
+          "openingBalanceDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "functionalBalance": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/IChartOfAccountsNodeDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "materializedPath",
+          "accountingEntityId",
+          "type",
+          "normalBalance",
+          "subType",
+          "behavior",
+          "isControlAccount",
+          "name",
+          "status",
+          "contraAccountRule",
+          "adjunctAccountRule",
+          "openingBalanceDate",
+          "createdBy",
+          "createdAt",
+          "updatedAt",
+          "balance",
+          "functionalBalance",
+          "children"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetChartOfAccountsQuery": {
+        "properties": {
+          "class": {
+            "$ref": "#/components/schemas/ULedgerType"
+          },
+          "omitHeaderAccounts": {
+            "type": "boolean",
+            "description": "Omit accounts without a controlAccountId, retaining their descendants. Defaults to false."
+          },
+          "search": {
+            "type": "string",
+            "description": "Case-insensitive partial name search. Returns topmost matches with all descendants. Empty search returns the full tree. Omitted headers cannot match."
+          }
+        },
+        "required": ["class"],
         "type": "object",
         "additionalProperties": false
       },
@@ -4329,6 +4451,97 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/ULedgerAccountSortBy"
+            }
+          }
+        ]
+      }
+    },
+    "/ledger/chart-of-accounts": {
+      "get": {
+        "operationId": "getChartOfAccounts",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IChartOfAccountsNodeDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get the complete chart of accounts for a required class, across all statuses.\nReturns roots with nested children, ordered by materialized path.\nOmit header accounts to promote their direct children to response roots.\nSearch names case-insensitively to return topmost matches with complete\nsubtrees. Omitted headers are excluded from matching.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "class",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ULedgerType"
+            }
+          },
+          {
+            "description": "Omit accounts without a controlAccountId, retaining their descendants. Defaults to false.",
+            "in": "query",
+            "name": "omitHeaderAccounts",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Case-insensitive partial name search. Returns topmost matches with all descendants. Empty search returns the full tree. Omitted headers cannot match.",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]

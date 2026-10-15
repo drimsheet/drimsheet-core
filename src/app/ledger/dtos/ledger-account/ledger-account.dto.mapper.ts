@@ -1,4 +1,5 @@
 import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
+import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { IMoney } from '@domain/money/types/money.types';
 
@@ -19,7 +20,7 @@ const ledgerAccountMapper = {
       accountingEntityId: payload.accountingEntityId,
       type: payload.type,
       normalBalance: payload.normalBalance,
-      subType: payload.subType,
+      subType: payload.subType as ULedgerAccountSubType,
       behavior: payload.behavior as ULedgerAccountBehavior,
       isControlAccount: payload.isControlAccount,
       controlAccountId: payload.controlAccountId ?? undefined,
