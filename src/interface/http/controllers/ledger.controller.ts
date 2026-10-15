@@ -26,6 +26,7 @@ import {
   IPettyCashAccountCreationReq,
   IPettyCashAccountUpdateReq,
 } from '@app/ledger/dtos/asset-account/asset-account.dto';
+import { IGetChartOfAccountsQuery } from '@app/ledger/dtos/chart-of-accounts/chart-of-accounts.dto';
 import {
   ICreateExpenseAccountDto,
   IUpdateExpenseAccountDto,
@@ -71,6 +72,7 @@ import {
   deleteLedgerAccountUseCase,
   getAccountTransactionsUseCase,
   getBankDetailsUseCase,
+  getChartOfAccountsUseCase,
   getLedgerAccountCurrencyUpdateEligibilityUseCase,
   getLedgerAccountDeletionEligibilityUseCase,
   getLedgerAccountOpeningBalanceUseCase,
@@ -104,6 +106,29 @@ export class LedgerController extends Controller {
   )
   public async getLedgerAccounts(@Queries() query: IGetLedgerAccountsQuery) {
     return getLedgerAccountsUseCase(query);
+  }
+
+  /**
+   * Get the complete chart of accounts for a required class, across all statuses.
+   * Returns roots with nested children, ordered by materialized path.
+   * Omit header accounts to promote their direct children to response roots.
+   * Search names case-insensitively to return topmost matches with complete
+   * subtrees. Omitted headers are excluded from matching.
+   */
+  @Get('/chart-of-accounts')
+  @OperationId('getChartOfAccounts')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getChartOfAccounts(@Queries() query: IGetChartOfAccountsQuery) {
+    return getChartOfAccountsUseCase(query);
   }
 
   /**
