@@ -3,6 +3,7 @@ import errorUtils from '@shared/utils/error';
 import DomainError from '@shared/values/errors/domain.error';
 
 const EErrorKeys = {
+  PromotionBalanceNotFound: 'ledger_error_promotion_balance_missing_unexpected',
   CurrencyChangeHasJournalEntries:
     'ledger_error_currency_change_has_journal_entries_conflict',
   CurrencyChangeTransactionRequired:

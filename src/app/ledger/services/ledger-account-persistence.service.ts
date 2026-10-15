@@ -46,11 +46,52 @@ function makeCreate(
   };
 }
 
+/** Persists promotion records and versioned balances as one atomic bundle. */
+function makePromote(
+  deps: IDependencies
+): ILedgerAccountPersistenceAppService['promote'] {
+  return async (promotion, repoOptions) => {
+    const [controlAccount] = promotion.controlAccount;
+    const [postingAccount] = promotion.postingAccount;
+    const transactionFn: TRepoTransactionFn = async (tx) => {
+      const writeOptions = { ...repoOptions, tx };
+      // The parent FK is checked at commit; this update frees the old code/path.
+      await deps.ledgerAccountRepo.update(postingAccount, {
+        ...writeOptions,
+        expectedVersion: postingAccount.version - 1,
+        history: repoOptions.history.find(
+          (history) => history.entityId === postingAccount.id
+        )!,
+      });
+
+      await deps.ledgerAccountRepo.create(controlAccount, {
+        ...writeOptions,
+        history: repoOptions.history.filter(
+          (history) => history.entityId === controlAccount.id
+        ),
+      });
+
+      await deps.ledgerAccountBalanceRepo.update(promotion.postingBalance, {
+        correlationId: repoOptions.correlationId,
+        tx,
+        expectedVersion: promotion.postingBalance.version - 1,
+      });
+
+      await deps.ledgerAccountBalanceRepo.create(
+        promotion.controlBalance,
+        writeOptions
+      );
+    };
+    await deps.repoService.runInTransaction(transactionFn, repoOptions.tx);
+  };
+}
+
 export default function makeLedgerAccountPersistenceAppService(
   deps: IDependencies
 ) {
   const service: ILedgerAccountPersistenceAppService = Object.freeze({
     create: makeCreate(deps),
+    promote: makePromote(deps),
   });
 
   return service;

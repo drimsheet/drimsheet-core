@@ -1,7 +1,6 @@
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -102,9 +101,9 @@ function makeCreateSubAccount(): IShortTermLoanAccountService['createSubAccount'
       subAccountCurrency: payload.currency,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TShortTermDebtLedgerCode
+    const code = ledgerAccountEntity.getNextCode<TShortTermDebtLedgerCode>(
+      LEDGER_CODE.HEADER,
+      controlAccount.code
     );
 
     const materializedPath =
@@ -153,9 +152,9 @@ function makeCreateCreditCardSubAccount(): IShortTermLoanAccountService['createC
       subAccountCurrency: payload.currency,
     });
 
-    const code = getNextSubledgerAccountCode(
-      LEDGER_CODE.PREFIX,
-      controlAccount.code as TShortTermDebtLedgerCode
+    const code = ledgerAccountEntity.getNextCode<TShortTermDebtLedgerCode>(
+      LEDGER_CODE.HEADER,
+      controlAccount.code
     );
 
     const materializedPath =

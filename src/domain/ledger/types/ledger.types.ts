@@ -3,6 +3,8 @@ import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { ICurrency } from '@domain/money/types/currency.types';
 
+import { ILedgerAccountBalance } from './ledger-account-balance.types';
+
 export const ELedgerType = {
   Asset: 'asset',
   Liability: 'liability',
@@ -103,3 +105,17 @@ export type TAuditedLedgerAccount = TAuditedEntity<
   ILedgerAccount,
   ILedgerAccount
 >;
+
+/** Client-localized names applied only when a posting account is promoted. */
+export interface ILedgerAccountPromotionNames {
+  newControlAccountName: string;
+  newPostingAccountName: string;
+}
+
+/** Prepared promotion; the original posting identity survives with a new code. */
+export interface ILedgerAccountPromotionResult {
+  controlAccount: TAuditedLedgerAccount;
+  postingAccount: TAuditedLedgerAccount;
+  controlBalance: ILedgerAccountBalance;
+  postingBalance: ILedgerAccountBalance;
+}

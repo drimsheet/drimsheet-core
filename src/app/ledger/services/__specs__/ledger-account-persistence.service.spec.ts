@@ -4,9 +4,12 @@ import {
   IWriteRepoOptions,
 } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import historyValue from '@shared/values/history/history.vo';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
+import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import { ILedgerAccountHistory } from '@domain/ledger/types/ledger-account-audit.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
@@ -144,4 +147,120 @@ describe('ledgerAccountPersistenceAppService', () => {
       );
     });
   });
+  it.each([
+    undefined,
+    'posting',
+    'control',
+    'postingBalance',
+    'controlBalance',
+  ] as const)(
+    'persists prepared promotion with ordinary writes, failure=%s',
+    async (failureAt) => {
+      const [original] = ledgerAccountEntity.make({
+        ...account,
+        isControlAccount: false,
+        code: '100001',
+        materializedPath: '100000.100001',
+        controlAccountId: account.id,
+      });
+      const controlAccount =
+        ledgerAccountEntity.clonePostingAccountToControlAccount(
+          original,
+          account.createdBy
+        );
+      const [control, , controlAudit] = controlAccount;
+      const postingAccount = ledgerAccountEntity.reparentPostingAccount(
+        original,
+        control,
+        '100002'
+      );
+      const [posting, , postingAudit] = postingAccount;
+      const existingBalance = ledgerAccountBalanceEntity.make({
+        createdBy: account.createdBy,
+        ledgerAccountId: original.id,
+        accountingEntityId: original.accountingEntityId,
+        accountMaterializedPath: original.materializedPath,
+        currencyCode: 'NGN',
+        functionalCurrencyCode: 'NGN',
+      });
+      const promotion = {
+        controlAccount,
+        postingAccount,
+        postingBalance: ledgerAccountBalanceEntity.updateAccountCode(
+          existingBalance,
+          posting.materializedPath
+        ),
+        controlBalance: ledgerAccountBalanceEntity.cloneToControlAccount(
+          existingBalance,
+          control.id,
+          control.createdBy
+        ),
+      };
+      const options = {
+        ...repoOptions,
+        tx: {},
+        history: [
+          historyValue.make(controlAudit, account.createdBy, 'promotion'),
+          historyValue.make(postingAudit, account.createdBy, 'promotion'),
+        ],
+      };
+      const writes = {
+        posting: mockLedgerAccountRepo.update,
+        control: mockLedgerAccountRepo.create,
+        postingBalance: mockLedgerAccountBalanceRepo.update,
+        controlBalance: mockLedgerAccountBalanceRepo.create,
+      };
+      if (failureAt) {
+        const failure = new Error(`${failureAt} write failed`);
+        writes[failureAt].mockRejectedValueOnce(failure);
+        await expect(service.promote(promotion, options)).rejects.toBe(failure);
+        const failedIndex = Object.keys(writes).indexOf(failureAt);
+        Object.values(writes).forEach((write, index) => {
+          expect(write).toHaveBeenCalledTimes(index <= failedIndex ? 1 : 0);
+        });
+        return;
+      }
+      await service.promote(promotion, options);
+      expect(mockRepoService.runInTransaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        options.tx
+      );
+      expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(posting, {
+        ...options,
+        tx: 'mock-tx',
+        expectedVersion: original.version,
+        history: options.history[1],
+      });
+      expect(mockLedgerAccountRepo.create).toHaveBeenCalledWith(control, {
+        ...options,
+        tx: 'mock-tx',
+        history: [options.history[0]],
+      });
+      expect(
+        mockLedgerAccountRepo.update.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockLedgerAccountRepo.create.mock.invocationCallOrder[0]);
+      expect(
+        mockLedgerAccountRepo.create.mock.invocationCallOrder[0]
+      ).toBeLessThan(
+        mockLedgerAccountBalanceRepo.update.mock.invocationCallOrder[0]
+      );
+      expect(
+        mockLedgerAccountBalanceRepo.update.mock.invocationCallOrder[0]
+      ).toBeLessThan(
+        mockLedgerAccountBalanceRepo.create.mock.invocationCallOrder[0]
+      );
+      expect(mockLedgerAccountBalanceRepo.update).toHaveBeenCalledWith(
+        promotion.postingBalance,
+        {
+          correlationId: options.correlationId,
+          tx: 'mock-tx',
+          expectedVersion: existingBalance.version,
+        }
+      );
+      expect(mockLedgerAccountBalanceRepo.create).toHaveBeenCalledWith(
+        promotion.controlBalance,
+        { ...options, tx: 'mock-tx' }
+      );
+    }
+  );
 });

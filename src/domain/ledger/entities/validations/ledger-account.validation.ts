@@ -7,6 +7,7 @@ import {
   ELedgerAccountStatus,
   ELedgerType,
   ENormalBalance,
+  ILedgerAccount,
   UAdjunctAccountRule,
   UContraAccountRule,
   ULedgerAccountStatus,
@@ -17,6 +18,38 @@ import {
 function validateCode(code: string) {
   if (!/^[1-5][0-9]{5}$/.test(code)) {
     throw new ledgerAccountError.InvalidCode({ code });
+  }
+}
+
+function validatePredecessorCode(
+  familyPrefix: string,
+  predecessorCode: string
+) {
+  const isInvalidPredecessorCode =
+    !/^[1-5][0-9]{5}$/.test(predecessorCode) ||
+    !predecessorCode.startsWith(familyPrefix);
+  if (isInvalidPredecessorCode) {
+    throw new ledgerAccountError.InvalidPredecessorCode({ predecessorCode });
+  }
+}
+
+/** Requires a posting source and a control parent with the same financial classification and currency. */
+function validatePostingAccountReparenting(
+  account: ILedgerAccount,
+  controlAccount: ILedgerAccount
+) {
+  const isInvalidPromotion =
+    account.isControlAccount ||
+    !controlAccount.isControlAccount ||
+    account.accountingEntityId !== controlAccount.accountingEntityId ||
+    account.type !== controlAccount.type ||
+    account.subType !== controlAccount.subType ||
+    account.behavior !== controlAccount.behavior ||
+    account.normalBalance !== controlAccount.normalBalance ||
+    account.currency?.code !== controlAccount.currency?.code;
+
+  if (isInvalidPromotion) {
+    throw new ledgerAccountError.InvalidControlAccount();
   }
 }
 
@@ -93,6 +126,8 @@ function validateMaterializedPath(materializedPath: string) {
 
 const ledgerAccountValidation = Object.freeze({
   validateCode,
+  validatePredecessorCode,
+  validatePostingAccountReparenting,
   validateType,
   validateStatus,
   validateContraRule,

@@ -30,6 +30,16 @@ const invalidBehaviorKey = new ledgerAccountError.InvalidBehavior().errorKey;
 const defaultErrorKey = new appError.UnprocessableEntity([]).errorKey;
 // =========== error keys end ===========
 
+const promotionNameValidation = z
+  .string(new ledgerAccountError.InvalidName().errorKey)
+  .min(2, new ledgerAccountError.InvalidName().errorKey)
+  .max(100, new ledgerAccountError.InvalidName().errorKey);
+
+export const ledgerAccountPromotionNamesValidation = z.strictObject({
+  newControlAccountName: promotionNameValidation,
+  newPostingAccountName: promotionNameValidation,
+});
+
 export const ledgerAccountCreationStatusValidation = z.enum(
   [ELedgerAccountStatus.Active, ELedgerAccountStatus.Draft],
   new ledgerAccountError.InvalidStatus().errorKey

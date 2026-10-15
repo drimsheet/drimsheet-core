@@ -6,12 +6,21 @@ import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeLedgerAccountService from '@domain/ledger/services/ledger-account.service';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 
+const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
+  create: jest.fn(),
+  update: jest.fn(),
+  adjustBalance: jest.fn(),
+  findByAccountId: jest.fn(),
+  findAdjustmentsByAccountId: jest.fn(),
+  findAllByAccountIds: jest.fn(),
+};
 const accountingEntityId = generateUUID();
 const createdBy = generateUUID();
 function account(
@@ -63,6 +72,7 @@ const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
   findAllByAccountIds: jest.fn(),
 };
 const service = makeLedgerAccountService({
+  ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   journalEntryRepo: mockJournalEntryRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
@@ -372,6 +382,7 @@ describe('ledgerAccountService.archive', () => {
 
 describe('ledgerAccountService.getNextCode', () => {
   const service = makeLedgerAccountService({
+    ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     journalEntryRepo: mockJournalEntryRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
   });

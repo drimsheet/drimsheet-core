@@ -6,7 +6,10 @@ import {
   openingBalanceDtoValidation,
   openingBalanceJsonDtoValidation,
 } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
-import { ledgerAccountCreationStatusValidation } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
+import {
+  ledgerAccountCreationStatusValidation,
+  ledgerAccountPromotionNamesValidation,
+} from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import { currencyCodeValidation } from '@app/money/dtos/currency/currency.dto.validation';
 
@@ -19,6 +22,7 @@ export const cashAccountActivationDtoValidation = z.strictObject({
 export const pettyCashCreationReqValidation = z
   .object({
     status: ledgerAccountCreationStatusValidation.optional(),
+    promotionNames: ledgerAccountPromotionNamesValidation.optional(),
     name: z
       .string()
       .min(1, new ledgerAccountError.InvalidName().errorKey)
@@ -98,6 +102,7 @@ export const bankAccountUpdateReqValidation = z
 export const bankAccountCreationReqValidation = z
   .object({
     status: ledgerAccountCreationStatusValidation.optional(),
+    promotionNames: ledgerAccountPromotionNamesValidation.optional(),
     name: z
       .string()
       .min(1, new ledgerAccountError.InvalidName().errorKey)

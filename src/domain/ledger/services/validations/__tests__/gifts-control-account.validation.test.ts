@@ -37,7 +37,6 @@ describe('giftsControlAccountValidation', () => {
       },
       { type: ELedgerType.Asset },
       { subType: 'invalid' },
-      { isControlAccount: false },
       { behavior: 'invalid' },
     ])('rejects an invalid supplied parent: %o', (change) => {
       const invalidParent = { ...parent, ...change };

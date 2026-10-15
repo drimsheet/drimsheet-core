@@ -35,6 +35,7 @@ import ledgerRepos from '@infra/persistence/repos/ledger';
 import { repoService } from './repo';
 
 export const ledgerAccountService = makeLedgerAccountService({
+  ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   journalEntryRepo: journalEntryRepos.journalEntry,
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });

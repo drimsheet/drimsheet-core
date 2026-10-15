@@ -4,12 +4,27 @@ import { ELedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.typ
 import { ELedgerType } from '@domain/ledger/types/ledger.types';
 
 import {
+  bankAccountCreationReqValidation,
+  pettyCashCreationReqValidation,
+} from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
+import { createExpenseAccountValidation } from '@app/ledger/dtos/expense-account/expense-account.dto.validation';
+import {
   getLedgerAccountQueryValidationSchema,
   ledgerAccountBehaviorValidation,
   ledgerAccountOrderByValidationSchema,
+  ledgerAccountPromotionNamesValidation,
   ledgerAccountSubTypeValidation,
   ledgerAccountTypeValidation,
 } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
+import {
+  createStatutoryPayableAccountValidation,
+  createTradePayableAccountValidation,
+} from '@app/ledger/dtos/payable-account/payable-account.dto.validation';
+import {
+  createStatutoryReceivableAccountValidation,
+  createTradeReceivableAccountValidation,
+} from '@app/ledger/dtos/receivable-account/receivable-account.dto.validation';
+import { createRevenueAccountValidation } from '@app/ledger/dtos/revenue-account/revenue-account.dto.validation';
 
 describe('Ledger Account DTO Validation', () => {
   describe('ledgerAccountTypeValidation', () => {
@@ -126,5 +141,127 @@ describe('Ledger Account DTO Validation', () => {
         getLedgerAccountQueryValidationSchema.safeParse(payload).success
       ).toBe(false);
     });
+  });
+});
+
+describe('optional creation promotion names', () => {
+  const names = {
+    newControlAccountName: 'إيرادات الاستشارات',
+    newPostingAccountName: 'Conseil (par défaut)',
+  };
+  const basic = { name: 'New account', isControlAccount: false };
+  const schemas = [
+    {
+      name: 'revenue',
+      schema: createRevenueAccountValidation,
+      payload: { ...basic, behavior: 'services' },
+    },
+    {
+      name: 'expense',
+      schema: createExpenseAccountValidation,
+      payload: { ...basic, behavior: 'bank_charge' },
+    },
+    {
+      name: 'trade receivable',
+      schema: createTradeReceivableAccountValidation,
+      payload: { ...basic, currencyCode: 'NGN' },
+    },
+    {
+      name: 'statutory receivable',
+      schema: createStatutoryReceivableAccountValidation,
+      payload: { ...basic, currencyCode: 'NGN' },
+    },
+    {
+      name: 'trade payable',
+      schema: createTradePayableAccountValidation,
+      payload: basic,
+    },
+    {
+      name: 'statutory payable',
+      schema: createStatutoryPayableAccountValidation,
+      payload: { ...basic, currencyCode: 'NGN' },
+    },
+    {
+      name: 'petty cash',
+      schema: pettyCashCreationReqValidation,
+      payload: { ...basic, currencyCode: 'NGN', openingBalance: null },
+    },
+    {
+      name: 'bank',
+      schema: bankAccountCreationReqValidation,
+      payload: {
+        name: 'New bank',
+        currencyCode: 'NGN',
+        openingBalance: null,
+        bankAccount: {
+          bankName: 'Test Bank',
+          accountName: 'Current Account',
+          accountNumber: '1234567890',
+        },
+      },
+    },
+  ];
+
+  it.each(schemas)(
+    'accepts omitted or localized names for $name',
+    ({ schema, payload }) => {
+      expect(schema.safeParse(payload).success).toBe(true);
+      expect(schema.parse({ ...payload, promotionNames: names })).toMatchObject(
+        { promotionNames: names }
+      );
+    }
+  );
+
+  it.each(schemas)(
+    'rejects incomplete promotion names for $name',
+    ({ schema, payload }) => {
+      expect(
+        schema.safeParse({
+          ...payload,
+          promotionNames: {
+            newControlAccountName: names.newControlAccountName,
+          },
+        }).success
+      ).toBe(false);
+    }
+  );
+
+  it.each(['newControlAccountName', 'newPostingAccountName'])(
+    'validates the %s field with the account-name error key',
+    (field) => {
+      for (const invalidName of [
+        undefined,
+        null,
+        123,
+        '',
+        'x',
+        'x'.repeat(101),
+      ]) {
+        const parsed = ledgerAccountPromotionNamesValidation.safeParse({
+          ...names,
+          [field]: invalidName,
+        });
+        expect(parsed.success).toBe(false);
+        if (!parsed.success) {
+          expect(parsed.error.issues).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                path: [field],
+                message: 'ledger_error_ledger_account_name_invalid',
+              }),
+            ])
+          );
+        }
+      }
+    }
+  );
+
+  it('rejects unknown promotion fields', () => {
+    expect(
+      ledgerAccountPromotionNamesValidation.safeParse({
+        ...names,
+        unexpected: true,
+      }).success
+    ).toBe(false);
   });
 });

@@ -1405,6 +1405,20 @@
         "enum": ["active", "draft"],
         "description": "Status accepted when proposing or creating a ledger subaccount."
       },
+      "ILedgerAccountPromotionNames": {
+        "description": "Client-localized names applied only when a posting account is promoted.",
+        "properties": {
+          "newControlAccountName": {
+            "type": "string"
+          },
+          "newPostingAccountName": {
+            "type": "string"
+          }
+        },
+        "required": ["newControlAccountName", "newPostingAccountName"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IBankDetailsCreationReq": {
         "properties": {
           "bankName": {
@@ -1435,6 +1449,10 @@
           },
           "controlAccountId": {
             "type": "string"
+          },
+          "promotionNames": {
+            "$ref": "#/components/schemas/ILedgerAccountPromotionNames",
+            "description": "Applied only during promotion; omitted names retain the original account name."
           },
           "bankAccount": {
             "$ref": "#/components/schemas/IBankDetailsCreationReq"
@@ -1470,6 +1488,10 @@
           "controlAccountId": {
             "type": "string"
           },
+          "promotionNames": {
+            "$ref": "#/components/schemas/ILedgerAccountPromotionNames",
+            "description": "Applied only during promotion; omitted names retain the original account name."
+          },
           "openingBalance": {
             "allOf": [
               {
@@ -1504,6 +1526,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "promotionNames": {
+            "$ref": "#/components/schemas/ILedgerAccountPromotionNames",
+            "description": "Applied only during promotion; omitted names retain the original account name."
+          },
           "currencyCode": {
             "type": "string"
           }
@@ -1527,6 +1553,10 @@
           "controlAccountId": {
             "type": "string",
             "format": "uuid"
+          },
+          "promotionNames": {
+            "$ref": "#/components/schemas/ILedgerAccountPromotionNames",
+            "description": "Applied only during promotion; omitted names retain the original account name."
           },
           "currencyCode": {
             "type": "string"
@@ -1568,6 +1598,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "promotionNames": {
+            "$ref": "#/components/schemas/ILedgerAccountPromotionNames",
+            "description": "Applied only during promotion; omitted names retain the original account name."
+          },
           "behavior": {
             "$ref": "#/components/schemas/TSupportedExpenseAccountBehavior"
           }
@@ -1605,6 +1639,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "promotionNames": {
+            "$ref": "#/components/schemas/ILedgerAccountPromotionNames",
+            "description": "Applied only during promotion; omitted names retain the original account name."
+          },
           "currencyCode": {
             "type": "string"
           },
@@ -1636,6 +1674,10 @@
           "controlAccountId": {
             "type": "string",
             "format": "uuid"
+          },
+          "promotionNames": {
+            "$ref": "#/components/schemas/ILedgerAccountPromotionNames",
+            "description": "Applied only during promotion; omitted names retain the original account name."
           },
           "meta": {
             "properties": {
@@ -1683,6 +1725,10 @@
           "controlAccountId": {
             "type": "string",
             "format": "uuid"
+          },
+          "promotionNames": {
+            "$ref": "#/components/schemas/ILedgerAccountPromotionNames",
+            "description": "Applied only during promotion; omitted names retain the original account name."
           },
           "behavior": {
             "$ref": "#/components/schemas/TSupportedRevenueAccountBehavior"

@@ -9,7 +9,12 @@ import { TAuditedEntity } from '@shared/values/events/types/event.types';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 
 import { IFinanceCostAccount } from './expense-account.types';
-import { ILedgerAccount, ULedgerAccountCreationStatus } from './ledger.types';
+import {
+  ILedgerAccount,
+  ILedgerAccountPromotionNames,
+  ILedgerAccountPromotionResult,
+  ULedgerAccountCreationStatus,
+} from './ledger.types';
 
 type TReturnType = TAuditedEntity<
   IFinanceCostAccount,
@@ -28,6 +33,7 @@ interface ISubAccountPayload {
   isControlAccount: boolean;
   status?: ULedgerAccountCreationStatus;
   controlAccountId?: TEntityId;
+  promotionNames?: ILedgerAccountPromotionNames;
 }
 
 export interface IFinanceCostAccountService {
@@ -38,5 +44,5 @@ export interface IFinanceCostAccountService {
   createSubAccount(
     payload: ISubAccountPayload,
     repoOptions: IReadRepoOptions & { tx: ITransactionContext }
-  ): Promise<TReturnType>;
+  ): Promise<[...TReturnType, ILedgerAccountPromotionResult?]>;
 }

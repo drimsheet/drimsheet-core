@@ -15,7 +15,6 @@ function validateStatutoryReceivableSubAccount(
     controlAccount.accountingEntityId === accountingEntityId &&
     controlAccount.type === ELedgerType.Asset &&
     controlAccount.subType === EAssetSubType.Receivables &&
-    controlAccount.isControlAccount &&
     (controlAccount.behavior === EAssetAccountBehavior.DefaultReceivables ||
       controlAccount.behavior === EAssetAccountBehavior.StatutoryReceivable);
 
@@ -40,7 +39,6 @@ function validateTradeReceivableSubAccount(
     controlAccount.accountingEntityId === accountingEntityId &&
     controlAccount.type === ELedgerType.Asset &&
     controlAccount.subType === EAssetSubType.Receivables &&
-    controlAccount.isControlAccount &&
     (controlAccount.behavior === EAssetAccountBehavior.DefaultReceivables ||
       controlAccount.behavior === EAssetAccountBehavior.TradeReceivable);
 

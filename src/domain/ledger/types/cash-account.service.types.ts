@@ -18,7 +18,12 @@ import {
   IPettyCashAccount,
 } from './asset-account.types';
 import { ILedgerAccountAudit } from './ledger-account-audit.types';
-import { ILedgerAccount, ULedgerAccountCreationStatus } from './ledger.types';
+import {
+  ILedgerAccount,
+  ILedgerAccountPromotionNames,
+  ILedgerAccountPromotionResult,
+  ULedgerAccountCreationStatus,
+} from './ledger.types';
 
 interface IMakeHeaderPayload {
   name: string;
@@ -35,6 +40,7 @@ interface IMakePettyCashPayload {
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
   controlAccountId?: TEntityId;
+  promotionNames?: ILedgerAccountPromotionNames;
 }
 
 interface IMakeBankPayload {
@@ -45,6 +51,7 @@ interface IMakeBankPayload {
   createdBy: TEntityId;
   accountingEntity: IAccountingEntity;
   controlAccountId?: TEntityId;
+  promotionNames?: ILedgerAccountPromotionNames;
   openingBalanceDate?: Date;
   bankDetails: IBankDetails;
 }
@@ -78,7 +85,7 @@ export default interface ICashAccountService {
   createPettyCashSubAccount(
     payload: IMakePettyCashPayload,
     repoOptions: IReadRepoOptions & { tx: ITransactionContext }
-  ): Promise<TReturnType>;
+  ): Promise<[...TReturnType, ILedgerAccountPromotionResult?]>;
 
   updatePettyCashSubAccount(
     payload: IUpdateCashAccountPayload,
@@ -109,5 +116,5 @@ export default interface ICashAccountService {
   createBankSubAccount(
     payload: IMakeBankPayload,
     repoOptions: IReadRepoOptions & { tx: ITransactionContext }
-  ): Promise<TReturnType>;
+  ): Promise<[...TReturnType, ILedgerAccountPromotionResult?]>;
 }

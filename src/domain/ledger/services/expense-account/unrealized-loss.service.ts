@@ -12,6 +12,7 @@ import unrealizedLossControlAccountValidation from '@domain/ledger/services/vali
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
+  IUnrealizedLossAccount,
 } from '@domain/ledger/types/expense-account.types';
 import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TUnrealizedLossLedgerCode } from '@domain/ledger/types/ledger-code.types';
@@ -49,7 +50,7 @@ function makeCreateHeader(
       payload.accountingEntity.functionalCurrencyCode
     );
 
-    return ledgerAccountEntity.make({
+    return ledgerAccountEntity.make<IUnrealizedLossAccount>({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
       code: LEDGER_CODE.HEADER,
@@ -79,7 +80,7 @@ function makeCreateSubAccount(
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
     }
 
-    const controlAccount = await getLockedControlAccountHelper(
+    const selectedControlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
       {
         accountingEntityId: payload.accountingEntityId,
@@ -90,20 +91,34 @@ function makeCreateSubAccount(
       repoOptions
     );
 
-    controlAccountAvailabilityValidation.validate(controlAccount);
+    controlAccountAvailabilityValidation.validate(selectedControlAccount);
 
     const status = payload.status ?? ELedgerAccountStatus.Active;
-    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+    controlAccountChildStatusValidation.validate(
+      selectedControlAccount.status,
+      status
+    );
 
     unrealizedLossControlAccountValidation.validate(
-      controlAccount,
+      selectedControlAccount,
       payload.accountingEntityId
     );
 
     ledgerAccountCurrencyInvarianceRule.validate({
-      controlAccount,
+      controlAccount: selectedControlAccount,
       subAccountCurrency: null,
     });
+
+    const promotion = selectedControlAccount.isControlAccount
+      ? undefined
+      : await deps.ledgerAccountService.promotePostingToControlAccount(
+          selectedControlAccount,
+          payload.createdBy,
+          repoOptions,
+          payload.promotionNames
+        );
+    const controlAccount =
+      promotion?.controlAccount[0] ?? selectedControlAccount;
 
     const code = await deps.ledgerAccountService.getNextCode(
       {
@@ -111,6 +126,7 @@ function makeCreateSubAccount(
         type: ELedgerType.Expense,
         subType: EExpenseSubType.UnrealizedLoss,
         allocationHeaderCode: LEDGER_CODE.HEADER,
+        reservedCode: promotion?.postingAccount[0].code,
       },
       repoOptions
     );
@@ -119,7 +135,7 @@ function makeCreateSubAccount(
       code
     );
 
-    return ledgerAccountEntity.make({
+    const auditedAccount = ledgerAccountEntity.make<IUnrealizedLossAccount>({
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
       code: code as TUnrealizedLossLedgerCode,
@@ -137,6 +153,7 @@ function makeCreateSubAccount(
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
     });
+    return promotion ? [...auditedAccount, promotion] : auditedAccount;
   };
 }
 

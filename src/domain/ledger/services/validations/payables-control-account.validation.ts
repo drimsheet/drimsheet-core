@@ -15,7 +15,6 @@ function validateStatutoryPayableSubAccount(
     controlAccount.accountingEntityId === accountingEntityId &&
     controlAccount.type === ELedgerType.Liability &&
     controlAccount.subType === ELiabilitySubType.Payable &&
-    controlAccount.isControlAccount &&
     (controlAccount.behavior === ELiabilityAccountBehavior.DefaultPayable ||
       controlAccount.behavior === ELiabilityAccountBehavior.TaxPayable) &&
     controlAccount.currency !== null;
@@ -41,7 +40,6 @@ function validateTradePayableSubAccount(
     controlAccount.accountingEntityId === accountingEntityId &&
     controlAccount.type === ELedgerType.Liability &&
     controlAccount.subType === ELiabilitySubType.Payable &&
-    controlAccount.isControlAccount &&
     (controlAccount.behavior === ELiabilityAccountBehavior.DefaultPayable ||
       controlAccount.behavior === ELiabilityAccountBehavior.TradePayable);
 

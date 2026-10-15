@@ -5,7 +5,6 @@ import generateUUID from '@shared/utils/uuid-generator';
 import getContraLedgerAccountBalance from '@domain/ledger/entities/helpers/get-contra-balance.helper';
 import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountValidation from '@domain/ledger/entities/validations/ledger-account.validation';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
@@ -276,25 +275,93 @@ describe('Ledger Account Shared Entity', () => {
     });
   });
 
-  describe('getNextSubledgerAccountCode', () => {
-    it('should generate the next sub-ledger code correctly', () => {
-      expect(getNextSubledgerAccountCode('101', '101000')).toBe('101001');
-      expect(getNextSubledgerAccountCode('101', '101009')).toBe('101010');
-      expect(getNextSubledgerAccountCode('300', '300099')).toBe('300100');
+  describe('getNextCode', () => {
+    it.each<[string, string | undefined, string]>([
+      ['101000', '101000', '101001'],
+      ['101000', '101009', '101010'],
+      ['300000', '300099', '300100'],
+      ['401005', undefined, '401006'],
+      ['101000', '101998', '101999'],
+    ])('allocates in %s after %s', (allocationCode, latestCode, expected) => {
+      expect(ledgerAccountEntity.getNextCode(allocationCode, latestCode)).toBe(
+        expected
+      );
     });
 
-    it('should throw if headerCode has invalid format', () => {
-      expect(() => getNextSubledgerAccountCode('10', '100000')).toThrow();
-      expect(() => getNextSubledgerAccountCode('601', '601000')).toThrow();
+    it.each(['10', '601000', '101', '101ABC'])(
+      'rejects an invalid allocation code: %s',
+      (code) => {
+        expect(() => ledgerAccountEntity.getNextCode(code)).toThrow(
+          ledgerAccountError.InvalidCode
+        );
+      }
+    );
+
+    it.each(['102000', '10100', '101ABC', '1011e2', '101-01'])(
+      'rejects an invalid predecessor: %s',
+      (code) => {
+        expect(() => ledgerAccountEntity.getNextCode('101000', code)).toThrow(
+          ledgerAccountError.InvalidPredecessorCode
+        );
+      }
+    );
+
+    it.each([
+      ['101009', '101010', '101011'],
+      ['101010', '101009', '101011'],
+      ['101010', '101010', '101011'],
+      [undefined, '101001', '101002'],
+    ])(
+      'allocates after latest %s and reserved %s',
+      (latestCode, reservedCode, expected) => {
+        expect(
+          ledgerAccountEntity.getNextCode('101000', latestCode, reservedCode)
+        ).toBe(expected);
+      }
+    );
+
+    it.each(['102001', '101ABC', ''])(
+      'rejects an invalid reservation: %s',
+      (reservedCode) => {
+        expect(() =>
+          ledgerAccountEntity.getNextCode('101000', '101010', reservedCode)
+        ).toThrow(ledgerAccountError.InvalidPredecessorCode);
+      }
+    );
+
+    it.each([
+      ['101999', undefined],
+      ['101998', '101999'],
+    ])(
+      'rejects exhaustion at latest %s or reserved %s',
+      (latestCode, reservedCode) => {
+        expect(() =>
+          ledgerAccountEntity.getNextCode('101000', latestCode, reservedCode)
+        ).toThrow(ledgerAccountError.MaximumLimitReached);
+      }
+    );
+  });
+
+  describe('getSuspenseCode', () => {
+    it.each(['199000', '299000'])(
+      'starts the suspense family at %s',
+      (initialCode) => {
+        expect(ledgerAccountEntity.getSuspenseCode(initialCode)).toBe(
+          initialCode
+        );
+      }
+    );
+
+    it('advances an existing suspense family', () => {
+      expect(ledgerAccountEntity.getSuspenseCode('199000', '199009')).toBe(
+        '199010'
+      );
     });
 
-    it('should throw if predecessorCode does not start with the headerCode or has invalid length', () => {
-      expect(() => getNextSubledgerAccountCode('101', '102000')).toThrow();
-      expect(() => getNextSubledgerAccountCode('101', '10100')).toThrow();
-    });
-
-    it('should throw if limit is reached (999)', () => {
-      expect(() => getNextSubledgerAccountCode('101', '101999')).toThrow();
+    it('validates the initial code even before the first allocation', () => {
+      expect(() => ledgerAccountEntity.getSuspenseCode('invalid')).toThrow(
+        ledgerAccountError.InvalidCode
+      );
     });
   });
 
@@ -624,6 +691,16 @@ describe('Ledger Account Shared Entity', () => {
   });
 
   describe('update', () => {
+    it('rejects an explicitly empty name while preserving the account', () => {
+      const [account] = ledgerAccountEntity.make(validPayload);
+
+      expect(() => ledgerAccountEntity.update(account, { name: '' })).toThrow(
+        ledgerAccountError.InvalidName
+      );
+      expect(account.name).toBe(validPayload.name);
+      expect(account.version).toBe(1);
+    });
+
     it('updates only the opening balance date without changing the name', () => {
       const openingBalanceDate = new Date('2026-03-01T00:00:00.000Z');
       const [account] = ledgerAccountEntity.make({
@@ -874,5 +951,82 @@ describe('ledger account archive', () => {
     expect(archived).toBe(account);
     expect(events).toEqual([]);
     expect(audit).toBeNull();
+  });
+});
+
+describe('posting account reparenting', () => {
+  it('preserves the original identity, balances meaning, opening date, and metadata', () => {
+    const [original] = makeCashAccount();
+    const [control] = ledgerAccountEntity.clonePostingAccountToControlAccount(
+      original,
+      original.createdBy
+    );
+    const [updated, events, audit] = ledgerAccountEntity.reparentPostingAccount(
+      original,
+      control,
+      '100002'
+    );
+    expect(updated).toMatchObject({
+      id: original.id,
+      code: '100002',
+      materializedPath: '100000.100001.100002',
+      controlAccountId: control.id,
+      isControlAccount: false,
+      name: original.name,
+      currency: original.currency,
+      normalBalance: original.normalBalance,
+      version: original.version + 1,
+    });
+    expect(Object.isFrozen(updated)).toBe(true);
+    expect(events).toHaveLength(1);
+    expect(audit.diff.before).toMatchObject({
+      code: original.code,
+      controlAccountId: original.controlAccountId,
+    });
+    expect(original.code).toBe('100001');
+  });
+
+  it.each([
+    { isControlAccount: false },
+    { accountingEntityId: generateUUID() },
+    { type: 'revenue' as const },
+    { subType: 'services' },
+    { behavior: 'bank' },
+    { normalBalance: 'credit' as const },
+    { currency: SYSTEM_CURRENCIES.USD },
+  ])('rejects a parent that changes financial meaning: %o', (change) => {
+    const [original] = makeCashAccount();
+    const [control] = ledgerAccountEntity.clonePostingAccountToControlAccount(
+      original,
+      original.createdBy
+    );
+    expect(() =>
+      ledgerAccountEntity.reparentPostingAccount(
+        original,
+        { ...control, ...change },
+        '100002'
+      )
+    ).toThrow(ledgerAccountError.InvalidControlAccount);
+  });
+
+  it('rejects an existing control as the posting account and invalid new codes or paths', () => {
+    const [original] = makeCashAccount();
+    const [control] = ledgerAccountEntity.clonePostingAccountToControlAccount(
+      original,
+      original.createdBy
+    );
+    expect(() =>
+      ledgerAccountEntity.reparentPostingAccount(control, control, '100002')
+    ).toThrow(ledgerAccountError.InvalidControlAccount);
+    expect(() =>
+      ledgerAccountEntity.reparentPostingAccount(original, control, 'bad')
+    ).toThrow(ledgerAccountError.InvalidCode);
+    expect(() =>
+      ledgerAccountEntity.reparentPostingAccount(
+        original,
+        { ...control, materializedPath: '100000.'.repeat(10) + '100001' },
+        '100002'
+      )
+    ).toThrow(ledgerAccountError.InvalidParentMaterializedPath);
   });
 });

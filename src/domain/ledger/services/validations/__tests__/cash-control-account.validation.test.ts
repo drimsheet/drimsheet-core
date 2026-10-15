@@ -49,7 +49,6 @@ describe('cashControlAccountValidation', () => {
     { accountingEntityId: actorId },
     { type: 'liability' },
     { subType: 'receivables' },
-    { isControlAccount: false },
     { behavior: 'petty_cash' },
   ] as const)(
     'rejects an invalid bank parent with its context: %o',

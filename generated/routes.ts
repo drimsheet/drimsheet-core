@@ -1107,6 +1107,15 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ILedgerAccountPromotionNames: {
+    dataType: 'refObject',
+    properties: {
+      newControlAccountName: { dataType: 'string', required: true },
+      newPostingAccountName: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IBankDetailsCreationReq: {
     dataType: 'refObject',
     properties: {
@@ -1124,6 +1133,7 @@ const models: TsoaRoute.Models = {
       status: { ref: 'ULedgerAccountCreationStatus' },
       currencyCode: { dataType: 'string', required: true },
       controlAccountId: { dataType: 'string' },
+      promotionNames: { ref: 'ILedgerAccountPromotionNames' },
       bankAccount: { ref: 'IBankDetailsCreationReq', required: true },
       openingBalance: {
         dataType: 'union',
@@ -1145,6 +1155,7 @@ const models: TsoaRoute.Models = {
       currencyCode: { dataType: 'string', required: true },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
+      promotionNames: { ref: 'ILedgerAccountPromotionNames' },
       openingBalance: {
         dataType: 'union',
         subSchemas: [
@@ -1164,6 +1175,7 @@ const models: TsoaRoute.Models = {
       status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
+      promotionNames: { ref: 'ILedgerAccountPromotionNames' },
       currencyCode: { dataType: 'string', required: true },
     },
     additionalProperties: false,
@@ -1176,6 +1188,7 @@ const models: TsoaRoute.Models = {
       status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
+      promotionNames: { ref: 'ILedgerAccountPromotionNames' },
       currencyCode: { dataType: 'string', required: true },
     },
     additionalProperties: false,
@@ -1209,6 +1222,7 @@ const models: TsoaRoute.Models = {
       status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
+      promotionNames: { ref: 'ILedgerAccountPromotionNames' },
       behavior: { ref: 'TSupportedExpenseAccountBehavior', required: true },
     },
     additionalProperties: false,
@@ -1230,6 +1244,7 @@ const models: TsoaRoute.Models = {
       status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
+      promotionNames: { ref: 'ILedgerAccountPromotionNames' },
       currencyCode: { dataType: 'string', required: true },
       meta: {
         dataType: 'union',
@@ -1249,6 +1264,7 @@ const models: TsoaRoute.Models = {
       status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
+      promotionNames: { ref: 'ILedgerAccountPromotionNames' },
       meta: {
         dataType: 'union',
         subSchemas: [
@@ -1289,6 +1305,7 @@ const models: TsoaRoute.Models = {
       status: { ref: 'ULedgerAccountCreationStatus' },
       isControlAccount: { dataType: 'boolean', required: true },
       controlAccountId: { dataType: 'string' },
+      promotionNames: { ref: 'ILedgerAccountPromotionNames' },
       behavior: { ref: 'TSupportedRevenueAccountBehavior', required: true },
     },
     additionalProperties: false,

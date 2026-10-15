@@ -3,6 +3,8 @@ import errorUtils from '@shared/utils/error';
 import appError from '@shared/values/errors/app.error';
 
 const EErrorKeys = {
+  BalanceHierarchyChanged:
+    'app_error_ledger_balance_hierarchy_changed_conflict',
   AccountNotFound: 'app_error_ledger_account_not_found',
   BalanceNotFound: 'app_error_ledger_balance_not_found',
   BalancePropagationOutboxNotFound:

@@ -7,6 +7,7 @@ import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
@@ -147,12 +148,17 @@ describe('complete trade-receivable creation workflow', () => {
     }
   );
   it('passes an optional parent ID and the caller transaction to the domain', async () => {
-    await usecase({ ...valid, controlAccountId: actor.id });
+    const promotionNames = {
+      newControlAccountName: 'Conseil',
+      newPostingAccountName: 'Conseil (par défaut)',
+    };
+    await usecase({ ...valid, controlAccountId: actor.id, promotionNames });
     expect(
       mockReceivablesAccountService.createTradeReceivableSubAccount
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         controlAccountId: actor.id,
+        promotionNames,
         createdBy: actor.id,
         accountingEntity,
         currency: currencyEntity.getByCode('NGN'),
@@ -207,4 +213,92 @@ describe('complete trade-receivable creation workflow', () => {
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
   });
+  it.each([false, true])(
+    'persists domain promotion before the child and rolls back on failure=%s',
+    async (fails) => {
+      const [original] = ledgerAccountEntity.make({ ...creation[0] });
+      const controlAccount =
+        ledgerAccountEntity.clonePostingAccountToControlAccount(
+          original,
+          actor.id
+        );
+      const [control] = controlAccount;
+      const postingAccount = ledgerAccountEntity.reparentPostingAccount(
+        original,
+        control,
+        `${original.code.slice(0, 3)}998`
+      );
+      const [posting] = postingAccount;
+      const existingBalance = ledgerAccountBalanceEntity.make({
+        createdBy: actor.id,
+        ledgerAccountId: original.id,
+        accountingEntityId: original.accountingEntityId,
+        accountMaterializedPath: original.materializedPath,
+        currencyCode: original.currency?.code ?? 'NGN',
+        functionalCurrencyCode: 'NGN',
+      });
+      const promotion = {
+        controlAccount,
+        postingAccount,
+        postingBalance: ledgerAccountBalanceEntity.updateAccountCode(
+          existingBalance,
+          posting.materializedPath
+        ),
+        controlBalance: ledgerAccountBalanceEntity.make({
+          createdBy: control.createdBy,
+          ledgerAccountId: control.id,
+          accountingEntityId: control.accountingEntityId,
+          accountMaterializedPath: control.materializedPath,
+          currencyCode: existingBalance.amount.currency.code,
+          functionalCurrencyCode:
+            existingBalance.functionalAmount.currency.code,
+          amount: existingBalance.amount.amount,
+          functionalAmount: existingBalance.functionalAmount.amount,
+        }),
+      };
+      mockReceivablesAccountService.createTradeReceivableSubAccount.mockResolvedValueOnce(
+        [...creation, promotion] as Awaited<
+          ReturnType<
+            typeof mockReceivablesAccountService.createTradeReceivableSubAccount
+          >
+        >
+      );
+      const failure = new Error('promotion write failed');
+      if (fails) {
+        mockLedgerAccountPersistenceAppService.promote.mockRejectedValueOnce(
+          failure
+        );
+        await expect(usecase(valid)).rejects.toBe(failure);
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+        expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+        expect(
+          mockLedgerAccountPersistenceAppService.create
+        ).not.toHaveBeenCalled();
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
+        return;
+      }
+      await usecase(valid);
+      expect(
+        mockLedgerAccountPersistenceAppService.promote
+      ).toHaveBeenCalledWith(promotion, {
+        correlationId,
+        tx: mockRepoTransaction.context,
+        history: [
+          expect.objectContaining({ entityId: control.id, actorId: actor.id }),
+          expect.objectContaining({ entityId: posting.id, actorId: actor.id }),
+        ],
+      });
+      expect(
+        mockLedgerAccountPersistenceAppService.promote.mock
+          .invocationCallOrder[0]
+      ).toBeLessThan(
+        mockLedgerAccountPersistenceAppService.create.mock
+          .invocationCallOrder[0]
+      );
+      expect(
+        mockRepoTransaction.commit.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
+      expect(mockEventBus.publish.mock.calls[0][0]).toHaveLength(3);
+    }
+  );
 });

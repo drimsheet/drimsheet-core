@@ -44,6 +44,7 @@ const allocation: jest.Mocked<ILedgerAccountService> = {
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
+  promotePostingToControlAccount: jest.fn(),
 };
 
 describe('bankChargeAccountService', () => {
@@ -275,7 +276,6 @@ describe('bankChargeAccountService', () => {
       label: 'subtype',
       overrides: { subType: EExpenseSubType.LossOnAssetDisposal },
     },
-    { label: 'control status', overrides: { isControlAccount: false } },
     {
       label: 'behavior',
       overrides: { behavior: EExpenseAccountBehavior.AssetDisposalLoss },

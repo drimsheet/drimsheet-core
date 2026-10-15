@@ -1,4 +1,7 @@
-import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types';
+import {
+  ILedgerAccountPromotionNames,
+  ULedgerAccountCreationStatus,
+} from '@domain/ledger/types/ledger.types';
 
 type TSupportedExpenseAccountBehavior =
   | 'default_direct_cost'
@@ -20,6 +23,8 @@ export interface ICreateExpenseAccountDto {
   isControlAccount: boolean;
   /** @format uuid */
   controlAccountId?: string;
+  /** Applied only during promotion; omitted names retain the original account name. */
+  promotionNames?: ILedgerAccountPromotionNames;
   behavior: TSupportedExpenseAccountBehavior;
 }
 

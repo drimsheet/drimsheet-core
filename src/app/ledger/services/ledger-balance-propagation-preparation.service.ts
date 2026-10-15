@@ -30,6 +30,7 @@ interface IBalancePropagation {
   journalEntry: IJournalEntry;
   balanceDeltas: ILedgerAccountBalanceDelta[];
   ledgerAccountIds: TEntityId[];
+  accountPaths: Map<TEntityId, string>;
 }
 
 /**
@@ -92,6 +93,9 @@ async function prepareBalancePropagation(
     journalEntry,
     balanceDeltas: orderedBalanceDeltas,
     ledgerAccountIds,
+    accountPaths: new Map(
+      accounts.map((account) => [account.id, account.materializedPath])
+    ),
   };
 }
 
@@ -122,6 +126,13 @@ function prepareBalanceAdjustments(
 
     if (!existingBalance) {
       throw new ledgerAppError.BalanceNotFound();
+    }
+
+    if (
+      existingBalance.accountMaterializedPath !==
+      propagation.accountPaths.get(balanceDelta.ledgerAccountId)
+    ) {
+      throw new ledgerAppError.BalanceHierarchyChanged();
     }
 
     const balanceAdjustment = ledgerAccountBalanceEntity.adjust(

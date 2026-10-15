@@ -164,6 +164,7 @@ export const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
+  promotePostingToControlAccount: jest.fn(),
 };
 
 export const mockExpenseAccountService: jest.Mocked<IExpenseAccountService> = {

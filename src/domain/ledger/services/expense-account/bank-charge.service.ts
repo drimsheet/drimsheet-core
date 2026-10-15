@@ -13,6 +13,7 @@ import { IBankChargeAccountService } from '@domain/ledger/types/bank-charge.serv
 import {
   EExpenseAccountBehavior,
   EExpenseSubType,
+  IBankChargeAccount,
 } from '@domain/ledger/types/expense-account.types';
 import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TBankChargeLedgerCode } from '@domain/ledger/types/ledger-code.types';
@@ -48,7 +49,7 @@ function makeCreateHeader(
     const currency = currencyEntity.getByCode(
       payload.accountingEntity.functionalCurrencyCode
     );
-    return ledgerAccountEntity.make({
+    return ledgerAccountEntity.make<IBankChargeAccount>({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
       code: LEDGER_CODE.HEADER,
@@ -78,7 +79,7 @@ function makeCreateSubAccount(
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
     }
 
-    const controlAccount = await getLockedControlAccountHelper(
+    const selectedControlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
       {
         accountingEntityId: payload.accountingEntityId,
@@ -89,20 +90,34 @@ function makeCreateSubAccount(
       repoOptions
     );
 
-    controlAccountAvailabilityValidation.validate(controlAccount);
+    controlAccountAvailabilityValidation.validate(selectedControlAccount);
 
     const status = payload.status ?? ELedgerAccountStatus.Active;
-    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+    controlAccountChildStatusValidation.validate(
+      selectedControlAccount.status,
+      status
+    );
 
     bankChargeControlAccountValidation.validate(
-      controlAccount,
+      selectedControlAccount,
       payload.accountingEntityId
     );
 
     ledgerAccountCurrencyInvarianceRule.validate({
-      controlAccount,
+      controlAccount: selectedControlAccount,
       subAccountCurrency: null,
     });
+
+    const promotion = selectedControlAccount.isControlAccount
+      ? undefined
+      : await deps.ledgerAccountService.promotePostingToControlAccount(
+          selectedControlAccount,
+          payload.createdBy,
+          repoOptions,
+          payload.promotionNames
+        );
+    const controlAccount =
+      promotion?.controlAccount[0] ?? selectedControlAccount;
 
     const code = await deps.ledgerAccountService.getNextCode(
       {
@@ -110,6 +125,7 @@ function makeCreateSubAccount(
         type: ELedgerType.Expense,
         subType: EExpenseSubType.BankCharge,
         allocationHeaderCode: LEDGER_CODE.HEADER,
+        reservedCode: promotion?.postingAccount[0].code,
       },
       repoOptions
     );
@@ -118,7 +134,7 @@ function makeCreateSubAccount(
       code
     );
 
-    return ledgerAccountEntity.make({
+    const auditedAccount = ledgerAccountEntity.make<IBankChargeAccount>({
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
       code: code as TBankChargeLedgerCode,
@@ -136,6 +152,7 @@ function makeCreateSubAccount(
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
     });
+    return promotion ? [...auditedAccount, promotion] : auditedAccount;
   };
 }
 

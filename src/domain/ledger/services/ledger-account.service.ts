@@ -3,11 +3,13 @@ import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
 } from '@domain/journal-entry/types/journal-entry.types';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ledgerAccountCurrencyInvarianceRule from '@domain/ledger/rules/currency-invariance.rule';
+import controlAccountAvailabilityValidation from '@domain/ledger/services/validations/control-account-availability.validation';
 import controlAccountChildStatusValidation from '@domain/ledger/services/validations/control-account-child-status.validation';
 import ILedgerAccountService, {
   ELedgerAccountCurrencyUpdateReason,
@@ -22,6 +24,71 @@ import {
 interface IDependencies {
   ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryRepo: IJournalEntryRepo;
+  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
+}
+
+/** Creates a control clone and reparents the original posting account, preserving its ID and journal references. */
+function makePromotePostingToControlAccount(
+  deps: IDependencies
+): ILedgerAccountService['promotePostingToControlAccount'] {
+  return async (account, createdBy, repoOptions, promotionNames) => {
+    if (!repoOptions.tx) {
+      throw new ledgerAccountError.CodeAllocationTransactionRequired();
+    }
+    controlAccountAvailabilityValidation.validate(account);
+
+    const isInvalidParent =
+      account.isControlAccount || !account.controlAccountId;
+    if (isInvalidParent) {
+      throw new ledgerAccountError.InvalidControlAccount();
+    }
+
+    const controlAccount =
+      ledgerAccountEntity.clonePostingAccountToControlAccount(
+        account,
+        createdBy,
+        promotionNames?.newControlAccountName
+      );
+    const [control] = controlAccount;
+
+    const existingBalance = await deps.ledgerAccountBalanceRepo.findByAccountId(
+      account.id,
+      account.accountingEntityId,
+      repoOptions
+    );
+    if (!existingBalance) {
+      throw new ledgerAccountError.PromotionBalanceNotFound();
+    }
+
+    const controlBalance = ledgerAccountBalanceEntity.cloneToControlAccount(
+      existingBalance,
+      control.id,
+      control.createdBy
+    );
+
+    const latest = await deps.ledgerAccountRepo.findLatestBySubType(
+      account.accountingEntityId,
+      account.type,
+      account.subType,
+      repoOptions
+    );
+
+    const code = ledgerAccountEntity.getNextCode(account.code, latest?.code);
+
+    const postingAccount = ledgerAccountEntity.reparentPostingAccount(
+      account,
+      control,
+      code,
+      promotionNames?.newPostingAccountName
+    );
+    const [posting] = postingAccount;
+    const postingBalance = ledgerAccountBalanceEntity.updateAccountCode(
+      existingBalance,
+      posting.materializedPath
+    );
+
+    return { controlAccount, postingAccount, postingBalance, controlBalance };
+  };
 }
 
 /** Validates account currency eligibility under caller-owned family/target locks. Never writes. */
@@ -161,9 +228,10 @@ function makeGetNextCode(
       payload.subType,
       repoOptions
     );
-    return getNextSubledgerAccountCode(
-      payload.allocationHeaderCode.slice(0, 3),
-      latest?.code ?? payload.allocationHeaderCode
+    return ledgerAccountEntity.getNextCode(
+      payload.allocationHeaderCode,
+      latest?.code,
+      payload.reservedCode
     );
   };
 }
@@ -303,5 +371,6 @@ export default function makeLedgerAccountService(
     validateCurrencyChange: makeValidateCurrencyChange(deps),
     delete: makeDelete(deps),
     getNextCode: makeGetNextCode(deps),
+    promotePostingToControlAccount: makePromotePostingToControlAccount(deps),
   });
 }

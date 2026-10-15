@@ -12,7 +12,10 @@ import makeLedgerAccountService from '@domain/ledger/services/ledger-account.ser
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import {
+  mockLedgerAccountBalanceRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import makeArchiveLedgerAccountUsecase from '@app/ledger/usecases/archive-ledger-account.usecase';
 
 const [account] = ledgerAccountEntity.make({
@@ -52,6 +55,7 @@ const usecase = makeArchiveLedgerAccountUsecase({
   appContext: mockAppContext,
   ledgerAccountRepo: mockLedgerAccountRepo,
   ledgerAccountService: makeLedgerAccountService({
+    ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     journalEntryRepo: mockJournalEntryRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
   }),
