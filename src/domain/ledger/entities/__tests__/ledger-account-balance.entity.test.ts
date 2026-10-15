@@ -583,3 +583,54 @@ describe('ledgerAccountBalanceEntity', () => {
     });
   });
 });
+
+describe('ledgerAccountBalanceEntity.changeFunctionalCurrency', () => {
+  const payload = {
+    createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+    ledgerAccountId: '123e4567-e89b-12d3-a456-426614174000' as TEntityId,
+    accountingEntityId: '923e4567-e89b-12d3-a456-426614174000' as TEntityId,
+    accountMaterializedPath: '100000',
+    currencyCode: 'GBP',
+    functionalCurrencyCode: 'NGN',
+  };
+  it('changes functional currency only and increments the version', () => {
+    const current = ledgerAccountBalanceEntity.make(payload);
+    const updated = ledgerAccountBalanceEntity.changeFunctionalCurrency(
+      current,
+      currencyEntity.getByCode('USD')
+    );
+    expect(updated).toMatchObject({
+      ledgerAccountId: current.ledgerAccountId,
+      version: 2,
+      functionalAmount: { amount: 0n, currency: { code: 'USD' } },
+    });
+    expect(updated.amount).toBe(current.amount);
+    expect(updated.createdAt).toBe(current.createdAt);
+    expect(current.functionalAmount.currency.code).toBe('NGN');
+    expect(Object.isFrozen(updated)).toBe(true);
+  });
+  it('returns the existing balance for the same currency', () => {
+    const current = ledgerAccountBalanceEntity.make(payload);
+    expect(
+      ledgerAccountBalanceEntity.changeFunctionalCurrency(
+        current,
+        currencyEntity.getByCode('NGN')
+      )
+    ).toBe(current);
+  });
+  it.each([{ amount: 1n }, { functionalAmount: 1n }])(
+    'rejects nonzero balances %p',
+    (amounts) => {
+      const current = ledgerAccountBalanceEntity.make({
+        ...payload,
+        ...amounts,
+      });
+      expect(() =>
+        ledgerAccountBalanceEntity.changeFunctionalCurrency(
+          current,
+          currencyEntity.getByCode('USD')
+        )
+      ).toThrow();
+    }
+  );
+});

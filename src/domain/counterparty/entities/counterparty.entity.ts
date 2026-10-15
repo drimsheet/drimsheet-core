@@ -141,6 +141,8 @@ function update(
     !hasMetaChanges;
 
   if (isUnchanged) {
+    // TODO: fix this! Never throw if unchanged https://drimsheet-app.atlassian.net/browse/ENG-194
+    // see src/domain/journal-entry/entities/journal-line.entity.ts
     throw new counterpartyError.InvalidUpdate();
   }
 

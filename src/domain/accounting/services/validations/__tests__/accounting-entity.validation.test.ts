@@ -11,7 +11,19 @@ import {
 } from '@domain/accounting/types/accounting-entity.types';
 import { EPeriodUnit } from '@domain/accounting/types/period.types';
 
+const repo: jest.Mocked<IAccountingEntityRepo> = {
+  update: jest.fn(),
+  create: jest.fn(),
+  findById: jest.fn(),
+  findByIdAndUserId: jest.fn(),
+  findByUserId: jest.fn(),
+};
+
 describe('accountingEntityServiceValidation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('is frozen', () => {
     expect(Object.isFrozen(accountingEntityServiceValidation)).toBe(true);
   });
@@ -34,16 +46,6 @@ describe('accountingEntityServiceValidation', () => {
     accountingPeriod: { unit: EPeriodUnit.Month, count: 1 },
     reportingPeriod: { unit: EPeriodUnit.Quarter, count: 1 },
   };
-  const repo: jest.Mocked<IAccountingEntityRepo> = {
-    create: jest.fn(),
-    findById: jest.fn(),
-    findByIdAndUserId: jest.fn(),
-    findByUserId: jest.fn(),
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
 
   describe('validateExistingIndividualEntity', () => {
     it('does not query existing entities for a non-individual entity', async () => {

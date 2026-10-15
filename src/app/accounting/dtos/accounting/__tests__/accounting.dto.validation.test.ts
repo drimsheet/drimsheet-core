@@ -5,6 +5,7 @@ import {
   accountingEntityOnboardingDtoSchema,
   accountingEntitySwitchReqSchema,
   accountingEntityTypeValidation,
+  accountingEntityUpdateReqSchema,
   accountingStandardCodeValidation,
   fiscalYearCreationDtoSchema,
   jurisdictionCodeValidation,
@@ -318,4 +319,32 @@ describe('Accounting DTO Validation', () => {
       );
     });
   });
+});
+
+describe('accountingEntityUpdateReqSchema', () => {
+  it.each([
+    { name: 'New' },
+    { entityType: 'private_company' },
+    { functionalCurrencyCode: 'USD' },
+    { name: 'New', entityType: 'sole_trader', functionalCurrencyCode: 'NGN' },
+  ])('accepts %j', (payload) => {
+    expect(accountingEntityUpdateReqSchema.safeParse(payload).success).toBe(
+      true
+    );
+  });
+  it.each([
+    {},
+    { name: undefined },
+    { name: null },
+    { entityType: null },
+    { functionalCurrencyCode: null },
+    { name: 1 },
+    { entityType: 'provate_company' },
+    { functionalCurrencyCode: 'US' },
+    { name: 'New', ownerId: 'other' },
+  ])('rejects %j', (payload) =>
+    expect(accountingEntityUpdateReqSchema.safeParse(payload).success).toBe(
+      false
+    )
+  );
 });

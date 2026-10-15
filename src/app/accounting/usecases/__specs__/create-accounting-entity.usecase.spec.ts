@@ -27,6 +27,8 @@ import {
 import { IAccountingEntityCreationDto } from '@app/accounting/dtos/accounting/accounting.dto';
 import createAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
+import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
+import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
 import { EAppUsageModePreference } from '@app/user/types/user-preferences.types';
 
@@ -84,6 +86,8 @@ describe('createAccountingEntityUseCase', () => {
     mockAccountingPeriodRepo.findByRange.mockResolvedValue([]);
     mockAccountingEntityRepo.findByUserId.mockResolvedValue([]);
     accounting = await makeAccountingEntityService({
+      ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
+      journalEntryRepo: mockJournalEntryRepo,
       accountingPeriodService: makeAccountingPeriodService({
         accountingPeriodRepo: mockAccountingPeriodRepo,
       }),
@@ -148,6 +152,8 @@ describe('createAccountingEntityUseCase', () => {
       entityType: EAccountingEntityType.PrivateCompany,
     };
     const privateCompanyAccounting = await makeAccountingEntityService({
+      ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
+      journalEntryRepo: mockJournalEntryRepo,
       accountingPeriodService: makeAccountingPeriodService({
         accountingPeriodRepo: mockAccountingPeriodRepo,
       }),

@@ -6,6 +6,7 @@ import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.re
 
 import { accountingEntitiesInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import mapJournalFunctionalCurrencyErrorHelper from '@infra/persistence/helpers/map-journal-functional-currency-error.helper';
 import accountingEntityMapper from '@infra/persistence/repos/accounting/mappers/accounting-entity.mapper';
 
 import accountingEntityHistoryRepo from './accounting-entity-history.repo.impl';
@@ -23,6 +24,24 @@ const accountingEntityRepo: IAccountingEntityRepo = {
         passOnRepoTransaction(options, tx)
       );
     });
+  },
+
+  update: async (domain, options) => {
+    try {
+      await getDbQuery(options).transaction(async (tx) => {
+        await tx
+          .update(accountingEntitiesInCore)
+          .set(accountingEntityMapper.toRepo(domain))
+          .where(eq(accountingEntitiesInCore.id, domain.id));
+        await accountingEntityHistoryRepo.save(
+          domain,
+          options.history,
+          passOnRepoTransaction(options, tx)
+        );
+      });
+    } catch (error) {
+      throw mapJournalFunctionalCurrencyErrorHelper(error);
+    }
   },
 
   findById: async (id, options) => {

@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { ERepoLock, IWriteRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
+import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import {
   IAccountingEntity,
   IAccountingEntityHistory,
@@ -78,6 +79,28 @@ describe('AccountingEntityRepoImpl', () => {
         correlationId: options.correlationId,
         tx,
       })
+    );
+  });
+
+  it('updates the entity and saves its audit in the same transaction', async () => {
+    const where = jest.fn().mockResolvedValue({ rowCount: 1 });
+    const set = jest.fn().mockReturnValue({ where });
+    const tx = { update: jest.fn().mockReturnValue({ set }) };
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn(async (callback) => callback(tx as never)),
+    } as unknown as ReturnType<typeof getDbQuery>);
+    const mapped = { id: domain.id };
+    jest.mocked(accountingEntityMapper.toRepo).mockReturnValue(mapped as never);
+    await accountingEntityRepo.update(domain, options);
+    expect(tx.update).toHaveBeenCalledWith(accountingEntitiesInCore);
+    expect(set).toHaveBeenCalledWith(mapped);
+    expect(where).toHaveBeenCalledWith(
+      eq(accountingEntitiesInCore.id, domain.id)
+    );
+    expect(accountingEntityHistoryRepo.save).toHaveBeenCalledWith(
+      domain,
+      options.history,
+      expect.objectContaining({ tx, correlationId: options.correlationId })
     );
   });
 
@@ -233,4 +256,51 @@ describe('accountingEntityRepo.findById', () => {
       }
     }
   );
+});
+
+describe('accountingEntityRepo.update trigger errors', () => {
+  beforeEach(() => jest.resetAllMocks());
+
+  it('maps the functional currency constraint to a domain conflict', async () => {
+    const databaseError = {
+      cause: {
+        code: '23514',
+        constraint: 'accounting_entities_journal_currency_change_check',
+      },
+    };
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn().mockRejectedValue(databaseError),
+    } as never);
+    await expect(
+      accountingEntityRepo.update(
+        { id: 'line', version: 2 } as never,
+        {
+          correlationId: 'trigger',
+          expectedVersion: 1,
+          history: { entityVersion: 2 },
+          accountingEntityId: 'entity',
+        } as never
+      )
+    ).rejects.toBeInstanceOf(
+      accountingEntityError.FunctionalCurrencyChangeNotAllowed
+    );
+  });
+
+  it('propagates unrelated database errors unchanged', async () => {
+    const failure = new Error('unavailable');
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn().mockRejectedValue(failure),
+    } as never);
+    await expect(
+      accountingEntityRepo.update(
+        { id: 'line', version: 2 } as never,
+        {
+          correlationId: 'trigger',
+          expectedVersion: 1,
+          history: { entityVersion: 2 },
+          accountingEntityId: 'entity',
+        } as never
+      )
+    ).rejects.toBe(failure);
+  });
 });

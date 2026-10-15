@@ -13,6 +13,11 @@ export default interface IAccountingEntityRepo {
     options: IWriteRepoOptions<IAccountingEntityAuditHistory>
   ): Promise<void>;
 
+  update(
+    domain: IAccountingEntity,
+    options: IWriteRepoOptions<IAccountingEntityAuditHistory>
+  ): Promise<void>;
+
   findById(
     id: TEntityId,
     options: IReadRepoOptions

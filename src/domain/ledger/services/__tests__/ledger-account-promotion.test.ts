@@ -48,6 +48,7 @@ const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findAll: jest.fn(),
 };
 const ledgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
+  findAllByAccountingEntityId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   adjustBalance: jest.fn(),
@@ -56,6 +57,7 @@ const ledgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
   findAllByAccountIds: jest.fn(),
 };
 const journalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
+  existsByAccountingEntityId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

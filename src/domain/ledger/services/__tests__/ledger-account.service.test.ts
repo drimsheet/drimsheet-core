@@ -14,6 +14,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 
 const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
+  findAllByAccountingEntityId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   adjustBalance: jest.fn(),
@@ -63,6 +64,7 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findAll: jest.fn(),
 };
 const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
+  existsByAccountingEntityId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

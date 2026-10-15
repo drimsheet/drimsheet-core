@@ -7,6 +7,7 @@ import { TEntityId } from '@shared/types/uuid';
 import historyValue from '@shared/values/history/history.vo';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
+import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
@@ -63,6 +64,7 @@ describe('ledgerAccountPersistenceAppService', () => {
       functionalCurrencyCode: SYSTEM_CURRENCIES.NGN.code,
       jurisdictionCode: 'NG',
     });
+
     [account] = await cashAccountService.createHeader(
       {
         name: 'Cash',
@@ -89,6 +91,18 @@ describe('ledgerAccountPersistenceAppService', () => {
   });
 
   describe('create', () => {
+    it('propagates a database currency rejection through the atomic account/balance write', async () => {
+      const error = new accountingEntityError.FunctionalCurrencyMismatch();
+      mockLedgerAccountBalanceRepo.create.mockRejectedValueOnce(error);
+      await expect(service.create(account, 'NGN', repoOptions)).rejects.toBe(
+        error
+      );
+      expect(mockLedgerAccountBalanceRepo.create).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({ tx: 'mock-tx' })
+      );
+    });
+
     it('should successfully create account and balance within a transaction', async () => {
       await service.create(account, SYSTEM_CURRENCIES.NGN.code, repoOptions);
 

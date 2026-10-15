@@ -4,6 +4,8 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { TEntityId } from '@shared/types/uuid';
 import repoError from '@shared/values/errors/repo.error';
 
+import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
+
 import { journalLinesInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import journalLineRepo from '@infra/persistence/repos/journal-entry/journal-line.repo.impl';
@@ -226,5 +228,95 @@ describe('journal lines by counterparty', () => {
     expect(predicate.sql).toContain('"counterparty_id"');
     expect(predicate.sql).toContain('"accounting_entity_id"');
     expect(predicate.sql).not.toMatch(/status|archived|posted|description/);
+  });
+});
+
+describe('journalLineRepo.create trigger errors', () => {
+  beforeEach(() => jest.resetAllMocks());
+
+  it('maps the functional currency constraint to a domain conflict', async () => {
+    const databaseError = {
+      cause: {
+        code: '23514',
+        constraint: 'journal_lines_entity_functional_currency_check',
+      },
+    };
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn().mockRejectedValue(databaseError),
+    } as never);
+    await expect(
+      journalLineRepo.create(
+        { id: 'line', version: 2 } as never,
+        {
+          correlationId: 'trigger',
+          expectedVersion: 1,
+          history: { entityVersion: 2 },
+          accountingEntityId: 'entity',
+        } as never
+      )
+    ).rejects.toBeInstanceOf(accountingEntityError.FunctionalCurrencyMismatch);
+  });
+
+  it('propagates unrelated database errors unchanged', async () => {
+    const failure = new Error('unavailable');
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn().mockRejectedValue(failure),
+    } as never);
+    await expect(
+      journalLineRepo.create(
+        { id: 'line', version: 2 } as never,
+        {
+          correlationId: 'trigger',
+          expectedVersion: 1,
+          history: { entityVersion: 2 },
+          accountingEntityId: 'entity',
+        } as never
+      )
+    ).rejects.toBe(failure);
+  });
+});
+
+describe('journalLineRepo.update trigger errors', () => {
+  beforeEach(() => jest.resetAllMocks());
+
+  it('maps the functional currency constraint to a domain conflict', async () => {
+    const databaseError = {
+      cause: {
+        code: '23514',
+        constraint: 'journal_lines_entity_functional_currency_check',
+      },
+    };
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn().mockRejectedValue(databaseError),
+    } as never);
+    await expect(
+      journalLineRepo.update(
+        { id: 'line', version: 2 } as never,
+        {
+          correlationId: 'trigger',
+          expectedVersion: 1,
+          history: { entityVersion: 2 },
+          accountingEntityId: 'entity',
+        } as never
+      )
+    ).rejects.toBeInstanceOf(accountingEntityError.FunctionalCurrencyMismatch);
+  });
+
+  it('propagates unrelated database errors unchanged', async () => {
+    const failure = new Error('unavailable');
+    jest.mocked(getDbQuery).mockReturnValue({
+      transaction: jest.fn().mockRejectedValue(failure),
+    } as never);
+    await expect(
+      journalLineRepo.update(
+        { id: 'line', version: 2 } as never,
+        {
+          correlationId: 'trigger',
+          expectedVersion: 1,
+          history: { entityVersion: 2 },
+          accountingEntityId: 'entity',
+        } as never
+      )
+    ).rejects.toBe(failure);
   });
 });

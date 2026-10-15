@@ -1,9 +1,14 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import { TAuditedEntity } from '@shared/values/events/types/event.types';
+import {
+  IEvent,
+  TAuditedEntity,
+} from '@shared/values/events/types/event.types';
 
 import { UAccountingStandardCode } from '@domain/accounting/config/accounting-standards.config';
 import { UJurisdictionCode } from '@domain/accounting/config/jurisdictions.config';
+import { IAccountingEntityAudit } from '@domain/accounting/types/accounting-entity-audit.types';
+import { ILedgerAccountBalance } from '@domain/ledger/types/ledger-account-balance.types';
 import { UCurrencyCode } from '@domain/money/config/currencies.config';
 
 import {
@@ -66,6 +71,27 @@ export default interface IAccountingEntityService {
     input: IAccountingEntityCreationInput,
     repoOptions: IReadRepoOptions
   ): Promise<IAccountingEntityCreationResult>;
+
+  /**
+   * Prepares the entity transition and every balance when functional currency changes.
+   * Rejects balances inconsistent with the entity's current functional currency.
+   * Caller holds the accounting entity update lock through invariant reads and persistence.
+   * Each returned balance advances its persisted version by one.
+   */
+  update(
+    current: IAccountingEntity,
+    changes: Partial<
+      Pick<IAccountingEntity, 'name' | 'type' | 'functionalCurrencyCode'>
+    >,
+    repoOptions: IReadRepoOptions
+  ): Promise<{
+    accountingEntity: [
+      IAccountingEntity,
+      IEvent<IAccountingEntity>[],
+      IAccountingEntityAudit | null,
+    ];
+    updatedBalances: ILedgerAccountBalance[];
+  }>;
 
   grantUserAccess(
     accountingEntity: IAccountingEntity,

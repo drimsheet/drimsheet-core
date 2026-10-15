@@ -80,6 +80,7 @@ const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
 };
 
 const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
+  findAllByAccountingEntityId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   adjustBalance: jest.fn(),

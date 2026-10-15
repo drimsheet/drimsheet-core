@@ -4,6 +4,7 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 
 export const EAccountingEntityEvents = {
   Created: 'domain:accounting:entity:created',
+  Updated: 'domain:accounting:entity:updated',
 } as const;
 
 function makeCreatedEvent(params: IAccountingEntity) {
@@ -15,6 +16,11 @@ function makeCreatedEvent(params: IAccountingEntity) {
 
 const accountingEntityEvents = Object.freeze({
   created: makeCreatedEvent,
+  updated: (entity: IAccountingEntity) =>
+    eventValue.make<IAccountingEntity>({
+      type: EAccountingEntityEvents.Updated,
+      data: entity,
+    }),
 });
 
 export default accountingEntityEvents;

@@ -4,6 +4,7 @@ import {
   Get,
   Middlewares,
   OperationId,
+  Patch,
   Post,
   Response,
   Route,
@@ -15,7 +16,9 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import {
   IAccountingEntityCreationDto,
+  IAccountingEntityDto,
   IAccountingEntitySwitchReq,
+  IAccountingEntityUpdateReq,
 } from '@app/accounting/dtos/accounting/accounting.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
@@ -25,6 +28,7 @@ import {
   getJurisdictionsUseCase,
   getUserAccountingEntitiesUseCase,
   switchAccountingEntityUseCase,
+  updateAccountingEntityUseCase,
 } from '@infra/ioc/usecases/accounting';
 
 @Route('accounting')
@@ -97,6 +101,26 @@ export class AccountingController extends Controller {
     @Body() body: IAccountingEntityCreationDto
   ) {
     return await createAccountingEntityUseCase(body);
+  }
+
+  /** Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries. */
+  @Patch('/accounting-entity')
+  @OperationId('updateAccountingEntity')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async updateAccountingEntity(
+    @Body() body: IAccountingEntityUpdateReq
+  ): Promise<IAccountingEntityDto> {
+    return await updateAccountingEntityUseCase(body);
   }
 
   /**

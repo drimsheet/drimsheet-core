@@ -2860,6 +2860,32 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingEntityDto: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string', required: true },
+      createdBy: { dataType: 'string', required: true },
+      ownerId: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      type: { ref: 'UAccountingEntityType', required: true },
+      functionalCurrencyCode: { ref: 'UCurrencyCode', required: true },
+      jurisdictionCode: { ref: 'UJurisdictionCode', required: true },
+      createdAt: { dataType: 'datetime', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingEntityUpdateReq: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string' },
+      entityType: { ref: 'UAccountingEntityType' },
+      functionalCurrencyCode: { ref: 'UCurrencyCode' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IAccountingEntitySwitchReq: {
     dataType: 'refObject',
     properties: {
@@ -6282,6 +6308,55 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_updateAccountingEntity: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IAccountingEntityUpdateReq',
+    },
+  };
+  app.patch(
+    '/api/v1/accounting/accounting-entity',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.updateAccountingEntity
+    ),
+
+    async function AccountingController_updateAccountingEntity(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_updateAccountingEntity,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'updateAccountingEntity',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
         });
       } catch (err) {
         return next(err);
