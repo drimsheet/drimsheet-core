@@ -229,14 +229,193 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UCounterpartyStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['draft'] },
+        { dataType: 'enum', enums: ['active'] },
+        { dataType: 'enum', enums: ['archived'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UCounterpartyType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['individual'] },
+        { dataType: 'enum', enums: ['organization'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UCounterpartyRole: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['employer'] },
+        { dataType: 'enum', enums: ['vendor'] },
+        { dataType: 'enum', enums: ['contractor'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAddressDto: {
+    dataType: 'refObject',
+    properties: {
+      line1: { dataType: 'string', required: true },
+      line2: { dataType: 'string' },
+      city: { dataType: 'string', required: true },
+      region: { dataType: 'string' },
+      postalCode: { dataType: 'string' },
+      countryCode: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICounterpartyMetaDto: {
+    dataType: 'refObject',
+    properties: {
+      employer: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          address: { ref: 'IAddressDto', required: true },
+          displayName: {
+            dataType: 'union',
+            subSchemas: [
+              { dataType: 'string' },
+              { dataType: 'enum', enums: [null] },
+            ],
+            required: true,
+          },
+        },
+      },
+      vendor: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          address: {
+            dataType: 'union',
+            subSchemas: [
+              { ref: 'IAddressDto' },
+              { dataType: 'enum', enums: [null] },
+            ],
+            required: true,
+          },
+        },
+      },
+      contractor: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: { address: { ref: 'IAddressDto', required: true } },
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICounterpartyDto: {
+    dataType: 'refObject',
+    properties: {
+      createdBy: { dataType: 'string', required: true },
+      id: { dataType: 'string', required: true },
+      accountingEntityId: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      status: { ref: 'UCounterpartyStatus', required: true },
+      type: { ref: 'UCounterpartyType', required: true },
+      roles: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'UCounterpartyRole' },
+        required: true,
+      },
+      meta: { ref: 'ICounterpartyMetaDto', required: true },
+      createdAt: { dataType: 'datetime', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountCounterpartyParticipationDto: {
+    dataType: 'refObject',
+    properties: {
+      counterparty: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'ICounterpartyDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      isSelf: { dataType: 'boolean', required: true },
+      participation: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          totalShare: {
+            dataType: 'union',
+            subSchemas: [
+              { dataType: 'double' },
+              { dataType: 'enum', enums: [null] },
+            ],
+            required: true,
+          },
+          functionalAmount: { ref: 'IMoneyDto', required: true },
+          amount: { ref: 'IMoneyDto', required: true },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IPaginationResponseMeta: {
+    dataType: 'refObject',
+    properties: {
+      page: { dataType: 'double', required: true },
+      limit: { dataType: 'double', required: true },
+      total: { dataType: 'double', required: true },
+      totalPages: { dataType: 'double', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IPaginatedResponse_IAccountCounterpartyParticipationDto_: {
+    dataType: 'refObject',
+    properties: {
+      data: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IAccountCounterpartyParticipationDto',
+        },
+        required: true,
+      },
+      meta: { ref: 'IPaginationResponseMeta', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetAccountCounterpartyParticipationQuery: {
+    dataType: 'refObject',
+    properties: {
+      page: { dataType: 'double' },
+      limit: { dataType: 'double' },
+      search: { dataType: 'string' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ULedgerAccountStatus: {
     dataType: 'refAlias',
     type: {
       dataType: 'union',
       subSchemas: [
+        { dataType: 'enum', enums: ['draft'] },
         { dataType: 'enum', enums: ['active'] },
         { dataType: 'enum', enums: ['archived'] },
-        { dataType: 'enum', enums: ['draft'] },
       ],
       validators: {},
     },
@@ -270,17 +449,6 @@ const models: TsoaRoute.Models = {
         required: true,
       },
       transactionCount: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IPaginationResponseMeta: {
-    dataType: 'refObject',
-    properties: {
-      page: { dataType: 'double', required: true },
-      limit: { dataType: 'double', required: true },
-      total: { dataType: 'double', required: true },
-      totalPages: { dataType: 'double', required: true },
     },
     additionalProperties: false,
   },
@@ -965,8 +1133,8 @@ const models: TsoaRoute.Models = {
     type: {
       dataType: 'union',
       subSchemas: [
-        { dataType: 'enum', enums: ['archived'] },
         { dataType: 'enum', enums: ['draft'] },
+        { dataType: 'enum', enums: ['archived'] },
         { dataType: 'enum', enums: ['posted'] },
         { dataType: 'enum', enums: ['voided'] },
       ],
@@ -1434,19 +1602,6 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UCounterpartyStatus: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['active'] },
-        { dataType: 'enum', enums: ['archived'] },
-        { dataType: 'enum', enums: ['draft'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IJournalLineListDto: {
     dataType: 'refObject',
     properties: {
@@ -1700,18 +1855,6 @@ const models: TsoaRoute.Models = {
       },
     },
     additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UCounterpartyType: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['individual'] },
-        { dataType: 'enum', enums: ['organization'] },
-      ],
-      validators: {},
-    },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IJournalCounterpartyReq: {
@@ -2280,91 +2423,6 @@ const models: TsoaRoute.Models = {
       currencyPair: { dataType: 'string', required: true },
       type: { ref: 'UExchangeRateType' },
       asOf: { dataType: 'datetime' },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UCounterpartyRole: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['employer'] },
-        { dataType: 'enum', enums: ['vendor'] },
-        { dataType: 'enum', enums: ['contractor'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAddressDto: {
-    dataType: 'refObject',
-    properties: {
-      line1: { dataType: 'string', required: true },
-      line2: { dataType: 'string' },
-      city: { dataType: 'string', required: true },
-      region: { dataType: 'string' },
-      postalCode: { dataType: 'string' },
-      countryCode: { dataType: 'string', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICounterpartyMetaDto: {
-    dataType: 'refObject',
-    properties: {
-      employer: {
-        dataType: 'nestedObjectLiteral',
-        nestedProperties: {
-          address: { ref: 'IAddressDto', required: true },
-          displayName: {
-            dataType: 'union',
-            subSchemas: [
-              { dataType: 'string' },
-              { dataType: 'enum', enums: [null] },
-            ],
-            required: true,
-          },
-        },
-      },
-      vendor: {
-        dataType: 'nestedObjectLiteral',
-        nestedProperties: {
-          address: {
-            dataType: 'union',
-            subSchemas: [
-              { ref: 'IAddressDto' },
-              { dataType: 'enum', enums: [null] },
-            ],
-            required: true,
-          },
-        },
-      },
-      contractor: {
-        dataType: 'nestedObjectLiteral',
-        nestedProperties: { address: { ref: 'IAddressDto', required: true } },
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICounterpartyDto: {
-    dataType: 'refObject',
-    properties: {
-      createdBy: { dataType: 'string', required: true },
-      id: { dataType: 'string', required: true },
-      accountingEntityId: { dataType: 'string', required: true },
-      name: { dataType: 'string', required: true },
-      status: { ref: 'UCounterpartyStatus', required: true },
-      type: { ref: 'UCounterpartyType', required: true },
-      roles: {
-        dataType: 'array',
-        array: { dataType: 'refAlias', ref: 'UCounterpartyRole' },
-        required: true,
-      },
-      meta: { ref: 'ICounterpartyMetaDto', required: true },
-      createdAt: { dataType: 'datetime', required: true },
-      updatedAt: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
   },
@@ -3087,6 +3145,61 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getAccountCashFlow',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsReportingController_getAccountCounterpartyParticipation: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetAccountCounterpartyParticipationQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/accounts/:accountId/counterparty-participation',
+    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      ReportingController.prototype.getAccountCounterpartyParticipation
+    ),
+
+    async function ReportingController_getAccountCounterpartyParticipation(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsReportingController_getAccountCounterpartyParticipation,
+          request,
+          response,
+        });
+
+        const controller = new ReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getAccountCounterpartyParticipation',
           controller,
           response,
           next,

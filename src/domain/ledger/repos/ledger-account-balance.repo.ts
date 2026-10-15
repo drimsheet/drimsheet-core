@@ -17,6 +17,15 @@ export default interface ILedgerAccountBalanceRepo {
     repoOptions: IWriteRepoOptions
   ): Promise<void>;
 
+  /** Creates a prepared balance and its adjustment history atomically. */
+  createWithAdjustments(
+    payload: {
+      balance: ILedgerAccountBalance;
+      adjustments: ILedgerAccountBalanceAdjustment[];
+    },
+    repoOptions: IWriteRepoOptions
+  ): Promise<void>;
+
   /** Persists a prepared balance transition without creating a journal adjustment. */
   update(
     payload: ILedgerAccountBalance,

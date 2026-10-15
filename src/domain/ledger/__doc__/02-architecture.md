@@ -231,15 +231,20 @@ After:  401000.401001                 Consulting (new control)
 ```
 
 The domain returns the audited parent creation and posting-account update,
-plus prepared balances. Child allocation excludes the code already reserved
-for the original posting account. Both new codes must fit the existing family
-capacity. Domain services never persist these records.
+plus prepared balances and cloned adjustment history. Child allocation excludes
+the code already reserved for the original posting account. Both new codes must
+fit the existing family capacity. Domain services never persist these records.
 
 The use case persists promotion and child creation in one transaction, with
 actor-attributed histories and events published after commit. The persistence
 service uses ordinary repository calls: update the original posting account,
-create the new control account, and persist the prepared balances. The use case
-then persists the requested child. The parent foreign key is deferred until
+create the new control account, update the posting balance, and create the
+control balance together with its prepared adjustment history through
+`createWithAdjustments`. Ordinary balance creation continues to use `create`.
+The domain clones adjustments with new IDs while retaining journal references,
+signed amounts, currencies, effects, original actors, and timestamps, including
+voided originals and reversals. Saving history does not apply the amounts again.
+The use case then persists the requested child. The parent foreign key is deferred until
 transaction commit so the update may reference the new parent before insertion;
 code/path uniqueness remains immediate. A missing parent still prevents commit.
 No journal lines are rewritten.

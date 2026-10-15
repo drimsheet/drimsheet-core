@@ -66,6 +66,18 @@ function makePromotePostingToControlAccount(
       control.createdBy
     );
 
+    const existingAdjustments =
+      await deps.ledgerAccountBalanceRepo.findAdjustmentsByAccountId(
+        account.id,
+        repoOptions
+      );
+    const controlAdjustments = existingAdjustments.map((adjustment) =>
+      ledgerAccountBalanceEntity.cloneAdjustmentToControlAccount(
+        adjustment,
+        control.id
+      )
+    );
+
     const latest = await deps.ledgerAccountRepo.findLatestBySubType(
       account.accountingEntityId,
       account.type,
@@ -87,7 +99,13 @@ function makePromotePostingToControlAccount(
       posting.materializedPath
     );
 
-    return { controlAccount, postingAccount, postingBalance, controlBalance };
+    return {
+      controlAccount,
+      postingAccount,
+      postingBalance,
+      controlBalance,
+      controlAdjustments,
+    };
   };
 }
 

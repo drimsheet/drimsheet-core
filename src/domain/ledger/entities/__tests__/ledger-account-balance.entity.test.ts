@@ -7,6 +7,7 @@ import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 import getLedgerAccountBalanceEffect from '@domain/ledger/entities/helpers/get-effect-from-amount.helper';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountBalanceValidation from '@domain/ledger/entities/validations/ledger-account-balance.validation';
+import ledgerAccountBalanceError from '@domain/ledger/errors/ledger-account-balance.error';
 import {
   ELedgerAccountBalanceEffect,
   ILedgerAccountBalanceAdjustment,
@@ -14,6 +15,7 @@ import {
 } from '@domain/ledger/types/ledger-account-balance.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 import { IMoney } from '@domain/money/types/money.types';
+import moneyValue from '@domain/money/values/money.vo';
 
 describe('ledgerAccountBalanceEntity', () => {
   beforeEach(() => {
@@ -196,6 +198,74 @@ describe('ledgerAccountBalanceEntity', () => {
         ).toThrow();
       }
     );
+  });
+
+  describe('cloneAdjustmentToControlAccount', () => {
+    const makeAdjustment = (amount: bigint) => {
+      const balance = ledgerAccountBalanceEntity.make({
+        createdBy: generateUUID(),
+        ledgerAccountId: generateUUID(),
+        accountingEntityId: generateUUID(),
+        accountMaterializedPath: '401000.401001',
+        currencyCode: 'NGN',
+        functionalCurrencyCode: 'USD',
+      });
+      return ledgerAccountBalanceEntity.adjust(balance, {
+        createdBy: balance.createdBy,
+        ledgerAccountId: balance.ledgerAccountId,
+        journalEntryId: generateUUID(),
+        amount: moneyValue.make(amount, balance.amount.currency, true),
+        functionalAmount: moneyValue.make(
+          amount / 2n,
+          balance.functionalAmount.currency,
+          true
+        ),
+      }).adjustment;
+    };
+
+    it.each([0n, 500n, -500n])(
+      'clones %s with new identity and preserves historical amounts and attribution',
+      (amount) => {
+        const original = makeAdjustment(amount);
+        const originalSnapshot = structuredClone(original);
+        const controlAccountId = generateUUID();
+        jest.setSystemTime(new Date('2026-04-02T00:00:00.000Z'));
+
+        const cloned =
+          ledgerAccountBalanceEntity.cloneAdjustmentToControlAccount(
+            original,
+            controlAccountId
+          );
+        const anotherClone =
+          ledgerAccountBalanceEntity.cloneAdjustmentToControlAccount(
+            original,
+            controlAccountId
+          );
+
+        expect(cloned).toEqual({
+          ...originalSnapshot,
+          id: expect.any(String),
+          ledgerAccountId: controlAccountId,
+        });
+        expect(cloned.id).not.toBe(original.id);
+        expect(cloned.id).not.toBe(anotherClone.id);
+        expect(cloned.createdAt).toEqual(new Date('2026-04-01T00:00:00.000Z'));
+        expect(Object.isFrozen(cloned)).toBe(true);
+        expect(Object.isFrozen(cloned.amount)).toBe(true);
+        expect(Object.isFrozen(cloned.functionalAmount)).toBe(true);
+        expect(original).toEqual(originalSnapshot);
+      }
+    );
+
+    it('rejects an invalid target account identity', () => {
+      const original = makeAdjustment(500n);
+      expect(() =>
+        ledgerAccountBalanceEntity.cloneAdjustmentToControlAccount(
+          original,
+          'invalid' as TEntityId
+        )
+      ).toThrow(ledgerAccountBalanceError.InvalidLedgerAccountId);
+    });
   });
 
   describe('updateAccountCode', () => {

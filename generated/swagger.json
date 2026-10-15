@@ -288,9 +288,235 @@
         "type": "object",
         "additionalProperties": false
       },
+      "UCounterpartyStatus": {
+        "type": "string",
+        "enum": ["draft", "active", "archived"]
+      },
+      "UCounterpartyType": {
+        "type": "string",
+        "enum": ["individual", "organization"]
+      },
+      "UCounterpartyRole": {
+        "type": "string",
+        "enum": ["employer", "vendor", "contractor"]
+      },
+      "IAddressDto": {
+        "properties": {
+          "line1": {
+            "type": "string"
+          },
+          "line2": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          }
+        },
+        "required": ["line1", "city", "countryCode"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICounterpartyMetaDto": {
+        "properties": {
+          "employer": {
+            "properties": {
+              "address": {
+                "$ref": "#/components/schemas/IAddressDto"
+              },
+              "displayName": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["address", "displayName"],
+            "type": "object"
+          },
+          "vendor": {
+            "properties": {
+              "address": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/IAddressDto"
+                  }
+                ],
+                "nullable": true
+              }
+            },
+            "required": ["address"],
+            "type": "object"
+          },
+          "contractor": {
+            "properties": {
+              "address": {
+                "$ref": "#/components/schemas/IAddressDto"
+              }
+            },
+            "required": ["address"],
+            "type": "object"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICounterpartyDto": {
+        "properties": {
+          "createdBy": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "accountingEntityId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UCounterpartyStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/UCounterpartyType"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/UCounterpartyRole"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ICounterpartyMetaDto"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "createdBy",
+          "id",
+          "accountingEntityId",
+          "name",
+          "status",
+          "type",
+          "roles",
+          "meta",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountCounterpartyParticipationDto": {
+        "properties": {
+          "counterparty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ICounterpartyDto"
+              }
+            ],
+            "nullable": true
+          },
+          "isSelf": {
+            "type": "boolean",
+            "description": "True only for transfer lines without a counterparty."
+          },
+          "participation": {
+            "properties": {
+              "totalShare": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "description": "Percentage of the stored account balance, before filtering; null at zero."
+              },
+              "functionalAmount": {
+                "$ref": "#/components/schemas/IMoneyDto"
+              },
+              "amount": {
+                "$ref": "#/components/schemas/IMoneyDto",
+                "description": "Net contribution in account currency, or functional currency when unset."
+              }
+            },
+            "required": ["totalShare", "functionalAmount", "amount"],
+            "type": "object"
+          }
+        },
+        "required": ["counterparty", "isSelf", "participation"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPaginationResponseMeta": {
+        "properties": {
+          "page": {
+            "type": "number",
+            "format": "double"
+          },
+          "limit": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalPages": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": ["page", "limit", "total", "totalPages"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPaginatedResponse_IAccountCounterpartyParticipationDto_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IAccountCounterpartyParticipationDto"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/IPaginationResponseMeta"
+          }
+        },
+        "required": ["data", "meta"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetAccountCounterpartyParticipationQuery": {
+        "properties": {
+          "page": {
+            "type": "number",
+            "format": "double"
+          },
+          "limit": {
+            "type": "number",
+            "format": "double"
+          },
+          "search": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "ULedgerAccountStatus": {
         "type": "string",
-        "enum": ["active", "archived", "draft"]
+        "enum": ["draft", "active", "archived"]
       },
       "IRevenueExpenseAccountDto": {
         "properties": {
@@ -341,29 +567,6 @@
           "sharePercentage",
           "transactionCount"
         ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IPaginationResponseMeta": {
-        "properties": {
-          "page": {
-            "type": "number",
-            "format": "double"
-          },
-          "limit": {
-            "type": "number",
-            "format": "double"
-          },
-          "total": {
-            "type": "number",
-            "format": "double"
-          },
-          "totalPages": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "required": ["page", "limit", "total", "totalPages"],
         "type": "object",
         "additionalProperties": false
       },
@@ -1221,7 +1424,7 @@
       },
       "UJournalEntryStatus": {
         "type": "string",
-        "enum": ["archived", "draft", "posted", "voided"]
+        "enum": ["draft", "archived", "posted", "voided"]
       },
       "IJournalHeaderDto": {
         "properties": {
@@ -1965,10 +2168,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "UCounterpartyStatus": {
-        "type": "string",
-        "enum": ["active", "archived", "draft"]
-      },
       "IJournalLineListDto": {
         "properties": {
           "id": {
@@ -2336,10 +2535,6 @@
         ],
         "type": "object",
         "additionalProperties": false
-      },
-      "UCounterpartyType": {
-        "type": "string",
-        "enum": ["individual", "organization"]
       },
       "IJournalCounterpartyReq": {
         "properties": {
@@ -3080,130 +3275,6 @@
           }
         },
         "required": ["currencyPair"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "UCounterpartyRole": {
-        "type": "string",
-        "enum": ["employer", "vendor", "contractor"]
-      },
-      "IAddressDto": {
-        "properties": {
-          "line1": {
-            "type": "string"
-          },
-          "line2": {
-            "type": "string"
-          },
-          "city": {
-            "type": "string"
-          },
-          "region": {
-            "type": "string"
-          },
-          "postalCode": {
-            "type": "string"
-          },
-          "countryCode": {
-            "type": "string"
-          }
-        },
-        "required": ["line1", "city", "countryCode"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICounterpartyMetaDto": {
-        "properties": {
-          "employer": {
-            "properties": {
-              "address": {
-                "$ref": "#/components/schemas/IAddressDto"
-              },
-              "displayName": {
-                "type": "string",
-                "nullable": true
-              }
-            },
-            "required": ["address", "displayName"],
-            "type": "object"
-          },
-          "vendor": {
-            "properties": {
-              "address": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/IAddressDto"
-                  }
-                ],
-                "nullable": true
-              }
-            },
-            "required": ["address"],
-            "type": "object"
-          },
-          "contractor": {
-            "properties": {
-              "address": {
-                "$ref": "#/components/schemas/IAddressDto"
-              }
-            },
-            "required": ["address"],
-            "type": "object"
-          }
-        },
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ICounterpartyDto": {
-        "properties": {
-          "createdBy": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "accountingEntityId": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/UCounterpartyStatus"
-          },
-          "type": {
-            "$ref": "#/components/schemas/UCounterpartyType"
-          },
-          "roles": {
-            "items": {
-              "$ref": "#/components/schemas/UCounterpartyRole"
-            },
-            "type": "array"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ICounterpartyMetaDto"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "createdBy",
-          "id",
-          "accountingEntityId",
-          "name",
-          "status",
-          "type",
-          "roles",
-          "meta",
-          "createdAt",
-          "updatedAt"
-        ],
         "type": "object",
         "additionalProperties": false
       },
@@ -4172,6 +4243,122 @@
             "schema": {
               "format": "double",
               "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/accounts/{accountId}/counterparty-participation": {
+      "get": {
+        "operationId": "getAccountCounterpartyParticipation",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IPaginatedResponse_IAccountCounterpartyParticipationDto_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Counterparty contributions to the current balance of a posting or control\naccount, including descendants. Reads journals through only the requested\naccount's adjustments, excluding drafts, never-posted entries, voided\noriginals and reversals. Archived records and opening balances remain included.\nAmounts use account currency, falling back to functional currency. Shares\nuse the stored account balance before search/pagination, rounded to two\ndecimals; zero balances yield null. Balances update asynchronously.\nCounterparty-less transfers have isSelf=true and search by entity name;\nother unattributed lines have isSelf=false. Counterparties sort by name/ID,\nfollowed by self and unattributed rows. Defaults to page 1, limit 10.\nAmount magnitudes above 1 trillion major units return 400; missing accounts\nor balances return 404; unsafe numeric serialization returns 500.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]

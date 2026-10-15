@@ -94,6 +94,28 @@ function cloneToControlAccount(
   });
 }
 
+/** Clones historical evidence for a seeded control balance without applying its amounts again. */
+function cloneAdjustmentToControlAccount(
+  existingAdjustment: ILedgerAccountBalanceAdjustment,
+  clonedLedgerAccountId: TEntityId
+): ILedgerAccountBalanceAdjustment {
+  stringUtils.validateUUID(
+    clonedLedgerAccountId,
+    ledgerAccountBalanceError.InvalidLedgerAccountId
+  );
+
+  return deepFreeze({
+    id: generateUUID(),
+    ledgerAccountId: clonedLedgerAccountId,
+    amount: existingAdjustment.amount,
+    functionalAmount: existingAdjustment.functionalAmount,
+    journalEntryId: existingAdjustment.journalEntryId,
+    effect: existingAdjustment.effect,
+    createdBy: existingAdjustment.createdBy,
+    createdAt: existingAdjustment.createdAt,
+  });
+}
+
 /** Changes the denomination of an unused zero balance after account eligibility has been checked. */
 function changeCurrency(
   existingBalance: ILedgerAccountBalance,
@@ -238,6 +260,7 @@ function adjust(
 const ledgerAccountBalanceEntity = Object.freeze({
   make,
   cloneToControlAccount,
+  cloneAdjustmentToControlAccount,
   updateAccountCode,
   changeCurrency,
   changeFunctionalCurrency,

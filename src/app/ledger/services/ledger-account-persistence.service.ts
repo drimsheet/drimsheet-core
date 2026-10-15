@@ -77,8 +77,11 @@ function makePromote(
         expectedVersion: promotion.postingBalance.version - 1,
       });
 
-      await deps.ledgerAccountBalanceRepo.create(
-        promotion.controlBalance,
+      await deps.ledgerAccountBalanceRepo.createWithAdjustments(
+        {
+          balance: promotion.controlBalance,
+          adjustments: promotion.controlAdjustments,
+        },
         writeOptions
       );
     };

@@ -10,18 +10,130 @@ import {
   ILedgerAccountBalanceAdjustment,
 } from '@domain/ledger/types/ledger-account-balance.types';
 
-import { ledgerAccountBalancesInCore } from '@infra/config/drizzle/schema';
+import {
+  ledgerAccountBalanceAdjustmentsInCore,
+  ledgerAccountBalancesInCore,
+} from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import ledgerAccountBalanceRepo from '@infra/persistence/repos/ledger/ledger-account-balance.repo.impl';
 import ledgerAccountBalanceMapper from '@infra/persistence/repos/ledger/mappers/ledger-account-balance.mapper';
 
-jest.mock('../../../helpers/get-db-query');
-jest.mock('../mappers/ledger-account-balance.mapper');
+jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock(
+  '@infra/persistence/repos/ledger/mappers/ledger-account-balance.mapper'
+);
 jest.mock('drizzle-orm', () => {
   const drizzle =
     jest.requireActual<typeof import('drizzle-orm')>('drizzle-orm');
 
   return { ...drizzle, eq: jest.fn(drizzle.eq) };
+});
+
+describe('ledgerAccountBalanceRepo createWithAdjustments', () => {
+  const options = { correlationId: 'promotion-history', tx: {} };
+  const balance = { ledgerAccountId: generateUUID() } as ILedgerAccountBalance;
+  const balanceRow: ReturnType<typeof ledgerAccountBalanceMapper.toRepo> = {
+    ledgerAccountId: balance.ledgerAccountId,
+    accountingEntityId: generateUUID(),
+    accountMaterializedPath: '401000.401001',
+    amount: 1000,
+    currencyCode: 'NGN',
+    functionalAmount: 500,
+    functionalCurrencyCode: 'USD',
+    version: 1,
+    createdBy: generateUUID(),
+    createdAt: '2026-04-01T00:00:00.000Z',
+    updatedAt: '2026-04-01T00:00:00.000Z',
+  };
+  const adjustments = [
+    { id: generateUUID() },
+    { id: generateUUID() },
+  ] as ILedgerAccountBalanceAdjustment[];
+  const rows: ReturnType<typeof ledgerAccountBalanceMapper.toRepoAdjustment>[] =
+    adjustments.map((adjustment) => ({
+      id: adjustment.id,
+      ledgerAccountId: balance.ledgerAccountId,
+      journalEntryId: generateUUID(),
+      amount: 500,
+      currencyCode: 'NGN',
+      functionalAmount: 250,
+      functionalCurrencyCode: 'USD',
+      effect: 'increase',
+      createdBy: generateUUID(),
+      createdAt: '2026-04-01T00:00:00.000Z',
+    }));
+  const values = jest.fn();
+  const insert = jest.fn().mockReturnValue({ values });
+  const transaction = jest.fn(
+    async (callback: (tx: { insert: typeof insert }) => Promise<void>) =>
+      callback({ insert })
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    values.mockReset().mockResolvedValue(undefined);
+    jest
+      .mocked(getDbQuery)
+      .mockReturnValue({ transaction } as unknown as ReturnType<
+        typeof getDbQuery
+      >);
+    jest.mocked(ledgerAccountBalanceMapper.toRepo).mockReturnValue(balanceRow);
+    jest
+      .mocked(ledgerAccountBalanceMapper.toRepoAdjustment)
+      .mockImplementation(
+        (adjustment) => rows[adjustments.indexOf(adjustment)]
+      );
+  });
+
+  it('inserts the prepared balance and history together without applying adjustments again', async () => {
+    await ledgerAccountBalanceRepo.createWithAdjustments(
+      { balance, adjustments },
+      options
+    );
+
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(insert).toHaveBeenCalledTimes(2);
+    expect(insert).toHaveBeenNthCalledWith(1, ledgerAccountBalancesInCore);
+    expect(insert).toHaveBeenNthCalledWith(
+      2,
+      ledgerAccountBalanceAdjustmentsInCore
+    );
+    expect(values).toHaveBeenNthCalledWith(1, balanceRow);
+    expect(values).toHaveBeenNthCalledWith(2, rows);
+    expect(ledgerAccountBalanceMapper.toRepo).toHaveBeenCalledWith(balance);
+    expect(ledgerAccountBalanceMapper.toRepoAdjustment).toHaveBeenCalledTimes(
+      2
+    );
+  });
+
+  it('creates a balance without inserting an empty history', async () => {
+    await ledgerAccountBalanceRepo.createWithAdjustments(
+      { balance, adjustments: [] },
+      options
+    );
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(insert).toHaveBeenCalledWith(ledgerAccountBalancesInCore);
+    expect(values).toHaveBeenCalledWith(balanceRow);
+  });
+
+  it.each(['balance', 'adjustments'] as const)(
+    'rejects the transaction when the %s insert fails',
+    async (failureAt) => {
+      const failure = new Error('insert failed');
+      if (failureAt === 'adjustments') {
+        values.mockResolvedValueOnce(undefined);
+      }
+      values.mockRejectedValueOnce(failure);
+      await expect(
+        ledgerAccountBalanceRepo.createWithAdjustments(
+          { balance, adjustments },
+          options
+        )
+      ).rejects.toBe(failure);
+      expect(insert).toHaveBeenCalledTimes(failureAt === 'balance' ? 1 : 2);
+    }
+  );
 });
 
 describe('ledgerAccountBalanceRepo strict adjustments', () => {
@@ -245,41 +357,47 @@ describe('ledger balance currency trigger error mapping', () => {
   const options = { correlationId: 'currency-trigger', expectedVersion: 1 };
   beforeEach(() => jest.clearAllMocks());
 
-  it.each(['create', 'update', 'adjustBalance'] as const)(
-    'maps database rejections from %s',
-    async (operation) => {
-      const error = {
-        cause: {
-          code: '23514',
-          constraint:
-            'ledger_account_balances_entity_functional_currency_check',
-        },
-      };
-      const values = jest.fn().mockRejectedValue(error);
-      const where = jest.fn().mockRejectedValue(error);
-      const db = {
-        insert: jest.fn().mockReturnValue({ values }),
-        update: jest
-          .fn()
-          .mockReturnValue({ set: jest.fn().mockReturnValue({ where }) }),
-        transaction: jest.fn().mockRejectedValue(error),
-      };
-      jest.mocked(getDbQuery).mockReturnValue(db as never);
-      const write =
-        operation === 'adjustBalance'
-          ? ledgerAccountBalanceRepo.adjustBalance(
-              {
-                newBalance: balance,
-                adjustment: {} as ILedgerAccountBalanceAdjustment,
-              },
+  it.each([
+    'create',
+    'createWithAdjustments',
+    'update',
+    'adjustBalance',
+  ] as const)('maps database rejections from %s', async (operation) => {
+    const error = {
+      cause: {
+        code: '23514',
+        constraint: 'ledger_account_balances_entity_functional_currency_check',
+      },
+    };
+    const values = jest.fn().mockRejectedValue(error);
+    const where = jest.fn().mockRejectedValue(error);
+    const db = {
+      insert: jest.fn().mockReturnValue({ values }),
+      update: jest
+        .fn()
+        .mockReturnValue({ set: jest.fn().mockReturnValue({ where }) }),
+      transaction: jest.fn().mockRejectedValue(error),
+    };
+    jest.mocked(getDbQuery).mockReturnValue(db as never);
+    const write =
+      operation === 'adjustBalance'
+        ? ledgerAccountBalanceRepo.adjustBalance(
+            {
+              newBalance: balance,
+              adjustment: {} as ILedgerAccountBalanceAdjustment,
+            },
+            options
+          )
+        : operation === 'createWithAdjustments'
+          ? ledgerAccountBalanceRepo.createWithAdjustments(
+              { balance, adjustments: [] },
               options
             )
           : ledgerAccountBalanceRepo[operation](balance, options);
-      await expect(write).rejects.toBeInstanceOf(
-        accountingEntityError.FunctionalCurrencyMismatch
-      );
-    }
-  );
+    await expect(write).rejects.toBeInstanceOf(
+      accountingEntityError.FunctionalCurrencyMismatch
+    );
+  });
 
   it('preserves unrelated insert failures', async () => {
     const error = new Error('database unavailable');
