@@ -27,6 +27,36 @@ describe('ledgerAccountBalanceEntity', () => {
     jest.useRealTimers();
   });
 
+  it('preserves the balance for zero deltas while still rejecting incompatible currencies', () => {
+    const balance = ledgerAccountBalanceEntity.make({
+      createdBy: generateUUID(),
+      ledgerAccountId: generateUUID(),
+      accountingEntityId: generateUUID(),
+      accountMaterializedPath: '100000',
+      currencyCode: 'NGN',
+      functionalCurrencyCode: 'USD',
+    });
+    const payload = {
+      createdBy: balance.createdBy,
+      ledgerAccountId: balance.ledgerAccountId,
+      journalEntryId: generateUUID(),
+      amount: moneyValue.makeZeroAmount(currencyEntity.getByCode('NGN')),
+      functionalAmount: moneyValue.makeZeroAmount(
+        currencyEntity.getByCode('USD')
+      ),
+    };
+    const { newBalance } = ledgerAccountBalanceEntity.adjust(balance, payload);
+    expect(newBalance).toBe(balance);
+    expect(newBalance.version).toBe(balance.version);
+    expect(newBalance.updatedAt).toBe(balance.updatedAt);
+    expect(() =>
+      ledgerAccountBalanceEntity.adjust(balance, {
+        ...payload,
+        amount: payload.functionalAmount,
+      })
+    ).toThrow();
+  });
+
   describe('make', () => {
     const validPayload: Parameters<typeof ledgerAccountBalanceEntity.make>[0] =
       {
@@ -178,7 +208,7 @@ describe('ledgerAccountBalanceEntity', () => {
         expect(original.createdBy).toBe(zero.createdBy);
         expect(original.amount.amount).toBe(amount);
         expect(original.functionalAmount.amount).toBe(amount / 2n);
-        expect(original.version).toBe(2);
+        expect(original.version).toBe(amount === 0n ? 1 : 2);
         expect(original.updatedAt).toEqual(
           new Date('2026-04-01T00:00:00.000Z')
         );

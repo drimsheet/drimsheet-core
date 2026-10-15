@@ -165,6 +165,14 @@ describe('PATCH /counterparties/{id}', () => {
       .send(body);
 
   describe('200 Response', () => {
+    it('returns the existing counterparty for an effective no-change update', async () => {
+      const response = await patch({ name: draft.name });
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(draft.id);
+      expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    });
+
     it('allows an unused counterparty to change type', async () => {
       const response = await patch({ type: 'individual' });
       expect(response.status).toBe(200);
@@ -309,7 +317,7 @@ describe('PATCH /counterparties/{id}', () => {
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
     it.each(['active', 'archived'] as const)(
-      'rejects activation of %s',
+      'handles activation of %s',
       async (status) => {
         mockCounterpartyRepo.findById.mockResolvedValue(
           service.create({
@@ -321,12 +329,13 @@ describe('PATCH /counterparties/{id}', () => {
           })[0]
         );
         const response = await patch({ status: 'active' });
-        expect(response.status).toBe(409);
-        expect(response.body.errorKey).toBe(
-          status === 'active'
-            ? new counterpartyError.AlreadyActive().errorKey
-            : new counterpartyError.Archived().errorKey
-        );
+        expect(response.status).toBe(status === 'active' ? 200 : 409);
+        if (status === 'archived') {
+          expect(response.body.errorKey).toBe(
+            new counterpartyError.Archived().errorKey
+          );
+        }
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
         expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
       }
     );
@@ -367,10 +376,6 @@ describe('PATCH /counterparties/{id}', () => {
     });
   });
   describe('400 Response', () => {
-    it('rejects effective no-change updates', async () => {
-      expect((await patch({ name: draft.name })).status).toBe(400);
-      expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
-    });
     it('rejects malformed IDs', async () => {
       expect(
         (await patch({ status: 'active' }, 'invalid' as TEntityId)).status

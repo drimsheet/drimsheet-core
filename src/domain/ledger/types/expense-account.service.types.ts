@@ -1,18 +1,17 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
-import {
-  IEvent,
-  TAuditedEntity,
-} from '@shared/values/events/types/event.types';
+import { IEvent } from '@shared/values/events/types/event.types';
 
 import { ILedgerAccountAudit } from './ledger-account-audit.types';
 import { ILedgerAccount } from './ledger.types';
 
 export default interface IExpenseAccountService {
-  /** Activates only draft expense accounts beneath active parents; returns state, events and audit without writes. */
+  /** Activates draft expense accounts beneath active parents; active accounts return unchanged; returns state, events and audit without writes. */
   activate(
     account: ILedgerAccount,
     repoOptions: IReadRepoOptions
-  ): Promise<TAuditedEntity<ILedgerAccount, ILedgerAccount, ILedgerAccount>>;
+  ): Promise<
+    [ILedgerAccount, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null]
+  >;
 
   /** Rejects non-expense and archived accounts; returns an audited name change or an unchanged account with no events/audit. Never persists. */
   update(

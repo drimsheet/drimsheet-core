@@ -40,7 +40,7 @@ describe('Counterparty Entity', () => {
       });
       expect(Object.isFrozen(counterparty)).toBe(true);
       expect(events[0].data).toEqual(counterparty);
-      expect(audit.diff.after).toEqual(counterparty);
+      expect(audit?.diff.after).toEqual(counterparty);
     });
 
     it('should create a valid counterparty with empty roles array', () => {
@@ -54,7 +54,7 @@ describe('Counterparty Entity', () => {
       const [counterparty, events, audit] = counterpartyEntity.make(payload);
 
       expect(counterparty.version).toBe(1);
-      expect(audit.entityVersion).toBe(1);
+      expect(audit?.entityVersion).toBe(1);
       expect(counterparty.accountingEntityId).toBe(accountingEntityId);
       expect(counterparty.name).toBe('Acme Corp');
       expect(counterparty.type).toBe(ECounterpartyType.Organization);
@@ -72,10 +72,10 @@ describe('Counterparty Entity', () => {
       expect(events[0].type).toBe('domain:counterparty:created');
       expect(events[0].data).toEqual(counterparty);
 
-      expect(audit.entityId).toBe(counterparty.id);
-      expect(audit.action).toBe('created');
-      expect(audit.diff.before).toBeNull();
-      expect(audit.diff.after).toEqual(counterparty);
+      expect(audit?.entityId).toBe(counterparty.id);
+      expect(audit?.action).toBe('created');
+      expect(audit?.diff.before).toBeNull();
+      expect(audit?.diff.after).toEqual(counterparty);
     });
 
     it('should allow explicitly passing status', () => {
@@ -137,7 +137,7 @@ describe('Counterparty Entity', () => {
 
       expect(initialCounterparty.version).toBe(1);
       expect(updatedCounterparty.version).toBe(2);
-      expect(audit.entityVersion).toBe(2);
+      expect(audit?.entityVersion).toBe(2);
       expect(updatedCounterparty.roles).toEqual([ECounterpartyRole.Vendor]);
       expect(updatedCounterparty.updatedAt).toEqual(
         new Date('2026-07-31T13:00:00.000Z')
@@ -148,12 +148,12 @@ describe('Counterparty Entity', () => {
       expect(events[0].type).toBe('domain:counterparty:role-added');
       expect(events[0].data).toEqual(updatedCounterparty);
 
-      expect(audit.action).toBe('role-added');
-      expect(audit.diff.before).toEqual(initialCounterparty);
-      expect(audit.diff.after).toEqual(updatedCounterparty);
+      expect(audit?.action).toBe('role-added');
+      expect(audit?.diff.before).toEqual(initialCounterparty);
+      expect(audit?.diff.after).toEqual(updatedCounterparty);
     });
 
-    it('should throw RoleAlreadyAssigned if role is already assigned', () => {
+    it('returns the original counterparty when the same role details are assigned again', () => {
       const [initialCounterparty] = counterpartyEntity.make({
         createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
         accountingEntityId,
@@ -166,12 +166,46 @@ describe('Counterparty Entity', () => {
         { role: ECounterpartyRole.Vendor, meta: { address: null } }
       );
 
-      expect(() =>
-        counterpartyEntity.addRole(counterpartyWithRole, {
+      const [unchanged, events, audit] = counterpartyEntity.addRole(
+        counterpartyWithRole,
+        {
           role: ECounterpartyRole.Vendor,
           meta: { address: null },
+        }
+      );
+      expect(unchanged).toBe(counterpartyWithRole);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it('rejects conflicting or invalid metadata when a role already exists', () => {
+      const [counterparty] = counterpartyEntity.make({
+        createdBy: generateUUID(),
+        accountingEntityId,
+        name: 'Vendor',
+        type: 'organization',
+      });
+      const [assigned] = counterpartyEntity.addRole(counterparty, {
+        role: 'vendor',
+        meta: { address: null },
+      });
+      const address = addressValue.make({
+        line1: 'Road',
+        city: 'Lagos',
+        countryCode: 'NG',
+      });
+      expect(() =>
+        counterpartyEntity.addRole(assigned, {
+          role: 'vendor',
+          meta: { address },
         })
       ).toThrow(counterpartyError.RoleAlreadyAssigned);
+      expect(() =>
+        counterpartyEntity.addRole(assigned, {
+          role: 'vendor',
+          meta: { address: undefined as never },
+        })
+      ).toThrow(counterpartyError.InvalidAddress);
     });
 
     it('should throw InvalidRole for invalid role', () => {
@@ -384,12 +418,14 @@ describe('counterparty entity updates', () => {
     expect(before.status).toBe('draft');
     expect(before.version).toBe(1);
     expect(after.version).toBe(2);
-    expect(audit.entityVersion).toBe(2);
+    expect(audit?.entityVersion).toBe(2);
     expect(events[0].type).toBe('domain:counterparty:activated');
-    expect(audit.action).toBe('activated');
-    expect(() =>
-      counterpartyEntity.update(after, { status: 'active' })
-    ).toThrow(counterpartyError.AlreadyActive);
+    expect(audit?.action).toBe('activated');
+    const [unchanged, repeatedEvents, repeatedAudit] =
+      counterpartyEntity.update(after, { status: 'active' });
+    expect(unchanged).toBe(after);
+    expect(repeatedEvents).toEqual([]);
+    expect(repeatedAudit).toBeNull();
   });
 
   it.each([0, -1, 1.5, NaN, Infinity, undefined])(
@@ -419,12 +455,12 @@ describe('counterparty entity updates', () => {
       meta: { vendor: { address: null } },
     });
     expect(active.version).toBe(before.version + 1);
-    expect(activationAudit.entityVersion).toBe(active.version);
+    expect(activationAudit?.entityVersion).toBe(active.version);
     const [edited, , editAudit] = counterpartyEntity.update(active, {
       name: 'Edited',
     });
     expect(edited.version).toBe(active.version + 1);
-    expect(editAudit.entityVersion).toBe(edited.version);
+    expect(editAudit?.entityVersion).toBe(edited.version);
     expect(active.name).toBe('Completed');
   });
 
@@ -464,9 +500,28 @@ describe('counterparty entity updates', () => {
     expect(before.type).toBe('individual');
   });
 
-  it('rejects a no-change update before timestamping', () => {
-    expect(() => counterpartyEntity.update(make(), {})).toThrow(
-      counterpartyError.InvalidUpdate
-    );
+  it.each([
+    {},
+    { name: '  Draft  ' },
+    { type: 'individual' as const, meta: {} },
+  ])('preserves the original state for an equivalent update: %j', (details) => {
+    const before = make();
+    const [after, events, audit] = counterpartyEntity.update(before, details);
+    expect(after).toBe(before);
+    expect(after.version).toBe(before.version);
+    expect(after.updatedAt).toBe(before.updatedAt);
+    expect(events).toEqual([]);
+    expect(audit).toBeNull();
+  });
+
+  it('emits an update when editing an active counterparty with its current status', () => {
+    const [active] = counterpartyEntity.update(make(), { status: 'active' });
+    const [edited, events, audit] = counterpartyEntity.update(active, {
+      status: 'active',
+      name: 'Edited',
+    });
+    expect(edited.name).toBe('Edited');
+    expect(events[0].type).toBe('domain:counterparty:updated');
+    expect(audit?.action).toBe('updated');
   });
 });

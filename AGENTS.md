@@ -28,6 +28,8 @@ Read this before changing the repository.
 
 ## Core Rules
 
+- Follow [unchanged mutation rules](.agents/rules/domain-modeling.md#unchanged-mutations):
+  valid no-op updates return the original state without errors, events, or audit.
 - Put behavior in the folder that owns it.
 - Keep repositories limited to data storage and retrieval.
 - Only use cases initiate persistence. Dedicated persistence services may

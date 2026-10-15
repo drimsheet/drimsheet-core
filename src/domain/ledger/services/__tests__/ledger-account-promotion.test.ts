@@ -400,7 +400,7 @@ it.each(families)(
     expect(controlEvents).toHaveLength(1);
     expect(postingEvents).toHaveLength(1);
     expect(controlAudit.action).toBe('created');
-    expect(postingAudit.diff.after).toMatchObject({
+    expect(postingAudit?.diff.after).toMatchObject({
       code: reassigned.code,
       controlAccountId: control.id,
     });
@@ -442,8 +442,8 @@ it.each(families)(
     expect(controlEvents[0].data.name).toBe(control.name);
     expect(postingEvents[0].data.name).toBe(reassigned.name);
     expect(controlAudit.diff.after).toMatchObject({ name: control.name });
-    expect(postingAudit.diff.before).toMatchObject({ name: 'Original' });
-    expect(postingAudit.diff.after).toMatchObject({ name: reassigned.name });
+    expect(postingAudit?.diff.before).toMatchObject({ name: 'Original' });
+    expect(postingAudit?.diff.after).toMatchObject({ name: reassigned.name });
   }
 );
 

@@ -61,7 +61,7 @@ describe('Counterparty service', () => {
     expect(events.map((event) => event.type)).toEqual([
       'domain:counterparty:created',
     ]);
-    expect(audit.diff).toEqual({ before: null, after: counterparty });
+    expect(audit?.diff).toEqual({ before: null, after: counterparty });
   });
 
   it.each(['vendor', 'employer', 'contractor'] as const)(
@@ -96,8 +96,8 @@ describe('Counterparty service', () => {
         'domain:counterparty:role-added',
       ]);
       expect(events[1].data).toEqual(counterparty);
-      expect(audit.diff).toEqual({ before: null, after: counterparty });
-      expect(audit.action).toBe('created');
+      expect(audit?.diff).toEqual({ before: null, after: counterparty });
+      expect(audit?.action).toBe('created');
     }
   );
 
@@ -160,8 +160,8 @@ describe('metadata-driven creation', () => {
         expect(events[i + 1].data.roles).toEqual(expectedRoles.slice(0, i + 1));
         expect(Object.isFrozen(events[i + 1].data.meta)).toBe(true);
       }
-      expect(audit.action).toBe('created');
-      expect(audit.diff).toEqual({ before: null, after: counterparty });
+      expect(audit?.action).toBe('created');
+      expect(audit?.diff).toEqual({ before: null, after: counterparty });
       expect(meta).toEqual(before);
       if (meta.employer) {
         expect(counterparty.meta.employer).toEqual({
@@ -258,8 +258,8 @@ describe('counterparty updates', () => {
       action: 'activated',
       diff: { before, after },
     });
-    expect(audit.diff.before?.roles).toContain('employer');
-    expect(audit.diff.after.roles).not.toContain('employer');
+    expect(audit?.diff.before?.roles).toContain('employer');
+    expect(audit?.diff.after.roles).not.toContain('employer');
   });
 
   it.each(['draft', 'active'] as const)(
@@ -281,7 +281,7 @@ describe('counterparty updates', () => {
       expect(after.meta).toEqual(before.meta);
       expect(after.roles).toEqual(before.roles);
       expect(events[0].type).toBe('domain:counterparty:updated');
-      expect(audit.action).toBe('updated');
+      expect(audit?.action).toBe('updated');
     }
   );
 
@@ -334,23 +334,28 @@ describe('counterparty updates', () => {
     { name: ' Example ' },
     { type: 'organization' as const },
     { meta: { employer: { address }, vendor: { address } } },
-  ])('rejects an effective no-change update %j', async (changes) => {
-    await expect(service.update(draft(), changes, readOptions)).rejects.toThrow(
-      'counterparty_error_update_invalid'
-    );
-  });
+  ])(
+    'returns the original state for an effective no-change update %j',
+    async (changes) => {
+      const before = draft();
+      const [after, events, audit] = await service.update(
+        before,
+        changes,
+        readOptions
+      );
+      expect(after).toBe(before);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    }
+  );
 
-  it.each(['active', 'archived'] as const)(
+  it.each(['archived'] as const)(
     'rejects activation from %s',
     async (status) => {
       const [before] = service.create({ ...payload, status });
       await expect(
         service.update(before, { status: 'active' }, readOptions)
-      ).rejects.toThrow(
-        status === 'active'
-          ? 'counterparty_error_already_active_conflict'
-          : 'counterparty_error_archived_conflict'
-      );
+      ).rejects.toThrow('counterparty_error_archived_conflict');
     }
   );
 
@@ -420,8 +425,8 @@ describe('counterparty service version composition', () => {
       },
     });
     expect(counterparty.version).toBe(3);
-    expect(audit.entityVersion).toBe(counterparty.version);
-    expect(audit.diff.after?.version).toBe(counterparty.version);
+    expect(audit?.entityVersion).toBe(counterparty.version);
+    expect(audit?.diff.after?.version).toBe(counterparty.version);
     expect(events.map((event) => event.data.version)).toEqual([1, 2, 3]);
   });
 });
@@ -438,8 +443,8 @@ describe('counterparty type changes after transaction use', () => {
         readOptions
       );
       expect(after.type).toBe(nextType);
-      expect(audit.diff.before?.type).toBe(type);
-      expect(audit.diff.after.type).toBe(nextType);
+      expect(audit?.diff.before?.type).toBe(type);
+      expect(audit?.diff.after.type).toBe(nextType);
       expect(journalLineRepo.findAllByCounterpartyId).toHaveBeenCalledWith(
         before.id,
         before.accountingEntityId,

@@ -50,6 +50,20 @@ describe('fxCostBasisLotEntity', () => {
     jest.useRealTimers();
   });
 
+  it('preserves an open lot when reversing zero quantity and cost basis', () => {
+    const [lot] = fxCostBasisLotEntity.make(validPayload);
+    const [unchanged, events, audit] = fxCostBasisLotEntity.reverseDisposition(
+      lot,
+      moneyValue.makeZeroAmount(SYSTEM_CURRENCIES.USD),
+      moneyValue.makeZeroAmount(SYSTEM_CURRENCIES.NGN)
+    );
+    expect(unchanged).toBe(lot);
+    expect(unchanged.version).toBe(lot.version);
+    expect(unchanged.updatedAt).toBe(lot.updatedAt);
+    expect(events).toEqual([]);
+    expect(audit).toBeNull();
+  });
+
   describe('make', () => {
     it('creates a validated fx lot with event and audit', () => {
       const [entity, events, audit] = fxCostBasisLotEntity.make(validPayload);
@@ -151,7 +165,7 @@ describe('fxCostBasisLotEntity', () => {
       expect(updated.status).toBe(EFxCostBasisLotStatus.Open);
       expect(updated.version).toBe(lot.version + 1);
       expect(events).toHaveLength(1);
-      expect(audit.diff).toEqual({ before: lot, after: updated });
+      expect(audit?.diff).toEqual({ before: lot, after: updated });
     });
 
     it('closes a fully consumed lot without leaving cost-basis dust', () => {
@@ -277,7 +291,7 @@ describe('fxCostBasisLotEntity', () => {
       expect(updated.status).toBe(EFxCostBasisLotStatus.Closed);
       expect(updated.version).toBe(2);
       expect(events[0].type).toBe(EFxCostBasisLotEvent.Reversed);
-      expect(audit.action).toBe(EFxCostBasisLotAuditAction.Reversed);
+      expect(audit?.action).toBe(EFxCostBasisLotAuditAction.Reversed);
     });
   });
 
@@ -303,7 +317,7 @@ describe('fxCostBasisLotEntity', () => {
       expect(updated.remainingQuantity).toEqual(validPayload.originalQuantity);
       expect(updated.remainingCostBasis).toEqual(validPayload.costBasis);
       expect(events[0].type).toBe(EFxCostBasisLotEvent.Reversed);
-      expect(audit.action).toBe(EFxCostBasisLotAuditAction.Reversed);
+      expect(audit?.action).toBe(EFxCostBasisLotAuditAction.Reversed);
     });
   });
 

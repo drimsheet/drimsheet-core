@@ -66,7 +66,9 @@ export default function makeActivateCashAccountUsecase(deps: IDependencies) {
     const [activatedAccount, accountEvents, accountAudit] =
       await deps.cashAccountService.activate(account, repoOptions);
 
-    const history = historyValue.make(accountAudit, actor.id, correlationId);
+    const history = accountAudit
+      ? historyValue.make(accountAudit, actor.id, correlationId)
+      : null;
 
     const openingBalances = payload.activateOpeningBalance
       ? await deps.journalEntryQueryRepo.findAll(
@@ -90,14 +92,21 @@ export default function makeActivateCashAccountUsecase(deps: IDependencies) {
         )
       : null;
 
+    const hasChanges = history !== null || openingBalancePosting !== null;
+    if (!hasChanges) {
+      return;
+    }
+
     const transaction = await deps.repoService.createTransaction();
     try {
       const transactionOptions = { ...repoOptions, tx: transaction.context };
-      await deps.ledgerAccountRepo.update(activatedAccount, {
-        ...transactionOptions,
-        expectedVersion: account.version,
-        history,
-      });
+      if (history) {
+        await deps.ledgerAccountRepo.update(activatedAccount, {
+          ...transactionOptions,
+          expectedVersion: account.version,
+          history,
+        });
+      }
 
       if (openingBalancePosting) {
         await deps.journalEntryPersistenceAppService.rectify(

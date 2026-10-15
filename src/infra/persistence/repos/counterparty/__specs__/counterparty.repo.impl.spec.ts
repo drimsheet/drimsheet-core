@@ -55,7 +55,7 @@ const [employer, , employerAudit] = service.create({
   },
 });
 const row = counterpartyMapper.toRepo(counterparty);
-const history = historyValue.make(audit, generateUUID(), 'correlation');
+const history = historyValue.make(audit!, generateUUID(), 'correlation');
 const options = { history, correlationId: 'correlation' };
 function useQuery(query: unknown) {
   jest
@@ -410,7 +410,7 @@ describe('versioned counterparty updates', () => {
     name: 'Changed',
   });
   const updateHistory = historyValue.make(
-    delta,
+    delta!,
     history.actorId,
     'correlation'
   );

@@ -71,11 +71,13 @@ type TReturnType = TAuditedEntity<
 >;
 
 export default interface ICashAccountService {
-  /** Activates only draft petty cash or bank accounts beneath active parents; never persists. */
+  /** Activates draft petty cash or bank accounts beneath active parents; active accounts return unchanged; never persists. */
   activate(
     account: ILedgerAccount,
     repoOptions: IReadRepoOptions
-  ): Promise<TAuditedEntity<ILedgerAccount, ILedgerAccount, ILedgerAccount>>;
+  ): Promise<
+    [ILedgerAccount, IEvent<ILedgerAccount>[], ILedgerAccountAudit | null]
+  >;
 
   createHeader(
     payload: IMakeHeaderPayload,

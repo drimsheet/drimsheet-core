@@ -91,6 +91,12 @@ export default function makePostDraftReceiptUsecase(deps: IDependencies) {
         transactionOptions
       );
       const [entry, journalEvents, audit] = posting.journalEntry;
+
+      if (!audit) {
+        await transaction.commit();
+        return;
+      }
+
       const fxAcquisition = await deps.fxLotAppService.acquire(
         {
           journalEntry: entry,

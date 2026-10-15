@@ -419,7 +419,7 @@ describe('fxCostBasisPersistenceAppService', () => {
         bundle.allocation.costBasisConsumed
       );
     const reversalHistory = historyValue.make(
-      reversalAudit,
+      reversalAudit!,
       actor,
       correlationId
     );

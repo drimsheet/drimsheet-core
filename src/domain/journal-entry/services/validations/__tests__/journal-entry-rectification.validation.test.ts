@@ -89,11 +89,11 @@ describe('journalEntryRectificationValidation', () => {
     ).toThrow(journalEntryError.RectificationNotPermitted);
   });
 
-  it('rejects journal-entry state without a correction', () => {
+  it('accepts journal-entry state without a correction', () => {
     const originalEntry = makeEntry();
 
     expect(() =>
-      journalEntryRectificationValidation.validateHasChanges({
+      journalEntryRectificationValidation.validatePayload({
         actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
         originalEntry,
         newEntry: {
@@ -106,7 +106,7 @@ describe('journalEntryRectificationValidation', () => {
           lines: originalEntry.lines,
         },
       })
-    ).toThrow(journalEntryError.RectificationHasNoChanges);
+    ).not.toThrow();
   });
 
   it('rejects duplicate rectification line IDs', () => {
@@ -127,11 +127,11 @@ describe('journalEntryRectificationValidation', () => {
     ).toThrow(journalEntryError.RectificationLineId);
   });
 
-  it('accepts a new line ID while detecting its accounting change', () => {
+  it('accepts a new unique line ID', () => {
     const originalEntry = makeEntry();
 
     expect(() =>
-      journalEntryRectificationValidation.validateHasChanges({
+      journalEntryRectificationValidation.validatePayload({
         actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
         originalEntry,
         newEntry: {

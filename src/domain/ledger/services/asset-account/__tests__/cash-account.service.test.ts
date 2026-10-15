@@ -167,7 +167,18 @@ describe('cashAccountService', () => {
       }
     );
 
-    it.each([ELedgerAccountStatus.Active, ELedgerAccountStatus.Archived])(
+    it('returns an active cash account unchanged', async () => {
+      const account = makeAccount({ status: ELedgerAccountStatus.Active });
+      const [unchanged, events, audit] = await service.activate(
+        account,
+        mockOptions
+      );
+      expect(unchanged).toBe(account);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it.each([ELedgerAccountStatus.Archived])(
       'rejects %s accounts',
       async (status) => {
         await expect(

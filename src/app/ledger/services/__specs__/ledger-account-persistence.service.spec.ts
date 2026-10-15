@@ -234,7 +234,7 @@ describe('ledgerAccountPersistenceAppService', () => {
         tx: {},
         history: [
           historyValue.make(controlAudit, account.createdBy, 'promotion'),
-          historyValue.make(postingAudit, account.createdBy, 'promotion'),
+          historyValue.make(postingAudit!, account.createdBy, 'promotion'),
         ],
       };
       const writes = {

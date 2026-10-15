@@ -5,6 +5,7 @@ import {
   ICreateCounterpartyPayload,
   IUpdateCounterpartyPayload,
   TAuditedCounterparty,
+  TCounterpartyUpdate,
 } from './counterparty.types';
 
 export default interface ICounterpartyService {
@@ -16,7 +17,7 @@ export default interface ICounterpartyService {
     counterparty: ICounterparty,
     payload: IUpdateCounterpartyPayload,
     options: IReadRepoOptions
-  ): Promise<TAuditedCounterparty>;
+  ): Promise<TCounterpartyUpdate>;
 
   create(payload: ICreateCounterpartyPayload): TAuditedCounterparty;
 }

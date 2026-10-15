@@ -79,6 +79,11 @@ export default function makeUpdateCounterpartyUsecase(
       const [counterparty, events, audit] =
         await deps.counterpartyService.update(current, changes, readOptions);
 
+      if (!audit) {
+        await transaction.commit();
+        return counterpartyDtoMapper.toDto(counterparty);
+      }
+
       const history = historyValue.make(audit, actor.id, correlationId);
 
       await deps.counterpartyRepo.update(counterparty, {

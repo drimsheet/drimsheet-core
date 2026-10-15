@@ -79,6 +79,16 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
         repoOptions
       );
 
+    const hasJournalChanges =
+      preparedRectification.rectification.entryUpdate !== null ||
+      preparedRectification.rectification.entriesToCreate.length > 0;
+
+    if (!hasJournalChanges) {
+      return journalEntryRectificationDtoMapper.toDto(
+        preparedRectification.rectification
+      );
+    }
+
     const newCounterparties = getNewCounterpartiesHelper(
       preparedRectification.counterparties,
       actor.id,

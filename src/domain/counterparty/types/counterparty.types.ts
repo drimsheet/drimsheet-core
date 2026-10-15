@@ -1,7 +1,12 @@
 import { TEntityId } from '@shared/types/uuid';
 import { TCreateAddressPayload } from '@shared/values/contact-details/address.vo';
 import { IAddress } from '@shared/values/contact-details/types/address.types';
-import { TAuditedEntity } from '@shared/values/events/types/event.types';
+import {
+  IEvent,
+  TAuditedEntity,
+} from '@shared/values/events/types/event.types';
+
+import { ICounterpartyAudit } from './counterparty-audit.types';
 
 export const ECounterpartyStatus = {
   Draft: 'draft',
@@ -112,3 +117,9 @@ export type TAuditedCounterparty = TAuditedEntity<
   ICounterparty,
   ICounterparty
 >;
+
+export type TCounterpartyUpdate = [
+  ICounterparty,
+  IEvent<ICounterparty>[],
+  ICounterpartyAudit | null,
+];

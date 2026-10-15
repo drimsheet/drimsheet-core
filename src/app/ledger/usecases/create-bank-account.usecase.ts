@@ -99,7 +99,9 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
           ...transactionOptions,
           history: [
             historyValue.make(controlAudit, actor.id, correlationId),
-            historyValue.make(postingAudit, actor.id, correlationId),
+            ...(postingAudit
+              ? [historyValue.make(postingAudit, actor.id, correlationId)]
+              : []),
           ],
         });
         accountEvents.unshift(...controlEvents, ...postingEvents);

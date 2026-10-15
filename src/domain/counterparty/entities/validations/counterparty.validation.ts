@@ -124,7 +124,7 @@ function validateCounterparty(counterparty: ICounterparty): void {
   dateUtils.validateDate(counterparty.updatedAt, counterpartyError.InvalidDate);
 }
 
-/** Checks update eligibility and treats an explicit Active status as activation. */
+/** Checks update eligibility and permits an already active target. */
 function validateUpdateStatus(
   currentStatus: UCounterpartyStatus,
   status: UCounterpartyStatus | undefined
@@ -136,12 +136,6 @@ function validateUpdateStatus(
     status !== undefined && status !== ECounterpartyStatus.Active;
   if (invalidTarget) {
     throw new counterpartyError.InvalidStatus({ field: 'status' });
-  }
-  const alreadyActive =
-    status === ECounterpartyStatus.Active &&
-    currentStatus === ECounterpartyStatus.Active;
-  if (alreadyActive) {
-    throw new counterpartyError.AlreadyActive();
   }
 }
 

@@ -96,6 +96,15 @@ describe('makeArchiveJournalEntryUsecase', () => {
 
   afterEach(() => jest.useRealTimers());
 
+  it('returns an already archived journal without persistence or publication', async () => {
+    const [archived] = journalEntryEntity.archive(makeEntry());
+    mockJournalEntryRepo.findById.mockResolvedValue(archived);
+    const response = await usecase(archived.id);
+    expect(response.id).toBe(archived.id);
+    expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['posted', now],
     ['draft', null],

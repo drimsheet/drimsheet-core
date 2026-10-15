@@ -42,6 +42,10 @@ export default function makeActivateRevenueAccountUsecase(deps: IDependencies) {
     );
     const [account, events, audit] = activation;
 
+    if (!audit) {
+      return;
+    }
+
     // The repository atomically saves the account and history; stale writes conflict.
     await deps.ledgerAccountRepo.update(account, {
       ...repoOptions,

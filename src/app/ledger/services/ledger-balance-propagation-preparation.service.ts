@@ -146,6 +146,10 @@ function prepareBalanceAdjustments(
       }
     );
 
+    if (balanceAdjustment.newBalance === existingBalance) {
+      continue;
+    }
+
     preparedAdjustments.push({
       balanceAdjustment,
       expectedVersion: existingBalance.version,

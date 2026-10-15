@@ -12,6 +12,24 @@ Use an entity when the concept has identity and lifecycle.
 - Equality is based on identity.
 - Examples: user, ledger account, journal entry, session.
 
+### Unchanged Mutations
+
+- Valid input that produces no business-state change must return the original
+  entity reference, preserving its version and timestamps. Never throw solely
+  because an update is unchanged, a value is already set to the requested value,
+  or the requested transition has already been applied with identical details.
+- Validate and normalize supplied values before comparing semantic state
+  (including date values and nested metadata). No-op handling must not accept
+  invalid input or conflicting changes to immutable fields.
+- Return no events and no audit (`[entity, [], null]` for audited mutations).
+  Never manufacture a version, timestamp, event, or history change to make an
+  unchanged update look meaningful.
+- Carry nullable audits through service contracts. Callers must skip persistence,
+  history creation, event publication, and downstream work for unchanged state.
+- Test empty and identical updates, normalized equivalent values, and repeated
+  transitions. Assert reference identity, unchanged version/timestamps, no
+  events/audit, and continued rejection of invalid or conflicting input.
+
 ## Value
 
 Use a value when the concept is defined by its attributes.

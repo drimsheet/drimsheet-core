@@ -2,10 +2,7 @@ import deepFreeze from '@shared/utils/deep-freeze';
 import generateDiff from '@shared/utils/diff-generator';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
-import {
-  IEvent,
-  TAuditedEntity,
-} from '@shared/values/events/types/event.types';
+import { IEvent } from '@shared/values/events/types/event.types';
 
 import getCounterpartyRolesHelper from '@domain/counterparty/entities/helpers/get-counterparty-roles.helper';
 import counterpartyValidation from '@domain/counterparty/entities/validations/counterparty.validation';
@@ -21,6 +18,7 @@ import {
   IMakeCounterpartyPayload,
   TAuditedCounterparty,
   TCounterpartyRoleDetails,
+  TCounterpartyUpdate,
 } from '@domain/counterparty/types/counterparty.types';
 import counterpartyAuditValue from '@domain/counterparty/values/counterparty-audit.vo';
 import counterpartyMetaValidation from '@domain/counterparty/values/validations/counterparty-meta.validation';
@@ -68,23 +66,28 @@ function make(payload: IMakeCounterpartyPayload): TAuditedCounterparty {
 function addRole(
   counterparty: ICounterparty,
   details: TCounterpartyRoleDetails
-): TAuditedEntity<ICounterparty, ICounterparty, ICounterparty> {
+): TCounterpartyUpdate {
   counterpartyValidation.validateCounterparty(counterparty);
   const { role } = details;
   counterpartyValidation.validateRole(role);
-
-  if (counterparty.roles.includes(role)) {
-    throw new counterpartyError.RoleAlreadyAssigned({
-      role,
-      counterpartyId: counterparty.id,
-    });
-  }
 
   const meta = {
     ...counterparty.meta,
     [role]: details.meta,
   };
   counterpartyMetaValidation.validate(meta);
+
+  if (counterparty.roles.includes(role)) {
+    const hasMetaChanges = generateDiff(meta, counterparty.meta).hasChanges;
+    if (!hasMetaChanges) {
+      return [counterparty, [], null];
+    }
+    throw new counterpartyError.RoleAlreadyAssigned({
+      role,
+      counterpartyId: counterparty.id,
+    });
+  }
+
   const timestamp = new Date();
 
   const updatedCounterparty: ICounterparty = deepFreeze({
@@ -116,7 +119,7 @@ function addRole(
 function update(
   counterparty: ICounterparty,
   details: Partial<Pick<ICounterparty, 'name' | 'type' | 'status' | 'meta'>>
-): TAuditedCounterparty {
+): TCounterpartyUpdate {
   counterpartyValidation.validateCounterparty(counterparty);
   counterpartyValidation.validateUpdateStatus(
     counterparty.status,
@@ -141,9 +144,7 @@ function update(
     !hasMetaChanges;
 
   if (isUnchanged) {
-    // TODO: fix this! Never throw if unchanged https://drimsheet-app.atlassian.net/browse/ENG-194
-    // see src/domain/journal-entry/entities/journal-line.entity.ts
-    throw new counterpartyError.InvalidUpdate();
+    return [counterparty, [], null];
   }
 
   const updatedCounterparty: ICounterparty = deepFreeze({
@@ -160,7 +161,9 @@ function update(
     updatedAt: new Date(),
   });
 
-  const isActivation = details.status === ECounterpartyStatus.Active;
+  const isActivation =
+    counterparty.status !== ECounterpartyStatus.Active &&
+    status === ECounterpartyStatus.Active;
   const event = isActivation
     ? counterpartyEvents.activated(updatedCounterparty)
     : counterpartyEvents.updated(updatedCounterparty);

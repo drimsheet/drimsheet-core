@@ -127,6 +127,19 @@ describe('makeLedgerBalancePropagationPreparationAppService', () => {
     ]);
   });
 
+  it('omits unchanged balances from the prepared writes', async () => {
+    mockLedgerAccountBalanceAdjustmentService.calculate.mockReturnValue(
+      deltas.map((delta) => ({
+        ...delta,
+        amount: { ...delta.amount, amount: 0n },
+        functionalAmount: { ...delta.functionalAmount, amount: 0n },
+      }))
+    );
+    expect(await service.prepare(journalEntryId, repoOptions)).toEqual([]);
+    expect(childBalance.version).toBe(1);
+    expect(parentBalance.version).toBe(1);
+  });
+
   it('prepares pending historical propagation for archived direct accounts and ancestors', async () => {
     const archivedChild = {
       ...childAccount,

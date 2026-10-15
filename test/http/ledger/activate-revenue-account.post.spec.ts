@@ -139,6 +139,16 @@ describe('POST /ledger/revenue/{accountId}/activate', () => {
       .set('x-accounting-entity-id', accountingEntity.id);
 
   describe('204 Response', () => {
+    it('accepts repeated activation without writing or publishing', async () => {
+      mockLedgerAccountRepo.findById.mockResolvedValueOnce({
+        ...account,
+        status: 'active',
+      });
+      expect((await post()).status).toBe(204);
+      expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    });
+
     it('activates a draft with trusted audit attribution and no response body', async () => {
       const response = await post().set('x-actor-id', 'forged');
       expect(response.status).toBe(204);
@@ -165,18 +175,17 @@ describe('POST /ledger/revenue/{accountId}/activate', () => {
       expect((await post('invalid')).status).toBe(400);
       expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
     });
-    it.each([
-      { status: 'archived' as const },
-      { status: 'active' as const },
-      { type: 'asset' as const },
-    ])('rejects an ineligible account: %j', async (changes) => {
-      mockLedgerAccountRepo.findById.mockResolvedValueOnce({
-        ...account,
-        ...changes,
-      });
-      expect((await post()).status).toBe(400);
-      expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-    });
+    it.each([{ status: 'archived' as const }, { type: 'asset' as const }])(
+      'rejects an ineligible account: %j',
+      async (changes) => {
+        mockLedgerAccountRepo.findById.mockResolvedValueOnce({
+          ...account,
+          ...changes,
+        });
+        expect((await post()).status).toBe(400);
+        expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      }
+    );
   });
   describe('401 Response', () => {
     it('rejects unauthenticated callers before orchestration', async () => {

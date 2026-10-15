@@ -227,7 +227,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
           }),
         ],
         entryUpdate: expect.objectContaining({
-          entry: removal.entryUpdate.entry,
+          entry: removal.entryUpdate?.entry,
           expectedVersion: entry.version,
         }),
       }),

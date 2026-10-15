@@ -50,7 +50,7 @@ export interface IJournalEntryReversalResult {
   originalJournalEntryId: TEntityId;
   reversingJournalEntry: IJournalEntry;
   entriesToCreate: TAuditedJournalEntry[];
-  entryUpdate: IJournalEntryRectificationUpdate;
+  entryUpdate: IJournalEntryRectificationUpdate | null;
   events: IEvent<unknown>[];
 }
 
