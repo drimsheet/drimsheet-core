@@ -1,4 +1,7 @@
-import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types';
+import {
+  ILedgerAccountPromotionNames,
+  ULedgerAccountCreationStatus,
+} from '@domain/ledger/types/ledger.types';
 
 export interface ICreateTradeReceivableAccountDto {
   name: string;
@@ -7,6 +10,8 @@ export interface ICreateTradeReceivableAccountDto {
   isControlAccount: boolean;
   /** @format uuid */
   controlAccountId?: string;
+  /** Applied only during promotion; omitted names retain the original account name. */
+  promotionNames?: ILedgerAccountPromotionNames;
   currencyCode: string;
 }
 
@@ -17,5 +22,7 @@ export interface ICreateStatutoryReceivableAccountDto {
   isControlAccount: boolean;
   /** @format uuid */
   controlAccountId?: string;
+  /** Applied only during promotion; omitted names retain the original account name. */
+  promotionNames?: ILedgerAccountPromotionNames;
   currencyCode: string;
 }

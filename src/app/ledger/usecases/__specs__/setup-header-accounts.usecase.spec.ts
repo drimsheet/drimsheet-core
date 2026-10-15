@@ -212,6 +212,7 @@ const dependencies = {
 const usecase = makeSetupHeaderAccountsUsecase(dependencies);
 
 const allocation = makeLedgerAccountService({
+  ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   journalEntryRepo: mockJournalEntryRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });

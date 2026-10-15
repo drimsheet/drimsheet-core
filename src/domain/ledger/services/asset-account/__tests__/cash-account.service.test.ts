@@ -49,6 +49,7 @@ const allocation: jest.Mocked<ILedgerAccountService> = {
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
+  promotePostingToControlAccount: jest.fn(),
 };
 describe('cashAccountService', () => {
   const service = makeCashAccountService({
@@ -832,7 +833,6 @@ describe('cashAccountService', () => {
     it.each([
       { type: ELedgerType.Liability },
       { subType: EAssetSubType.Receivables },
-      { isControlAccount: false },
       { behavior: EAssetAccountBehavior.PettyCash },
       { accountingEntityId: generateUUID() },
     ])('rejects invalid parents: %o', async (invalid) => {

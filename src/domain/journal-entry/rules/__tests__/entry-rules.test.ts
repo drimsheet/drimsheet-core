@@ -46,6 +46,7 @@ const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
+  promotePostingToControlAccount: jest.fn(),
 };
 
 function makePaymentAccount(
@@ -116,6 +117,7 @@ describe('journal entry rules', () => {
       archive: jest.fn(),
       delete: jest.fn(),
       getNextCode: jest.fn(),
+      promotePostingToControlAccount: jest.fn(),
     },
   });
   const receivablesAccountService = makeReceivablesAccountService({

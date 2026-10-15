@@ -184,6 +184,11 @@ services/
 
 ## Domain Account Creation
 
+`ledgerAccountEntity` owns ledger-code generation: family-prefix derivation,
+predecessor validation, reserved-code selection, and sequence limits. Services
+retrieve the latest persisted code and delegate to `getNextCode`. Suspense
+creation uses the entity's `getSuspenseCode` to retain its initial-code behavior.
+
 A draft control account can only receive draft children, including nested control
 accounts. Creation services validate the resolved child status in the domain
 before allocating a code or returning a new account. Omitting status retains the
@@ -193,4 +198,57 @@ children; archived-parent restrictions continue to apply.
 
 Child creation methods accept an optional `controlAccountId` and require a caller-owned transaction. They lock the allocation root before resolving and locking the selected parent, enforce the existing parent and currency rules, and create the account with its final code and materialized path. Omitted parent IDs retain the existing family-specific default parents. Trade/statutory receivables and payables share their respective root allocation sequences; direct-cost variants share theirs.
 
-Creation returns a version-1 entity and one complete creation event/audit. Bank and petty-cash opening dates are initialized during creation. Initial-opening journals own the posting-period check and Share lock. Use cases persist the prepared account/history and initial balance, commit, publish events, and submit any balance queue work after publication. Persistence never assigns codes or updates prepared domain entities. Existing historical audits and versions are unchanged.
+Creation returns a version-1 entity and one complete creation event/audit, plus an optional prepared promotion as the fourth tuple item. Bank and petty-cash opening dates are initialized during creation. Initial-opening journals own the posting-period check and Share lock. Use cases persist the prepared account/history and initial balance, commit, publish events, and submit any balance queue work after publication. Persistence never assigns codes or updates prepared domain entities. Existing historical audits and versions are unchanged.
+
+### Control Account Promotion (Dynamic Nesting)
+
+When a child-creation request selects a posting account as `controlAccountId`,
+the family domain service first validates the selected parent’s status, family,
+behavior, and currency. It then prepares promotion before calling
+`ledgerAccountService.getNextCode` for the requested child. Existing control
+parents retain the usual creation path. Posting parents can be promoted with or
+without existing journals; draft parents still require draft children.
+
+The domain’s `clonePostingAccountToControlAccount` entity operation creates a
+new control account at the original account's code and materialized path,
+inheriting its parent. The domain service also prepares its initial balance
+from the posting account’s existing amounts. The original posting account retains its ID, financial
+classification, currency, metadata, opening date, and journal references. It
+receives the next available family code, moves under the new control account,
+and retains its name unless the client supplies `promotionNames`. This optional
+object contains `newControlAccountName` and `newPostingAccountName`, allowing
+clients to supply localized names. When omitted, both accounts retain the
+original name. Supplied names follow the usual account-name validation, and
+are ignored when the selected parent is already a control account. The requested
+child keeps its own request name and is created alongside the original posting
+account. For example, with client-supplied promotion names:
+
+```text
+Before: 401000.401001                 Consulting (posting)
+After:  401000.401001                 Consulting (new control)
+        401000.401001.401002          Consulting (default; original ID)
+        401000.401001.401003          Requested child
+```
+
+The domain returns the audited parent creation and posting-account update,
+plus prepared balances. Child allocation excludes the code already reserved
+for the original posting account. Both new codes must fit the existing family
+capacity. Domain services never persist these records.
+
+The use case persists promotion and child creation in one transaction, with
+actor-attributed histories and events published after commit. The persistence
+service uses ordinary repository calls: update the original posting account,
+create the new control account, and persist the prepared balances. The use case
+then persists the requested child. The parent foreign key is deferred until
+transaction commit so the update may reference the new parent before insertion;
+code/path uniqueness remains immediate. A missing parent still prevents commit.
+No journal lines are rewritten.
+This preserves LED-LA-002, LED-LA-003, LED-LA-005, and LED-LA-009–012.
+
+The original balance keeps its amounts and receives the new path and version;
+the new control balance starts with those already-propagated amounts. Existing
+ancestors are unchanged, preventing double-counting. Pending journal propagation
+uses the new hierarchy. A propagation preparation whose account paths disagree
+with its later balance reads rejects for retry; optimistic balance versions
+protect writes prepared before promotion. A concurrent balance write also
+causes promotion to roll back rather than seed the parent from stale amounts.

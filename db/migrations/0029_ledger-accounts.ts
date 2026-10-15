@@ -91,6 +91,9 @@ export function up(pgm: MigrationBuilder) {
         type: 'uuid',
         references: ledgerAccountsTable,
         onDelete: 'RESTRICT',
+        // Promotion updates the posting account before inserting its new parent.
+        deferrable: true,
+        deferred: true,
       },
       name: {
         type: 'varchar(100)',

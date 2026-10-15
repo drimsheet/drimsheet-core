@@ -15,7 +15,6 @@ function validate(
     controlAccount.accountingEntityId === accountingEntityId &&
     controlAccount.type === ELedgerType.Revenue &&
     controlAccount.subType === ERevenueSubType.UnrealizedGains &&
-    controlAccount.isControlAccount &&
     controlAccount.behavior === ERevenueAccountBehavior.UnrealizedGains;
 
   if (!isValidControlAccount) {

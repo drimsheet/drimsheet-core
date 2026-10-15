@@ -17,7 +17,6 @@ function validate(
     controlAccount.accountingEntityId === accountingEntityId &&
     controlAccount.type === ELedgerType.Asset &&
     controlAccount.subType === EAssetSubType.CashAndCashEquivalent &&
-    controlAccount.isControlAccount &&
     (controlAccount.behavior === EAssetAccountBehavior.DefaultCash ||
       controlAccount.behavior === behavior);
 

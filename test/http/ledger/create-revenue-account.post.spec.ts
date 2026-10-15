@@ -143,6 +143,22 @@ describe('POST /ledger/revenues', () => {
       .set('x-accounting-entity-id', accountingEntityId)
       .send(payload);
   describe('201 Response', () => {
+    it('accepts and forwards optional localized promotion names', async () => {
+      const promotionNames = {
+        newControlAccountName: 'إيرادات الاستشارات',
+        newPostingAccountName: 'Conseil (par défaut)',
+      };
+      const response = await send({
+        ...valid,
+        controlAccountId,
+        promotionNames,
+      });
+      expect(response.status).toBe(201);
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ promotionNames })
+      );
+    });
+
     it.each(['active', 'draft'] as const)(
       'accepts %s creation and returns its status',
       async (status) => {

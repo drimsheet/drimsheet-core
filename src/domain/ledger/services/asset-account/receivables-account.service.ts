@@ -12,6 +12,7 @@ import receivablesControlAccountValidation from '@domain/ledger/services/validat
 import {
   EAssetAccountBehavior,
   EAssetSubType,
+  IReceivablesAccount,
 } from '@domain/ledger/types/asset-account.types';
 import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 import { TReceivablesLedgerCode } from '@domain/ledger/types/ledger-code.types';
@@ -58,7 +59,7 @@ function makeCreateHeader(
       payload.accountingEntity.functionalCurrencyCode
     );
 
-    return ledgerAccountEntity.make({
+    return ledgerAccountEntity.make<IReceivablesAccount>({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
       code: LEDGER_CODE.HEADER,
@@ -88,7 +89,7 @@ function makeCreateStatutoryReceivableSubAccount(
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
     }
 
-    const controlAccount = await getLockedControlAccountHelper(
+    const selectedControlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
       {
         accountingEntityId: payload.accountingEntity.id,
@@ -99,20 +100,34 @@ function makeCreateStatutoryReceivableSubAccount(
       repoOptions
     );
 
-    controlAccountAvailabilityValidation.validate(controlAccount);
+    controlAccountAvailabilityValidation.validate(selectedControlAccount);
 
     const status = payload.status ?? ELedgerAccountStatus.Active;
-    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+    controlAccountChildStatusValidation.validate(
+      selectedControlAccount.status,
+      status
+    );
 
     receivablesControlAccountValidation.validateStatutoryReceivableSubAccount(
-      controlAccount,
+      selectedControlAccount,
       payload.accountingEntity.id
     );
 
     ledgerAccountCurrencyInvarianceRule.validate({
-      controlAccount,
+      controlAccount: selectedControlAccount,
       subAccountCurrency: payload.currency,
     });
+
+    const promotion = selectedControlAccount.isControlAccount
+      ? undefined
+      : await deps.ledgerAccountService.promotePostingToControlAccount(
+          selectedControlAccount,
+          payload.createdBy,
+          repoOptions,
+          payload.promotionNames
+        );
+    const controlAccount =
+      promotion?.controlAccount[0] ?? selectedControlAccount;
 
     const code = await deps.ledgerAccountService.getNextCode(
       {
@@ -120,6 +135,7 @@ function makeCreateStatutoryReceivableSubAccount(
         type: ELedgerType.Asset,
         subType: EAssetSubType.Receivables,
         allocationHeaderCode: LEDGER_CODE.HEADER,
+        reservedCode: promotion?.postingAccount[0].code,
       },
       repoOptions
     );
@@ -129,7 +145,7 @@ function makeCreateStatutoryReceivableSubAccount(
       code
     );
 
-    return ledgerAccountEntity.make({
+    const auditedAccount = ledgerAccountEntity.make<IReceivablesAccount>({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
       code: code as TReceivablesLedgerCode,
@@ -147,6 +163,7 @@ function makeCreateStatutoryReceivableSubAccount(
       adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
       createdBy: payload.createdBy,
     });
+    return promotion ? [...auditedAccount, promotion] : auditedAccount;
   };
 }
 
@@ -159,7 +176,7 @@ function makeCreateTradeReceivableSubAccount(
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
     }
 
-    const controlAccount = await getLockedControlAccountHelper(
+    const selectedControlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
       {
         accountingEntityId: payload.accountingEntity.id,
@@ -170,20 +187,34 @@ function makeCreateTradeReceivableSubAccount(
       repoOptions
     );
 
-    controlAccountAvailabilityValidation.validate(controlAccount);
+    controlAccountAvailabilityValidation.validate(selectedControlAccount);
 
     const status = payload.status ?? ELedgerAccountStatus.Active;
-    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+    controlAccountChildStatusValidation.validate(
+      selectedControlAccount.status,
+      status
+    );
 
     receivablesControlAccountValidation.validateTradeReceivableSubAccount(
-      controlAccount,
+      selectedControlAccount,
       payload.accountingEntity.id
     );
 
     ledgerAccountCurrencyInvarianceRule.validate({
-      controlAccount,
+      controlAccount: selectedControlAccount,
       subAccountCurrency: payload.currency,
     });
+
+    const promotion = selectedControlAccount.isControlAccount
+      ? undefined
+      : await deps.ledgerAccountService.promotePostingToControlAccount(
+          selectedControlAccount,
+          payload.createdBy,
+          repoOptions,
+          payload.promotionNames
+        );
+    const controlAccount =
+      promotion?.controlAccount[0] ?? selectedControlAccount;
 
     const code = await deps.ledgerAccountService.getNextCode(
       {
@@ -191,6 +222,7 @@ function makeCreateTradeReceivableSubAccount(
         type: ELedgerType.Asset,
         subType: EAssetSubType.Receivables,
         allocationHeaderCode: LEDGER_CODE.HEADER,
+        reservedCode: promotion?.postingAccount[0].code,
       },
       repoOptions
     );
@@ -200,7 +232,7 @@ function makeCreateTradeReceivableSubAccount(
       code
     );
 
-    return ledgerAccountEntity.make({
+    const auditedAccount = ledgerAccountEntity.make<IReceivablesAccount>({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
       code: code as TReceivablesLedgerCode,
@@ -218,6 +250,7 @@ function makeCreateTradeReceivableSubAccount(
       adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
       createdBy: payload.createdBy,
     });
+    return promotion ? [...auditedAccount, promotion] : auditedAccount;
   };
 }
 

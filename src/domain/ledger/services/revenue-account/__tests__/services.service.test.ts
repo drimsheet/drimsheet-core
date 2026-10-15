@@ -44,6 +44,7 @@ const allocation: jest.Mocked<ILedgerAccountService> = {
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
+  promotePostingToControlAccount: jest.fn(),
 };
 
 describe('servicesAccountService', () => {
@@ -285,7 +286,6 @@ describe('servicesAccountService', () => {
       label: 'subtype',
       overrides: { subType: ERevenueSubType.Grants },
     },
-    { label: 'control status', overrides: { isControlAccount: false } },
     {
       label: 'behavior',
       overrides: { behavior: ERevenueAccountBehavior.Grants },

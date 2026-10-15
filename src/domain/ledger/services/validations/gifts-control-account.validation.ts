@@ -15,7 +15,6 @@ function validate(
     controlAccount.accountingEntityId === accountingEntityId &&
     controlAccount.type === ELedgerType.Revenue &&
     controlAccount.subType === ERevenueSubType.Gifts &&
-    controlAccount.isControlAccount &&
     controlAccount.behavior === ERevenueAccountBehavior.Gifts;
 
   if (!isValidControlAccount) {

@@ -1,4 +1,7 @@
-import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types';
+import {
+  ILedgerAccountPromotionNames,
+  ULedgerAccountCreationStatus,
+} from '@domain/ledger/types/ledger.types';
 import { IStatutoryPayableAccountMeta } from '@domain/ledger/types/liability-account.types';
 
 export interface ICreateTradePayableAccountDto {
@@ -8,6 +11,8 @@ export interface ICreateTradePayableAccountDto {
   isControlAccount: boolean;
   /** @format uuid */
   controlAccountId?: string;
+  /** Applied only during promotion; omitted names retain the original account name. */
+  promotionNames?: ILedgerAccountPromotionNames;
   meta?: {
     /** @format uuid */
     counterpartyId: string;
@@ -23,6 +28,8 @@ export interface ICreateStatutoryPayableAccountDto {
   isControlAccount: boolean;
   /** @format uuid */
   controlAccountId?: string;
+  /** Applied only during promotion; omitted names retain the original account name. */
+  promotionNames?: ILedgerAccountPromotionNames;
   currencyCode: string;
   meta?: IStatutoryPayableAccountMeta | null;
 }

@@ -6,7 +6,12 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 
-import { ILedgerAccount, TAuditedLedgerAccount } from './ledger.types';
+import {
+  ILedgerAccount,
+  ILedgerAccountPromotionNames,
+  ILedgerAccountPromotionResult,
+  TAuditedLedgerAccount,
+} from './ledger.types';
 
 export const ELedgerAccountDeletionReason = {
   HeaderAccount: 'header_account',
@@ -33,6 +38,14 @@ type TLedgerAccountCurrencyUpdateEligibility =
   | { canUpdateCurrency: false; reason: ULedgerAccountCurrencyUpdateReason };
 
 export default interface ILedgerAccountService {
+  /** Prepares promotion under the caller's family/parent locks, before child allocation. Never persists. */
+  promotePostingToControlAccount(
+    account: ILedgerAccount,
+    createdBy: TEntityId,
+    repoOptions: IReadRepoOptions & { tx: ITransactionContext },
+    promotionNames?: ILedgerAccountPromotionNames
+  ): Promise<ILedgerAccountPromotionResult>;
+
   /**
    * An asset is eligible when it has no historically posted journal entries.
    * Draft journals do not block eligibility. Checks only the supplied account.
@@ -96,6 +109,7 @@ export default interface ILedgerAccountService {
       type: ILedgerAccount['type'];
       subType: ILedgerAccount['subType'];
       allocationHeaderCode: string;
+      reservedCode?: string;
     },
     repoOptions: IReadRepoOptions & { tx: ITransactionContext }
   ): Promise<string>;

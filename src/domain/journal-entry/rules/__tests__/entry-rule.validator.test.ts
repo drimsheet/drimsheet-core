@@ -50,6 +50,7 @@ describe('journalEntryRuleValidator', () => {
       archive: jest.fn(),
       delete: jest.fn(),
       getNextCode: jest.fn(),
+      promotePostingToControlAccount: jest.fn(),
     },
   });
   let account: ILedgerAccount;

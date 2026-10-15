@@ -8,6 +8,7 @@ import accountingEntityEntity from '@domain/accounting/entities/accounting-entit
 import periodError from '@domain/accounting/errors/period.error';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { ICashAndCashEquivalentAccount } from '@domain/ledger/types/asset-account.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -371,9 +372,14 @@ describe('petty cash account creation workflow', () => {
   });
 
   it('passes domain creation facts including optional ID and initial date', async () => {
+    const promotionNames = {
+      newControlAccountName: 'Conseil',
+      newPostingAccountName: 'Conseil (par défaut)',
+    };
     await makeCreatePettyCashAccountUseCase(deps)({
       ...openingPayload,
       controlAccountId: parentId,
+      promotionNames,
     });
     expect(
       mockAssetAccountService.createPettyCashSubAccount
@@ -386,6 +392,7 @@ describe('petty cash account creation workflow', () => {
         createdBy: actor.id,
         accountingEntity,
         controlAccountId: parentId,
+        promotionNames,
         openingBalanceDate: date,
       },
       options
@@ -588,6 +595,95 @@ describe('petty cash account creation workflow', () => {
       ).rejects.toBe(failure);
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+    }
+  );
+  it.each([false, true])(
+    'persists domain promotion before the child and rolls back on failure=%s',
+    async (fails) => {
+      const [original] = ledgerAccountEntity.make({ ...bank[0] });
+      const controlAccount =
+        ledgerAccountEntity.clonePostingAccountToControlAccount(
+          original,
+          actor.id
+        );
+      const [control] = controlAccount;
+      const postingAccount = ledgerAccountEntity.reparentPostingAccount(
+        original,
+        control,
+        `${original.code.slice(0, 3)}998`
+      );
+      const [posting] = postingAccount;
+      const existingBalance = ledgerAccountBalanceEntity.make({
+        createdBy: actor.id,
+        ledgerAccountId: original.id,
+        accountingEntityId: original.accountingEntityId,
+        accountMaterializedPath: original.materializedPath,
+        currencyCode: original.currency?.code ?? 'NGN',
+        functionalCurrencyCode: 'NGN',
+      });
+      const promotion = {
+        controlAccount,
+        postingAccount,
+        postingBalance: ledgerAccountBalanceEntity.updateAccountCode(
+          existingBalance,
+          posting.materializedPath
+        ),
+        controlBalance: ledgerAccountBalanceEntity.make({
+          createdBy: control.createdBy,
+          ledgerAccountId: control.id,
+          accountingEntityId: control.accountingEntityId,
+          accountMaterializedPath: control.materializedPath,
+          currencyCode: existingBalance.amount.currency.code,
+          functionalCurrencyCode:
+            existingBalance.functionalAmount.currency.code,
+          amount: existingBalance.amount.amount,
+          functionalAmount: existingBalance.functionalAmount.amount,
+        }),
+      };
+      mockAssetAccountService.createPettyCashSubAccount.mockResolvedValueOnce([
+        ...bank,
+        promotion,
+      ] as Awaited<
+        ReturnType<typeof mockAssetAccountService.createPettyCashSubAccount>
+      >);
+      const failure = new Error('promotion write failed');
+      if (fails) {
+        mockLedgerAccountPersistenceAppService.promote.mockRejectedValueOnce(
+          failure
+        );
+        await expect(
+          makeCreatePettyCashAccountUseCase(deps)(payload)
+        ).rejects.toBe(failure);
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+        expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+        expect(
+          mockLedgerAccountPersistenceAppService.create
+        ).not.toHaveBeenCalled();
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
+        return;
+      }
+      await makeCreatePettyCashAccountUseCase(deps)(payload);
+      expect(
+        mockLedgerAccountPersistenceAppService.promote
+      ).toHaveBeenCalledWith(promotion, {
+        correlationId,
+        tx: mockRepoTransaction.context,
+        history: [
+          expect.objectContaining({ entityId: control.id, actorId: actor.id }),
+          expect.objectContaining({ entityId: posting.id, actorId: actor.id }),
+        ],
+      });
+      expect(
+        mockLedgerAccountPersistenceAppService.promote.mock
+          .invocationCallOrder[0]
+      ).toBeLessThan(
+        mockLedgerAccountPersistenceAppService.create.mock
+          .invocationCallOrder[0]
+      );
+      expect(
+        mockRepoTransaction.commit.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
+      expect(mockEventBus.publish.mock.calls[0][0]).toHaveLength(3);
     }
   );
 });

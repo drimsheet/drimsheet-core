@@ -67,6 +67,27 @@ describe('ledgerAccountBalanceEntity', () => {
       expect(() => ledgerAccountBalanceEntity.make(payload)).toThrow();
     });
 
+    it('creates a version-one balance with supplied amounts in each currency', () => {
+      const balance = ledgerAccountBalanceEntity.make({
+        ...validPayload,
+        amount: -500n,
+        functionalAmount: -250n,
+      });
+
+      expect(balance.amount).toEqual({
+        amount: -500n,
+        currency: currencyEntity.getByCode('NGN'),
+      });
+      expect(balance.functionalAmount).toEqual({
+        amount: -250n,
+        currency: currencyEntity.getByCode('USD'),
+      });
+      expect(balance.version).toBe(1);
+      expect(Object.isFrozen(balance)).toBe(true);
+      expect(Object.isFrozen(balance.amount)).toBe(true);
+      expect(Object.isFrozen(balance.functionalAmount)).toBe(true);
+    });
+
     it('should throw if accountingEntityId is invalid UUID', () => {
       const payload = {
         ...validPayload,
@@ -97,6 +118,135 @@ describe('ledgerAccountBalanceEntity', () => {
         functionalCurrencyCode: 'INVALID',
       };
       expect(() => ledgerAccountBalanceEntity.make(payload)).toThrow();
+    });
+  });
+
+  describe('cloneToControlAccount', () => {
+    const makeBalance = () =>
+      ledgerAccountBalanceEntity.make({
+        createdBy: generateUUID(),
+        ledgerAccountId: generateUUID(),
+        accountingEntityId: generateUUID(),
+        accountMaterializedPath: '401000.401001',
+        currencyCode: 'NGN',
+        functionalCurrencyCode: 'USD',
+      });
+
+    it.each([0n, 500n, -500n])(
+      'clones %s into a new control balance with fresh creation metadata',
+      (amount) => {
+        const zero = makeBalance();
+        const original = ledgerAccountBalanceEntity.adjust(zero, {
+          createdBy: zero.createdBy,
+          ledgerAccountId: zero.ledgerAccountId,
+          journalEntryId: generateUUID(),
+          amount: { amount, currency: zero.amount.currency },
+          functionalAmount: {
+            amount: amount / 2n,
+            currency: zero.functionalAmount.currency,
+          },
+        }).newBalance;
+        const controlAccountId = generateUUID();
+        const createdBy = generateUUID();
+        const cloneTime = new Date('2026-04-02T00:00:00.000Z');
+        jest.setSystemTime(cloneTime);
+
+        const cloned = ledgerAccountBalanceEntity.cloneToControlAccount(
+          original,
+          controlAccountId,
+          createdBy
+        );
+
+        expect(cloned).toEqual({
+          createdBy,
+          ledgerAccountId: controlAccountId,
+          accountingEntityId: original.accountingEntityId,
+          accountMaterializedPath: original.accountMaterializedPath,
+          amount: original.amount,
+          functionalAmount: original.functionalAmount,
+          version: 1,
+          createdAt: cloneTime,
+          updatedAt: cloneTime,
+        });
+        expect(cloned).not.toBe(original);
+        expect(Object.isFrozen(cloned)).toBe(true);
+        expect(Object.isFrozen(cloned.amount)).toBe(true);
+        expect(Object.isFrozen(cloned.functionalAmount)).toBe(true);
+        expect(original.ledgerAccountId).toBe(zero.ledgerAccountId);
+        expect(original.createdBy).toBe(zero.createdBy);
+        expect(original.amount.amount).toBe(amount);
+        expect(original.functionalAmount.amount).toBe(amount / 2n);
+        expect(original.version).toBe(2);
+        expect(original.updatedAt).toEqual(
+          new Date('2026-04-01T00:00:00.000Z')
+        );
+      }
+    );
+
+    it.each(['account', 'actor'])(
+      'rejects an invalid destination %s identity',
+      (invalidIdentity) => {
+        const invalidId = 'invalid' as TEntityId;
+        expect(() =>
+          ledgerAccountBalanceEntity.cloneToControlAccount(
+            makeBalance(),
+            invalidIdentity === 'account' ? invalidId : generateUUID(),
+            invalidIdentity === 'actor' ? invalidId : generateUUID()
+          )
+        ).toThrow();
+      }
+    );
+  });
+
+  describe('updateAccountCode', () => {
+    const makeBalance = () =>
+      ledgerAccountBalanceEntity.make({
+        createdBy: generateUUID(),
+        ledgerAccountId: generateUUID(),
+        accountingEntityId: generateUUID(),
+        accountMaterializedPath: '401000.401001',
+        currencyCode: 'NGN',
+        functionalCurrencyCode: 'USD',
+        amount: 500n,
+        functionalAmount: 250n,
+      });
+
+    it('changes the path and update metadata while preserving identity and balances', () => {
+      const original = makeBalance();
+      jest.setSystemTime(new Date('2026-04-02T00:00:00.000Z'));
+
+      const updated = ledgerAccountBalanceEntity.updateAccountCode(
+        original,
+        '401000.401001.401002'
+      );
+
+      expect(updated).toEqual({
+        ...original,
+        accountMaterializedPath: '401000.401001.401002',
+        version: original.version + 1,
+        updatedAt: new Date('2026-04-02T00:00:00.000Z'),
+      });
+      expect(Object.isFrozen(updated)).toBe(true);
+      expect(Object.isFrozen(updated.amount)).toBe(true);
+      expect(Object.isFrozen(updated.functionalAmount)).toBe(true);
+      expect(original.accountMaterializedPath).toBe('401000.401001');
+      expect(original.version).toBe(1);
+    });
+
+    it('returns the same balance for an unchanged path', () => {
+      const original = makeBalance();
+      expect(
+        ledgerAccountBalanceEntity.updateAccountCode(
+          original,
+          original.accountMaterializedPath
+        )
+      ).toBe(original);
+    });
+
+    it('rejects an invalid account path', () => {
+      expect(() =>
+        ledgerAccountBalanceEntity.updateAccountCode(makeBalance(), '123')
+      ).toThrow();
     });
   });
 

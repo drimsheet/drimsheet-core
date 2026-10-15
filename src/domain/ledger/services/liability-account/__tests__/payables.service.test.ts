@@ -45,6 +45,7 @@ const allocation: jest.Mocked<ILedgerAccountService> = {
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
+  promotePostingToControlAccount: jest.fn(),
 };
 
 describe('payablesAccountService', () => {
@@ -284,7 +285,6 @@ describe('payablesAccountService', () => {
   it.each([
     { type: ELedgerType.Asset },
     { subType: ELiabilitySubType.Suspense },
-    { isControlAccount: false },
     { behavior: ELiabilityAccountBehavior.TradePayable },
     { currency: null },
   ])('rejects an invalid statutory control account: %o', async (change) => {
@@ -311,7 +311,6 @@ describe('payablesAccountService', () => {
   it.each([
     { type: ELedgerType.Asset },
     { subType: ELiabilitySubType.Suspense },
-    { isControlAccount: false },
     { behavior: 'tax_payable' },
   ])('rejects an invalid trade control account: %o', async (change) => {
     const suppliedControlAccount = {

@@ -15,7 +15,6 @@ function validate(
     controlAccount.accountingEntityId === accountingEntityId &&
     controlAccount.type === ELedgerType.Expense &&
     controlAccount.subType === EExpenseSubType.LossOnAssetDisposal &&
-    controlAccount.isControlAccount &&
     (controlAccount.behavior === EExpenseAccountBehavior.AssetDisposalLoss ||
       controlAccount.behavior === EExpenseAccountBehavior.Default);
 

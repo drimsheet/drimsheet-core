@@ -1,4 +1,7 @@
-import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types';
+import {
+  ILedgerAccountPromotionNames,
+  ULedgerAccountCreationStatus,
+} from '@domain/ledger/types/ledger.types';
 
 import { IOpeningBalanceDto } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
 
@@ -14,6 +17,8 @@ export interface IPettyCashAccountCreationReq {
   currencyCode: string;
   isControlAccount: boolean;
   controlAccountId?: string;
+  /** Applied only during promotion; omitted names retain the original account name. */
+  promotionNames?: ILedgerAccountPromotionNames;
   openingBalance: IOpeningBalanceDto | null;
 }
 
@@ -44,6 +49,8 @@ export interface IBankAccountCreationReq {
   status?: ULedgerAccountCreationStatus;
   currencyCode: string;
   controlAccountId?: string;
+  /** Applied only during promotion; omitted names retain the original account name. */
+  promotionNames?: ILedgerAccountPromotionNames;
   bankAccount: IBankDetailsCreationReq;
   openingBalance: IOpeningBalanceDto | null;
 }

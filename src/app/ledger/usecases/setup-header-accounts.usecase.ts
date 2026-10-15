@@ -199,7 +199,8 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
           },
           transactionOptions
         );
-      const [tradeReceivable, , tradeReceivableAudit] = tradeReceivableCreation;
+      const [tradeReceivable, tradeReceivableEvents, tradeReceivableAudit] =
+        tradeReceivableCreation;
       const tradeReceivableHistory = historyValue.make(
         tradeReceivableAudit,
         actor.id,
@@ -210,7 +211,11 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [tradeReceivableHistory] }
       );
-      auditedAccounts.push(tradeReceivableCreation);
+      auditedAccounts.push([
+        tradeReceivable,
+        tradeReceivableEvents,
+        tradeReceivableAudit,
+      ]);
 
       const statutoryReceivableCreation =
         await deps.receivablesAccountService.createStatutoryReceivableSubAccount(
@@ -226,8 +231,11 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
           },
           transactionOptions
         );
-      const [statutoryReceivable, , statutoryReceivableAudit] =
-        statutoryReceivableCreation;
+      const [
+        statutoryReceivable,
+        statutoryReceivableEvents,
+        statutoryReceivableAudit,
+      ] = statutoryReceivableCreation;
       const statutoryReceivableHistory = historyValue.make(
         statutoryReceivableAudit,
         actor.id,
@@ -238,7 +246,11 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [statutoryReceivableHistory] }
       );
-      auditedAccounts.push(statutoryReceivableCreation);
+      auditedAccounts.push([
+        statutoryReceivable,
+        statutoryReceivableEvents,
+        statutoryReceivableAudit,
+      ]);
 
       const tradePayableCreation =
         await deps.payablesAccountService.createTradePayableSubAccount(
@@ -250,7 +262,8 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
           },
           transactionOptions
         );
-      const [tradePayable, , tradePayableAudit] = tradePayableCreation;
+      const [tradePayable, tradePayableEvents, tradePayableAudit] =
+        tradePayableCreation;
       const tradePayableHistory = historyValue.make(
         tradePayableAudit,
         actor.id,
@@ -261,7 +274,11 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [tradePayableHistory] }
       );
-      auditedAccounts.push(tradePayableCreation);
+      auditedAccounts.push([
+        tradePayable,
+        tradePayableEvents,
+        tradePayableAudit,
+      ]);
 
       const statutoryPayableCreation =
         await deps.payablesAccountService.createStatutoryPayableSubAccount(
@@ -274,7 +291,7 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
           },
           transactionOptions
         );
-      const [statutoryPayable, , statutoryPayableAudit] =
+      const [statutoryPayable, statutoryPayableEvents, statutoryPayableAudit] =
         statutoryPayableCreation;
       const statutoryPayableHistory = historyValue.make(
         statutoryPayableAudit,
@@ -286,7 +303,11 @@ export default function makeSetupHeaderAccountsUsecase(deps: IDependencies) {
         accountingEntity.functionalCurrencyCode,
         { ...transactionOptions, history: [statutoryPayableHistory] }
       );
-      auditedAccounts.push(statutoryPayableCreation);
+      auditedAccounts.push([
+        statutoryPayable,
+        statutoryPayableEvents,
+        statutoryPayableAudit,
+      ]);
 
       await transaction.commit();
 

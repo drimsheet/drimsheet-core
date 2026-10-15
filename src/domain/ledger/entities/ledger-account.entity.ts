@@ -1,4 +1,5 @@
 import { TCreationOmits } from '@shared/types/creation-omits.types';
+import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 import deepFreeze from '@shared/utils/deep-freeze';
 import generateDiff from '@shared/utils/diff-generator';
@@ -9,6 +10,7 @@ import {
   TAuditedEntity,
 } from '@shared/values/events/types/event.types';
 
+import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import ledgerAccountValidation from '@domain/ledger/entities/validations/ledger-account.validation';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ledgerAccountEvents from '@domain/ledger/events/ledger-account.events';
@@ -185,14 +187,16 @@ function update<T extends ILedgerAccount>(
   if (currency) {
     currencyEntity.validateCode(currency.code);
   }
+
   const name =
-    details.name === undefined
-      ? account.name
-      : stringUtils.sanitizeAndValidate(
+    details.name !== undefined
+      ? stringUtils.sanitizeAndValidate(
           details.name,
           { min: 2, max: 100 },
           ledgerAccountError.InvalidName
-        );
+        )
+      : account.name;
+
   const openingBalanceDate =
     details?.openingBalanceDate ?? account.openingBalanceDate;
 
@@ -208,17 +212,22 @@ function update<T extends ILedgerAccount>(
 
   const hasOpeningBalanceDateChanged =
     account.openingBalanceDate?.getTime() !== openingBalanceDate?.getTime();
+
   const meta = details?.meta ?? account.meta;
+
   ledgerAccountValidation.validateMeta(meta);
+
   const hasMetaChanged = generateDiff(
     { meta },
     { meta: account.meta }
   ).hasChanges;
+
   const isUnchanged =
     currency?.code === account.currency?.code &&
     name === account.name &&
     !hasOpeningBalanceDateChanged &&
     !hasMetaChanged;
+
   if (isUnchanged) {
     return [account, [], null];
   }
@@ -243,11 +252,11 @@ function update<T extends ILedgerAccount>(
     createdBy: account.createdBy,
     createdAt: account.createdAt,
     deletedAt: account.deletedAt,
-    openingBalanceDate:
-      openingBalanceDate === null ? null : new Date(openingBalanceDate),
+    openingBalanceDate,
     version: account.version + 1,
     updatedAt: new Date(),
   }) as Readonly<T>;
+
   const audit = ledgerAccountAudit.make({
     before: account,
     after: updatedAccount,
@@ -255,6 +264,93 @@ function update<T extends ILedgerAccount>(
   });
 
   return [updatedAccount, [ledgerAccountEvents.updated(updatedAccount)], audit];
+}
+
+/** Reparents a posting account while preserving journal identity and financial meaning. */
+function reparentPostingAccount(
+  account: ILedgerAccount,
+  controlAccount: ILedgerAccount,
+  code: string,
+  newPostingAccountName?: string
+): TAuditedEntity<ILedgerAccount, ILedgerAccount, ILedgerAccount> {
+  ledgerAccountValidation.validatePostingAccountReparenting(
+    account,
+    controlAccount
+  );
+
+  ledgerAccountValidation.validateCode(code);
+
+  const materializedPath = getLedgerAccountMaterializedPath(
+    controlAccount.materializedPath,
+    code
+  );
+  ledgerAccountValidation.validateMaterializedPath(materializedPath);
+
+  const name = stringUtils.sanitizeAndValidate(
+    newPostingAccountName ?? account.name,
+    { min: 2, max: 100 },
+    ledgerAccountError.InvalidName
+  );
+
+  const updatedAccount: ILedgerAccount = deepFreeze({
+    id: account.id,
+    code,
+    materializedPath,
+    accountingEntityId: account.accountingEntityId,
+    type: account.type,
+    normalBalance: account.normalBalance,
+    subType: account.subType,
+    behavior: account.behavior,
+    isControlAccount: false,
+    controlAccountId: controlAccount.id,
+    name,
+    currency: account.currency,
+    status: account.status,
+    contraAccountRule: account.contraAccountRule,
+    adjunctAccountRule: account.adjunctAccountRule,
+    meta: account.meta,
+    openingBalanceDate: account.openingBalanceDate,
+    version: account.version + 1,
+    createdBy: account.createdBy,
+    createdAt: account.createdAt,
+    updatedAt: new Date(),
+    deletedAt: account.deletedAt,
+  });
+
+  const audit = ledgerAccountAudit.make({
+    before: account,
+    after: updatedAccount,
+    action: ELedgerAccountAuditAction.Updated,
+  });
+
+  return [updatedAccount, [ledgerAccountEvents.updated(updatedAccount)], audit];
+}
+
+/** Creates the grouping account at the posting account's original position. */
+function clonePostingAccountToControlAccount(
+  account: ILedgerAccount,
+  createdBy: TEntityId,
+  newControlAccountName?: string
+) {
+  return make({
+    code: account.code,
+    materializedPath: account.materializedPath,
+    accountingEntityId: account.accountingEntityId,
+    type: account.type,
+    normalBalance: account.normalBalance,
+    subType: account.subType,
+    behavior: account.behavior,
+    isControlAccount: true,
+    controlAccountId: account.controlAccountId,
+    name: newControlAccountName ?? account.name,
+    currency: account.currency,
+    status: account.status,
+    contraAccountRule: account.contraAccountRule,
+    adjunctAccountRule: account.adjunctAccountRule,
+    meta: null,
+    openingBalanceDate: null,
+    createdBy,
+  });
 }
 
 /** Activates a draft account while preserving its identity and accounting references. */
@@ -289,6 +385,7 @@ function activate(
     updatedAt: new Date(),
     deletedAt: account.deletedAt,
   });
+
   const audit = ledgerAccountAudit.make({
     before: account,
     after: activatedAccount,
@@ -335,16 +432,62 @@ function archive(
     updatedAt: new Date(),
     deletedAt: account.deletedAt,
   });
+
   const audit = ledgerAccountAudit.make({
     before: account,
     after: archivedAccount,
     action: ELedgerAccountAuditAction.Archived,
   });
+
   return [
     archivedAccount,
     [ledgerAccountEvents.archived(archivedAccount)],
     audit,
   ];
+}
+
+/** Allocates within one ledger family, including any code reserved by a prepared promotion. */
+function getNextCode<T extends string>(
+  allocationCode: T,
+  latestCode?: string,
+  reservedCode?: string
+): T {
+  ledgerAccountValidation.validateCode(allocationCode);
+  const familyPrefix = allocationCode.slice(0, 3);
+  const latestAllocatedCode = latestCode ?? allocationCode;
+  ledgerAccountValidation.validatePredecessorCode(
+    familyPrefix,
+    latestAllocatedCode
+  );
+  if (reservedCode !== undefined) {
+    ledgerAccountValidation.validatePredecessorCode(familyPrefix, reservedCode);
+  }
+
+  const hasLaterReservation =
+    reservedCode !== undefined &&
+    Number(reservedCode) > Number(latestAllocatedCode);
+  const predecessorCode = hasLaterReservation
+    ? reservedCode
+    : latestAllocatedCode;
+  const suffix = predecessorCode.substring(3);
+  if (suffix === '999') {
+    throw new ledgerAccountError.MaximumLimitReached({ predecessorCode });
+  }
+
+  const nextSuffix = (Number(suffix) + 1).toString().padStart(3, '0');
+
+  return `${familyPrefix}${nextSuffix}` as T;
+}
+
+/** Suspense families use their initial code for the first account, then advance normally. */
+function getSuspenseCode<T extends string>(
+  initialCode: T,
+  latestCode?: string
+): T {
+  ledgerAccountValidation.validateCode(initialCode);
+  return latestCode === undefined
+    ? initialCode
+    : getNextCode(initialCode, latestCode);
 }
 
 /** Returns each account path and all of its ancestor paths without duplicates. */
@@ -362,11 +505,15 @@ function getMaterializedPaths(
 
 const ledgerAccountEntity = Object.freeze({
   make,
+  clonePostingAccountToControlAccount,
+  reparentPostingAccount,
   update,
   archive,
   activate,
   updateOpeningBalanceDate,
   getMaterializedPaths,
+  getNextCode,
+  getSuspenseCode,
   ...ledgerAccountValidation,
 });
 

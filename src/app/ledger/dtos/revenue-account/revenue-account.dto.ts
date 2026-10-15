@@ -1,4 +1,7 @@
-import { ULedgerAccountCreationStatus } from '@domain/ledger/types/ledger.types';
+import {
+  ILedgerAccountPromotionNames,
+  ULedgerAccountCreationStatus,
+} from '@domain/ledger/types/ledger.types';
 
 type TSupportedRevenueAccountBehavior =
   | 'services'
@@ -15,6 +18,8 @@ export interface ICreateRevenueAccountDto {
   isControlAccount: boolean;
   /** @format uuid */
   controlAccountId?: string;
+  /** Applied only during promotion; omitted names retain the original account name. */
+  promotionNames?: ILedgerAccountPromotionNames;
   behavior: TSupportedRevenueAccountBehavior;
 }
 

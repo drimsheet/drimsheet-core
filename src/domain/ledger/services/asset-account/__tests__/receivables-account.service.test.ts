@@ -43,6 +43,7 @@ const allocation: jest.Mocked<ILedgerAccountService> = {
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
+  promotePostingToControlAccount: jest.fn(),
 };
 
 describe('receivablesAccountService', () => {
@@ -239,7 +240,6 @@ describe('receivablesAccountService', () => {
   it.each([
     { type: ELedgerType.Liability },
     { subType: EAssetSubType.CashAndCashEquivalent },
-    { isControlAccount: false },
     { behavior: EAssetAccountBehavior.StatutoryReceivable },
   ])(
     'rejects an invalid trade receivables control account: %o',
@@ -268,7 +268,6 @@ describe('receivablesAccountService', () => {
   it.each([
     { type: ELedgerType.Liability },
     { subType: EAssetSubType.CashAndCashEquivalent },
-    { isControlAccount: false },
     { behavior: EAssetAccountBehavior.TradeReceivable },
   ])(
     'rejects an invalid statutory receivables control account: %o',

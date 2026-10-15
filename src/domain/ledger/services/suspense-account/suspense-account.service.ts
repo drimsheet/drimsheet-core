@@ -1,7 +1,6 @@
 import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
-import getNextSubledgerAccountCode from '@domain/ledger/entities/helpers/get-subledger-code.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -59,12 +58,10 @@ function makeCreateAssetSuspense(
       repoOptions
     );
 
-    const code = !latest
-      ? ASSET_LEDGER_CODES.SUSPENSE_ACCOUNT.INITIAL
-      : getNextSubledgerAccountCode(
-          ASSET_LEDGER_CODES.SUSPENSE_ACCOUNT.PREFIX,
-          latest.code as TAssetSuspenseLedgerCode
-        );
+    const code = ledgerAccountEntity.getSuspenseCode<TAssetSuspenseLedgerCode>(
+      ASSET_LEDGER_CODES.SUSPENSE_ACCOUNT.INITIAL,
+      latest?.code
+    );
 
     return ledgerAccountEntity.make({
       name: payload.name,
@@ -118,12 +115,11 @@ function makeCreateLiabilitySuspense(
       repoOptions
     );
 
-    const code = !latest
-      ? LIABILITY_LEDGER_CODES.SUSPENSE_ACCOUNTS.INITIAL
-      : getNextSubledgerAccountCode(
-          LIABILITY_LEDGER_CODES.SUSPENSE_ACCOUNTS.PREFIX,
-          latest.code as TLiabilitySuspenseLedgerCode
-        );
+    const code =
+      ledgerAccountEntity.getSuspenseCode<TLiabilitySuspenseLedgerCode>(
+        LIABILITY_LEDGER_CODES.SUSPENSE_ACCOUNTS.INITIAL,
+        latest?.code
+      );
 
     return ledgerAccountEntity.make({
       name: payload.name,

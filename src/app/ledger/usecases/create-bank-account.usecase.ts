@@ -74,6 +74,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
         createdBy: actor.id,
         accountingEntity,
         controlAccountId: payload.controlAccountId as TEntityId | undefined,
+        promotionNames: payload.promotionNames,
         openingBalanceDate: payload.openingBalance?.date,
         bankDetails: {
           countryCode: accountingEntity.jurisdictionCode,
@@ -83,11 +84,26 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
         },
       };
 
-      const [account, accountEvents, accountAudit] =
+      const [account, creationEvents, accountAudit, promotion] =
         await deps.cashAccountService.createBankSubAccount(
           accountCreationInput,
           transactionOptions
         );
+
+      const accountEvents: IEvent<unknown>[] = [...creationEvents];
+
+      if (promotion) {
+        const [, controlEvents, controlAudit] = promotion.controlAccount;
+        const [, postingEvents, postingAudit] = promotion.postingAccount;
+        await deps.ledgerAccountPersistenceAppService.promote(promotion, {
+          ...transactionOptions,
+          history: [
+            historyValue.make(controlAudit, actor.id, correlationId),
+            historyValue.make(postingAudit, actor.id, correlationId),
+          ],
+        });
+        accountEvents.unshift(...controlEvents, ...postingEvents);
+      }
 
       const accountHistory = historyValue.make(
         accountAudit,

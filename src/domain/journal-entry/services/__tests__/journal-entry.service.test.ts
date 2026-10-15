@@ -71,6 +71,7 @@ const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
   delete: jest.fn(),
   archive: jest.fn(),
   getNextCode: jest.fn(),
+  promotePostingToControlAccount: jest.fn(),
 };
 
 const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
@@ -142,6 +143,7 @@ describe('journalEntryService', () => {
       archive: jest.fn(),
       delete: jest.fn(),
       getNextCode: jest.fn(),
+      promotePostingToControlAccount: jest.fn(),
     },
   });
   const servicesAccountService = makeServicesAccountService({

@@ -292,4 +292,17 @@ describe('makeLedgerBalancePropagationPreparationAppService', () => {
     );
     expect(mockLedgerAccountBalanceRepo.adjustBalance).not.toHaveBeenCalled();
   });
+  it('rejects a hierarchy snapshot read before promotion when balances were read afterwards', async () => {
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      parentBalance,
+      {
+        ...childBalance,
+        accountMaterializedPath: '100000.100001.100002',
+        version: childBalance.version + 1,
+      },
+    ]);
+    await expect(service.prepare(journalEntryId, repoOptions)).rejects.toThrow(
+      ledgerAppError.BalanceHierarchyChanged
+    );
+  });
 });

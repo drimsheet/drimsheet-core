@@ -1,4 +1,6 @@
 import { TCreationOmits } from '@shared/types/creation-omits.types';
+import { TEntityId } from '@shared/types/uuid';
+import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 
@@ -25,6 +27,8 @@ interface IMakePayload extends Pick<
 > {
   currencyCode: string;
   functionalCurrencyCode: string;
+  amount?: bigint;
+  functionalAmount?: bigint;
 }
 
 function make(payload: IMakePayload): ILedgerAccountBalance {
@@ -50,8 +54,12 @@ function make(payload: IMakePayload): ILedgerAccountBalance {
     payload.functionalCurrencyCode
   );
 
-  const amount = moneyValue.makeZeroAmount(baseCurrency);
-  const functionalAmount = moneyValue.makeZeroAmount(functionalCurrency);
+  const amount = moneyValue.make(payload.amount ?? 0n, baseCurrency, true);
+  const functionalAmount = moneyValue.make(
+    payload.functionalAmount ?? 0n,
+    functionalCurrency,
+    true
+  );
 
   const timestamp = new Date();
 
@@ -65,6 +73,24 @@ function make(payload: IMakePayload): ILedgerAccountBalance {
     version: 1,
     createdAt: timestamp,
     updatedAt: timestamp,
+  });
+}
+
+/** Seeds a new control at the posting balance's original path, preserving both currency amounts. */
+function cloneToControlAccount(
+  existingBalance: ILedgerAccountBalance,
+  clonedLedgerAccountId: TEntityId,
+  createdBy: TEntityId
+): ILedgerAccountBalance {
+  return make({
+    createdBy,
+    ledgerAccountId: clonedLedgerAccountId,
+    accountingEntityId: existingBalance.accountingEntityId,
+    accountMaterializedPath: existingBalance.accountMaterializedPath,
+    currencyCode: existingBalance.amount.currency.code,
+    functionalCurrencyCode: existingBalance.functionalAmount.currency.code,
+    amount: existingBalance.amount.amount,
+    functionalAmount: existingBalance.functionalAmount.amount,
   });
 }
 
@@ -85,6 +111,30 @@ function changeCurrency(
     accountingEntityId: existingBalance.accountingEntityId,
     accountMaterializedPath: existingBalance.accountMaterializedPath,
     amount: moneyValue.makeZeroAmount(currency),
+    functionalAmount: existingBalance.functionalAmount,
+    version: existingBalance.version + 1,
+    createdAt: existingBalance.createdAt,
+    updatedAt: new Date(),
+  });
+}
+
+/** Updates the account path after code reassignment, preserving identity and amounts. */
+function updateAccountCode(
+  existingBalance: ILedgerAccountBalance,
+  accountMaterializedPath: string
+): ILedgerAccountBalance {
+  ledgerAccountValidation.validateMaterializedPath(accountMaterializedPath);
+
+  if (existingBalance.accountMaterializedPath === accountMaterializedPath) {
+    return existingBalance;
+  }
+
+  return deepFreeze({
+    createdBy: existingBalance.createdBy,
+    ledgerAccountId: existingBalance.ledgerAccountId,
+    accountingEntityId: existingBalance.accountingEntityId,
+    accountMaterializedPath,
+    amount: existingBalance.amount,
     functionalAmount: existingBalance.functionalAmount,
     version: existingBalance.version + 1,
     createdAt: existingBalance.createdAt,
@@ -165,6 +215,8 @@ function adjust(
 
 const ledgerAccountBalanceEntity = Object.freeze({
   make,
+  cloneToControlAccount,
+  updateAccountCode,
   changeCurrency,
   adjust,
   ...ledgerAccountBalanceValidation,

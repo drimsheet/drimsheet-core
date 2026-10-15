@@ -3,6 +3,7 @@ import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
+import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import { IEmploymentIncomeAccountService } from '@domain/ledger/types/employment-income.service.types';
@@ -56,13 +57,29 @@ export default function makeCreateRevenueAccountUsecase(
           status: payload.status,
           isControlAccount: payload.isControlAccount,
           controlAccountId: payload.controlAccountId as TEntityId | undefined,
+          promotionNames: payload.promotionNames,
           createdBy: actor.id,
           accountingEntityId: accountingEntity.id,
         },
         transactionOptions
       );
 
-      const [account, events, audit] = auditedAccount;
+      const [account, creationEvents, audit, promotion] = auditedAccount;
+      const events: IEvent<unknown>[] = [...creationEvents];
+
+      if (promotion) {
+        const [, controlEvents, controlAudit] = promotion.controlAccount;
+        const [, postingEvents, postingAudit] = promotion.postingAccount;
+        await deps.ledgerAccountPersistenceAppService.promote(promotion, {
+          ...transactionOptions,
+          history: [
+            historyValue.make(controlAudit, actor.id, correlationId),
+            historyValue.make(postingAudit, actor.id, correlationId),
+          ],
+        });
+        events.unshift(...controlEvents, ...postingEvents);
+      }
+
       const accountHistory = historyValue.make(audit, actor.id, correlationId);
 
       await deps.ledgerAccountPersistenceAppService.create(

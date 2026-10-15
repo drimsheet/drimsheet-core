@@ -16,6 +16,7 @@ import {
   EAssetAccountBehavior,
   EAssetSubType,
   IBankAccount,
+  ICashAndCashEquivalentAccount,
   IPettyCashAccount,
 } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
@@ -99,7 +100,7 @@ function makeCreateHeader(
       payload.accountingEntity.functionalCurrencyCode
     );
 
-    return ledgerAccountEntity.make({
+    return ledgerAccountEntity.make<ICashAndCashEquivalentAccount>({
       name: payload.name,
       accountingEntityId: payload.accountingEntity.id,
       code: LEDGER_CODE.HEADER,
@@ -129,7 +130,7 @@ function makeCreatePettyCashSubAccount(
       throw new ledgerAccountError.CodeAllocationTransactionRequired();
     }
 
-    const controlAccount = await getLockedControlAccountHelper(
+    const selectedControlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
       {
         accountingEntityId: payload.accountingEntity.id,
@@ -140,21 +141,35 @@ function makeCreatePettyCashSubAccount(
       repoOptions
     );
 
-    controlAccountAvailabilityValidation.validate(controlAccount);
+    controlAccountAvailabilityValidation.validate(selectedControlAccount);
 
     const status = payload.status ?? ELedgerAccountStatus.Active;
-    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+    controlAccountChildStatusValidation.validate(
+      selectedControlAccount.status,
+      status
+    );
 
     cashControlAccountValidation.validate(
-      controlAccount,
+      selectedControlAccount,
       payload.accountingEntity.id,
       EAssetAccountBehavior.PettyCash
     );
 
     ledgerAccountCurrencyInvarianceRule.validate({
-      controlAccount,
+      controlAccount: selectedControlAccount,
       subAccountCurrency: payload.currency,
     });
+
+    const promotion = selectedControlAccount.isControlAccount
+      ? undefined
+      : await deps.ledgerAccountService.promotePostingToControlAccount(
+          selectedControlAccount,
+          payload.createdBy,
+          repoOptions,
+          payload.promotionNames
+        );
+    const controlAccount =
+      promotion?.controlAccount[0] ?? selectedControlAccount;
 
     const code = await deps.ledgerAccountService.getNextCode(
       {
@@ -162,6 +177,7 @@ function makeCreatePettyCashSubAccount(
         type: ELedgerType.Asset,
         subType: EAssetSubType.CashAndCashEquivalent,
         allocationHeaderCode: LEDGER_CODE.HEADER,
+        reservedCode: promotion?.postingAccount[0].code,
       },
       repoOptions
     );
@@ -171,25 +187,27 @@ function makeCreatePettyCashSubAccount(
       code
     );
 
-    return ledgerAccountEntity.make({
-      name: payload.name,
-      accountingEntityId: payload.accountingEntity.id,
-      code: code as TCashLedgerCode,
-      materializedPath,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Asset),
-      type: ELedgerType.Asset,
-      subType: EAssetSubType.CashAndCashEquivalent,
-      behavior: EAssetAccountBehavior.PettyCash,
-      isControlAccount: payload.isControlAccount,
-      controlAccountId: controlAccount.id,
-      currency: payload.currency,
-      meta: null,
-      openingBalanceDate: payload.openingBalanceDate,
-      status,
-      contraAccountRule: EContraAccountRule.ContraPermitted,
-      adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
-      createdBy: payload.createdBy,
-    });
+    const auditedAccount =
+      ledgerAccountEntity.make<ICashAndCashEquivalentAccount>({
+        name: payload.name,
+        accountingEntityId: payload.accountingEntity.id,
+        code: code as TCashLedgerCode,
+        materializedPath,
+        normalBalance: getLedgerAccountNormalBalance(ELedgerType.Asset),
+        type: ELedgerType.Asset,
+        subType: EAssetSubType.CashAndCashEquivalent,
+        behavior: EAssetAccountBehavior.PettyCash,
+        isControlAccount: payload.isControlAccount,
+        controlAccountId: controlAccount.id,
+        currency: payload.currency,
+        meta: null,
+        openingBalanceDate: payload.openingBalanceDate,
+        status,
+        contraAccountRule: EContraAccountRule.ContraPermitted,
+        adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
+        createdBy: payload.createdBy,
+      });
+    return promotion ? [...auditedAccount, promotion] : auditedAccount;
   };
 }
 
@@ -364,7 +382,7 @@ function makeCreateBankSubAccount(
       });
     }
 
-    const controlAccount = await getLockedControlAccountHelper(
+    const selectedControlAccount = await getLockedControlAccountHelper(
       deps.ledgerAccountRepo,
       {
         accountingEntityId: payload.accountingEntity.id,
@@ -375,26 +393,42 @@ function makeCreateBankSubAccount(
       repoOptions
     );
 
-    controlAccountAvailabilityValidation.validate(controlAccount);
+    controlAccountAvailabilityValidation.validate(selectedControlAccount);
 
     const status = payload.status ?? ELedgerAccountStatus.Active;
-    controlAccountChildStatusValidation.validate(controlAccount.status, status);
+    controlAccountChildStatusValidation.validate(
+      selectedControlAccount.status,
+      status
+    );
 
     cashControlAccountValidation.validate(
-      controlAccount,
+      selectedControlAccount,
       payload.accountingEntity.id,
       EAssetAccountBehavior.Bank
     );
     ledgerAccountCurrencyInvarianceRule.validate({
-      controlAccount,
+      controlAccount: selectedControlAccount,
       subAccountCurrency: payload.currency,
     });
+
+    const promotion = selectedControlAccount.isControlAccount
+      ? undefined
+      : await deps.ledgerAccountService.promotePostingToControlAccount(
+          selectedControlAccount,
+          payload.createdBy,
+          repoOptions,
+          payload.promotionNames
+        );
+    const controlAccount =
+      promotion?.controlAccount[0] ?? selectedControlAccount;
+
     const code = await deps.ledgerAccountService.getNextCode(
       {
         accountingEntityId: payload.accountingEntity.id,
         type: ELedgerType.Asset,
         subType: EAssetSubType.CashAndCashEquivalent,
         allocationHeaderCode: LEDGER_CODE.HEADER,
+        reservedCode: promotion?.postingAccount[0].code,
       },
       repoOptions
     );
@@ -404,25 +438,27 @@ function makeCreateBankSubAccount(
       code
     );
 
-    return ledgerAccountEntity.make({
-      name: payload.name,
-      accountingEntityId: payload.accountingEntity.id,
-      code: code as TCashLedgerCode,
-      materializedPath,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Asset),
-      type: ELedgerType.Asset,
-      subType: EAssetSubType.CashAndCashEquivalent,
-      behavior: EAssetAccountBehavior.Bank,
-      isControlAccount: payload.isControlAccount,
-      controlAccountId: controlAccount.id,
-      currency: payload.currency,
-      meta: bankDetails,
-      openingBalanceDate: payload.openingBalanceDate,
-      status,
-      contraAccountRule: EContraAccountRule.ContraPermitted,
-      adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
-      createdBy: payload.createdBy,
-    });
+    const auditedAccount =
+      ledgerAccountEntity.make<ICashAndCashEquivalentAccount>({
+        name: payload.name,
+        accountingEntityId: payload.accountingEntity.id,
+        code: code as TCashLedgerCode,
+        materializedPath,
+        normalBalance: getLedgerAccountNormalBalance(ELedgerType.Asset),
+        type: ELedgerType.Asset,
+        subType: EAssetSubType.CashAndCashEquivalent,
+        behavior: EAssetAccountBehavior.Bank,
+        isControlAccount: payload.isControlAccount,
+        controlAccountId: controlAccount.id,
+        currency: payload.currency,
+        meta: bankDetails,
+        openingBalanceDate: payload.openingBalanceDate,
+        status,
+        contraAccountRule: EContraAccountRule.ContraPermitted,
+        adjunctAccountRule: EAdjunctAccountRule.AdjunctPermitted,
+        createdBy: payload.createdBy,
+      });
+    return promotion ? [...auditedAccount, promotion] : auditedAccount;
   };
 }
 
