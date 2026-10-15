@@ -14,12 +14,14 @@ import {
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import type { IGetAccountCashFlowQuery } from '@app/reporting/dtos/account-cash-flow/account-cash-flow.dto';
+import type { IGetAccountCounterpartyParticipationQuery } from '@app/reporting/dtos/account-counterparty-participation/account-counterparty-participation.dto';
 import type { IDateRangeDto } from '@app/reporting/dtos/date/date-range.dto';
 import type { IGetRevenueExpenseAccountsQuery } from '@app/reporting/dtos/revenue-expense-accounts/revenue-expense-accounts.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAccountCashFlowUseCase,
+  getAccountCounterpartyParticipationUseCase,
   getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
 } from '@infra/ioc/usecases/reporting';
@@ -54,6 +56,41 @@ export class ReportingController extends Controller {
     @Queries() query: IGetAccountCashFlowQuery
   ) {
     return await getAccountCashFlowUseCase(accountId, query);
+  }
+
+  /**
+   * Counterparty contributions to the current balance of a posting or control
+   * account, including descendants. Reads applied journal lines through balance
+   * adjustments, excluding drafts, never-posted entries, voided originals and
+   * reversals. Archived records and opening balances remain included.
+   * Amounts use account currency, falling back to functional currency. Shares
+   * use the stored account balance before search/pagination, rounded to two
+   * decimals; zero balances yield null. Balances update asynchronously.
+   * Counterparty-less transfers have isSelf=true and search by entity name;
+   * other unattributed lines have isSelf=false. Counterparties sort by name/ID,
+   * followed by self and unattributed rows. Defaults to page 1, limit 10.
+   * Amount magnitudes above 1 trillion major units return 400; missing accounts
+   * or balances return 404; unsafe numeric serialization returns 500.
+   */
+  @Get('/accounts/{accountId}/counterparty-participation')
+  @OperationId('getAccountCounterpartyParticipation')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAccountCounterpartyParticipation(
+    @Path() accountId: string,
+    @Queries() query: IGetAccountCounterpartyParticipationQuery
+  ) {
+    return await getAccountCounterpartyParticipationUseCase(accountId, query);
   }
 
   /**
