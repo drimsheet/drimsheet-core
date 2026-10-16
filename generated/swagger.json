@@ -3529,6 +3529,10 @@
         "type": "object",
         "additionalProperties": false
       },
+      "UAccountingEntityStatus": {
+        "type": "string",
+        "enum": ["active", "archived"]
+      },
       "UAccountingEntityType": {
         "type": "string",
         "enum": ["individual", "sole_trader", "private_company"]
@@ -3682,6 +3686,9 @@
           "name": {
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/UAccountingEntityStatus"
+          },
           "type": {
             "$ref": "#/components/schemas/UAccountingEntityType"
           },
@@ -3707,6 +3714,7 @@
           "createdBy",
           "id",
           "name",
+          "status",
           "type",
           "ownerId",
           "functionalCurrencyCode",
@@ -3898,6 +3906,9 @@
       },
       "IAccountingEntityDto": {
         "properties": {
+          "status": {
+            "$ref": "#/components/schemas/UAccountingEntityStatus"
+          },
           "id": {
             "type": "string"
           },
@@ -3929,6 +3940,7 @@
           }
         },
         "required": [
+          "status",
           "id",
           "createdBy",
           "ownerId",
@@ -10092,6 +10104,70 @@
           }
         },
         "description": "Get jurisdictions",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": []
+      }
+    },
+    "/accounting/accounting-entity/archive": {
+      "post": {
+        "operationId": "archiveAccountingEntity",
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Archives the selected entity, retaining all accounting records.",
         "tags": ["Accounting"],
         "security": [],
         "parameters": []

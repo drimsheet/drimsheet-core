@@ -25,6 +25,10 @@ import {
 
 export const audit = pgSchema('audit');
 export const core = pgSchema('core');
+export const accountingEntityStatusInCore = core.enum(
+  'accounting_entity_status',
+  ['active', 'archived']
+);
 export const accountingEntityTypeInCore = core.enum('accounting_entity_type', [
   'individual',
   'sole_trader',
@@ -670,6 +674,7 @@ export const accountingEntitiesInCore = core.table(
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
+    status: accountingEntityStatusInCore().default('active').notNull(),
   },
   (table) => [
     index().using('btree', table.createdBy.asc().nullsLast().op('uuid_ops')),

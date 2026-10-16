@@ -7,6 +7,21 @@ import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import userPreferencesMapper from '@infra/persistence/repos/user/mappers/user-preferences.mapper';
 
 const userPreferencesRepo: IUserPreferencesRepo = {
+  async clearAccountingEntity(accountingEntityId, options) {
+    await getDbQuery(options)
+      .update(userPreferencesInCore)
+      .set({
+        lastActiveAccountingEntityId: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        eq(
+          userPreferencesInCore.lastActiveAccountingEntityId,
+          accountingEntityId
+        )
+      );
+  },
+
   async update(preferences, options) {
     const query = getDbQuery(options);
     const preferenceValues = userPreferencesMapper.toRepo(preferences);

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { ERepoLock, IWriteRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
@@ -302,5 +302,56 @@ describe('accountingEntityRepo.update trigger errors', () => {
         } as never
       )
     ).rejects.toBe(failure);
+  });
+});
+
+describe('accounting entity removal and selection', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+  const options = { correlationId: 'remove', tx: {} };
+  beforeEach(() => jest.resetAllMocks());
+
+  it('excludes archived entities from owner selection', async () => {
+    const where = jest.fn().mockResolvedValue([]);
+    jest.mocked(getDbQuery).mockReturnValue({
+      select: jest
+        .fn()
+        .mockReturnValue({ from: jest.fn().mockReturnValue({ where }) }),
+    } as never);
+    await expect(
+      accountingEntityRepo.findByIdAndUserId(id, id, options)
+    ).resolves.toBeNull();
+    expect(where).toHaveBeenCalledWith(
+      and(
+        eq(accountingEntitiesInCore.id, id),
+        eq(accountingEntitiesInCore.ownerId, id),
+        eq(accountingEntitiesInCore.status, 'active')
+      )
+    );
+  });
+
+  it('filters active listings without changing unfiltered ownership queries', async () => {
+    const where = jest.fn().mockResolvedValue([]);
+    jest.mocked(getDbQuery).mockReturnValue({
+      select: jest
+        .fn()
+        .mockReturnValue({ from: jest.fn().mockReturnValue({ where }) }),
+    } as never);
+    await accountingEntityRepo.findByUserId(id, {
+      ...options,
+      status: 'active',
+    });
+    expect(where).toHaveBeenLastCalledWith(
+      and(
+        eq(accountingEntitiesInCore.ownerId, id),
+        eq(accountingEntitiesInCore.status, 'active')
+      )
+    );
+    await accountingEntityRepo.findByUserId(id, options, 'individual');
+    expect(where).toHaveBeenLastCalledWith(
+      and(
+        eq(accountingEntitiesInCore.ownerId, id),
+        eq(accountingEntitiesInCore.type, 'individual')
+      )
+    );
   });
 });

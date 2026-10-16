@@ -4,6 +4,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IAccountingEntityAuditHistory } from '@domain/accounting/types/accounting-entity-audit.types';
 import {
   IAccountingEntity,
+  UAccountingEntityStatus,
   UAccountingEntityType,
 } from '@domain/accounting/types/accounting-entity.types';
 
@@ -23,6 +24,7 @@ export default interface IAccountingEntityRepo {
     options: IReadRepoOptions
   ): Promise<IAccountingEntity | null>;
 
+  /** Selects an active entity owned by the user. */
   findByIdAndUserId(
     id: TEntityId,
     userId: TEntityId,
@@ -31,7 +33,7 @@ export default interface IAccountingEntityRepo {
 
   findByUserId(
     userId: TEntityId,
-    options: IReadRepoOptions,
+    options: IReadRepoOptions & { status?: UAccountingEntityStatus },
     type?: UAccountingEntityType
   ): Promise<IAccountingEntity[]>;
 }

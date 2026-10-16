@@ -1,4 +1,5 @@
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
+import { EAccountingEntityStatus } from '@domain/accounting/types/accounting-entity.types';
 
 import IAppContext from '@app/context/contracts/app-context.contract';
 
@@ -17,6 +18,7 @@ export default function makeGetUserAccountingEntitiesUseCase(
       user.id,
       {
         correlationId,
+        status: EAccountingEntityStatus.Active,
       }
     );
 

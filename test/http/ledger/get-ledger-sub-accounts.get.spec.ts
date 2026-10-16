@@ -96,6 +96,7 @@ const accountingEntity = {
   ownerId: userId,
   name: 'Posting Entity',
   type: 'individual',
+  status: 'active',
   functionalCurrencyCode: 'USD',
   jurisdictionCode: 'US',
   createdAt: now,

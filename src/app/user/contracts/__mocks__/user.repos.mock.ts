@@ -10,6 +10,7 @@ export const mockUserHistoryRepo: jest.Mocked<IUserHistoryRepo> = {
 };
 
 export const mockUserPreferencesRepo: jest.Mocked<IUserPreferencesRepo> = {
+  clearAccountingEntity: jest.fn(),
   findById: jest.fn(),
   update: jest.fn(),
 };

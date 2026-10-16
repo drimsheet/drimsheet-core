@@ -87,6 +87,7 @@ const accountingEntity = {
   ownerId: userId,
   name: 'Ledger Entity',
   type: 'individual',
+  status: 'active',
   functionalCurrencyCode: 'USD',
   jurisdictionCode: 'US',
   createdAt: now,

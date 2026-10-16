@@ -1,3 +1,4 @@
+import makeArchiveAccountingEntityUsecase from '@app/accounting/usecases/archive-accounting-entity.usecase';
 import makeCreateAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
@@ -70,6 +71,17 @@ export const updateAccountingEntityUseCase = makeTracedUseCase(
     accountingEntityRepo: accountingRepos.accountingEntity,
     accountingEntityService,
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const archiveAccountingEntityUseCase = makeTracedUseCase(
+  'accounting.archiveAccountingEntityUseCase',
+  makeArchiveAccountingEntityUsecase({
+    appContext,
+    accountingEntityRepo: accountingRepos.accountingEntity,
+    userPreferencesRepo: userRepos.userPreferences,
     repoService,
     eventBus: messaging.eventBus,
   })

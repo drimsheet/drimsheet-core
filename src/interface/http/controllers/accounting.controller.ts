@@ -23,6 +23,7 @@ import {
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
+  archiveAccountingEntityUseCase,
   createAccountingEntityUseCase,
   getActiveAccountingEntityUseCase,
   getJurisdictionsUseCase,
@@ -121,6 +122,24 @@ export class AccountingController extends Controller {
     @Body() body: IAccountingEntityUpdateReq
   ): Promise<IAccountingEntityDto> {
     return await updateAccountingEntityUseCase(body);
+  }
+
+  /** Archives the selected entity, retaining all accounting records. */
+  @Post('/accounting-entity/archive')
+  @OperationId('archiveAccountingEntity')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async archiveAccountingEntity(): Promise<void> {
+    await archiveAccountingEntityUseCase();
+    this.setStatus(204);
   }
 
   /**

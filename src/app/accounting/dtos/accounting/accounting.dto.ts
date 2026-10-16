@@ -2,6 +2,7 @@ import { UAccountingStandardCode } from '@domain/accounting/config/accounting-st
 import { UJurisdictionCode } from '@domain/accounting/config/jurisdictions.config';
 import {
   EAccountingEntityType,
+  UAccountingEntityStatus,
   UAccountingEntityType,
 } from '@domain/accounting/types/accounting-entity.types';
 import { UPeriodUnit } from '@domain/accounting/types/period.types';
@@ -50,6 +51,7 @@ export interface IAccountingEntityUpdateReq {
 }
 
 export interface IAccountingEntityDto {
+  status: UAccountingEntityStatus;
   id: string;
   createdBy: string;
   ownerId: string;

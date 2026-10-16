@@ -90,6 +90,7 @@ const accountingEntity = {
   ownerId: userId,
   name: 'Journal Business',
   type: 'individual',
+  status: 'active',
   functionalCurrencyCode: 'NGN',
   jurisdictionCode: 'NG',
   createdAt: now,

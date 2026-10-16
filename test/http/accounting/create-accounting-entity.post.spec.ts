@@ -95,6 +95,7 @@ const createdEntity: IAccountingEntity = {
   id: '123e4567-e89b-12d3-a456-426614174001' as TEntityId,
   name: validPayload.name,
   type: 'individual',
+  status: 'active',
   ownerId: userId,
   functionalCurrencyCode: 'USD',
   jurisdictionCode: 'US',

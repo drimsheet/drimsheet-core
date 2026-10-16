@@ -4,6 +4,7 @@ import errorUtils from '@shared/utils/error';
 import accountingError from './accounting.error';
 
 const EErrorKeys = {
+  Archived: 'accounting_error_accounting_entity_archived_conflict',
   TypeChangeNotAllowed:
     'accounting_error_accounting_entity_type_change_conflict',
   FunctionalCurrencyChangeNotAllowed:

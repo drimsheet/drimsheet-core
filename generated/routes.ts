@@ -2608,6 +2608,18 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UAccountingEntityStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['active'] },
+        { dataType: 'enum', enums: ['archived'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UAccountingEntityType: {
     dataType: 'refAlias',
     type: {
@@ -2773,6 +2785,7 @@ const models: TsoaRoute.Models = {
       createdBy: { ref: 'TEntityId', required: true },
       id: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
+      status: { ref: 'UAccountingEntityStatus', required: true },
       type: { ref: 'UAccountingEntityType', required: true },
       ownerId: { ref: 'TEntityId', required: true },
       functionalCurrencyCode: { ref: 'UCurrencyCode', required: true },
@@ -2921,6 +2934,7 @@ const models: TsoaRoute.Models = {
   IAccountingEntityDto: {
     dataType: 'refObject',
     properties: {
+      status: { ref: 'UAccountingEntityStatus', required: true },
       id: { dataType: 'string', required: true },
       createdBy: { dataType: 'string', required: true },
       ownerId: { dataType: 'string', required: true },
@@ -6470,6 +6484,48 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_archiveAccountingEntity: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.post(
+    '/api/v1/accounting/accounting-entity/archive',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.archiveAccountingEntity
+    ),
+
+    async function AccountingController_archiveAccountingEntity(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_archiveAccountingEntity,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'archiveAccountingEntity',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 204,
         });
       } catch (err) {
         return next(err);

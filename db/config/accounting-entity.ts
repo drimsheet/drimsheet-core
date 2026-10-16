@@ -14,3 +14,8 @@ export const accountingEntityHistoryTable = {
   name: 'accounting_entity_history',
   schema: auditSchema,
 };
+
+export const accountingEntityStatus = {
+  name: 'accounting_entity_status',
+  schema: coreSchema,
+};
