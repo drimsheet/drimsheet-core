@@ -1,3 +1,4 @@
+import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService, {
   mockRepoTransaction,
 } from '@shared/contracts/__mocks__/repo.mock';
@@ -29,6 +30,7 @@ const usecase = makeDeleteCounterpartyUsecase({
   repoService: mockRepoService,
   counterpartyRepo: mockCounterpartyRepo,
   journalLineRepo: mockJournalLineRepo,
+  eventBus: mockEventBus,
 });
 
 describe('delete counterparty use case', () => {
@@ -38,6 +40,7 @@ describe('delete counterparty use case', () => {
       actor: { id: counterparty.createdBy },
       accountingEntity: { id: counterparty.accountingEntityId },
       correlationId: 'delete',
+      idempotencyKey: 'delete-once',
     } as IAppContextData);
     mockCounterpartyRepo.findById.mockResolvedValue(counterparty);
     mockJournalLineRepo.findAllByCounterpartyId.mockResolvedValue([]);
@@ -101,6 +104,18 @@ describe('delete counterparty use case', () => {
         mockCounterpartyRepo.delete.mock.invocationCallOrder[0]
       );
       expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+      expect(mockEventBus.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'domain:counterparty:deleted',
+          data: current,
+          correlationId: 'delete',
+          idempotencyKey: 'delete-once',
+        })
+      );
+      expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeGreaterThan(
+        mockRepoTransaction.commit.mock.invocationCallOrder[0]
+      );
       expect(mockCounterpartyRepo.update).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
     }
@@ -189,6 +204,7 @@ describe('delete counterparty use case', () => {
         mockRepoTransaction.commit.mockRejectedValue(failure);
       }
       await expect(usecase(counterparty.id)).rejects.toBe(failure);
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
       if (['context', 'acquire'].includes(stage)) {
         expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
       } else {
@@ -224,6 +240,19 @@ describe('delete counterparty use case', () => {
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
       operationError
     );
+  });
+
+  it('propagates publication failure after the deletion has committed', async () => {
+    const failure = new Error('publication failed');
+    mockEventBus.publish.mockRejectedValue(failure);
+
+    await expect(usecase(counterparty.id)).rejects.toBe(failure);
+
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeGreaterThan(
+      mockRepoTransaction.commit.mock.invocationCallOrder[0]
+    );
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
   });
 
   it.each(['commit', 'handleError'] as const)(
@@ -264,6 +293,7 @@ describe('delete counterparty use case', () => {
       try {
         await ready;
         expect(settled).toBe(false);
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
       } finally {
         release();
         await request;

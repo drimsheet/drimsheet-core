@@ -112,6 +112,14 @@ describe('makeJournalEntryRemovalService', () => {
     ).toEqual({
       mode: EJournalEntryRemovalMode.Delete,
       originalJournalEntryId: entry.id,
+      journalEntry: [
+        entry,
+        expect.objectContaining({
+          type: 'domain:journal-entry:deleted',
+          data: entry,
+        }),
+        null,
+      ],
     });
     expect(journalEntryRectificationService.reverse).not.toHaveBeenCalled();
   });

@@ -375,7 +375,10 @@ function makeDelete(deps: IDependencies): ILedgerAccountService['delete'] {
 
     // Descendant reads are ordered by materialized path, so reversing places children first.
     accounts.reverse();
-    return { accounts, journalEntries };
+    return {
+      accounts: accounts.map((v) => ledgerAccountEntity.delete(v)),
+      journalEntries,
+    };
   };
 }
 

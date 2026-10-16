@@ -29,7 +29,14 @@ import mockAppContext, {
 import { IAppContextData } from '@app/context/contracts/app-context.contract';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryRemovalService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
-import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
+import {
+  mockJournalEntryAttachmentRepo,
+  mockJournalEntryHistoryRepo,
+  mockJournalEntryRepo,
+  mockJournalLineHistoryRepo,
+  mockJournalLineRepo,
+} from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
+import makeJournalEntryPersistenceAppService from '@app/journal-entry/services/journal-entry-persistence.service';
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
 import mockLedgerBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
@@ -109,6 +116,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     return {
       mode: EJournalEntryRemovalMode.Delete,
       originalJournalEntryId: entry.id,
+      journalEntry: journalEntryEntity.delete(entry),
     } as const;
   }
 
@@ -175,9 +183,8 @@ describe('makeDeleteJournalEntryUsecase', () => {
     'totally deletes a %s entry without accounting side effects',
     async (_, entry) => {
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
-      mockJournalEntryRemovalService.prepare.mockResolvedValue(
-        prepareDeletion(entry)
-      );
+      const removal = prepareDeletion(entry);
+      mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
 
       await expect(usecase(entry.id)).resolves.toBeUndefined();
 
@@ -197,9 +204,120 @@ describe('makeDeleteJournalEntryUsecase', () => {
         mockOutboxAppService.createBalancePropagation
       ).not.toHaveBeenCalled();
       expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+      expect(mockEventBus.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...removal.journalEntry[1],
+          correlationId,
+          idempotencyKey,
+          enrichedAt: expect.any(Date),
+        })
+      );
+      expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeGreaterThan(
+        mockJournalEntryPersistenceAppService.delete.mock.invocationCallOrder[0]
+      );
     }
   );
+
+  it.each([false, true])(
+    'waits for the persistence transaction and publishes only after a successful commit (commit fails: %s)',
+    async (commitFails) => {
+      const entry = makeEntry(null);
+      const failure = new Error('commit failed');
+      const persistence = makeJournalEntryPersistenceAppService({
+        repoService: mockRepoService,
+        ledgerAccountRepo: mockLedgerAccountRepo,
+        journalEntryRepo: mockJournalEntryRepo,
+        journalEntryHistoryRepo: mockJournalEntryHistoryRepo,
+        journalLineHistoryRepo: mockJournalLineHistoryRepo,
+        journalLineRepo: mockJournalLineRepo,
+        journalEntryAttachmentRepo: mockJournalEntryAttachmentRepo,
+      });
+      mockJournalEntryRepo.findById.mockResolvedValue(entry);
+      mockJournalEntryRemovalService.prepare.mockResolvedValue(
+        prepareDeletion(entry)
+      );
+      mockJournalEntryPersistenceAppService.delete.mockImplementationOnce(
+        persistence.delete
+      );
+
+      let release!: () => void;
+      let started!: () => void;
+      const blocked = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const ready = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      mockRepoService.runInTransaction.mockImplementationOnce(
+        async (transactionFn) => {
+          const result = await transactionFn(
+            'delete-tx' as unknown as ITransactionContext
+          );
+          started();
+          await blocked;
+          if (commitFails) {
+            throw failure;
+          }
+          return result;
+        }
+      );
+
+      const outcome = usecase(entry.id).then(
+        () => undefined,
+        (error: unknown) => error
+      );
+      try {
+        await ready;
+        expect(mockJournalEntryRepo.delete).toHaveBeenCalledWith(entry.id, {
+          correlationId,
+          idempotencyKey,
+          tx: 'delete-tx',
+          expectedVersion: entry.version,
+        });
+        expect(mockEventBus.publish).not.toHaveBeenCalled();
+      } finally {
+        release();
+        await outcome;
+      }
+
+      expect(await outcome).toBe(commitFails ? failure : undefined);
+      expect(mockEventBus.publish).toHaveBeenCalledTimes(commitFails ? 0 : 1);
+    }
+  );
+
+  it('does not publish deletion events when persistence fails', async () => {
+    const entry = makeEntry(null);
+    const failure = new Error('deletion failed');
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    mockJournalEntryRemovalService.prepare.mockResolvedValue(
+      prepareDeletion(entry)
+    );
+    mockJournalEntryPersistenceAppService.delete.mockRejectedValueOnce(failure);
+
+    await expect(usecase(entry.id)).rejects.toBe(failure);
+
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('propagates publication failure after deletion commits', async () => {
+    const entry = makeEntry(null);
+    const failure = new Error('publication failed');
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    mockJournalEntryRemovalService.prepare.mockResolvedValue(
+      prepareDeletion(entry)
+    );
+    mockEventBus.publish.mockRejectedValueOnce(failure);
+
+    await expect(usecase(entry.id)).rejects.toBe(failure);
+
+    expect(mockJournalEntryPersistenceAppService.delete).toHaveBeenCalledTimes(
+      1
+    );
+    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeGreaterThan(
+      mockJournalEntryPersistenceAppService.delete.mock.invocationCallOrder[0]
+    );
+  });
 
   it.each([
     ['posted', makeEntry(now)],

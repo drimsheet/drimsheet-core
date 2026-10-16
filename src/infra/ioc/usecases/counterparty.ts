@@ -40,6 +40,7 @@ export const deleteCounterpartyUseCase = makeTracedUseCase(
     appContext,
     journalLineRepo: journalRepos.journalLine,
     counterpartyRepo: counterpartyRepos.counterparty,
+    eventBus: messaging.eventBus,
   })
 );
 

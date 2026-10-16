@@ -43,6 +43,27 @@ function makeCashAccount(
   });
 }
 
+describe('ledger account deletion', () => {
+  it.each(['draft', 'active', 'archived'] as const)(
+    'prepares a %s account deletion without mutating state or creating an audit',
+    (status) => {
+      const [current] = makeCashAccount(status);
+      const before = structuredClone(current);
+
+      const [deletedAccount, event, audit] =
+        ledgerAccountEntity.delete(current);
+
+      expect(deletedAccount).toBe(current);
+      expect(current).toEqual(before);
+      expect(Object.isFrozen(deletedAccount)).toBe(true);
+      expect(event.type).toBe('domain:ledger:account:deleted');
+      expect(event.data).toBe(current);
+      expect(Object.isFrozen(event)).toBe(true);
+      expect(audit).toBeNull();
+    }
+  );
+});
+
 describe('Ledger Account Shared Entity', () => {
   const validUUID1 = generateUUID();
   const validUUID2 = generateUUID();

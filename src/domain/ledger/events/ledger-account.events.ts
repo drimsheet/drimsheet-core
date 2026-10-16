@@ -6,6 +6,7 @@ export const ELedgerAccountEvent = {
   Created: 'domain:ledger:account:created',
   Updated: 'domain:ledger:account:updated',
   Archived: 'domain:ledger:account:archived',
+  Deleted: 'domain:ledger:account:deleted',
 } as const;
 
 export type ULedgerAccountEvent =
@@ -32,10 +33,18 @@ function makeLedgerAccountArchivedEvent<T extends ILedgerAccount>(payload: T) {
   });
 }
 
+function makeLedgerAccountDeletedEvent<T extends ILedgerAccount>(payload: T) {
+  return eventValue.make<T>({
+    type: ELedgerAccountEvent.Deleted,
+    data: payload,
+  });
+}
+
 const ledgerAccountEvents = Object.freeze({
   makeCreated: makeLedgerAccountCreatedEvent,
   updated: makeLedgerAccountUpdatedEvent,
   archived: makeLedgerAccountArchivedEvent,
+  deleted: makeLedgerAccountDeletedEvent,
 });
 
 export default ledgerAccountEvents;

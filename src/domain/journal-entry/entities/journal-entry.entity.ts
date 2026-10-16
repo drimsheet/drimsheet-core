@@ -2,6 +2,7 @@ import dateUtils from '@shared/utils/date';
 import generateDiff from '@shared/utils/diff-generator';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
+import { IEvent } from '@shared/values/events/types/event.types';
 import fileAttachmentValue from '@shared/values/file-attachments/file-attachment.vo';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
@@ -287,11 +288,19 @@ function makeTransitionedEntry(
   });
 }
 
+/** Prepares the deleted entry snapshot and deletion event without an audit. */
+function deleteEntity(
+  current: IJournalEntry
+): [IJournalEntry, IEvent<IJournalEntry>, null] {
+  return [current, journalEntryEvents.deleted(current), null];
+}
+
 const journalEntryEntity = Object.freeze({
   make,
   update,
   void: voidEntry,
   archive,
+  delete: deleteEntity,
   ...journalEntryValidation,
 });
 

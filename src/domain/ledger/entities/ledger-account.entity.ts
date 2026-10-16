@@ -519,12 +519,20 @@ function getMaterializedPaths(
   return [...new Set(accountPaths)];
 }
 
+/** Prepares the deleted account snapshot and deletion event without an audit. */
+function deleteEntity(
+  current: ILedgerAccount
+): [ILedgerAccount, IEvent<ILedgerAccount>, null] {
+  return [current, ledgerAccountEvents.deleted(current), null];
+}
+
 const ledgerAccountEntity = Object.freeze({
   make,
   clonePostingAccountToControlAccount,
   reparentPostingAccount,
   update,
   archive,
+  delete: deleteEntity,
   activate,
   updateOpeningBalanceDate,
   getMaterializedPaths,

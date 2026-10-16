@@ -1,5 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import { IEvent } from '@shared/values/events/types/event.types';
 
 import { IJournalEntryReversalResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
@@ -12,6 +13,7 @@ export const EJournalEntryRemovalMode = {
 export interface IJournalEntryDeletionPreparation {
   mode: typeof EJournalEntryRemovalMode.Delete;
   originalJournalEntryId: TEntityId;
+  journalEntry: [IJournalEntry, IEvent<IJournalEntry>, null];
 }
 
 export interface IJournalEntryReversalPreparation extends IJournalEntryReversalResult {

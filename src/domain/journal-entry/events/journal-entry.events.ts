@@ -7,6 +7,7 @@ export const EJournalEntryEvent = {
   Updated: 'domain:journal-entry:updated',
   Voided: 'domain:journal-entry:voided',
   Archived: 'domain:journal-entry:archived',
+  Deleted: 'domain:journal-entry:deleted',
 } as const;
 
 export type UJournalEntryEvent =
@@ -40,11 +41,19 @@ function makeJournalEntryArchivedEvent(payload: IJournalEntry) {
   });
 }
 
+function makeJournalEntryDeletedEvent(payload: IJournalEntry) {
+  return eventValue.make<IJournalEntry>({
+    type: EJournalEntryEvent.Deleted,
+    data: payload,
+  });
+}
+
 const journalEntryEvents = Object.freeze({
   created: makeJournalEntryCreatedEvent,
   updated: makeJournalEntryUpdatedEvent,
   voided: makeJournalEntryVoidedEvent,
   archived: makeJournalEntryArchivedEvent,
+  deleted: makeJournalEntryDeletedEvent,
 });
 
 export default journalEntryEvents;

@@ -1,7 +1,9 @@
+import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import { ERepoLock } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
+import eventValue from '@shared/values/events/event.vo';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -16,16 +18,15 @@ interface IDependencies {
   ledgerAccountService: ILedgerAccountService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
+  eventBus: IEventBus;
 }
 
 export default function makeDeleteLedgerAccountUsecase(deps: IDependencies) {
   return async (id: string): Promise<void> => {
     stringUtils.validateUUID(id, ledgerAccountError.InvalidId);
 
-    const { accountingEntity, correlationId } = deps.appContext.get([
-      'actor',
-      'accountingEntity',
-    ]);
+    const { accountingEntity, correlationId, idempotencyKey } =
+      deps.appContext.get(['actor', 'accountingEntity']);
     const repoOptions = { correlationId };
 
     const transaction = await deps.repoService.createTransaction();
@@ -60,14 +61,20 @@ export default function makeDeleteLedgerAccountUsecase(deps: IDependencies) {
         );
       }
 
-      for (const candidate of removal.accounts) {
+      for (const deletion of removal.accounts) {
+        const [candidate] = deletion;
         await deps.ledgerAccountRepo.delete(candidate.id, {
           ...writeOptions,
           expectedVersion: candidate.version,
         });
       }
 
-      return await transaction.commit();
+      await transaction.commit();
+
+      const events = removal.accounts.map(([, event]) => event);
+      await deps.eventBus.publish(
+        eventValue.enrichAll(events, { correlationId, idempotencyKey })
+      );
     } catch (error) {
       return await transaction.handleError(error);
     }

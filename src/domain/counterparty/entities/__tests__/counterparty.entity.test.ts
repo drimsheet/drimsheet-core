@@ -24,6 +24,43 @@ describe('Counterparty Entity', () => {
     jest.clearAllMocks();
   });
 
+  describe('delete', () => {
+    it.each(['draft', 'active', 'archived'] as const)(
+      'prepares deletion of a %s counterparty without mutating it or creating an audit',
+      (status) => {
+        const [current] = counterpartyEntity.make({
+          createdBy: generateUUID(),
+          accountingEntityId,
+          name: 'Unused supplier',
+          type: ECounterpartyType.Organization,
+          status,
+        });
+        const before = structuredClone(current);
+        const [deletedCounterparty, event, audit] =
+          counterpartyEntity.delete(current);
+
+        expect(deletedCounterparty).toBe(current);
+        expect(current).toEqual(before);
+        expect(Object.isFrozen(deletedCounterparty)).toBe(true);
+        expect(event.type).toBe('domain:counterparty:deleted');
+        expect(event.data).toEqual(current);
+        expect(audit).toBeNull();
+      }
+    );
+
+    it('rejects an invalid counterparty snapshot', () => {
+      const [current] = counterpartyEntity.make({
+        createdBy: generateUUID(),
+        accountingEntityId,
+        name: 'Unused supplier',
+        type: ECounterpartyType.Organization,
+      });
+      expect(() =>
+        counterpartyEntity.delete({ ...current, version: 0 })
+      ).toThrow(counterpartyError.InvalidVersion);
+    });
+  });
+
   describe('make', () => {
     it('creates an immutable draft with only name and type business fields', () => {
       const [counterparty, events, audit] = counterpartyEntity.make({
