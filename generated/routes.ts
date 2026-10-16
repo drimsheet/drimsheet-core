@@ -172,6 +172,15 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUserProfileUpdateDto: {
+    dataType: 'refObject',
+    properties: {
+      firstName: { dataType: 'string' },
+      lastName: { dataType: 'string' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IDateRangeDto: {
     dataType: 'refObject',
     properties: {
@@ -3104,6 +3113,56 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'updateUserPreferences',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsUserController_updateAuthUserProfile: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IUserProfileUpdateDto',
+    },
+  };
+  app.patch(
+    '/api/v1/users/profile',
+    authenticateMiddleware([{ bearerAuth: [] }]),
+    ...fetchMiddlewares<RequestHandler>(UserController),
+    ...fetchMiddlewares<RequestHandler>(
+      UserController.prototype.updateAuthUserProfile
+    ),
+
+    async function UserController_updateAuthUserProfile(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsUserController_updateAuthUserProfile,
+          request,
+          response,
+        });
+
+        const controller = new UserController();
+
+        await templateService.apiHandler({
+          methodName: 'updateAuthUserProfile',
           controller,
           response,
           next,

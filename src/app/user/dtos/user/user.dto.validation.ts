@@ -1,5 +1,7 @@
 import z from 'zod';
 
+import userError from '@domain/user/errors/user.error';
+
 import userPreferencesAppError from '@app/user/errors/user-preferences.error';
 import {
   EAppThemePreference,
@@ -7,6 +9,26 @@ import {
   UAppThemePreference,
   UAppUsageModePreference,
 } from '@app/user/types/user-preferences.types';
+
+const invalidFirstName = new userError.InvalidFirstName().errorKey;
+const invalidLastName = new userError.InvalidLastName().errorKey;
+
+export const userProfileUpdateDtoSchema = z
+  .object({
+    firstName: z
+      .string(invalidFirstName)
+      .trim()
+      .min(1, invalidFirstName)
+      .max(100, invalidFirstName)
+      .optional(),
+    lastName: z
+      .string(invalidLastName)
+      .trim()
+      .min(1, invalidLastName)
+      .max(100, invalidLastName)
+      .optional(),
+  })
+  .strict();
 
 export const userAppThemePreferenceValidation = z.enum(
   Object.values(EAppThemePreference) as [
