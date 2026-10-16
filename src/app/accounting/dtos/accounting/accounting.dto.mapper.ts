@@ -9,6 +9,7 @@ const accountingEntityDtoMapper = Object.freeze({
       createdBy: entity.createdBy,
       ownerId: entity.ownerId,
       name: entity.name,
+      status: entity.status,
       type: entity.type,
       functionalCurrencyCode: entity.functionalCurrencyCode,
       jurisdictionCode: entity.jurisdictionCode,

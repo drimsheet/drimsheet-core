@@ -13,12 +13,15 @@ import {
   EAccountingEntityActions,
   IAccountingEntityAudit,
 } from '@domain/accounting/types/accounting-entity-audit.types';
-import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import {
+  EAccountingEntityStatus,
+  IAccountingEntity,
+} from '@domain/accounting/types/accounting-entity.types';
 import accountingEntityAudit from '@domain/accounting/values/accounting-entity-audit.vo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 function make(
-  payload: TCreationOmits<IAccountingEntity>
+  payload: TCreationOmits<IAccountingEntity, 'status'>
 ): TAuditedEntity<IAccountingEntity, IAccountingEntity, IAccountingEntity> {
   accountingEntityValidation.validateType(payload.type);
   stringUtils.validateUUID(
@@ -48,6 +51,7 @@ function make(
     id: generateUUID(),
     createdBy: payload.createdBy,
     name,
+    status: EAccountingEntityStatus.Active,
     type: payload.type,
     ownerId: payload.ownerId,
     functionalCurrencyCode: payload.functionalCurrencyCode,
@@ -99,12 +103,17 @@ function update(
     return [current, [], null];
   }
 
+  if (current.status === EAccountingEntityStatus.Archived) {
+    throw new accountingEntityError.Archived();
+  }
+
   const entity: IAccountingEntity = Object.freeze({
     id: current.id,
     createdBy: current.createdBy,
     ownerId: current.ownerId,
     jurisdictionCode: current.jurisdictionCode,
     name,
+    status: current.status,
     type,
     functionalCurrencyCode,
     createdAt: current.createdAt,
@@ -120,9 +129,50 @@ function update(
   return [entity, [accountingEntityEvents.updated(entity)], audit];
 }
 
+/** Retains the entity and its books; repeated archival has no side effects. */
+function archive(
+  current: IAccountingEntity
+): [
+  IAccountingEntity,
+  IEvent<IAccountingEntity>[],
+  IAccountingEntityAudit | null,
+] {
+  if (current.status === EAccountingEntityStatus.Archived) {
+    return [current, [], null];
+  }
+
+  const entity: IAccountingEntity = Object.freeze({
+    id: current.id,
+    createdBy: current.createdBy,
+    ownerId: current.ownerId,
+    name: current.name,
+    type: current.type,
+    status: EAccountingEntityStatus.Archived,
+    functionalCurrencyCode: current.functionalCurrencyCode,
+    jurisdictionCode: current.jurisdictionCode,
+    createdAt: current.createdAt,
+    updatedAt: new Date(),
+  });
+  const audit = accountingEntityAudit.make({
+    before: current,
+    after: entity,
+    action: EAccountingEntityActions.Archived,
+  });
+  return [entity, [accountingEntityEvents.archived(entity)], audit];
+}
+
+/** Prepares the deleted entity snapshot and deletion event without an audit. */
+function deleteEntity(
+  current: IAccountingEntity
+): [IAccountingEntity, IEvent<IAccountingEntity>, null] {
+  return [current, accountingEntityEvents.deleted(current), null];
+}
+
 const accountingEntityEntity = Object.freeze({
   make,
   update,
+  archive,
+  delete: deleteEntity,
   ...accountingEntityValidation,
 });
 

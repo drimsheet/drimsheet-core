@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Middlewares,
   OperationId,
@@ -23,7 +24,9 @@ import {
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
+  archiveAccountingEntityUseCase,
   createAccountingEntityUseCase,
+  deleteAccountingEntityUseCase,
   getActiveAccountingEntityUseCase,
   getJurisdictionsUseCase,
   getUserAccountingEntitiesUseCase,
@@ -123,6 +126,24 @@ export class AccountingController extends Controller {
     return await updateAccountingEntityUseCase(body);
   }
 
+  /** Archives the selected entity, retaining all accounting records. */
+  @Post('/accounting-entity/archive')
+  @OperationId('archiveAccountingEntity')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async archiveAccountingEntity(): Promise<void> {
+    await archiveAccountingEntityUseCase();
+    this.setStatus(204);
+  }
+
   /**
    * Switch the current accounting entity
    */
@@ -142,5 +163,24 @@ export class AccountingController extends Controller {
     @Body() body: IAccountingEntitySwitchReq
   ) {
     return await switchAccountingEntityUseCase(body);
+  }
+
+  /** Deletes the selected entity only when it has no journal entries; otherwise returns 409. */
+  @Delete('/accounting-entity')
+  @OperationId('deleteAccountingEntity')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async deleteAccountingEntity(): Promise<void> {
+    await deleteAccountingEntityUseCase();
+    this.setStatus(204);
   }
 }

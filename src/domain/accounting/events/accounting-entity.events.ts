@@ -5,6 +5,8 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 export const EAccountingEntityEvents = {
   Created: 'domain:accounting:entity:created',
   Updated: 'domain:accounting:entity:updated',
+  Archived: 'domain:accounting:entity:archived',
+  Deleted: 'domain:accounting:entity:deleted',
 } as const;
 
 function makeCreatedEvent(params: IAccountingEntity) {
@@ -16,6 +18,16 @@ function makeCreatedEvent(params: IAccountingEntity) {
 
 const accountingEntityEvents = Object.freeze({
   created: makeCreatedEvent,
+  deleted: (entity: IAccountingEntity) =>
+    eventValue.make<IAccountingEntity>({
+      type: EAccountingEntityEvents.Deleted,
+      data: entity,
+    }),
+  archived: (entity: IAccountingEntity) =>
+    eventValue.make<IAccountingEntity>({
+      type: EAccountingEntityEvents.Archived,
+      data: entity,
+    }),
   updated: (entity: IAccountingEntity) =>
     eventValue.make<IAccountingEntity>({
       type: EAccountingEntityEvents.Updated,

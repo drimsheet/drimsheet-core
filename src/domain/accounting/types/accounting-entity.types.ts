@@ -13,10 +13,19 @@ export const EAccountingEntityType = {
 export type UAccountingEntityType =
   (typeof EAccountingEntityType)[keyof typeof EAccountingEntityType];
 
+export const EAccountingEntityStatus = {
+  Active: 'active',
+  Archived: 'archived',
+} as const;
+
+export type UAccountingEntityStatus =
+  (typeof EAccountingEntityStatus)[keyof typeof EAccountingEntityStatus];
+
 export interface IAccountingEntity {
   createdBy: TEntityId;
   id: TEntityId;
   name: string;
+  status: UAccountingEntityStatus;
   type: UAccountingEntityType;
   ownerId: TEntityId;
   functionalCurrencyCode: UCurrencyCode;
@@ -28,6 +37,7 @@ export interface IAccountingEntity {
 export const EAccountingEntityHistoryAction = {
   Created: 'created',
   Updated: 'updated',
+  Archived: 'archived',
 } as const;
 
 export type UAccountingEntityHistoryAction =

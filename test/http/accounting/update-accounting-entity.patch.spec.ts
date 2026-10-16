@@ -68,6 +68,7 @@ const entity: IAccountingEntity = {
   ownerId: userId,
   name: 'Ada Consulting',
   type: 'individual',
+  status: 'active',
   functionalCurrencyCode: 'USD',
   jurisdictionCode: 'US',
   createdAt: new Date('2026-07-26T10:00:00.000Z'),

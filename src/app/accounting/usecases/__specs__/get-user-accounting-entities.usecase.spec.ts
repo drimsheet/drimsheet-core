@@ -51,7 +51,7 @@ describe('getUserAccountingEntitiesUseCase', () => {
 
     expect(mockAccountingEntityRepo.findByUserId).toHaveBeenCalledWith(
       mockUserId,
-      { correlationId }
+      { correlationId, status: 'active' }
     );
   });
 
@@ -67,7 +67,7 @@ describe('getUserAccountingEntitiesUseCase', () => {
 
     expect(mockAccountingEntityRepo.findByUserId).toHaveBeenCalledWith(
       mockUserId,
-      { correlationId }
+      { correlationId, status: 'active' }
     );
   });
 });

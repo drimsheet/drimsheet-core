@@ -93,6 +93,12 @@ export default interface IAccountingEntityService {
     updatedBalances: ILedgerAccountBalance[];
   }>;
 
+  /** Validates deletion and returns [entity, deletion event, null]. Caller holds the entity update lock through preparation and persistence. */
+  delete(
+    current: IAccountingEntity,
+    repoOptions: IReadRepoOptions
+  ): Promise<[IAccountingEntity, IEvent<IAccountingEntity>, null]>;
+
   grantUserAccess(
     accountingEntity: IAccountingEntity,
     userId: TEntityId

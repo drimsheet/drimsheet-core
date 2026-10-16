@@ -20,6 +20,7 @@ export const mockAccountingContextHistoryRepo: jest.Mocked<IAccountingContextHis
   };
 
 export const mockAccountingContextRepo: jest.Mocked<IAccountingContextRepo> = {
+  deleteByAccountingEntityId: jest.fn(),
   create: jest.fn(),
 };
 
@@ -29,6 +30,7 @@ export const mockAccountingEntityHistoryRepo: jest.Mocked<IAccountingEntityHisto
   };
 
 export const mockAccountingEntityRepo: jest.Mocked<IAccountingEntityRepo> = {
+  delete: jest.fn(),
   update: jest.fn(),
   create: jest.fn(),
   findById: jest.fn(),
@@ -76,6 +78,7 @@ export const mockReportingContextHistoryRepo: jest.Mocked<IReportingContextHisto
   };
 
 export const mockReportingContextRepo: jest.Mocked<IReportingContextRepo> = {
+  deleteByAccountingEntityId: jest.fn(),
   create: jest.fn(),
 };
 

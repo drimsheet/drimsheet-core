@@ -10,8 +10,10 @@ import {
   IAccountingEntity,
 } from '@domain/accounting/types/accounting-entity.types';
 import { EPeriodUnit } from '@domain/accounting/types/period.types';
+import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 
 const repo: jest.Mocked<IAccountingEntityRepo> = {
+  delete: jest.fn(),
   update: jest.fn(),
   create: jest.fn(),
   findById: jest.fn(),
@@ -95,5 +97,59 @@ describe('accountingEntityServiceValidation', () => {
         accountingEntityError.OnlyOneIndividualAccountingEntityAllowed
       );
     });
+  });
+});
+
+describe('accountingEntityServiceValidation.validateDeletionAllowed', () => {
+  const journalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
+    existsByAccountingEntityId: jest.fn(),
+    existsByAccountId: jest.fn(),
+    existsPostedByAccountId: jest.fn(),
+    findAllByAccountIds: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    findById: jest.fn(),
+  };
+  const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+  const options = { correlationId: 'delete', tx: {} };
+  beforeEach(() => jest.resetAllMocks());
+
+  it('allows deletion only when the unfiltered journal check finds no references', async () => {
+    journalEntryRepo.existsByAccountingEntityId.mockResolvedValue(false);
+    await expect(
+      accountingEntityServiceValidation.validateDeletionAllowed(
+        journalEntryRepo,
+        id,
+        options
+      )
+    ).resolves.toBeUndefined();
+    expect(journalEntryRepo.existsByAccountingEntityId).toHaveBeenCalledWith(
+      id,
+      options
+    );
+  });
+
+  it('rejects journal references using the accounting entity conflict error', async () => {
+    journalEntryRepo.existsByAccountingEntityId.mockResolvedValue(true);
+    await expect(
+      accountingEntityServiceValidation.validateDeletionAllowed(
+        journalEntryRepo,
+        id,
+        options
+      )
+    ).rejects.toBeInstanceOf(accountingEntityError.DeletionWithJournalEntries);
+  });
+
+  it('propagates a failed check instead of permitting deletion', async () => {
+    const failure = new Error('read failed');
+    journalEntryRepo.existsByAccountingEntityId.mockRejectedValue(failure);
+    await expect(
+      accountingEntityServiceValidation.validateDeletionAllowed(
+        journalEntryRepo,
+        id,
+        options
+      )
+    ).rejects.toBe(failure);
   });
 });

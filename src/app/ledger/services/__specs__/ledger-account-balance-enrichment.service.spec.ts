@@ -33,6 +33,7 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
     ownerId: userId,
     name: 'Balance Enrichment Entity',
     type: 'individual',
+    status: 'active',
     functionalCurrencyCode: SYSTEM_CURRENCIES.USD.code,
     jurisdictionCode: 'US',
     createdAt: timestamp,

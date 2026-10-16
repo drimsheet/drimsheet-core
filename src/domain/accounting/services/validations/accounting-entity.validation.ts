@@ -75,7 +75,25 @@ async function validateFunctionalCurrencyChange(
   }
 }
 
+/** Rejects every journal reference using the caller's locked transaction. */
+async function validateDeletionAllowed(
+  repo: IJournalEntryRepo,
+  accountingEntityId: TEntityId,
+  repoOptions: IReadRepoOptions
+): Promise<void> {
+  const hasJournalEntries = await repo.existsByAccountingEntityId(
+    accountingEntityId,
+    repoOptions
+  );
+  if (hasJournalEntries) {
+    throw new accountingEntityError.DeletionWithJournalEntries({
+      accountingEntityId,
+    });
+  }
+}
+
 const accountingEntityValidation = Object.freeze({
+  validateDeletionAllowed,
   validateFiscalYearLimit,
   validateFunctionalCurrencyChange,
   validateExistingIndividualEntity,

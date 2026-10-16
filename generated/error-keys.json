@@ -1,7 +1,9 @@
 [
   "accounting_error_accounting_context_id_invalid",
   "accounting_error_accounting_entity_access_forbidden",
+  "accounting_error_accounting_entity_archived_conflict",
   "accounting_error_accounting_entity_created_by_invalid",
+  "accounting_error_accounting_entity_deletion_with_journal_entries_conflict",
   "accounting_error_accounting_entity_functional_currency_change_conflict",
   "accounting_error_accounting_entity_functional_currency_mismatch_conflict",
   "accounting_error_accounting_entity_history_action_invalid",

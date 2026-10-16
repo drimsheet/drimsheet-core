@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
 
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
+import { EAccountingEntityStatus } from '@domain/accounting/types/accounting-entity.types';
 
 import { accountingEntitiesInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
@@ -12,6 +13,12 @@ import accountingEntityMapper from '@infra/persistence/repos/accounting/mappers/
 import accountingEntityHistoryRepo from './accounting-entity-history.repo.impl';
 
 const accountingEntityRepo: IAccountingEntityRepo = {
+  delete: async (id, options) => {
+    await getDbQuery(options)
+      .delete(accountingEntitiesInCore)
+      .where(eq(accountingEntitiesInCore.id, id));
+  },
+
   create: async (domain, options) => {
     await getDbQuery(options).transaction(async (tx) => {
       await tx
@@ -64,7 +71,8 @@ const accountingEntityRepo: IAccountingEntityRepo = {
       .where(
         and(
           eq(accountingEntitiesInCore.id, id),
-          eq(accountingEntitiesInCore.ownerId, userId)
+          eq(accountingEntitiesInCore.ownerId, userId),
+          eq(accountingEntitiesInCore.status, EAccountingEntityStatus.Active)
         )
       );
 
@@ -75,6 +83,10 @@ const accountingEntityRepo: IAccountingEntityRepo = {
     const query = getDbQuery(options);
 
     const whereClause = [eq(accountingEntitiesInCore.ownerId, userId)];
+
+    if (options.status) {
+      whereClause.push(eq(accountingEntitiesInCore.status, options.status));
+    }
 
     if (type) {
       whereClause.push(eq(accountingEntitiesInCore.type, type));

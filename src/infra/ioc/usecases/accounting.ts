@@ -1,4 +1,6 @@
+import makeArchiveAccountingEntityUsecase from '@app/accounting/usecases/archive-accounting-entity.usecase';
 import makeCreateAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
+import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-accounting-entity.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
@@ -11,6 +13,7 @@ import { userPreferencesAppService } from '@infra/ioc/services/user';
 import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import accountingRepos from '@infra/persistence/repos/accounting';
+import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import userRepos from '@infra/persistence/repos/user';
 import appContext from '@infra/runtime/app-context';
@@ -70,6 +73,32 @@ export const updateAccountingEntityUseCase = makeTracedUseCase(
     accountingEntityRepo: accountingRepos.accountingEntity,
     accountingEntityService,
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const deleteAccountingEntityUseCase = makeTracedUseCase(
+  'accounting.deleteAccountingEntityUseCase',
+  makeDeleteAccountingEntityUsecase({
+    appContext,
+    accountingEntityRepo: accountingRepos.accountingEntity,
+    accountingContextRepo: accountingRepos.accountingContext,
+    reportingContextRepo: accountingRepos.reportingContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    userPreferencesRepo: userRepos.userPreferences,
+    accountingEntityService,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const archiveAccountingEntityUseCase = makeTracedUseCase(
+  'accounting.archiveAccountingEntityUseCase',
+  makeArchiveAccountingEntityUsecase({
+    appContext,
+    accountingEntityRepo: accountingRepos.accountingEntity,
+    userPreferencesRepo: userRepos.userPreferences,
     repoService,
     eventBus: messaging.eventBus,
   })

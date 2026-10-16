@@ -46,6 +46,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     ownerId: userId,
     name: 'Posting Accounts Entity',
     type: 'individual',
+    status: 'active',
     functionalCurrencyCode: 'USD',
     jurisdictionCode: 'US',
     createdAt: now,

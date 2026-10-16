@@ -3,6 +3,7 @@ import { MigrationBuilder } from 'node-pg-migrate';
 import { jurisdictionsTable } from '../config/accounting';
 import {
   accountingEntitiesTable,
+  accountingEntityStatus,
   accountingEntityType,
 } from '../config/accounting-entity';
 import { actorsTable } from '../config/actors';
@@ -11,6 +12,8 @@ import { usersTable } from '../config/users';
 import toSchemaString from '../utils/to-schema-string';
 
 export const up = (pgm: MigrationBuilder) => {
+  pgm.createType(accountingEntityStatus, ['active', 'archived']);
+
   pgm.createTable(
     accountingEntitiesTable,
     {
@@ -20,6 +23,7 @@ export const up = (pgm: MigrationBuilder) => {
         references: actorsTable,
         onDelete: 'RESTRICT',
       },
+
       id: {
         type: 'uuid',
         primaryKey: true,
@@ -29,6 +33,12 @@ export const up = (pgm: MigrationBuilder) => {
       type: {
         type: toSchemaString(accountingEntityType),
         notNull: true,
+      },
+
+      status: {
+        type: toSchemaString(accountingEntityStatus),
+        notNull: true,
+        default: 'active',
       },
 
       name: {
@@ -82,4 +92,5 @@ export const up = (pgm: MigrationBuilder) => {
 
 export const down = (pgm: MigrationBuilder) => {
   pgm.dropTable(accountingEntitiesTable);
+  pgm.dropType(accountingEntityStatus);
 };

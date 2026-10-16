@@ -15,7 +15,7 @@ import {
 
 describe('accountingEntityEntity', () => {
   const MOCK_DATE = new Date('2026-04-01T00:00:00.000Z');
-  let validPayload: TCreationOmits<IAccountingEntity>;
+  let validPayload: TCreationOmits<IAccountingEntity, 'status'>;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -33,6 +33,80 @@ describe('accountingEntityEntity', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  describe('delete', () => {
+    it('returns the unchanged entity snapshot, a deletion event, and no audit', () => {
+      const [current] = accountingEntityEntity.make(validPayload);
+      jest.setSystemTime(new Date('2026-04-02T00:00:00Z'));
+      const [deletedEntity, deleteEvent, audit] =
+        accountingEntityEntity.delete(current);
+      expect(deletedEntity).toBe(current);
+      expect(Object.isFrozen(deletedEntity)).toBe(true);
+      expect(deleteEvent).toMatchObject({
+        type: EAccountingEntityEvents.Deleted,
+        data: current,
+        occurredAt: new Date(),
+      });
+      expect(Object.isFrozen(deleteEvent)).toBe(true);
+      expect(audit).toBeNull();
+      expect(current.updatedAt).toEqual(MOCK_DATE);
+    });
+  });
+
+  describe('archive', () => {
+    it('preserves identity and books while auditing the archive transition (ACC-AE-007)', () => {
+      const [current] = accountingEntityEntity.make(validPayload);
+      expect(current.status).toBe('active');
+      jest.setSystemTime(new Date('2026-04-02T00:00:00Z'));
+      const [archived, events, audit] = accountingEntityEntity.archive(current);
+      expect(archived).toEqual({
+        ...current,
+        status: 'archived',
+        updatedAt: new Date(),
+      });
+      expect(Object.isFrozen(archived)).toBe(true);
+      expect(current.status).toBe('active');
+      expect(events).toEqual([
+        expect.objectContaining({
+          type: EAccountingEntityEvents.Archived,
+          data: archived,
+        }),
+      ]);
+      expect(audit).toMatchObject({
+        action: 'archived',
+        diff: {
+          before: expect.objectContaining({ status: 'active' }),
+          after: expect.objectContaining({ status: 'archived' }),
+        },
+      });
+    });
+
+    it('returns the identical archived entity with no audit or events on repetition', () => {
+      const [current] = accountingEntityEntity.make(validPayload);
+      const [archived] = accountingEntityEntity.archive(current);
+      jest.setSystemTime(new Date('2026-04-03T00:00:00Z'));
+      const [unchanged, events, audit] =
+        accountingEntityEntity.archive(archived);
+      expect(unchanged).toBe(archived);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it('rejects changes to archived entities while retaining valid no-op semantics', () => {
+      const [current] = accountingEntityEntity.make(validPayload);
+      const [archived] = accountingEntityEntity.archive(current);
+      expect(() =>
+        accountingEntityEntity.update(archived, { name: 'Changed' })
+      ).toThrow(accountingEntityError.Archived);
+      const [unchanged, events, audit] = accountingEntityEntity.update(
+        archived,
+        {}
+      );
+      expect(unchanged).toBe(archived);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
   });
 
   describe('update', () => {

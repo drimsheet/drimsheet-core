@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm';
+
 import { TEntityId } from '@shared/types/uuid';
 
 import { IUserPreferences } from '@app/user/types/user-preferences.types';
@@ -127,5 +129,26 @@ describe('UserPreferencesRepoImpl', () => {
 
     expect(result).toBeNull();
     expect(userPreferencesMapper.toDomain).not.toHaveBeenCalled();
+  });
+});
+
+describe('user preferences entity removal', () => {
+  it('clears only references to the removed entity without overwriting other preferences', async () => {
+    const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+    const options = { correlationId: 'remove', tx: {} };
+    const where = jest.fn().mockResolvedValue(undefined);
+    const set = jest.fn().mockReturnValue({ where });
+    const query = { update: jest.fn().mockReturnValue({ set }) };
+    jest.mocked(getDbQuery).mockReturnValue(query as never);
+    await userPreferencesRepo.clearAccountingEntity(id, options);
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(query.update).toHaveBeenCalledWith(userPreferencesInCore);
+    expect(set).toHaveBeenCalledWith({
+      lastActiveAccountingEntityId: null,
+      updatedAt: expect.any(String),
+    });
+    expect(where).toHaveBeenCalledWith(
+      eq(userPreferencesInCore.lastActiveAccountingEntityId, id)
+    );
   });
 });

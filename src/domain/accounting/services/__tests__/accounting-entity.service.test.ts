@@ -23,6 +23,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 describe('accountingEntityService', () => {
   const repoOptions: IReadRepoOptions = { correlationId: 'correlation-id' };
   const accountingEntityRepo: jest.Mocked<IAccountingEntityRepo> = {
+    delete: jest.fn(),
     update: jest.fn(),
     create: jest.fn(),
     findById: jest.fn(),
@@ -70,6 +71,64 @@ describe('accountingEntityService', () => {
     journalEntryRepo.existsByAccountingEntityId.mockResolvedValue(false);
     accountingPeriodRepo.findByRange.mockResolvedValue([]);
     accountingEntityRepo.findByUserId.mockResolvedValue([]);
+  });
+
+  describe('delete', () => {
+    const [entity] = accountingEntityEntity.make({
+      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+      ownerId: '123e4567-e89b-12d3-a456-426614174000' as TEntityId,
+      name: 'Business',
+      type: 'sole_trader',
+      functionalCurrencyCode: 'NGN',
+      jurisdictionCode: 'NG',
+    });
+
+    it('permits deletion only when no journal entries exist (ACC-AE-007)', async () => {
+      const [deletedEntity, deleteEvent, audit] = await service.delete(
+        entity,
+        repoOptions
+      );
+      expect(deletedEntity).toBe(entity);
+      expect(deleteEvent).toMatchObject({
+        type: 'domain:accounting:entity:deleted',
+        data: entity,
+      });
+      expect(audit).toBeNull();
+      expect(journalEntryRepo.existsByAccountingEntityId).toHaveBeenCalledWith(
+        entity.id,
+        repoOptions
+      );
+      expect(accountingEntityRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it.each(['active', 'archived'] as const)(
+      'rejects journal references for a %s entity without preparing an archive',
+      async (status) => {
+        const current =
+          status === 'archived'
+            ? accountingEntityEntity.archive(entity)[0]
+            : entity;
+        journalEntryRepo.existsByAccountingEntityId.mockResolvedValue(true);
+        await expect(
+          service.delete(current, repoOptions)
+        ).rejects.toBeInstanceOf(
+          accountingEntityError.DeletionWithJournalEntries
+        );
+        expect(
+          journalEntryRepo.existsByAccountingEntityId
+        ).toHaveBeenCalledWith(current.id, repoOptions);
+        expect(accountingEntityRepo.update).not.toHaveBeenCalled();
+        expect(accountingEntityRepo.delete).not.toHaveBeenCalled();
+      }
+    );
+
+    it('propagates eligibility read failures without authorizing deletion', async () => {
+      const failure = new Error('read failed');
+      journalEntryRepo.existsByAccountingEntityId.mockRejectedValueOnce(
+        failure
+      );
+      await expect(service.delete(entity, repoOptions)).rejects.toBe(failure);
+    });
   });
 
   describe('update', () => {
