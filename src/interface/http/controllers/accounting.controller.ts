@@ -27,6 +27,7 @@ import {
   archiveAccountingEntityUseCase,
   createAccountingEntityUseCase,
   deleteAccountingEntityUseCase,
+  getAccountingContextsUseCase,
   getActiveAccountingEntityUseCase,
   getJurisdictionsUseCase,
   getUserAccountingEntitiesUseCase,
@@ -37,6 +38,23 @@ import {
 @Route('accounting')
 @Tags('Accounting')
 export class AccountingController extends Controller {
+  /** Returns all unclosed contexts for x-accounting-entity-id, with each fiscal year and its periods. */
+  @Get('/accounting-contexts')
+  @OperationId('getAccountingContexts')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAccountingContexts() {
+    return await getAccountingContextsUseCase();
+  }
+
   /**
    * Get user accounting entities
    */
