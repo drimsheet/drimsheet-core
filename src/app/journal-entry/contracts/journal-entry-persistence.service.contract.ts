@@ -49,6 +49,7 @@ export default interface IJournalEntryPersistenceAppService {
     repoOptions: IRepoOptions
   ): Promise<void>;
 
+  /** Deletes the aggregate atomically; without a caller transaction, resolves after commit. */
   delete(
     payload: IDeleteJournalEntryPersistencePayload,
     repoOptions: IRepoOptions

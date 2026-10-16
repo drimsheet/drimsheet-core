@@ -1,5 +1,6 @@
 // TODO: audit this service; it feels like it's not doing enough to justify being a service
 
+import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryRemovalValidation from '@domain/journal-entry/services/validations/journal-entry-removal.validation';
 import { IJournalEntryRectificationService } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
@@ -42,6 +43,7 @@ function makePrepare(
     return Object.freeze({
       mode: EJournalEntryRemovalMode.Delete,
       originalJournalEntryId: entry.id,
+      journalEntry: journalEntryEntity.delete(entry),
     });
   };
 }

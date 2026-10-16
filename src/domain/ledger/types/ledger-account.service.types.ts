@@ -3,6 +3,7 @@ import {
   ITransactionContext,
 } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import { IEvent } from '@shared/values/events/types/event.types';
 
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 
@@ -76,7 +77,7 @@ export default interface ILedgerAccountService {
 
   /**
    * Checks canDelete for the account and every descendant, then prepares
-   * deletion of the complete subtree child-first.
+   * entity deletion snapshots and events for the complete subtree child-first.
    * Associated journals must be valid drafts; any other state is an unexpected
    * invariant violation. Never persists. The caller holds target and descendant
    * account locks until deletion commits.
@@ -84,7 +85,10 @@ export default interface ILedgerAccountService {
   delete(
     account: ILedgerAccount,
     repoOptions: IReadRepoOptions
-  ): Promise<{ accounts: ILedgerAccount[]; journalEntries: IJournalEntry[] }>;
+  ): Promise<{
+    accounts: [ILedgerAccount, IEvent<ILedgerAccount>, null][];
+    journalEntries: IJournalEntry[];
+  }>;
 
   /**
    * Rejects headers and accounts beneath draft parents.

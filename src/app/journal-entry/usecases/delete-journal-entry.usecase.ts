@@ -64,13 +64,16 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
     );
 
     if (removal.mode === EJournalEntryRemovalMode.Delete) {
+      const [deletedEntry, deleteEvent] = removal.journalEntry;
       await deps.journalEntryPersistenceAppService.delete(
         {
-          journalEntryId: originalEntry.id,
-          expectedVersion: originalEntry.version,
+          journalEntryId: deletedEntry.id,
+          expectedVersion: deletedEntry.version,
         },
         repoOptions
       );
+
+      await deps.eventBus.publish(eventValue.enrich(deleteEvent, repoOptions));
 
       return;
     }

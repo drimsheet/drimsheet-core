@@ -92,6 +92,26 @@ describe('JournalEntry Entity', () => {
       expect(Object.isFrozen(entity.createdBy)).toBe(true);
     });
 
+    it.each(['draft', 'archived'] as const)(
+      'prepares deletion of a never-posted %s entry without changing its snapshot',
+      (status) => {
+        const [draft] = journalEntryEntity.make(validPayload);
+        const current =
+          status === 'archived' ? journalEntryEntity.archive(draft)[0] : draft;
+        const before = structuredClone(current);
+
+        const [deletedEntry, event, audit] = journalEntryEntity.delete(current);
+
+        expect(deletedEntry).toBe(current);
+        expect(current).toEqual(before);
+        expect(Object.isFrozen(deletedEntry)).toBe(true);
+        expect(event.type).toBe('domain:journal-entry:deleted');
+        expect(event.data).toBe(current);
+        expect(Object.isFrozen(event)).toBe(true);
+        expect(audit).toBeNull();
+      }
+    );
+
     it('should successfully create a journal entry with line items and events', () => {
       const [entry, events, audit] = journalEntryEntity.make(validPayload);
 

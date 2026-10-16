@@ -1,6 +1,7 @@
 import { Express } from 'express';
 import request from 'supertest';
 
+import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService, {
   mockRepoTransaction,
 } from '@shared/contracts/__mocks__/repo.mock';
@@ -136,6 +137,7 @@ describe('DELETE /counterparties/{id}', () => {
         repoService: mockRepoService,
         counterpartyRepo: mockCounterpartyRepo,
         journalLineRepo: mockJournalLineRepo,
+        eventBus: mockEventBus,
       })
     );
     app = createApplication();

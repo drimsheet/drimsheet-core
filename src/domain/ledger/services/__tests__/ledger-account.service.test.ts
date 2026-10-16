@@ -572,7 +572,21 @@ describe('ledgerAccountService.delete', () => {
 
   it('prepares the complete subtree child-first and keeps the authoritative journal version', async () => {
     const removal = await service.delete(target, options);
-    expect(removal.accounts).toEqual([leaf, child, target]);
+    expect(removal.accounts).toEqual(
+      [leaf, child, target].map((account) => [
+        account,
+        expect.objectContaining({
+          type: 'domain:ledger:account:deleted',
+          data: account,
+        }),
+        null,
+      ])
+    );
+    for (const deletion of removal.accounts) {
+      const [account, event] = deletion;
+      expect(event.data).toBe(account);
+      expect(Object.isFrozen(event)).toBe(true);
+    }
     expect(removal.journalEntries).toEqual([draftEntry]);
     expect(mockLedgerAccountRepo.findDescendants).toHaveBeenCalledWith(
       target.accountingEntityId,
@@ -587,7 +601,16 @@ describe('ledgerAccountService.delete', () => {
   });
 
   it('does not query descendants for a posting account', async () => {
-    expect((await service.delete(leaf, options)).accounts).toEqual([leaf]);
+    expect((await service.delete(leaf, options)).accounts).toEqual([
+      [
+        leaf,
+        expect.objectContaining({
+          type: 'domain:ledger:account:deleted',
+          data: leaf,
+        }),
+        null,
+      ],
+    ]);
     expect(mockLedgerAccountRepo.findDescendants).not.toHaveBeenCalled();
   });
 
@@ -595,7 +618,16 @@ describe('ledgerAccountService.delete', () => {
     mockLedgerAccountRepo.findDescendants.mockResolvedValue([]);
     mockJournalEntryRepo.findAllByAccountIds.mockResolvedValue([]);
     expect(await service.delete(target, options)).toEqual({
-      accounts: [target],
+      accounts: [
+        [
+          target,
+          expect.objectContaining({
+            type: 'domain:ledger:account:deleted',
+            data: target,
+          }),
+          null,
+        ],
+      ],
       journalEntries: [],
     });
   });
@@ -644,7 +676,16 @@ describe('ledgerAccountService.delete', () => {
       mockJournalEntryRepo.findAllByAccountIds.mockResolvedValue([]);
 
       await expect(service.delete(account, options)).resolves.toEqual({
-        accounts: [account],
+        accounts: [
+          [
+            account,
+            expect.objectContaining({
+              type: 'domain:ledger:account:deleted',
+              data: account,
+            }),
+            null,
+          ],
+        ],
         journalEntries: [],
       });
       expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenCalledWith(
@@ -671,7 +712,14 @@ describe('ledgerAccountService.delete', () => {
     mockJournalEntryRepo.existsByAccountId.mockResolvedValue(false);
 
     await expect(service.delete(activeTarget, options)).resolves.toEqual({
-      accounts: [leaf, archivedChild, activeTarget],
+      accounts: [leaf, archivedChild, activeTarget].map((account) => [
+        account,
+        expect.objectContaining({
+          type: 'domain:ledger:account:deleted',
+          data: account,
+        }),
+        null,
+      ]),
       journalEntries: [draftEntry],
     });
     expect(mockJournalEntryRepo.existsByAccountId).toHaveBeenCalledTimes(2);

@@ -1,3 +1,4 @@
+import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService, {
   mockRepoTransaction,
 } from '@shared/contracts/__mocks__/repo.mock';
@@ -83,12 +84,14 @@ const journalEntries = [
   { ...draftEntry, version: 4 },
   { ...draftEntry, id: generateUUID(), version: 2 },
 ];
+const accountDeletions = [child, account].map(ledgerAccountEntity.delete);
 const usecase = makeDeleteLedgerAccountUsecase({
   appContext: mockAppContext,
   ledgerAccountRepo: mockLedgerAccountRepo,
   ledgerAccountService: mockLedgerAccountService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
   repoService: mockRepoService,
+  eventBus: mockEventBus,
 });
 
 describe('delete ledger account use case', () => {
@@ -98,10 +101,11 @@ describe('delete ledger account use case', () => {
       actor: { id: header.createdBy },
       accountingEntity: { id: header.accountingEntityId },
       correlationId: 'delete',
+      idempotencyKey: 'delete-once',
     } as IAppContextData);
     mockLedgerAccountRepo.findById.mockResolvedValue(account);
     mockLedgerAccountService.delete.mockResolvedValue({
-      accounts: [child, account],
+      accounts: accountDeletions,
       journalEntries,
     });
     mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
@@ -157,18 +161,38 @@ describe('delete ledger account use case', () => {
       mockLedgerAccountRepo.delete.mock.invocationCallOrder[1]
     ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish).toHaveBeenCalledWith(
+      accountDeletions.map(([, event]) =>
+        expect.objectContaining({
+          ...event,
+          correlationId: 'delete',
+          idempotencyKey: 'delete-once',
+          enrichedAt: expect.any(Date),
+        })
+      )
+    );
+    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeGreaterThan(
+      mockRepoTransaction.commit.mock.invocationCallOrder[0]
+    );
     expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
   });
 
   it('deletes an account with no associated journals', async () => {
     mockLedgerAccountService.delete.mockResolvedValue({
-      accounts: [account],
+      accounts: [ledgerAccountEntity.delete(account)],
       journalEntries: [],
     });
     await usecase(account.id);
     expect(mockJournalEntryPersistenceAppService.delete).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.delete).toHaveBeenCalledTimes(1);
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        type: 'domain:ledger:account:deleted',
+        data: account,
+      }),
+    ]);
   });
 
   it('validates IDs before reading request context', async () => {
@@ -176,6 +200,7 @@ describe('delete ledger account use case', () => {
       ledgerAccountError.InvalidId
     );
     expect(mockAppContext.get).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('rejects a missing or other-entity account and delegates transaction cleanup', async () => {
@@ -184,6 +209,7 @@ describe('delete ledger account use case', () => {
       ledgerAccountError.AccountNotFound
     );
     expect(mockLedgerAccountService.delete).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.delete).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
@@ -200,6 +226,7 @@ describe('delete ledger account use case', () => {
     expect(mockLedgerAccountRepo.delete).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(error);
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it.each(['journal', 'account', 'foreign key', 'commit'])(
@@ -225,6 +252,7 @@ describe('delete ledger account use case', () => {
       }
       await expect(usecase(account.id)).rejects.toBe(error);
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(error);
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
       expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
       if (stage !== 'commit') {
         expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
@@ -234,4 +262,42 @@ describe('delete ledger account use case', () => {
       }
     }
   );
+
+  it('waits for commit completion before publishing any account deletion events', async () => {
+    let release!: () => void;
+    let started!: () => void;
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const ready = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    mockRepoTransaction.commit.mockImplementation(async () => {
+      started();
+      await blocked;
+    });
+
+    const request = usecase(account.id);
+    try {
+      await ready;
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    } finally {
+      release();
+      await request;
+    }
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates publication failures after committing the deletions', async () => {
+    const failure = new Error('publication failed');
+    mockEventBus.publish.mockRejectedValue(failure);
+
+    await expect(usecase(account.id)).rejects.toBe(failure);
+
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeGreaterThan(
+      mockRepoTransaction.commit.mock.invocationCallOrder[0]
+    );
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+  });
 });

@@ -212,11 +212,20 @@ function archive(
   return [archivedCounterparty, [event], audit];
 }
 
+/** Prepares the deleted snapshot and event while retaining existing audit history. */
+function deleteEntity(
+  current: ICounterparty
+): [ICounterparty, IEvent<ICounterparty>, null] {
+  counterpartyValidation.validateCounterparty(current);
+  return [current, counterpartyEvents.deleted(current), null];
+}
+
 const counterpartyEntity = deepFreeze({
   make,
   addRole,
   update,
   archive,
+  delete: deleteEntity,
   ...counterpartyValidation,
 });
 

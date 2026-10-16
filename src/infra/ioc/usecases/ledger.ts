@@ -107,6 +107,7 @@ export const deleteLedgerAccountUseCase = makeTracedUseCase(
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryPersistenceAppService,
     repoService,
+    eventBus: messaging.eventBus,
   })
 );
 
