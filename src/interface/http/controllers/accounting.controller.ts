@@ -30,6 +30,7 @@ import {
   getAccountingContextsUseCase,
   getActiveAccountingEntityUseCase,
   getJurisdictionsUseCase,
+  getReportingContextsUseCase,
   getUserAccountingEntitiesUseCase,
   switchAccountingEntityUseCase,
   updateAccountingEntityUseCase,
@@ -101,6 +102,23 @@ export class AccountingController extends Controller {
   @Response<IHttpErrorDto>('500')
   public async getJurisdictions() {
     return await getJurisdictionsUseCase();
+  }
+
+  /** Returns all unclosed reporting contexts for x-accounting-entity-id, with each fiscal year and its reporting periods. */
+  @Get('/reporting-contexts')
+  @OperationId('getReportingContexts')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getReportingContexts() {
+    return await getReportingContextsUseCase();
   }
 
   /**

@@ -4,17 +4,7 @@ import {
   UPeriodUnit,
 } from '@domain/accounting/types/period.types';
 
-interface IFiscalYearDto {
-  id: string;
-  createdBy: string;
-  name: string;
-  accountingEntityId: string;
-  startDate: Date;
-  endDate: Date;
-  status: UPeriodStatus;
-  closedAt: Date | null;
-  updatedAt: Date;
-}
+import { IFiscalYearDto } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
 
 interface IAccountingPeriodDto {
   id: string;

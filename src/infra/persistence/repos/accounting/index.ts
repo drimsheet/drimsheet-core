@@ -1,4 +1,5 @@
 import accountingContextQueryRepo from '@infra/persistence/repos/accounting/queries/accounting-context.query.repo.impl';
+import reportingContextQueryRepo from '@infra/persistence/repos/accounting/queries/reporting-context.query.repo.impl';
 
 import accountingContextHistoryRepo from './accounting-context-history.repo.impl';
 import accountingContextRepo from './accounting-context.repo.impl';
@@ -30,6 +31,7 @@ const accountingRepos = {
   jurisdiction: jurisdictionRepo,
   jurisdictionAccountingStandard: jurisdictionAccountingStandardRepo,
   reportingContext: reportingContextRepo,
+  reportingContextQuery: reportingContextQueryRepo,
   reportingContextHistory: reportingContextHistoryRepo,
   reportingPeriod: reportingPeriodRepo,
   reportingPeriodHistory: reportingPeriodHistoryRepo,

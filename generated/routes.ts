@@ -3002,6 +3002,65 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IReportingPeriodDto: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string', required: true },
+      createdBy: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      accountingEntityId: { dataType: 'string', required: true },
+      fiscalYearId: { dataType: 'string', required: true },
+      unit: { ref: 'UPeriodUnit', required: true },
+      count: { dataType: 'double', required: true },
+      startDate: { dataType: 'datetime', required: true },
+      endDate: { dataType: 'datetime', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IReportingContextDto: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string', required: true },
+      createdBy: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      description: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      accountingEntityId: { dataType: 'string', required: true },
+      accountingStandardCode: {
+        ref: 'UAccountingStandardCode',
+        required: true,
+      },
+      accountingContextId: { dataType: 'string', required: true },
+      reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
+      currentReportingPeriodId: { dataType: 'string', required: true },
+      createdAt: { dataType: 'datetime', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+      closedAt: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'datetime' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      fiscalYear: { ref: 'IFiscalYearDto', required: true },
+      reportingPeriods: {
+        dataType: 'array',
+        array: { dataType: 'refObject', ref: 'IReportingPeriodDto' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IFiscalYearCreationDto: {
     dataType: 'refObject',
     properties: {
@@ -6586,6 +6645,48 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getJurisdictions',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_getReportingContexts: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.get(
+    '/api/v1/accounting/reporting-contexts',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.getReportingContexts
+    ),
+
+    async function AccountingController_getReportingContexts(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_getReportingContexts,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'getReportingContexts',
           controller,
           response,
           next,

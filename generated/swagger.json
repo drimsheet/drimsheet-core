@@ -4019,6 +4019,131 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IReportingPeriodDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "accountingEntityId": {
+            "type": "string"
+          },
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UPeriodUnit"
+          },
+          "count": {
+            "type": "number",
+            "format": "double"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "createdBy",
+          "name",
+          "accountingEntityId",
+          "fiscalYearId",
+          "unit",
+          "count",
+          "startDate",
+          "endDate",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IReportingContextDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountingEntityId": {
+            "type": "string"
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "accountingContextId": {
+            "type": "string"
+          },
+          "reportingCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "currentReportingPeriodId": {
+            "type": "string",
+            "description": "Stored working-period selection, maintained independently of this read."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fiscalYear": {
+            "$ref": "#/components/schemas/IFiscalYearDto"
+          },
+          "reportingPeriods": {
+            "items": {
+              "$ref": "#/components/schemas/IReportingPeriodDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "createdBy",
+          "name",
+          "description",
+          "accountingEntityId",
+          "accountingStandardCode",
+          "accountingContextId",
+          "reportingCurrencyCode",
+          "currentReportingPeriodId",
+          "createdAt",
+          "updatedAt",
+          "closedAt",
+          "fiscalYear",
+          "reportingPeriods"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IFiscalYearCreationDto": {
         "description": "Fiscal year creation DTO",
         "properties": {
@@ -10509,6 +10634,70 @@
           }
         },
         "description": "Get jurisdictions",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": []
+      }
+    },
+    "/accounting/reporting-contexts": {
+      "get": {
+        "operationId": "getReportingContexts",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IReportingContextDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns all unclosed reporting contexts for x-accounting-entity-id, with each fiscal year and its reporting periods.",
         "tags": ["Accounting"],
         "security": [],
         "parameters": []
