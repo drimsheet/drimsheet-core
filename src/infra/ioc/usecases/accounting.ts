@@ -1,6 +1,7 @@
 import makeArchiveAccountingEntityUsecase from '@app/accounting/usecases/archive-accounting-entity.usecase';
 import makeCreateAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
 import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-accounting-entity.usecase';
+import makeGetAccountingContextsUsecase from '@app/accounting/usecases/get-accounting-contexts.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
@@ -38,6 +39,14 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
 export const getJurisdictionsUseCase = makeTracedUseCase(
   'accounting.getJurisdictionsUseCase',
   makeGetJurisdictionsUseCase()
+);
+
+export const getAccountingContextsUseCase = makeTracedUseCase(
+  'accounting.getAccountingContextsUseCase',
+  makeGetAccountingContextsUsecase({
+    appContext,
+    accountingContextQueryRepo: accountingRepos.accountingContextQuery,
+  })
 );
 
 export const getUserAccountingEntitiesUseCase = makeTracedUseCase(

@@ -1,3 +1,5 @@
+import accountingContextQueryRepo from '@infra/persistence/repos/accounting/queries/accounting-context.query.repo.impl';
+
 import accountingContextHistoryRepo from './accounting-context-history.repo.impl';
 import accountingContextRepo from './accounting-context.repo.impl';
 import accountingEntityHistoryRepo from './accounting-entity-history.repo.impl';
@@ -15,6 +17,7 @@ import reportingPeriodHistoryRepo from './reporting-period-history.repo.impl';
 import reportingPeriodRepo from './reporting-period.repo.impl';
 
 const accountingRepos = {
+  accountingContextQuery: accountingContextQueryRepo,
   accountingContext: accountingContextRepo,
   accountingContextHistory: accountingContextHistoryRepo,
   accountingEntity: accountingEntityRepo,

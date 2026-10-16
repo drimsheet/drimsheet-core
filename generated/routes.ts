@@ -2617,6 +2617,169 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UAccountingStandardCode: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'enum',
+      enums: [
+        'AASB',
+        'ASPE',
+        'CAS',
+        'CGNC',
+        'EAS',
+        'HGB',
+        'HKFRS',
+        'IFRS',
+        'IND_AS',
+        'ISRAELI_GAAP',
+        'J_GAAP',
+        'K_IFRS',
+        'MFRS',
+        'NIF',
+        'NZ_IFRS',
+        'OIC',
+        'PCG',
+        'PFRS',
+        'PGC',
+        'PSAK',
+        'RAS',
+        'RJ',
+        'SCF',
+        'SFRS',
+        'SWISS_GAAP_FER',
+        'SYSCOHADA',
+        'TFRS',
+        'THAI_FRS',
+        'TIFRS',
+        'UK_GAAP',
+        'US_GAAP',
+        'VAS',
+        'LOCAL_GAAP',
+        'CASH_BASIS',
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UPeriodStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['pending'] },
+        { dataType: 'enum', enums: ['open'] },
+        { dataType: 'enum', enums: ['closing'] },
+        { dataType: 'enum', enums: ['closed'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IFiscalYearDto: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string', required: true },
+      createdBy: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      accountingEntityId: { dataType: 'string', required: true },
+      startDate: { dataType: 'datetime', required: true },
+      endDate: { dataType: 'datetime', required: true },
+      status: { ref: 'UPeriodStatus', required: true },
+      closedAt: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'datetime' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UPeriodUnit: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['day'] },
+        { dataType: 'enum', enums: ['week'] },
+        { dataType: 'enum', enums: ['month'] },
+        { dataType: 'enum', enums: ['quarter'] },
+        { dataType: 'enum', enums: ['year'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingPeriodDto: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string', required: true },
+      createdBy: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      accountingEntityId: { dataType: 'string', required: true },
+      fiscalYearId: { dataType: 'string', required: true },
+      unit: { ref: 'UPeriodUnit', required: true },
+      count: { dataType: 'double', required: true },
+      startDate: { dataType: 'datetime', required: true },
+      endDate: { dataType: 'datetime', required: true },
+      status: { ref: 'UPeriodStatus', required: true },
+      closedAt: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'datetime' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingContextDto: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string', required: true },
+      createdBy: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      description: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      accountingEntityId: { dataType: 'string', required: true },
+      accountingStandardCode: {
+        ref: 'UAccountingStandardCode',
+        required: true,
+      },
+      fiscalYearId: { dataType: 'string', required: true },
+      currentAccountingPeriodId: { dataType: 'string', required: true },
+      createdAt: { dataType: 'datetime', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+      closedAt: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'datetime' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      fiscalYear: { ref: 'IFiscalYearDto', required: true },
+      accountingPeriods: {
+        dataType: 'array',
+        array: { dataType: 'refObject', ref: 'IAccountingPeriodDto' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UAccountingEntityStatus: {
     dataType: 'refAlias',
     type: {
@@ -2839,50 +3002,6 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UAccountingStandardCode: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'enum',
-      enums: [
-        'AASB',
-        'ASPE',
-        'CAS',
-        'CGNC',
-        'EAS',
-        'HGB',
-        'HKFRS',
-        'IFRS',
-        'IND_AS',
-        'ISRAELI_GAAP',
-        'J_GAAP',
-        'K_IFRS',
-        'MFRS',
-        'NIF',
-        'NZ_IFRS',
-        'OIC',
-        'PCG',
-        'PFRS',
-        'PGC',
-        'PSAK',
-        'RAS',
-        'RJ',
-        'SCF',
-        'SFRS',
-        'SWISS_GAAP_FER',
-        'SYSCOHADA',
-        'TFRS',
-        'THAI_FRS',
-        'TIFRS',
-        'UK_GAAP',
-        'US_GAAP',
-        'VAS',
-        'LOCAL_GAAP',
-        'CASH_BASIS',
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IFiscalYearCreationDto: {
     dataType: 'refObject',
     properties: {
@@ -2890,21 +3009,6 @@ const models: TsoaRoute.Models = {
       endDate: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UPeriodUnit: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['day'] },
-        { dataType: 'enum', enums: ['week'] },
-        { dataType: 'enum', enums: ['month'] },
-        { dataType: 'enum', enums: ['quarter'] },
-        { dataType: 'enum', enums: ['year'] },
-      ],
-      validators: {},
-    },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IPeriodCreationDto: {
@@ -6314,6 +6418,48 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'resetPassword',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_getAccountingContexts: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.get(
+    '/api/v1/accounting/accounting-contexts',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.getAccountingContexts
+    ),
+
+    async function AccountingController_getAccountingContexts(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_getAccountingContexts,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'getAccountingContexts',
           controller,
           response,
           next,
