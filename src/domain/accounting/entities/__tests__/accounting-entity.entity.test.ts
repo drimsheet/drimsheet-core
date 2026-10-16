@@ -35,6 +35,25 @@ describe('accountingEntityEntity', () => {
     jest.useRealTimers();
   });
 
+  describe('delete', () => {
+    it('returns the unchanged entity snapshot, a deletion event, and no audit', () => {
+      const [current] = accountingEntityEntity.make(validPayload);
+      jest.setSystemTime(new Date('2026-04-02T00:00:00Z'));
+      const [deletedEntity, deleteEvent, audit] =
+        accountingEntityEntity.delete(current);
+      expect(deletedEntity).toBe(current);
+      expect(Object.isFrozen(deletedEntity)).toBe(true);
+      expect(deleteEvent).toMatchObject({
+        type: EAccountingEntityEvents.Deleted,
+        data: current,
+        occurredAt: new Date(),
+      });
+      expect(Object.isFrozen(deleteEvent)).toBe(true);
+      expect(audit).toBeNull();
+      expect(current.updatedAt).toEqual(MOCK_DATE);
+    });
+  });
+
   describe('archive', () => {
     it('preserves identity and books while auditing the archive transition (ACC-AE-007)', () => {
       const [current] = accountingEntityEntity.make(validPayload);

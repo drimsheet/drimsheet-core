@@ -9,6 +9,9 @@ import {
 } from '@domain/accounting/types/accounting-entity.types';
 
 export default interface IAccountingEntityRepo {
+  /** Caller must hold the entity update lock and establish that no journal entries exist. */
+  delete(id: TEntityId, options: IWriteRepoOptions): Promise<void>;
+
   create(
     domain: IAccountingEntity,
     options: IWriteRepoOptions<IAccountingEntityAuditHistory>

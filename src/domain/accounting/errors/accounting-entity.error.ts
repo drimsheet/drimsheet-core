@@ -4,6 +4,8 @@ import errorUtils from '@shared/utils/error';
 import accountingError from './accounting.error';
 
 const EErrorKeys = {
+  DeletionWithJournalEntries:
+    'accounting_error_accounting_entity_deletion_with_journal_entries_conflict',
   Archived: 'accounting_error_accounting_entity_archived_conflict',
   TypeChangeNotAllowed:
     'accounting_error_accounting_entity_type_change_conflict',

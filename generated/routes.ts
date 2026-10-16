@@ -6582,6 +6582,48 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_deleteAccountingEntity: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.delete(
+    '/api/v1/accounting/accounting-entity',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.deleteAccountingEntity
+    ),
+
+    async function AccountingController_deleteAccountingEntity(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_deleteAccountingEntity,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'deleteAccountingEntity',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 204,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 

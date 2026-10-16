@@ -34,6 +34,12 @@ export interface IFindAllCounterpartiesOptions extends Omit<
 }
 
 export default interface ICounterpartyRepo {
+  /** Removes setup records for an unused entity; the caller holds its update lock. */
+  deleteByAccountingEntityId(
+    accountingEntityId: TEntityId,
+    options: IWriteRepoOptions
+  ): Promise<void>;
+
   /** Deletes only the tenant/version-matching counterparty; preserves audit records. */
   delete(
     id: TEntityId,

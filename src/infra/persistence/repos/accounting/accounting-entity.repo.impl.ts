@@ -13,6 +13,12 @@ import accountingEntityMapper from '@infra/persistence/repos/accounting/mappers/
 import accountingEntityHistoryRepo from './accounting-entity-history.repo.impl';
 
 const accountingEntityRepo: IAccountingEntityRepo = {
+  delete: async (id, options) => {
+    await getDbQuery(options)
+      .delete(accountingEntitiesInCore)
+      .where(eq(accountingEntitiesInCore.id, id));
+  },
+
   create: async (domain, options) => {
     await getDbQuery(options).transaction(async (tx) => {
       await tx

@@ -188,6 +188,18 @@ function makeUpdate(deps: IDependencies): IAccountingEntityService['update'] {
   };
 }
 
+/** Validates journal references before preparing deletion; never persists or publishes. */
+function makeDelete(deps: IDependencies): IAccountingEntityService['delete'] {
+  return async (current, repoOptions) => {
+    await accountingEntityServiceValidation.validateDeletionAllowed(
+      deps.journalEntryRepo,
+      current.id,
+      repoOptions
+    );
+    return accountingEntityEntity.delete(current);
+  };
+}
+
 /** Determines ownership-based access to the accounting entity. */
 function makeGrantUserAccess(): IAccountingEntityService['grantUserAccess'] {
   return (accountingEntity, userId) => accountingEntity.ownerId === userId;
@@ -211,6 +223,7 @@ export default function makeAccountingEntityService(
   return Object.freeze({
     create: makeCreate(deps),
     update: makeUpdate(deps),
+    delete: makeDelete(deps),
     grantUserAccess,
     validateAccess: makeValidateAccess(grantUserAccess),
   });

@@ -44,6 +44,7 @@ jest.mock('../../../src/infra/ioc/usecases/accounting', () => ({
   getJurisdictionsUseCase: jest.fn(),
   getUserAccountingEntitiesUseCase: jest.fn(),
   getActiveAccountingEntityUseCase: jest.fn(),
+  deleteAccountingEntityUseCase: jest.fn(),
   archiveAccountingEntityUseCase: jest.fn(),
 }));
 
@@ -111,6 +112,9 @@ describe('POST /accounting/accounting-entity/archive', () => {
       expect(response.text).toBe('');
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(archive).toHaveBeenCalledWith();
+      expect(
+        accountingUsecases.deleteAccountingEntityUseCase
+      ).not.toHaveBeenCalled();
       expect(findEntity).toHaveBeenCalledWith(
         entity.id,
         userId,

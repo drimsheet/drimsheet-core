@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm';
+
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
 
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
@@ -9,6 +11,14 @@ import accountingContextMapper from '@infra/persistence/repos/accounting/mappers
 import accountingContextHistoryRepo from './accounting-context-history.repo.impl';
 
 const accountingContextRepoImpl: IAccountingContextRepo = {
+  async deleteByAccountingEntityId(accountingEntityId, options) {
+    await getDbQuery(options)
+      .delete(accountingContextsInCore)
+      .where(
+        eq(accountingContextsInCore.accountingEntityId, accountingEntityId)
+      );
+  },
+
   create: async (payload, options) => {
     await getDbQuery(options).transaction(async (tx) => {
       await tx

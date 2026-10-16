@@ -1,4 +1,4 @@
-import { SQL } from 'drizzle-orm';
+import { eq, SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 
 import { TEntityId } from '@shared/types/uuid';
@@ -505,4 +505,20 @@ describe('versioned counterparty updates', () => {
       }
     }
   );
+});
+
+describe('counterparty setup deletion', () => {
+  it('deletes only the selected entity setup using the caller transaction', async () => {
+    const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+    const options = { correlationId: 'remove', tx: {} };
+    const where = jest.fn().mockResolvedValue(undefined);
+    const query = { delete: jest.fn().mockReturnValue({ where }) };
+    jest.mocked(getDbQuery).mockReturnValue(query as never);
+    await counterpartyRepo.deleteByAccountingEntityId(id, options);
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(query.delete).toHaveBeenCalledWith(counterpartiesInCore);
+    expect(where).toHaveBeenCalledWith(
+      eq(counterpartiesInCore.accountingEntityId, id)
+    );
+  });
 });

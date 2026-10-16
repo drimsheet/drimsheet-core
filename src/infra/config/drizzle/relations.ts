@@ -82,6 +82,7 @@ export const actorsInCoreRelations = relations(
     subledgerFxCostBasisLotDispositionAllocationsInCores: many(
       subledgerFxCostBasisLotDispositionAllocationsInCore
     ),
+    accountingEntitiesInCores: many(accountingEntitiesInCore),
     actorsInCore_createdBy: one(actorsInCore, {
       fields: [actorsInCore.createdBy],
       references: [actorsInCore.id],
@@ -125,7 +126,6 @@ export const actorsInCoreRelations = relations(
     currencyExchangeRatesInCores: many(currencyExchangeRatesInCore),
     accountingStandardsInCores: many(accountingStandardsInCore),
     jurisdictionsInCores: many(jurisdictionsInCore),
-    accountingEntitiesInCores: many(accountingEntitiesInCore),
     accountingEntityHistoryInAudits_actorId: many(
       accountingEntityHistoryInAudit,
       {
@@ -139,14 +139,14 @@ export const actorsInCoreRelations = relations(
           'accountingEntityHistoryInAudit_onBehalfOf_actorsInCore_id',
       }
     ),
-    fiscalYearsInCores: many(fiscalYearsInCore),
-    userPreferencesInCores: many(userPreferencesInCore),
     fiscalYearHistoryInAudits_actorId: many(fiscalYearHistoryInAudit, {
       relationName: 'fiscalYearHistoryInAudit_actorId_actorsInCore_id',
     }),
     fiscalYearHistoryInAudits_onBehalfOf: many(fiscalYearHistoryInAudit, {
       relationName: 'fiscalYearHistoryInAudit_onBehalfOf_actorsInCore_id',
     }),
+    userPreferencesInCores: many(userPreferencesInCore),
+    fiscalYearsInCores: many(fiscalYearsInCore),
     accountingPeriodsInCores: many(accountingPeriodsInCore),
     accountingPeriodHistoryInAudits_actorId: many(
       accountingPeriodHistoryInAudit,
@@ -354,6 +354,7 @@ export const currenciesInCoreRelations = relations(
           'subledgerFxCostBasisLotDispositionAllocationsInCore_quantityCurrency_currenciesInCore_code',
       }
     ),
+    accountingEntitiesInCores: many(accountingEntitiesInCore),
     actorsInCore: one(actorsInCore, {
       fields: [currenciesInCore.createdBy],
       references: [actorsInCore.id],
@@ -373,7 +374,6 @@ export const currenciesInCoreRelations = relations(
       }
     ),
     jurisdictionsInCores: many(jurisdictionsInCore),
-    accountingEntitiesInCores: many(accountingEntitiesInCore),
     reportingContextsInCores: many(reportingContextsInCore),
     ledgerAccountsInCores: many(ledgerAccountsInCore),
     ledgerAccountBalancesInCores_currencyCode: many(
@@ -559,6 +559,81 @@ export const subledgerFxCostBasisLotsInCoreRelations = relations(
   })
 );
 
+export const accountingEntitiesInCoreRelations = relations(
+  accountingEntitiesInCore,
+  ({ one, many }) => ({
+    actorsInCore: one(actorsInCore, {
+      fields: [accountingEntitiesInCore.createdBy],
+      references: [actorsInCore.id],
+    }),
+    currenciesInCore: one(currenciesInCore, {
+      fields: [accountingEntitiesInCore.functionalCurrencyCode],
+      references: [currenciesInCore.code],
+    }),
+    jurisdictionsInCore: one(jurisdictionsInCore, {
+      fields: [accountingEntitiesInCore.jurisdictionCode],
+      references: [jurisdictionsInCore.code],
+    }),
+    usersInCore: one(usersInCore, {
+      fields: [accountingEntitiesInCore.ownerId],
+      references: [usersInCore.id],
+    }),
+    userPreferencesInCores: many(userPreferencesInCore),
+    fiscalYearsInCores: many(fiscalYearsInCore),
+    accountingPeriodsInCores: many(accountingPeriodsInCore),
+    accountingContextsInCores: many(accountingContextsInCore),
+    reportingPeriodsInCores: many(reportingPeriodsInCore),
+    reportingContextsInCores: many(reportingContextsInCore),
+    ledgerAccountsInCores: many(ledgerAccountsInCore),
+    ledgerAccountBalancesInCores: many(ledgerAccountBalancesInCore),
+    counterpartiesInCores: many(counterpartiesInCore),
+    journalEntriesInCores: many(journalEntriesInCore),
+    subledgerFxCostBasisLotsInCores: many(subledgerFxCostBasisLotsInCore),
+    subledgerFxCostBasisLotAcquisitionsInCores: many(
+      subledgerFxCostBasisLotAcquisitionsInCore
+    ),
+    subledgerFxCostBasisLotDispositionsInCores: many(
+      subledgerFxCostBasisLotDispositionsInCore
+    ),
+    bankDetailsInCores: many(bankDetailsInCore),
+  })
+);
+
+export const jurisdictionsInCoreRelations = relations(
+  jurisdictionsInCore,
+  ({ one, many }) => ({
+    accountingEntitiesInCores: many(accountingEntitiesInCore),
+    actorsInCore: one(actorsInCore, {
+      fields: [jurisdictionsInCore.createdBy],
+      references: [actorsInCore.id],
+    }),
+    currenciesInCore: one(currenciesInCore, {
+      fields: [jurisdictionsInCore.currencyCode],
+      references: [currenciesInCore.code],
+    }),
+    jurisdictionAccountingStandardsInCores: many(
+      jurisdictionAccountingStandardsInCore
+    ),
+  })
+);
+
+export const usersInCoreRelations = relations(usersInCore, ({ one, many }) => ({
+  accountingEntitiesInCores: many(accountingEntitiesInCore),
+  actorsInCore_actorId: one(actorsInCore, {
+    fields: [usersInCore.actorId],
+    references: [actorsInCore.id],
+    relationName: 'usersInCore_actorId_actorsInCore_id',
+  }),
+  actorsInCore_createdBy: one(actorsInCore, {
+    fields: [usersInCore.createdBy],
+    references: [actorsInCore.id],
+    relationName: 'usersInCore_createdBy_actorsInCore_id',
+  }),
+  userAuthInCores: many(userAuthInCore),
+  userSessionsInCores: many(userSessionsInCore),
+  userPreferencesInCores: many(userPreferencesInCore),
+}));
+
 export const actorHistoryInAuditRelations = relations(
   actorHistoryInAudit,
   ({ one }) => ({
@@ -579,23 +654,6 @@ export const actorHistoryInAuditRelations = relations(
     }),
   })
 );
-
-export const usersInCoreRelations = relations(usersInCore, ({ one, many }) => ({
-  actorsInCore_actorId: one(actorsInCore, {
-    fields: [usersInCore.actorId],
-    references: [actorsInCore.id],
-    relationName: 'usersInCore_actorId_actorsInCore_id',
-  }),
-  actorsInCore_createdBy: one(actorsInCore, {
-    fields: [usersInCore.createdBy],
-    references: [actorsInCore.id],
-    relationName: 'usersInCore_createdBy_actorsInCore_id',
-  }),
-  userAuthInCores: many(userAuthInCore),
-  userSessionsInCores: many(userSessionsInCore),
-  accountingEntitiesInCores: many(accountingEntitiesInCore),
-  userPreferencesInCores: many(userPreferencesInCore),
-}));
 
 export const userAuthInCoreRelations = relations(userAuthInCore, ({ one }) => ({
   actorsInCore: one(actorsInCore, {
@@ -675,64 +733,6 @@ export const accountingStandardsInCoreRelations = relations(
   })
 );
 
-export const jurisdictionsInCoreRelations = relations(
-  jurisdictionsInCore,
-  ({ one, many }) => ({
-    actorsInCore: one(actorsInCore, {
-      fields: [jurisdictionsInCore.createdBy],
-      references: [actorsInCore.id],
-    }),
-    currenciesInCore: one(currenciesInCore, {
-      fields: [jurisdictionsInCore.currencyCode],
-      references: [currenciesInCore.code],
-    }),
-    accountingEntitiesInCores: many(accountingEntitiesInCore),
-    jurisdictionAccountingStandardsInCores: many(
-      jurisdictionAccountingStandardsInCore
-    ),
-  })
-);
-
-export const accountingEntitiesInCoreRelations = relations(
-  accountingEntitiesInCore,
-  ({ one, many }) => ({
-    actorsInCore: one(actorsInCore, {
-      fields: [accountingEntitiesInCore.createdBy],
-      references: [actorsInCore.id],
-    }),
-    currenciesInCore: one(currenciesInCore, {
-      fields: [accountingEntitiesInCore.functionalCurrencyCode],
-      references: [currenciesInCore.code],
-    }),
-    jurisdictionsInCore: one(jurisdictionsInCore, {
-      fields: [accountingEntitiesInCore.jurisdictionCode],
-      references: [jurisdictionsInCore.code],
-    }),
-    usersInCore: one(usersInCore, {
-      fields: [accountingEntitiesInCore.ownerId],
-      references: [usersInCore.id],
-    }),
-    fiscalYearsInCores: many(fiscalYearsInCore),
-    userPreferencesInCores: many(userPreferencesInCore),
-    accountingPeriodsInCores: many(accountingPeriodsInCore),
-    accountingContextsInCores: many(accountingContextsInCore),
-    reportingPeriodsInCores: many(reportingPeriodsInCore),
-    reportingContextsInCores: many(reportingContextsInCore),
-    ledgerAccountsInCores: many(ledgerAccountsInCore),
-    ledgerAccountBalancesInCores: many(ledgerAccountBalancesInCore),
-    counterpartiesInCores: many(counterpartiesInCore),
-    journalEntriesInCores: many(journalEntriesInCore),
-    subledgerFxCostBasisLotsInCores: many(subledgerFxCostBasisLotsInCore),
-    subledgerFxCostBasisLotAcquisitionsInCores: many(
-      subledgerFxCostBasisLotAcquisitionsInCore
-    ),
-    subledgerFxCostBasisLotDispositionsInCores: many(
-      subledgerFxCostBasisLotDispositionsInCore
-    ),
-    bankDetailsInCores: many(bankDetailsInCore),
-  })
-);
-
 export const accountingEntityHistoryInAuditRelations = relations(
   accountingEntityHistoryInAudit,
   ({ one }) => ({
@@ -749,20 +749,19 @@ export const accountingEntityHistoryInAuditRelations = relations(
   })
 );
 
-export const fiscalYearsInCoreRelations = relations(
-  fiscalYearsInCore,
-  ({ one, many }) => ({
-    accountingEntitiesInCore: one(accountingEntitiesInCore, {
-      fields: [fiscalYearsInCore.accountingEntityId],
-      references: [accountingEntitiesInCore.id],
-    }),
-    actorsInCore: one(actorsInCore, {
-      fields: [fiscalYearsInCore.createdBy],
+export const fiscalYearHistoryInAuditRelations = relations(
+  fiscalYearHistoryInAudit,
+  ({ one }) => ({
+    actorsInCore_actorId: one(actorsInCore, {
+      fields: [fiscalYearHistoryInAudit.actorId],
       references: [actorsInCore.id],
+      relationName: 'fiscalYearHistoryInAudit_actorId_actorsInCore_id',
     }),
-    accountingPeriodsInCores: many(accountingPeriodsInCore),
-    accountingContextsInCores: many(accountingContextsInCore),
-    reportingPeriodsInCores: many(reportingPeriodsInCore),
+    actorsInCore_onBehalfOf: one(actorsInCore, {
+      fields: [fiscalYearHistoryInAudit.onBehalfOf],
+      references: [actorsInCore.id],
+      relationName: 'fiscalYearHistoryInAudit_onBehalfOf_actorsInCore_id',
+    }),
   })
 );
 
@@ -784,19 +783,20 @@ export const userPreferencesInCoreRelations = relations(
   })
 );
 
-export const fiscalYearHistoryInAuditRelations = relations(
-  fiscalYearHistoryInAudit,
-  ({ one }) => ({
-    actorsInCore_actorId: one(actorsInCore, {
-      fields: [fiscalYearHistoryInAudit.actorId],
-      references: [actorsInCore.id],
-      relationName: 'fiscalYearHistoryInAudit_actorId_actorsInCore_id',
+export const fiscalYearsInCoreRelations = relations(
+  fiscalYearsInCore,
+  ({ one, many }) => ({
+    accountingEntitiesInCore: one(accountingEntitiesInCore, {
+      fields: [fiscalYearsInCore.accountingEntityId],
+      references: [accountingEntitiesInCore.id],
     }),
-    actorsInCore_onBehalfOf: one(actorsInCore, {
-      fields: [fiscalYearHistoryInAudit.onBehalfOf],
+    actorsInCore: one(actorsInCore, {
+      fields: [fiscalYearsInCore.createdBy],
       references: [actorsInCore.id],
-      relationName: 'fiscalYearHistoryInAudit_onBehalfOf_actorsInCore_id',
     }),
+    accountingPeriodsInCores: many(accountingPeriodsInCore),
+    accountingContextsInCores: many(accountingContextsInCore),
+    reportingPeriodsInCores: many(reportingPeriodsInCore),
   })
 );
 

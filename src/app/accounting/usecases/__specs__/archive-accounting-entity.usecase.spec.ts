@@ -7,10 +7,15 @@ import runtimeError from '@shared/values/errors/runtime.error';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 
-import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
+import {
+  mockAccountingContextRepo,
+  mockAccountingEntityRepo,
+  mockReportingContextRepo,
+} from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeArchiveAccountingEntityUsecase from '@app/accounting/usecases/archive-accounting-entity.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
+import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import { mockUserPreferencesRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 const actorId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
@@ -87,6 +92,16 @@ describe('archiveAccountingEntityUsecase', () => {
     expect(mockAppContext.set).toHaveBeenCalledWith({
       accountingEntity: undefined,
     });
+    expect(mockAccountingEntityRepo.delete).not.toHaveBeenCalled();
+    expect(
+      mockAccountingContextRepo.deleteByAccountingEntityId
+    ).not.toHaveBeenCalled();
+    expect(
+      mockReportingContextRepo.deleteByAccountingEntityId
+    ).not.toHaveBeenCalled();
+    expect(
+      mockCounterpartyRepo.deleteByAccountingEntityId
+    ).not.toHaveBeenCalled();
   });
 
   it('does not write or publish for an already archived entity', async () => {
@@ -97,6 +112,7 @@ describe('archiveAccountingEntityUsecase', () => {
     expect(
       mockUserPreferencesRepo.clearAccountingEntity
     ).not.toHaveBeenCalled();
+    expect(mockAccountingEntityRepo.delete).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
   });

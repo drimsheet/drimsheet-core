@@ -161,10 +161,18 @@ function archive(
   return [entity, [accountingEntityEvents.archived(entity)], audit];
 }
 
+/** Prepares the deleted entity snapshot and deletion event without an audit. */
+function deleteEntity(
+  current: IAccountingEntity
+): [IAccountingEntity, IEvent<IAccountingEntity>, null] {
+  return [current, accountingEntityEvents.deleted(current), null];
+}
+
 const accountingEntityEntity = Object.freeze({
   make,
   update,
   archive,
+  delete: deleteEntity,
   ...accountingEntityValidation,
 });
 

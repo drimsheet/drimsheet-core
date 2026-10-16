@@ -310,6 +310,17 @@ describe('accounting entity removal and selection', () => {
   const options = { correlationId: 'remove', tx: {} };
   beforeEach(() => jest.resetAllMocks());
 
+  it('deletes only the selected parent in the caller transaction without deleting history', async () => {
+    const where = jest.fn().mockResolvedValue(undefined);
+    const query = { delete: jest.fn().mockReturnValue({ where }) };
+    jest.mocked(getDbQuery).mockReturnValue(query as never);
+    await accountingEntityRepo.delete(id, options);
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(query.delete).toHaveBeenCalledWith(accountingEntitiesInCore);
+    expect(where).toHaveBeenCalledWith(eq(accountingEntitiesInCore.id, id));
+    expect(accountingEntityHistoryRepo.save).not.toHaveBeenCalled();
+  });
+
   it('excludes archived entities from owner selection', async () => {
     const where = jest.fn().mockResolvedValue([]);
     jest.mocked(getDbQuery).mockReturnValue({
