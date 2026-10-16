@@ -14,12 +14,16 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
-import { IUserPreferencesUpdateDto } from '@app/user/dtos/user/user.dto';
+import {
+  IUserPreferencesUpdateDto,
+  IUserProfileUpdateDto,
+} from '@app/user/dtos/user/user.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAuthUserProfileUseCase,
   getUserPreferencesUseCase,
+  updateAuthUserProfileUseCase,
   updateUserPreferencesUseCase,
 } from '@infra/ioc/usecases/user';
 
@@ -66,5 +70,19 @@ export class UserController extends Controller {
   @Middlewares(middlewares.isAuthenticatedUser)
   public async updateUserPreferences(@Body() body: IUserPreferencesUpdateDto) {
     return updateUserPreferencesUseCase(body);
+  }
+
+  /** Update the authenticated user's first and/or last name. */
+  @Patch('/profile')
+  @OperationId('updateAuthUserProfile')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Security('bearerAuth')
+  @Middlewares(middlewares.isAuthenticatedUser)
+  public async updateAuthUserProfile(@Body() body: IUserProfileUpdateDto) {
+    return updateAuthUserProfileUseCase(body);
   }
 }

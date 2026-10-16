@@ -3,6 +3,7 @@ import {
   userAppThemePreferenceValidation,
   userAppUsageModePreferenceValidation,
   userPreferencesUpdateDtoSchema,
+  userProfileUpdateDtoSchema,
 } from '@app/user/dtos/user/user.dto.validation';
 import {
   EAppThemePreference,
@@ -10,6 +11,34 @@ import {
 } from '@app/user/types/user-preferences.types';
 
 describe('User DTO Validation', () => {
+  it.each([
+    {},
+    { firstName: 'First' },
+    { lastName: 'Last' },
+    { firstName: ' First ', lastName: ' Last ' },
+    { firstName: 'x'.repeat(100), lastName: 'x'.repeat(100) },
+  ])('validates name-only profile updates', (profile) => {
+    expect(userProfileUpdateDtoSchema.safeParse(profile).success).toBe(true);
+  });
+
+  it.each([
+    { firstName: '' },
+    { firstName: ' ' },
+    { lastName: '' },
+    { lastName: ' ' },
+    { firstName: null },
+    { lastName: null },
+    { firstName: 123 },
+    { lastName: false },
+    { firstName: 'x'.repeat(101) },
+    { lastName: 'x'.repeat(101) },
+    { email: 'other@example.com' },
+    { firstName: 'First', emailVerified: true },
+    { userId: 'other' },
+  ])('rejects invalid or unsupported profile fields', (profile) => {
+    expect(userProfileUpdateDtoSchema.safeParse(profile).success).toBe(false);
+  });
+
   it.each(Object.values(EAppThemePreference))(
     'validates the %s app theme',
     (theme) => {

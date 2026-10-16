@@ -19,3 +19,8 @@ export interface IUserProfileDto {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IUserProfileUpdateDto {
+  firstName?: string;
+  lastName?: string;
+}
