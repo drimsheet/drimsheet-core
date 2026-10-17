@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
@@ -8,13 +9,13 @@ import counterpartyEntity from '@domain/counterparty/entities/counterparty.entit
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { ICounterpartyDto } from '@app/counterparty/dtos/counterparty/counterparty.dto';
 import counterpartyDtoMapper from '@app/counterparty/dtos/counterparty/counterparty.dto.mapper';
 import counterpartyMutationPolicy from '@app/counterparty/policies/counterparty-mutation.policy';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   counterpartyRepo: ICounterpartyRepo;
   eventBus: IEventBus;
 }

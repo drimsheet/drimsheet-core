@@ -6,7 +6,7 @@ import { repoService } from '@infra/ioc/services/repo';
 import observability from '@infra/observability';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import currencyRepos from '@infra/persistence/repos/money';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 export const getAllCurrenciesUseCase = makeTracedUseCase(
   'money.getAllCurrenciesUseCase',

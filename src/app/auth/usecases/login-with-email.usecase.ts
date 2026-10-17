@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
@@ -16,11 +17,11 @@ import IUserSessionAppService from '@app/auth/contracts/user-session.service.con
 import { IAccessToken, IEmailLoginReq } from '@app/auth/dtos/auth/auth.dto';
 import { emailLoginReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
 import authError from '@app/auth/errors/auth.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
   actorService: IActorService;
-  reqContext: IAppContext;
+  reqContext: IAppContextService<IAppContextData>;
   userRepo: IUserRepo;
   passwordAppService: IPasswordAppService;
   eventBus: IEventBus;

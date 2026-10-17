@@ -7,7 +7,7 @@ import { userPreferencesAppService } from '@infra/ioc/services/user';
 import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import userRepos from '@infra/persistence/repos/user';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 export const getUserPreferencesUseCase = makeTracedUseCase(
   'user.getUserPreferencesUseCase',

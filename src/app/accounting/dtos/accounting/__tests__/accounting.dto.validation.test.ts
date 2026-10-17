@@ -2,6 +2,7 @@ import { EAccountingEntityType } from '@domain/accounting/types/accounting-entit
 import { EPeriodUnit } from '@domain/accounting/types/period.types';
 
 import {
+  accountingEntityCreationDtoSchema,
   accountingEntityOnboardingDtoSchema,
   accountingEntitySwitchReqSchema,
   accountingEntityTypeValidation,
@@ -347,4 +348,46 @@ describe('accountingEntityUpdateReqSchema', () => {
       false
     )
   );
+});
+
+describe('accountingEntityCreationDtoSchema', () => {
+  const payload = {
+    name: 'Entity only',
+    entityType: 'sole_trader',
+    jurisdictionCode: 'NG',
+    functionalCurrencyCode: 'NGN',
+  };
+
+  it('requires only entity identity and currency fields', () => {
+    expect(accountingEntityCreationDtoSchema.parse(payload)).toEqual(payload);
+  });
+
+  it.each([
+    'name',
+    'entityType',
+    'jurisdictionCode',
+    'functionalCurrencyCode',
+  ] as const)('rejects a missing %s', (field) => {
+    const missing: Partial<typeof payload> = { ...payload };
+    delete missing[field];
+    expect(accountingEntityCreationDtoSchema.safeParse(missing).success).toBe(
+      false
+    );
+  });
+
+  it.each([
+    'fiscalYear',
+    'accountingPeriod',
+    'reportingPeriod',
+    'accountingStandardCode',
+    'reportingCurrencyCode',
+    'appPreferences',
+    'ownerId',
+    'createdBy',
+  ])('rejects obsolete or caller-owned field %s', (field) => {
+    expect(
+      accountingEntityCreationDtoSchema.safeParse({ ...payload, [field]: {} })
+        .success
+    ).toBe(false);
+  });
 });

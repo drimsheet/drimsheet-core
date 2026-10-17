@@ -1,12 +1,14 @@
 import { RequestHandler } from 'express';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import IAppContextService from '@shared/contracts/app-context.service.contract';
+
 import IFeatureFlagAppService from '@app/context/contracts/feature-flag.service.contract';
 import featureFlagError from '@app/context/errors/feature-flag.error';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
   featureFlagAppService: IFeatureFlagAppService;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
 }
 
 type TMiddlewareShape = Record<keyof IFeatureFlagAppService, RequestHandler>;

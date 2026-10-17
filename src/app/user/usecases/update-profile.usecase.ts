@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
@@ -6,7 +7,7 @@ import historyValue from '@shared/values/history/history.vo';
 import userEntity from '@domain/user/entities/user.entity';
 import IUserRepo from '@domain/user/repos/user.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import {
   IUserProfileDto,
   IUserProfileUpdateDto,
@@ -15,7 +16,7 @@ import userMapper from '@app/user/dtos/user/user.dto.mapper';
 import { userProfileUpdateDtoSchema } from '@app/user/dtos/user/user.dto.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   userRepo: IUserRepo;
   eventBus: IEventBus;
 }

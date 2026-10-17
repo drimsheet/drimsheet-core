@@ -9,7 +9,7 @@ import accountCashFlowQueryRepo from '@infra/persistence/repos/reporting/queries
 import accountCounterpartyParticipationQueryRepo from '@infra/persistence/repos/reporting/queries/account-counterparty-participation.query.repo.impl';
 import revenueExpenseAccountsQueryRepo from '@infra/persistence/repos/reporting/queries/revenue-expense-accounts.query.repo.impl';
 import revenueExpenseSummaryQueryRepo from '@infra/persistence/repos/reporting/queries/revenue-expense-summary.query.repo.impl';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 export const getAccountCounterpartyParticipationUseCase = makeTracedUseCase(
   'reporting.getAccountCounterpartyParticipationUseCase',

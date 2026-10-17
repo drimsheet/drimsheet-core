@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
@@ -14,7 +15,7 @@ import { ERevenueAccountBehavior } from '@domain/ledger/types/revenue-account.ty
 import { IServicesAccountService } from '@domain/ledger/types/services.service.types';
 import { IUnrealizedGainAccountService } from '@domain/ledger/types/unrealized-gain.service.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateRevenueAccountDto } from '@app/ledger/dtos/revenue-account/revenue-account.dto';
@@ -22,7 +23,7 @@ import { createRevenueAccountValidation } from '@app/ledger/dtos/revenue-account
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   eventBus: IEventBus;
   repoService: IRepoService;
   ledgerAccountPersistenceAppService: ILedgerAccountPersistenceAppService;

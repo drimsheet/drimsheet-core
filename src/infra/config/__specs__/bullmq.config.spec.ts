@@ -7,11 +7,11 @@ import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
 import { ICorrelationId } from '@shared/types/correlation-id.types';
 import { UTraceEnvelopePayload } from '@shared/types/observability.types';
 
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 import { registerBullMQWorker } from '@infra/config/bullmq.config';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 jest.mock('bullmq', () => ({
   Worker: jest.fn(),

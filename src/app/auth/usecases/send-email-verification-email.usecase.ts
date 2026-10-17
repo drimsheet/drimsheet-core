@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import ILogger from '@shared/contracts/logger.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
@@ -8,14 +9,14 @@ import emailValue from '@domain/user/values/email.vo';
 
 import IEmailVerificationAppService from '@app/auth/contracts/email-verification-service.contract';
 import authError from '@app/auth/errors/auth.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 const validationSchema = z.object({
   email: z.email(),
 });
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   logger: ILogger;
   userRepo: IUserRepo;
   emailVerificationAppService: IEmailVerificationAppService;

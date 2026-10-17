@@ -1,10 +1,11 @@
 import { RequestHandler, Response } from 'express';
 
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IVarsConfig from '@shared/contracts/vars-config.contract';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 import getHttpHeaderValue from '@interface/http/helpers/get-http-header-value';
 
@@ -37,7 +38,7 @@ function handleClearRefreshToken(res: Response, varsConfig: IVarsConfig) {
  * This middleware is used to initialize the request context
  */
 export default function makeAppContextInitMiddleware(
-  appContext: IAppContext,
+  appContext: IAppContextService<IAppContextData>,
   varsConfig: IVarsConfig
 ): RequestHandler {
   return (req, res, next) => {

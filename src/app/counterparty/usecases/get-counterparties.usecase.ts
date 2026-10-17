@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
@@ -6,7 +7,7 @@ import ICounterpartyRepo, {
   IFindAllCounterpartiesOptions,
 } from '@domain/counterparty/repos/counterparty.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import {
   ICounterpartyDto,
   IGetCounterpartiesQuery,
@@ -15,7 +16,7 @@ import counterpartyDtoMapper from '@app/counterparty/dtos/counterparty/counterpa
 import { getCounterpartiesQueryValidationSchema } from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   counterpartyRepo: ICounterpartyRepo;
 }
 

@@ -1,10 +1,11 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { IDateRange } from '@shared/types/date.types';
 import dateUtils from '@shared/utils/date';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import currencyEntity from '@domain/money/entities/currency.entity';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IRevenueExpenseSummaryQueryRepo from '@app/reporting/contracts/revenue-expense-summary.query.repo.contract';
 import { IDateRangeDto } from '@app/reporting/dtos/date/date-range.dto';
 import dateRangeMapper from '@app/reporting/dtos/date/date-range.dto.mapper';
@@ -16,7 +17,7 @@ import buildRevenueExpenseSummaryAmountsHelper from '@app/reporting/usecases/hel
 import reportingValidation from '@app/reporting/validations/reporting.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   revenueExpenseSummaryQueryRepo: IRevenueExpenseSummaryQueryRepo;
 }
 

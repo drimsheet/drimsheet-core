@@ -1,15 +1,16 @@
 import { RequestHandler } from 'express';
 
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import appError from '@shared/values/errors/app.error';
 
 import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 import httpHandlers from '@infra/ioc/handlers/http';
 
 export default function makeIsAuthenticatedUserMiddleware(
-  appContext: IAppContext,
+  appContext: IAppContextService<IAppContextData>,
   accountingEntityService: IAccountingEntityService
 ): RequestHandler {
   return async (req, res, next) => {

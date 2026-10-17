@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -19,7 +20,7 @@ import IUserSessionAppService, {
 } from '@app/auth/contracts/user-session.service.contract';
 import { IAccessToken } from '@app/auth/dtos/auth/auth.dto';
 import authError from '@app/auth/errors/auth.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 const validationSchema = z.object({
   token: z.string(),
@@ -29,7 +30,7 @@ interface IDependencies {
   actorService: IActorService;
   tokenAppService: ITokenAppService;
   userRepo: IUserRepo;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   eventBus: IEventBus;
   userSessionAppService: IUserSessionAppService;
   userSessionPersistenceAppService: IUserSessionPersistenceAppService;

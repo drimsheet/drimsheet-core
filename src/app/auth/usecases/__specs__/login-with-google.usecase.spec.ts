@@ -13,7 +13,7 @@ import { EAuthStrategy, IUserAuth } from '@app/auth/contracts/auth.types';
 import { IOAuthProfile } from '@app/auth/dtos/auth/auth.dto';
 import makeLoginWithGoogleUseCase from '@app/auth/usecases/login-with-google.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import {
   mockActorService,
   mockUserIdentityService,

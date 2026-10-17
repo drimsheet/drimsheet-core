@@ -4,7 +4,7 @@ import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockExchangeRateRepo } from '@app/money/contracts/__mocks__/money.repos.mock';
 import { IExchangeRateQueryParam } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import makeGetExchangeRateUseCase from '@app/money/usecases/get-exchange-rates.usecase';

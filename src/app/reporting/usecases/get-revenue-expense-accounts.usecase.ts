@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
@@ -6,7 +7,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import { ICurrency } from '@domain/money/types/currency.types';
 import moneyValue from '@domain/money/values/money.vo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import IRevenueExpenseAccountsQueryRepo, {
   IRevenueExpenseAccountBalance,
@@ -22,7 +23,7 @@ import { IRevenueExpenseAccount } from '@app/reporting/types/revenue-expense-acc
 import reportingValidation from '@app/reporting/validations/reporting.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   revenueExpenseAccountsQueryRepo: IRevenueExpenseAccountsQueryRepo;
 }
 

@@ -29,14 +29,18 @@ export interface IPeriodCreationDto {
 }
 
 /**
- * Accounting entity onboarding DTO
+ * Standalone accounting entity creation DTO
  */
 export interface IAccountingEntityCreationDto {
   name: string;
   entityType: UAccountingEntityType;
   jurisdictionCode: UJurisdictionCode;
-  accountingStandardCode: UAccountingStandardCode;
   functionalCurrencyCode: UCurrencyCode;
+}
+
+/** Complete initial accounting setup; separate from entity-only creation. */
+export interface IAccountingEntityOnboardingDto extends IAccountingEntityCreationDto {
+  accountingStandardCode: UAccountingStandardCode;
   reportingCurrencyCode: UCurrencyCode;
   fiscalYear: IFiscalYearCreationDto;
   accountingPeriod: IPeriodCreationDto;

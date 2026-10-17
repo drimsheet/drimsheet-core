@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
@@ -6,11 +7,11 @@ import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.re
 import { IAccountingEntitySwitchReq } from '@app/accounting/dtos/accounting/accounting.dto';
 import { accountingEntitySwitchReqSchema } from '@app/accounting/dtos/accounting/accounting.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   accountingEntityRepo: IAccountingEntityRepo;
   userPreferencesAppService: IUserPreferencesAppService;
 }

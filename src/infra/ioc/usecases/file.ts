@@ -2,7 +2,7 @@ import makePreSignUploadsUsecase from '@app/file/usecases/pre-sign-uploads.useca
 
 import { fileManagementAppService } from '@infra/ioc/services/file';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 export const preSignUploadsUseCase = makeTracedUseCase(
   'file.preSignUploadsUseCase',

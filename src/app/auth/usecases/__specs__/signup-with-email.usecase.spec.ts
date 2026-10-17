@@ -15,7 +15,7 @@ import mockUserAuthAppService from '@app/auth/contracts/__mocks__/user-auth.serv
 import { IUserSignupReq } from '@app/auth/dtos/auth/auth.dto';
 import makeSignupWithEmailUsecase from '@app/auth/usecases/signup-with-email.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import {
   mockActorService,
   mockUserIdentityService,

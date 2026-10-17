@@ -1,9 +1,10 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryQueryRepo, {
   IFindAllJournalEntriesOptions,
 } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
@@ -15,7 +16,7 @@ import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal
 import { getJournalEntriesQueryValidationSchema } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   journalEntryQueryRepo: IJournalEntryQueryRepo;
 }
 

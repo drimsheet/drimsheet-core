@@ -1,15 +1,24 @@
 import makeArchiveAccountingEntityUsecase from '@app/accounting/usecases/archive-accounting-entity.usecase';
+import makeCreateAccountingContextUsecase from '@app/accounting/usecases/create-accounting-context.usecase';
 import makeCreateAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
+import makeCreateAccountingPeriodsUsecase from '@app/accounting/usecases/create-accounting-periods.usecase';
+import makeCreateFiscalYearUsecase from '@app/accounting/usecases/create-fiscal-year.usecase';
 import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-accounting-entity.usecase';
 import makeGetAccountingContextsUsecase from '@app/accounting/usecases/get-accounting-contexts.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
 import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
+import makeOnboardAccountingEntityUsecase from '@app/accounting/usecases/onboard-accounting-entity.usecase';
 import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-accounting-entity.usecase';
 import makeUpdateAccountingEntityUsecase from '@app/accounting/usecases/update-accounting-entity.usecase';
 
-import { accountingEntityService } from '@infra/ioc/services/accounting';
+import {
+  accountingContextService,
+  accountingEntityService,
+  accountingPeriodService,
+  fiscalYearService,
+} from '@infra/ioc/services/accounting';
 import { repoService } from '@infra/ioc/services/repo';
 import { userPreferencesAppService } from '@infra/ioc/services/user';
 import messaging from '@infra/messaging';
@@ -18,11 +27,60 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import userRepos from '@infra/persistence/repos/user';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
+
+export const createAccountingContextUseCase = makeTracedUseCase(
+  'accounting.createAccountingContextUseCase',
+  makeCreateAccountingContextUsecase({
+    appContext,
+    accountingContextService,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    accountingPeriodRepo: accountingRepos.accountingPeriod,
+    accountingContextRepo: accountingRepos.accountingContext,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const createAccountingPeriodsUseCase = makeTracedUseCase(
+  'accounting.createAccountingPeriodsUseCase',
+  makeCreateAccountingPeriodsUsecase({
+    appContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    accountingPeriodService,
+    accountingPeriodRepo: accountingRepos.accountingPeriod,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const createFiscalYearUseCase = makeTracedUseCase(
+  'accounting.createFiscalYearUseCase',
+  makeCreateFiscalYearUsecase({
+    appContext,
+    accountingEntityRepo: accountingRepos.accountingEntity,
+    accountingEntityService,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    fiscalYearService,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
 
 export const createAccountingEntityUseCase = makeTracedUseCase(
   'accounting.createAccountingEntityUseCase',
   makeCreateAccountingEntityUseCase({
+    appContext,
+    accountingEntityRepo: accountingRepos.accountingEntity,
+    repoService,
+    accountingEntityService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+/** @deprecated Legacy combined onboarding; scheduled for removal. */
+export const onboardAccountingEntityUseCase = makeTracedUseCase(
+  'accounting.onboardAccountingEntityUseCase',
+  makeOnboardAccountingEntityUsecase({
     appContext,
     accountingEntityRepo: accountingRepos.accountingEntity,
     userPreferencesAppService,
@@ -33,6 +91,7 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
     reportingContextRepo: accountingRepos.reportingContext,
     repoService,
     accountingEntityService,
+    accountingPeriodService,
     eventBus: messaging.eventBus,
   })
 );

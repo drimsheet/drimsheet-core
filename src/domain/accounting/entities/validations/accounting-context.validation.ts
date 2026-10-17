@@ -1,3 +1,5 @@
+import { TEntityId } from '@shared/types/uuid';
+
 import {
   SYSTEM_ACCOUNTING_STANDARDS,
   UAccountingStandardCode,
@@ -8,8 +10,28 @@ import {
 } from '@domain/accounting/config/jurisdictions.config';
 import accountingEntityValidation from '@domain/accounting/entities/validations/accounting-entity.validation';
 import accountingStandardError from '@domain/accounting/errors/accounting-standard.error';
+import accountingError from '@domain/accounting/errors/accounting.error';
 import jurisdictionError from '@domain/accounting/errors/jurisdiction.error';
 import { UAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
+import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
+import { IAccountingPeriod } from '@domain/accounting/types/period.types';
+
+/** ACC-AC-001/002: selection is explicit for every year and independent of period status or today's date. */
+function validatePeriodSelection(
+  accountingEntityId: TEntityId,
+  fiscalYear: IFiscalYear,
+  accountingPeriod: IAccountingPeriod
+) {
+  if (fiscalYear.accountingEntityId !== accountingEntityId) {
+    throw new accountingError.InvalidFiscalYearId();
+  }
+  const hasInvalidPeriodOwnership =
+    accountingPeriod.accountingEntityId !== accountingEntityId ||
+    accountingPeriod.fiscalYearId !== fiscalYear.id;
+  if (hasInvalidPeriodOwnership) {
+    throw new accountingError.InvalidCurrentAccountingPeriodId();
+  }
+}
 
 function isValidAccountingStandardCode(
   code: unknown
@@ -66,6 +88,7 @@ function validateStandardCodeAndJurisdiction(
 }
 
 const accountingContextValidation = Object.freeze({
+  validatePeriodSelection,
   isValidAccountingStandardCode,
   validateAccountingStandardCode,
   validateStandardCode,

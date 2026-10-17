@@ -1,5 +1,6 @@
 import * as winston from 'winston';
 
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import ILogger from '@shared/contracts/logger.contract';
 import IVarsConfig from '@shared/contracts/vars-config.contract';
 import {
@@ -10,7 +11,7 @@ import {
 import safeJSON from '@shared/utils/safe-json';
 import { sanitizeData } from '@shared/utils/sanitizer';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 import vars from '@infra/config/vars.config';
 import makeBetterStackLogRuntime from '@infra/integrations/better-stack/better-stack-log-runtime';
@@ -21,7 +22,7 @@ import { normalizeTelemetryError } from '@infra/observability/helpers/telemetry-
 
 import packageJson from '../../../package.json';
 
-type TCorrelationContext = Pick<IAppContext, 'get'>;
+type TCorrelationContext = Pick<IAppContextService<IAppContextData>, 'get'>;
 
 interface ILoggerOptions {
   appContext?: TCorrelationContext;
