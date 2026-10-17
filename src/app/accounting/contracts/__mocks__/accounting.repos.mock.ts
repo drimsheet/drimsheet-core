@@ -60,6 +60,7 @@ export const mockFiscalYearHistoryRepo: jest.Mocked<IFiscalYearHistoryRepo> = {
 };
 
 export const mockFiscalYearRepo: jest.Mocked<IFiscalYearRepo> = {
+  findById: jest.fn(),
   existsByRange: jest.fn(),
   create: jest.fn(),
 };

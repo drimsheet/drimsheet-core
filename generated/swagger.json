@@ -4324,6 +4324,24 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IAccountingPeriodsCreationReq": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UPeriodUnit"
+          },
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Number of intervals to generate across the complete fiscal year."
+          }
+        },
+        "required": ["fiscalYearId", "unit", "count"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IAccountingEntityUpdateReq": {
         "properties": {
           "name": {
@@ -10928,6 +10946,110 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IFiscalYearCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/accounting-periods": {
+      "post": {
+        "operationId": "createAccountingPeriods",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IAccountingPeriodDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Generates the fiscal year's posting calendar for x-accounting-entity-id. Context and schedule setup are separate.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IAccountingPeriodsCreationReq"
               }
             }
           }

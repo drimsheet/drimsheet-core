@@ -16,6 +16,10 @@ import {
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import {
+  IAccountingPeriodDto,
+  IAccountingPeriodsCreationReq,
+} from '@app/accounting/dtos/accounting-period/accounting-period.dto';
+import {
   IAccountingEntityCreationDto,
   IAccountingEntityDto,
   IAccountingEntityOnboardingDto,
@@ -31,6 +35,7 @@ import middlewares from '@infra/ioc/middlewares/http';
 import {
   archiveAccountingEntityUseCase,
   createAccountingEntityUseCase,
+  createAccountingPeriodsUseCase,
   createFiscalYearUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextsUseCase,
@@ -187,6 +192,28 @@ export class AccountingController extends Controller {
     @Body() body: IFiscalYearCreationReq
   ): Promise<IFiscalYearDto> {
     return await createFiscalYearUseCase(body);
+  }
+
+  /** Generates the fiscal year's posting calendar for x-accounting-entity-id. Context and schedule setup are separate. */
+  @Post('/accounting-periods')
+  @OperationId('createAccountingPeriods')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createAccountingPeriods(
+    @Body() body: IAccountingPeriodsCreationReq
+  ): Promise<IAccountingPeriodDto[]> {
+    return await createAccountingPeriodsUseCase(body);
   }
 
   /** Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries. */

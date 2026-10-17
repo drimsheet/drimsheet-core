@@ -1,4 +1,5 @@
 import { IAccountingContextDetails } from '@app/accounting/contracts/accounting-context.query.repo.contract';
+import accountingPeriodDtoMapper from '@app/accounting/dtos/accounting-period/accounting-period.dto.mapper';
 
 import { IAccountingContextDto } from './accounting-context.dto';
 
@@ -27,20 +28,9 @@ const accountingContextDtoMapper = {
         closedAt: context.fiscalYear.closedAt,
         updatedAt: context.fiscalYear.updatedAt,
       },
-      accountingPeriods: context.accountingPeriods.map((period) => ({
-        id: period.id,
-        createdBy: period.createdBy,
-        name: period.name,
-        accountingEntityId: period.accountingEntityId,
-        fiscalYearId: period.fiscalYearId,
-        unit: period.unit,
-        count: period.count,
-        startDate: period.startDate,
-        endDate: period.endDate,
-        status: period.status,
-        closedAt: period.closedAt,
-        updatedAt: period.updatedAt,
-      })),
+      accountingPeriods: context.accountingPeriods.map(
+        accountingPeriodDtoMapper.toDto
+      ),
     };
   },
 };

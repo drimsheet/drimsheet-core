@@ -79,6 +79,42 @@ describe('fiscalYearRepo', () => {
     }
   );
 
+  it.each([false, true])(
+    'finds a fiscal year by ID, returning null when absent: %j',
+    async (found) => {
+      const row = fiscalYearMapper.toRepo(year);
+      const limit = jest.fn().mockResolvedValue(found ? [row] : []);
+      const where = jest
+        .fn<{ limit: typeof limit }, [SQL]>()
+        .mockReturnValue({ limit });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+      await expect(
+        fiscalYearRepo.findById(year.id, { correlationId: 'read' })
+      ).resolves.toEqual(
+        found
+          ? expect.objectContaining({
+              id: year.id,
+              accountingEntityId,
+              startDate: year.startDate,
+              endDate: year.endDate,
+            })
+          : null
+      );
+      expect(from).toHaveBeenCalledWith(fiscalYearsInCore);
+      expect(limit).toHaveBeenCalledWith(1);
+      expect(new PgDialect().sqlToQuery(where.mock.calls[0][0]).params).toEqual(
+        [year.id]
+      );
+      expect(getDbQuery).toHaveBeenCalledWith({ correlationId: 'read' });
+    }
+  );
+
   function fakeTransaction() {
     const committed: unknown[] = [];
     const staged: unknown[] = [];

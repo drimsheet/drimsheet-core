@@ -13,6 +13,15 @@ import fiscalYearMapper from '@infra/persistence/repos/accounting/mappers/fiscal
 import fiscalYearHistoryRepo from './fiscal-year-history.repo.impl';
 
 const fiscalYearRepoImpl: IFiscalYearRepo = {
+  findById: async (id, options) => {
+    const [year] = await getDbQuery(options)
+      .select()
+      .from(fiscalYearsInCore)
+      .where(eq(fiscalYearsInCore.id, id))
+      .limit(1);
+    return year ? fiscalYearMapper.toDomain(year) : null;
+  },
+
   existsByRange: async (accountingEntityId, range, options) => {
     const rows = await getDbQuery(options)
       .select({ id: fiscalYearsInCore.id })

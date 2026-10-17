@@ -7,6 +7,7 @@ import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.re
 import { accountingPeriodsInCore } from '@infra/config/drizzle/schema';
 import { toRepoDateOnly } from '@infra/persistence/helpers/date.mapper';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import mapAccountingPeriodOverlapErrorHelper from '@infra/persistence/helpers/map-accounting-period-overlap-error.helper';
 import accountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/accounting-period.mapper';
 
 import accountingPeriodHistoryRepo from './accounting-period-history.repo.impl';
@@ -65,19 +66,23 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   },
 
   create: async (payload, options) => {
-    await getDbQuery(options).transaction(async (tx) => {
-      const valuesArray = Array.isArray(payload)
-        ? payload.map(accountingPeriodMapper.toRepo)
-        : [accountingPeriodMapper.toRepo(payload)];
+    try {
+      await getDbQuery(options).transaction(async (tx) => {
+        const valuesArray = Array.isArray(payload)
+          ? payload.map(accountingPeriodMapper.toRepo)
+          : [accountingPeriodMapper.toRepo(payload)];
 
-      await tx.insert(accountingPeriodsInCore).values(valuesArray);
+        await tx.insert(accountingPeriodsInCore).values(valuesArray);
 
-      await accountingPeriodHistoryRepo.save(
-        payload,
-        options.history,
-        passOnRepoTransaction(options, tx)
-      );
-    });
+        await accountingPeriodHistoryRepo.save(
+          payload,
+          options.history,
+          passOnRepoTransaction(options, tx)
+        );
+      });
+    } catch (error) {
+      throw mapAccountingPeriodOverlapErrorHelper(error);
+    }
   },
 };
 

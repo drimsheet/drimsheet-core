@@ -5,6 +5,11 @@ import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import { IFiscalYearHistory } from '@domain/accounting/types/period-audit.types';
 
 export default interface IFiscalYearRepo {
+  findById(
+    id: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IFiscalYear | null>;
+
   /** Inclusive calendar-date overlap, across all statuses for this entity. */
   existsByRange(
     accountingEntityId: TEntityId,

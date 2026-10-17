@@ -67,6 +67,7 @@
   "address_error_line1_invalid",
   "app_error_accounting_active_entity_not_found",
   "app_error_accounting_entity_not_found",
+  "app_error_accounting_fiscal_year_not_found",
   "app_error_conflict",
   "app_error_file_claim_unexpected",
   "app_error_file_delete_unexpected",
