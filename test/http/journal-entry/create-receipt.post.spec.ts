@@ -9,7 +9,7 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import { IUser } from '@domain/user/types/user.types';
 
 import authError from '@app/auth/errors/auth.error';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import fileAppError from '@app/file/errors/file.error';
 import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { IReceiptEntryReq } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto';
@@ -27,15 +27,12 @@ jest.mock('@infra/ioc/services/user', () => ({
   ).mockActorService,
 }));
 
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual<
-      typeof import('@app/context/contracts/__mocks__/feature-flag.service.mock')
-    >('@app/context/contracts/__mocks__/feature-flag.service.mock').default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual<
+    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+}));
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,

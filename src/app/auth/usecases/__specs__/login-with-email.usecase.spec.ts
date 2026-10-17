@@ -18,7 +18,7 @@ import makeLoginWithEmailUseCase from '@app/auth/usecases/login-with-email.useca
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 

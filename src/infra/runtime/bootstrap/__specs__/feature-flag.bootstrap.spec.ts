@@ -1,7 +1,7 @@
-import bootstrapFeatureFlags from '@infra/runtime/_bootstrap/feature-flag.bootstrap';
-import featureFlagLifecycle from '@infra/runtime/feature-flag-lifecycle';
+import bootstrapFeatureFlags from '@infra/runtime/bootstrap/feature-flag.bootstrap';
+import featureFlagLifecycle from '@infra/runtime/lifecycle/feature-flag.lifecycle';
 
-jest.mock('../../feature-flag-lifecycle', () => ({
+jest.mock('@infra/runtime/lifecycle/feature-flag.lifecycle', () => ({
   __esModule: true,
   default: {
     initialize: jest.fn(),

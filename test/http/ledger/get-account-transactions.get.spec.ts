@@ -7,7 +7,7 @@ import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.t
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import { IAccountTransactionRes } from '@app/ledger/dtos/account-transaction/account-transaction.dto';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
@@ -23,15 +23,12 @@ jest.mock('@infra/ioc/services/user', () => ({
   ).mockActorService,
 }));
 
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual<
-      typeof import('@app/context/contracts/__mocks__/feature-flag.service.mock')
-    >('@app/context/contracts/__mocks__/feature-flag.service.mock').default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual<
+    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+}));
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,

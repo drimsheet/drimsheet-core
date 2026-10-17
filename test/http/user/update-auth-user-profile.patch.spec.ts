@@ -8,7 +8,7 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import userEntity from '@domain/user/entities/user.entity';
 
 import authError from '@app/auth/errors/auth.error';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
@@ -21,15 +21,12 @@ jest.mock('@infra/ioc/services/user', () => ({
     '@app/user/contracts/__mocks__/actor.services.mock'
   ).mockActorService,
 }));
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual(
-      '@app/context/contracts/__mocks__/feature-flag.service.mock'
-    ).default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual(
+    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+  ).default,
+}));
 jest.mock('@infra/ioc/services/auth', () => ({
   tokenAppService: jest.requireActual(
     '@app/auth/contracts/__mocks__/token-service.mock'

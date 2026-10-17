@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
   IRepoService,
@@ -13,7 +14,7 @@ import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import IJournalEntryRectificationPreparationAppService from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
 import {
@@ -31,7 +32,7 @@ import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   counterpartyRepo: ICounterpartyRepo;
   journalEntryRepo: IJournalEntryRepo;
   journalEntryRectificationPreparationAppService: IJournalEntryRectificationPreparationAppService;

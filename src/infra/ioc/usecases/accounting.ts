@@ -25,7 +25,7 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import userRepos from '@infra/persistence/repos/user';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 export const createAccountingPeriodsUseCase = makeTracedUseCase(
   'accounting.createAccountingPeriodsUseCase',

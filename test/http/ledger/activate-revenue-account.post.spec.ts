@@ -13,7 +13,7 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import makeActivateRevenueAccountUsecase from '@app/ledger/usecases/activate-revenue-account.usecase';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
@@ -21,8 +21,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
-import appContext from '@infra/runtime/app-context';
 import { createApplication } from '@infra/server';
+import appContext from '@infra/services/app-context.service';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -30,15 +30,12 @@ jest.mock('@infra/ioc/services/user', () => ({
     '@app/user/contracts/__mocks__/actor.services.mock'
   ).mockActorService,
 }));
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual(
-      '@app/context/contracts/__mocks__/feature-flag.service.mock'
-    ).default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual(
+    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+  ).default,
+}));
 jest.mock('@infra/ioc/services/auth', () => ({
   tokenAppService: { getAuthUser: jest.fn() },
 }));

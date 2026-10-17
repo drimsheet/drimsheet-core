@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
   IRepoService,
@@ -23,11 +24,11 @@ import IUserSessionAppService, {
 import { IAccessToken, IResetPasswordReq } from '@app/auth/dtos/auth/auth.dto';
 import { resetPasswordReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
 import authError from '@app/auth/errors/auth.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
   actorService: IActorService;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   userRepo: IUserRepo;
   passwordAppService: IPasswordAppService;
   tokenAppService: ITokenAppService;

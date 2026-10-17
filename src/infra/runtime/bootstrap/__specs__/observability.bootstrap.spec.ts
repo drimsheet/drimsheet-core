@@ -1,5 +1,5 @@
 import bootstrapSentry from '@infra/integrations/sentry/sentry.bootstrap';
-import bootstrapObservability from '@infra/runtime/_bootstrap/observability.bootstrap';
+import bootstrapObservability from '@infra/runtime/bootstrap/observability.bootstrap';
 
 jest.mock('@infra/integrations/sentry/sentry.bootstrap', () => ({
   __esModule: true,

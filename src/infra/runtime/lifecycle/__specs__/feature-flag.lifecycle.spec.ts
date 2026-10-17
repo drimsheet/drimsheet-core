@@ -1,6 +1,6 @@
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
-import featureFlagLifecycle from '@infra/runtime/feature-flag-lifecycle';
-import observabilityLifecycle from '@infra/runtime/observability-lifecycle';
+import featureFlagLifecycle from '@infra/runtime/lifecycle/feature-flag.lifecycle';
+import observabilityLifecycle from '@infra/runtime/lifecycle/observability.lifecycle';
 
 jest.mock('@infra/integrations/launchdarkly/launchdarkly.lifecycle', () => ({
   __esModule: true,
@@ -10,7 +10,7 @@ jest.mock('@infra/integrations/launchdarkly/launchdarkly.lifecycle', () => ({
   },
 }));
 
-jest.mock('@infra/runtime/observability-lifecycle', () => ({
+jest.mock('@infra/runtime/lifecycle/observability.lifecycle', () => ({
   __esModule: true,
   default: {
     shutdown: jest.fn(),

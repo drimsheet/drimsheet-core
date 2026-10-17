@@ -3,7 +3,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockUserPreferencesRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import { IUserPreferences } from '@app/user/types/user-preferences.types';
 import makeGetUserPreferencesUseCase from '@app/user/usecases/get-preferences.usecase';

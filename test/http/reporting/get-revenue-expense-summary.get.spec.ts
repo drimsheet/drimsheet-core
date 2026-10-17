@@ -6,7 +6,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import mockRevenueExpenseSummaryQueryRepo from '@app/reporting/contracts/__mocks__/revenue-expense-summary.query.repo.mock';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
@@ -21,15 +21,12 @@ jest.mock('@infra/ioc/services/user', () => ({
     '@app/user/contracts/__mocks__/actor.services.mock'
   ).mockActorService,
 }));
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual(
-      '@app/context/contracts/__mocks__/feature-flag.service.mock'
-    ).default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual(
+    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+  ).default,
+}));
 jest.mock('@infra/ioc/services/auth', () => ({
   __esModule: true,
   tokenAppService: { getAuthUser: jest.fn() },
@@ -56,7 +53,8 @@ jest.mock('@infra/ioc/usecases/reporting', () => ({
       '@app/reporting/usecases/get-revenue-expense-summary.usecase'
     )
     .default({
-      appContext: jest.requireActual('@infra/runtime/app-context').default,
+      appContext: jest.requireActual('@infra/services/app-context.service')
+        .default,
       revenueExpenseSummaryQueryRepo: jest.requireActual(
         '@app/reporting/contracts/__mocks__/revenue-expense-summary.query.repo.mock'
       ).default,

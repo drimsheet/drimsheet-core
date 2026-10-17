@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 
@@ -9,11 +10,11 @@ import {
   IBankDetails,
 } from '@domain/ledger/types/asset-account.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   ledgerAccountRepo: ILedgerAccountRepo;
   bankAccountRepo: IBankAccountRepo;
 }

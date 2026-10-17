@@ -8,7 +8,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { IBankDetails } from '@domain/ledger/types/asset-account.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
@@ -24,15 +24,12 @@ jest.mock('@infra/ioc/services/user', () => ({
   ).mockActorService,
 }));
 
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual<
-      typeof import('@app/context/contracts/__mocks__/feature-flag.service.mock')
-    >('@app/context/contracts/__mocks__/feature-flag.service.mock').default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual<
+    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+}));
 
 jest.mock('@infra/ioc/services/auth', () => ({
   __esModule: true,

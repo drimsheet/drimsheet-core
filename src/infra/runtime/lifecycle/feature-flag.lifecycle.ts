@@ -1,5 +1,5 @@
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
-import observabilityLifecycle from '@infra/runtime/observability-lifecycle';
+import observabilityLifecycle from '@infra/runtime/lifecycle/observability.lifecycle';
 
 const SHUTDOWN_EXIT_CODES = Object.freeze({
   SIGINT: 130,

@@ -3,9 +3,9 @@ import runtimeError from '@shared/values/errors/runtime.error';
 
 import actorEntity from '@domain/user/entities/actor.entity';
 
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 describe('appContext', () => {
   const makeStore = (correlationId = 'correlation-id'): IAppContextData => ({

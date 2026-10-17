@@ -8,7 +8,7 @@ import periodError from '@domain/accounting/errors/period.error';
 import { IUser } from '@domain/user/types/user.types';
 
 import accountingAppError from '@app/accounting/errors/accounting.error';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
 import * as accountingUsecases from '@infra/ioc/usecases/accounting';
@@ -23,15 +23,12 @@ jest.mock('@infra/ioc/services/user', () => ({
   ).mockActorService,
 }));
 
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual<
-      typeof import('@app/context/contracts/__mocks__/feature-flag.service.mock')
-    >('@app/context/contracts/__mocks__/feature-flag.service.mock').default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual<
+    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+}));
 
 jest.mock('@infra/ioc/services/auth', () => ({
   __esModule: true,

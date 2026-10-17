@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
@@ -16,10 +17,10 @@ import {
 import accountingPeriodDtoMapper from '@app/accounting/dtos/accounting-period/accounting-period.dto.mapper';
 import { accountingPeriodsCreationDtoSchema } from '@app/accounting/dtos/accounting-period/accounting-period.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   fiscalYearRepo: IFiscalYearRepo;
   accountingPeriodService: IAccountingPeriodService;
   accountingPeriodRepo: IAccountingPeriodRepo;

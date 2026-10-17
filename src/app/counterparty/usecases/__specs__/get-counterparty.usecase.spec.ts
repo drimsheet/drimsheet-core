@@ -5,7 +5,7 @@ import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeGetCounterpartyUsecase from '@app/counterparty/usecases/get-counterparty.usecase';
 

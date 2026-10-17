@@ -1,10 +1,11 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import stringUtils from '@shared/utils/string';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
-type TCorrelationContext = Pick<IAppContext, 'get'>;
+type TCorrelationContext = Pick<IAppContextService<IAppContextData>, 'get'>;
 
 export default function safeGetCorrelationId(
   context: TCorrelationContext = appContext

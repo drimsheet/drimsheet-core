@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -13,10 +14,10 @@ import {
 } from '@app/accounting/dtos/accounting/accounting.dto';
 import accountingEntityDtoMapper from '@app/accounting/dtos/accounting/accounting.dto.mapper';
 import { accountingEntityCreationDtoSchema } from '@app/accounting/dtos/accounting/accounting.dto.validation';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   accountingEntityRepo: IAccountingEntityRepo;
   accountingEntityService: IAccountingEntityService;
   repoService: IRepoService;

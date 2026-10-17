@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
   IRepoService,
@@ -31,12 +32,12 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import { IAccountingEntityOnboardingDto } from '@app/accounting/dtos/accounting/accounting.dto';
 import accountingEntityDtoMapper from '@app/accounting/dtos/accounting/accounting.dto.mapper';
 import { accountingEntityOnboardingDtoSchema } from '@app/accounting/dtos/accounting/accounting.dto.validation';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
 import { EAppUsageModePreference } from '@app/user/types/user-preferences.types';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   accountingEntityRepo: IAccountingEntityRepo;
   userPreferencesAppService: IUserPreferencesAppService;
   fiscalYearRepo: IFiscalYearRepo;

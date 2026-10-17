@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import ILogger from '@shared/contracts/logger.contract';
 import IReporter from '@shared/contracts/reporter.contract';
 import ITracer from '@shared/contracts/tracer.contract';
@@ -6,7 +7,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import IActorService from '@domain/user/types/actor.service.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 
 import { postgres } from '@infra/config/postgres.config';
@@ -20,8 +21,8 @@ import { TCbnExchangeRateRecord } from '@infra/integrations/cbn/cbn-exchange-rat
 import { actorService } from '@infra/ioc/services/user';
 import { ingestExchangeRateUseCase } from '@infra/ioc/usecases/money';
 import observability from '@infra/observability';
-import appContext from '@infra/runtime/app-context';
-import observabilityLifecycle from '@infra/runtime/observability-lifecycle';
+import observabilityLifecycle from '@infra/runtime/lifecycle/observability.lifecycle';
+import appContext from '@infra/services/app-context.service';
 
 const MAX_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 1_000;
@@ -58,7 +59,7 @@ interface IExchangeRateIngestionSummary {
 
 interface IRuntimeDependencies {
   actorService: IActorService;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   closeDatabase(): Promise<void>;
   fetchExchangeRates(signal: AbortSignal): Promise<TCbnExchangeRateRecord[]>;
   generateCorrelationId(): string;

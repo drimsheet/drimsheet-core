@@ -1,15 +1,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+import IAppContextService, {
+  TAppContextWithRequiredKeys,
+} from '@shared/contracts/app-context.service.contract';
 import runtimeError from '@shared/values/errors/runtime.error';
 
-import IAppContext, {
-  IAppContextData,
-  TAppContextWithRequiredKeys,
-} from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 const asyncLocalStorage = new AsyncLocalStorage<IAppContextData>();
 
-const appContext: IAppContext = {
+const appContextService: IAppContextService<IAppContextData> = {
   init(store, callback) {
     return asyncLocalStorage.run(store, callback);
   },
@@ -33,7 +33,7 @@ const appContext: IAppContext = {
       });
     }
 
-    return store as TAppContextWithRequiredKeys<K>;
+    return store as TAppContextWithRequiredKeys<IAppContextData, K>;
   },
 
   set(store) {
@@ -42,4 +42,4 @@ const appContext: IAppContext = {
   },
 };
 
-export default appContext;
+export default appContextService;

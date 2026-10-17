@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
@@ -8,14 +9,14 @@ import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.t
 import ledgerBalanceEffectRule from '@domain/accounting/rules/ledger-balance-effect.rule';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IAccountTransactionQueryRepo from '@app/ledger/contracts/account-transaction.query.repo.contract';
 import { IAccountTransactionRes } from '@app/ledger/dtos/account-transaction/account-transaction.dto';
 import accountTransactionMapper from '@app/ledger/dtos/account-transaction/account-transaction.dto.mapper';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   ledgerAccountRepo: ILedgerAccountRepo;
   accountTransactionQueryRepo: IAccountTransactionQueryRepo;
 }

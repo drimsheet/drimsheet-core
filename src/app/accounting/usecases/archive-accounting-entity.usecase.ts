@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import { ERepoLock } from '@shared/types/repo.types';
@@ -8,11 +9,11 @@ import accountingEntityEntity from '@domain/accounting/entities/accounting-entit
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 
 import accountingAppError from '@app/accounting/errors/accounting.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   accountingEntityRepo: IAccountingEntityRepo;
   userPreferencesRepo: IUserPreferencesRepo;
   repoService: IRepoService;

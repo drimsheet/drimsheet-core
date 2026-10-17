@@ -3,7 +3,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import userMapper from '@app/user/dtos/user/user.dto.mapper';
 import makeGetAuthUserProfileUseCase from '@app/user/usecases/get-profile.usecase';
 

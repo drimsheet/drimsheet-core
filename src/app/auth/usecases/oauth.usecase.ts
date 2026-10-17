@@ -1,13 +1,15 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
+
 import IActorService from '@domain/user/types/actor.service.types';
 import { IUser } from '@domain/user/types/user.types';
 
 import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
 import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
   actorService: IActorService;
-  reqContext: IAppContext;
+  reqContext: IAppContextService<IAppContextData>;
   userSessionAppService: IUserSessionAppService;
   userSessionPersistenceAppService: IUserSessionPersistenceAppService;
   webAppUrl: string;

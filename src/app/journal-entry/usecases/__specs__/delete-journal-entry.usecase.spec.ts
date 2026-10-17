@@ -26,7 +26,7 @@ import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryRemovalService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import {

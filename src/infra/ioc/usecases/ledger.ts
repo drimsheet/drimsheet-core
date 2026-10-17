@@ -78,7 +78,7 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import outboxRepo from '@infra/persistence/repos/outbox';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 export const getLedgerAccountCurrencyUpdateEligibilityUseCase =
   makeTracedUseCase(

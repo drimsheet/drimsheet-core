@@ -1,7 +1,7 @@
 import mockLogger from '@shared/contracts/__mocks__/logger.mock';
 
 type TObservabilityLifecycle =
-  (typeof import('@infra/runtime/observability-lifecycle'))['default'];
+  (typeof import('@infra/runtime/lifecycle/observability.lifecycle'))['default'];
 
 const mockShutdownSentry = jest.fn<
   Promise<void>,
@@ -17,7 +17,7 @@ jest.mock('@infra/integrations/sentry/sentry.lifecycle', () => ({
   },
 }));
 
-jest.mock('../../observability', () => ({
+jest.mock('@infra/observability', () => ({
   betterStackLogRuntime: {
     shutdown: mockShutdownLogs,
   },
@@ -26,7 +26,7 @@ jest.mock('../../observability', () => ({
   },
 }));
 
-jest.mock('../../observability/logger', () => ({
+jest.mock('@infra/observability/logger', () => ({
   __esModule: true,
   default: mockLogger,
 }));
@@ -35,8 +35,9 @@ async function loadObservabilityLifecycle(): Promise<TObservabilityLifecycle> {
   let lifecycle: TObservabilityLifecycle | undefined;
 
   await jest.isolateModulesAsync(async () => {
-    lifecycle = (await import('@infra/runtime/observability-lifecycle'))
-      .default;
+    lifecycle = (
+      await import('@infra/runtime/lifecycle/observability.lifecycle')
+    ).default;
   });
 
   if (!lifecycle) {

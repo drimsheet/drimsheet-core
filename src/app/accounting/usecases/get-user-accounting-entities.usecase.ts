@@ -1,10 +1,12 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
+
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 import { EAccountingEntityStatus } from '@domain/accounting/types/accounting-entity.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   accountingEntityRepo: IAccountingEntityRepo;
 }
 

@@ -1,4 +1,4 @@
-import bootstrapObservability from './observability.bootstrap';
+import bootstrapObservability from '@infra/runtime/bootstrap/observability.bootstrap';
 
 async function startApplication(): Promise<void> {
   /*
@@ -10,7 +10,7 @@ async function startApplication(): Promise<void> {
    * installing its automatic instrumentation for those libraries.
    *
    * startApplication() is invoked only after bootstrapObservability() below.
-   * This dynamic-import boundary preserves _bootstrap/index.ts as the established
+   * This dynamic-import boundary preserves _http/index.ts as the established
    * process entrypoint while guaranteeing that observability initializes before
    * the rest of the application dependency graph is loaded.
    */
@@ -24,10 +24,10 @@ async function startApplication(): Promise<void> {
   ] = await Promise.all([
     import('@infra/messaging/workers'),
     import('@infra/server'),
-    import('./accounting-context.bootstrap'),
-    import('./events.bootstrap'),
-    import('./feature-flag.bootstrap'),
-    import('./setup-currencies.bootstrap'),
+    import('@infra/runtime/bootstrap/accounting-context.bootstrap'),
+    import('@infra/runtime/bootstrap/events.bootstrap'),
+    import('@infra/runtime/bootstrap/feature-flag.bootstrap'),
+    import('@infra/runtime/bootstrap/currencies.bootstrap'),
   ]);
 
   async function bootstrapDependencies() {

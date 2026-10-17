@@ -19,14 +19,3 @@ export interface IAppContextData extends ICorrelationId, IIdempotencyKey {
   accountingEntity?: IAccountingEntity;
   clientSession?: IClientSession;
 }
-
-export type TAppContextWithRequiredKeys<K extends keyof IAppContextData> =
-  IAppContextData & Required<Pick<IAppContextData, K>>;
-
-export default interface IAppContext {
-  init<T>(store: IAppContextData, callback: () => T): T;
-  get<K extends keyof IAppContextData = never>(
-    requiredKeys?: readonly K[]
-  ): TAppContextWithRequiredKeys<K>;
-  set: (store: Partial<IAppContextData>) => void;
-}

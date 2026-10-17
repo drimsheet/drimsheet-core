@@ -9,7 +9,7 @@ import mockEmailVerificationAppService from '@app/auth/contracts/__mocks__/email
 import authError from '@app/auth/errors/auth.error';
 import makeSendEmailVerificationEmailUseCase from '@app/auth/usecases/send-email-verification-email.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 describe('makeSendEmailVerificationEmailUseCase', () => {

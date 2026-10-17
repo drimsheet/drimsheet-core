@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
@@ -7,7 +8,7 @@ import ILedgerAccountRepo, {
 } from '@domain/ledger/repos/ledger-account.repo';
 import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import {
   IGetLedgerAccountsQuery,
@@ -16,7 +17,7 @@ import {
 import { getLedgerAccountQueryValidationSchema } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   ledgerAccountRepo: ILedgerAccountRepo;
   balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
 }

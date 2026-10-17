@@ -9,7 +9,7 @@ import makeLogoutUseCase from '@app/auth/usecases/logout.usecase';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 describe('makeLogoutUseCase', () => {
   const correlationId = '854e4567-e89b-42d3-a456-426614174001';

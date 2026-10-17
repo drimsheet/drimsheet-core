@@ -4,21 +4,24 @@ const mockRun = jest.fn(async () => {
   return 0;
 });
 
-jest.mock('@infra/runtime/_bootstrap/observability.bootstrap', () => ({
+jest.mock('@infra/runtime/bootstrap/observability.bootstrap', () => ({
   __esModule: true,
   default: jest.fn(() => {
     mockLoadOrder.push('observability');
   }),
 }));
 
-jest.mock('@infra/runtime/exchange-rate-ingestion', () => {
-  mockLoadOrder.push('runtime-module');
+jest.mock(
+  '@infra/runtime/_ingestion/exchange-rate/exchange-rate-ingestion.runtime',
+  () => {
+    mockLoadOrder.push('runtime-module');
 
-  return {
-    __esModule: true,
-    default: { run: mockRun },
-  };
-});
+    return {
+      __esModule: true,
+      default: { run: mockRun },
+    };
+  }
+);
 
 describe('exchange-rate ingestion bootstrap', () => {
   const originalExitCode = process.exitCode;
@@ -35,7 +38,7 @@ describe('exchange-rate ingestion bootstrap', () => {
 
   it('bootstraps observability before loading and running the job', async () => {
     await jest.isolateModulesAsync(async () => {
-      await import('@infra/runtime/_bootstrap/exchange-rate-ingestion.bootstrap');
+      await import('@infra/runtime/_ingestion/exchange-rate/index');
       await new Promise((resolve) => setImmediate(resolve));
     });
 

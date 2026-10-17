@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -11,7 +12,7 @@ import { ICurrency } from '@domain/money/types/currency.types';
 import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import IAccountCounterpartyParticipationQueryRepo, {
   IAccountCounterpartyParticipationAggregate,
@@ -27,7 +28,7 @@ import { IAccountCounterpartyParticipation } from '@app/reporting/types/account-
 import reportingValidation from '@app/reporting/validations/reporting.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   ledgerAccountRepo: ILedgerAccountRepo;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
   accountCounterpartyParticipationQueryRepo: IAccountCounterpartyParticipationQueryRepo;

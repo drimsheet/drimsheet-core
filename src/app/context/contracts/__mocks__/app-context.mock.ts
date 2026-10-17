@@ -1,4 +1,6 @@
-import IAppContext from '@app/context/contracts/app-context.contract';
+import IAppContextService from '@shared/contracts/app-context.service.contract';
+
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 export const mockClientSession = {
   setRefreshToken: jest.fn(),
@@ -10,6 +12,6 @@ const mockAppContext = {
   init: jest.fn(),
   get: jest.fn(),
   set: jest.fn(),
-} satisfies jest.Mocked<IAppContext>;
+} satisfies jest.Mocked<IAppContextService<IAppContextData>>;
 
 export default mockAppContext;

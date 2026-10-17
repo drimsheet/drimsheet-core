@@ -17,12 +17,12 @@ import {
 import { mapCbnExchangeRates } from '@infra/integrations/cbn/cbn-exchange-rate.mapper';
 import { ingestExchangeRateUseCase } from '@infra/ioc/usecases/money';
 import observability from '@infra/observability';
-import appContext from '@infra/runtime/app-context';
 import exchangeRateIngestionRuntime, {
   isRetryableExchangeRateIngestionError,
   makeExchangeRateIngestionRuntime,
-} from '@infra/runtime/exchange-rate-ingestion';
-import observabilityLifecycle from '@infra/runtime/observability-lifecycle';
+} from '@infra/runtime/_ingestion/exchange-rate/exchange-rate-ingestion.runtime';
+import observabilityLifecycle from '@infra/runtime/lifecycle/observability.lifecycle';
+import appContext from '@infra/services/app-context.service';
 
 jest.mock('@infra/config/postgres.config', () => ({
   postgres: { $client: { end: jest.fn() } },
@@ -57,7 +57,7 @@ jest.mock('@infra/observability', () => ({
   },
 }));
 
-jest.mock('@infra/runtime/observability-lifecycle', () => ({
+jest.mock('@infra/runtime/lifecycle/observability.lifecycle', () => ({
   __esModule: true,
   default: { shutdown: jest.fn() },
 }));

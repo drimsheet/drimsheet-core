@@ -25,7 +25,7 @@ import { IUser } from '@domain/user/types/user.types';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import mockAccountTransactionQueryRepo from '@app/ledger/contracts/__mocks__/account-transaction.query.repo.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
