@@ -84,6 +84,13 @@ Its cadence may differ from the posting cadence; it does not authorize postings.
 
 Reporting intervals may overlap, as with quarterly and year-to-date reports.
 
+Generated reporting calendars use inclusive UTC calendar dates. Within one
+generated cadence, the next interval starts on the day after the previous
+interval ends: January–March includes March 31, and April–June starts April 1.
+The first and last intervals include the fiscal year's first and last dates.
+Different reporting cadences may cover the same dates without changing posting
+eligibility.
+
 ## Accounting Context
 
 An Accounting Context associates an Accounting Entity and Fiscal Year with an

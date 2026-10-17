@@ -1,21 +1,8 @@
 import { UAccountingStandardCode } from '@domain/accounting/config/accounting-standards.config';
-import { UPeriodUnit } from '@domain/accounting/types/period.types';
 import { UCurrencyCode } from '@domain/money/config/currencies.config';
 
 import { IFiscalYearDto } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
-
-interface IReportingPeriodDto {
-  id: string;
-  createdBy: string;
-  name: string;
-  accountingEntityId: string;
-  fiscalYearId: string;
-  unit: UPeriodUnit;
-  count: number;
-  startDate: Date;
-  endDate: Date;
-  updatedAt: Date;
-}
+import { IReportingPeriodDto } from '@app/accounting/dtos/reporting-period/reporting-period.dto';
 
 export interface IReportingContextDto {
   id: string;

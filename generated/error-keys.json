@@ -43,6 +43,7 @@
   "accounting_error_period_posting_date_not_covered_invalid",
   "accounting_error_period_posting_period_ambiguous_unexpected",
   "accounting_error_period_posting_period_not_open_conflict",
+  "accounting_error_period_reporting_duplicate_conflict",
   "accounting_error_period_status_invalid",
   "accounting_error_period_unit_invalid",
   "accounting_error_standard_invalid",

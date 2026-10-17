@@ -87,7 +87,7 @@ describe('accountingPeriodEntity', () => {
     }
   );
 
-  it('uses UTC month starts across daylight-saving transitions without changing reporting generation', () => {
+  it('uses the same inclusive UTC calendar boundaries for accounting and reporting generation', () => {
     const input = makeInput();
     const generated = accountingPeriodEntity.make(input);
     expect(generated.map(([p]) => p.startDate)).toEqual(
@@ -98,7 +98,8 @@ describe('accountingPeriodEntity', () => {
     );
     expect(generated[0][0].endDate).toEqual(new Date('2028-01-31'));
     const reporting = reportingPeriodEntity.make(input);
-    expect(reporting[0][0].endDate).toEqual(reporting[1][0].startDate);
+    expect(reporting[0][0].endDate).toEqual(new Date('2028-01-31'));
+    expect(reporting[1][0].startDate).toEqual(new Date('2028-02-01'));
   });
 
   it.each([0, -1, 1.5, Infinity, 551])(

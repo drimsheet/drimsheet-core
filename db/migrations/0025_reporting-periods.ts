@@ -11,7 +11,7 @@ import toSchemaString from '../utils/to-schema-string';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export function up(pgm: MigrationBuilder) {
   pgm.createTable(reportingPeriodsTable, {
     created_by: {
       type: 'uuid',
@@ -70,8 +70,13 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       default: pgm.func('now()'),
     },
   });
+  pgm.addConstraint(
+    reportingPeriodsTable,
+    'reporting_periods_fiscal_year_start_date_key',
+    { unique: ['fiscal_year_id', 'start_date'] }
+  );
 }
 
-export async function down(pgm: MigrationBuilder): Promise<void> {
+export function down(pgm: MigrationBuilder) {
   pgm.dropTable(reportingPeriodsTable);
 }

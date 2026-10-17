@@ -80,6 +80,106 @@ describe('reportingPeriodEntity', () => {
       expect(Object.isFrozen(audit)).toBe(true);
     });
 
+    it('covers the fiscal year with inclusive UTC quarter boundaries and no posting state', () => {
+      const periods = reportingPeriodEntity
+        .make(makePayload())
+        .map(([period]) => period);
+      expect(
+        periods.map((period) => [
+          period.startDate.toISOString().slice(0, 10),
+          period.endDate.toISOString().slice(0, 10),
+        ])
+      ).toEqual([
+        ['2026-01-01', '2026-03-31'],
+        ['2026-04-01', '2026-06-30'],
+        ['2026-07-01', '2026-09-30'],
+        ['2026-10-01', '2026-12-31'],
+      ]);
+      for (const day of [
+        '2026-01-01',
+        '2026-03-31',
+        '2026-04-01',
+        '2026-12-31',
+      ]) {
+        const date = new Date(day);
+        expect(
+          periods.filter(
+            (period) => date >= period.startDate && date <= period.endDate
+          )
+        ).toHaveLength(1);
+      }
+      expect(periods[0]).not.toHaveProperty('status');
+      expect(periods[0]).not.toHaveProperty('closedAt');
+    });
+
+    it('includes leap day with an independent monthly cadence', () => {
+      const payload = makePayload();
+      const [fiscalYear] = fiscalYearEntity.make({
+        createdBy: payload.createdBy,
+        accountingEntityId,
+        startDate: new Date('2028-01-01'),
+        endDate: new Date('2028-12-31'),
+        status: 'open',
+      });
+      const periods = reportingPeriodEntity.make({
+        ...payload,
+        fiscalYear,
+        unit: EPeriodUnit.Month,
+        count: 12,
+      });
+      expect(periods[1][0].endDate).toEqual(new Date('2028-02-29'));
+      expect(periods[2][0].startDate).toEqual(new Date('2028-03-01'));
+    });
+
+    it('rejects a fiscal year belonging to another entity', () => {
+      const payload = makePayload();
+      expect(() =>
+        reportingPeriodEntity.make({
+          ...payload,
+          accountingEntityId:
+            'a1111111-1111-4111-8111-111111111112' as TEntityId,
+        })
+      ).toThrow(periodError.InvalidAccountingEntityId);
+    });
+
+    it('rejects an invalid fiscal-year ID', () => {
+      const payload = makePayload();
+      expect(() =>
+        reportingPeriodEntity.make({
+          ...payload,
+          fiscalYear: { ...payload.fiscalYear, id: 'invalid' as TEntityId },
+        })
+      ).toThrow(periodError.InvalidFiscalYearId);
+    });
+
+    it('rejects an invalid creator', () => {
+      expect(() =>
+        reportingPeriodEntity.make({
+          ...makePayload(),
+          createdBy: 'invalid' as TEntityId,
+        })
+      ).toThrow(periodError.InvalidCreatedBy);
+    });
+
+    it('rejects generation whose calendar additions would overshoot the fiscal year', () => {
+      const payload = makePayload();
+      const [fiscalYear] = fiscalYearEntity.make({
+        createdBy: payload.createdBy,
+        accountingEntityId,
+        startDate: new Date('2028-01-31'),
+        endDate: new Date('2028-03-01'),
+        status: 'open',
+      });
+      expect(() =>
+        reportingPeriodEntity.make({
+          ...payload,
+          fiscalYear,
+          unit: EPeriodUnit.Month,
+          count: 3,
+        })
+      ).toThrow(periodError.InvalidInterval);
+    });
+
     it('throws if the accounting entity ID is invalid', () => {
       const payload = {
         ...makePayload(),

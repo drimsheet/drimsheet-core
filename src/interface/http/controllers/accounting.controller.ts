@@ -31,6 +31,10 @@ import {
   IFiscalYearCreationReq,
   IFiscalYearDto,
 } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
+import {
+  IReportingPeriodDto,
+  IReportingPeriodsCreationReq,
+} from '@app/accounting/dtos/reporting-period/reporting-period.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
@@ -39,6 +43,7 @@ import {
   createAccountingEntityUseCase,
   createAccountingPeriodsUseCase,
   createFiscalYearUseCase,
+  createReportingPeriodsUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextsUseCase,
   getActiveAccountingEntityUseCase,
@@ -238,6 +243,28 @@ export class AccountingController extends Controller {
     @Body() body: IAccountingContextCreationReq
   ) {
     return await createAccountingContextUseCase(body);
+  }
+
+  /** Generates inclusive UTC reporting intervals for x-accounting-entity-id. A fiscal year with existing reporting periods returns 409, regardless of requested cadence. */
+  @Post('/reporting-periods')
+  @OperationId('createReportingPeriods')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createReportingPeriods(
+    @Body() body: IReportingPeriodsCreationReq
+  ): Promise<IReportingPeriodDto[]> {
+    return await createReportingPeriodsUseCase(body);
   }
 
   /** Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries. */

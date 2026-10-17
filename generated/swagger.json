@@ -4045,11 +4045,13 @@
           },
           "startDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "First included UTC calendar date. Automatic current-period selection is handled separately."
           },
           "endDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Last included UTC calendar date; the completed interval is due for reporting from the following UTC day. Scheduling and report execution are separate."
           },
           "updatedAt": {
             "type": "string",
@@ -4427,6 +4429,24 @@
           "name",
           "description"
         ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IReportingPeriodsCreationReq": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UPeriodUnit"
+          },
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Number of intervals across the complete fiscal year. A fiscal year with existing reporting periods returns 409."
+          }
+        },
+        "required": ["fiscalYearId", "unit", "count"],
         "type": "object",
         "additionalProperties": false
       },
@@ -11239,6 +11259,110 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IAccountingContextCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/reporting-periods": {
+      "post": {
+        "operationId": "createReportingPeriods",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IReportingPeriodDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Generates inclusive UTC reporting intervals for x-accounting-entity-id. A fiscal year with existing reporting periods returns 409, regardless of requested cadence.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IReportingPeriodsCreationReq"
               }
             }
           }

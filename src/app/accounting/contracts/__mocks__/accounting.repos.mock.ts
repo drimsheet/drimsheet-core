@@ -91,5 +91,6 @@ export const mockReportingPeriodHistoryRepo: jest.Mocked<IReportingPeriodHistory
   };
 
 export const mockReportingPeriodRepo: jest.Mocked<IReportingPeriodRepo> = {
+  findAllByFiscalYear: jest.fn(),
   create: jest.fn(),
 };

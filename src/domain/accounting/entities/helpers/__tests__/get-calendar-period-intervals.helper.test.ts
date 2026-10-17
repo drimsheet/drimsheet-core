@@ -1,6 +1,6 @@
 import dateUtils from '@shared/utils/date';
 
-import getAccountingPeriodIntervalsHelper from '@domain/accounting/entities/helpers/get-accounting-period-intervals.helper';
+import getCalendarPeriodIntervalsHelper from '@domain/accounting/entities/helpers/get-calendar-period-intervals.helper';
 import periodError from '@domain/accounting/errors/period.error';
 import {
   EPeriodUnit,
@@ -18,7 +18,7 @@ function range(start: string, end: string) {
   return { startDate: utcDate(start), endDate: utcDate(end) };
 }
 
-describe('getAccountingPeriodIntervalsHelper', () => {
+describe('getCalendarPeriodIntervalsHelper', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(utcDate('2027-01-01'));
@@ -94,7 +94,7 @@ describe('getAccountingPeriodIntervalsHelper', () => {
       ],
     },
   ])('derives exact inclusive boundaries for $label', (testCase) => {
-    const intervals = getAccountingPeriodIntervalsHelper({
+    const intervals = getCalendarPeriodIntervalsHelper({
       ...range(testCase.start, testCase.end),
       unit: testCase.unit,
       count: testCase.expected.length,
@@ -106,7 +106,7 @@ describe('getAccountingPeriodIntervalsHelper', () => {
   });
 
   it('keeps every monthly start at UTC midnight across daylight-saving changes', () => {
-    const intervals = getAccountingPeriodIntervalsHelper({
+    const intervals = getCalendarPeriodIntervalsHelper({
       ...range('2028-01-01', '2028-12-31'),
       unit: EPeriodUnit.Month,
       count: 12,
@@ -140,7 +140,7 @@ describe('getAccountingPeriodIntervalsHelper', () => {
       count: 2,
     };
 
-    const intervals = getAccountingPeriodIntervalsHelper(payload);
+    const intervals = getCalendarPeriodIntervalsHelper(payload);
 
     expect(intervals).toEqual([
       range('2028-01-01', '2028-01-03'),
@@ -160,7 +160,7 @@ describe('getAccountingPeriodIntervalsHelper', () => {
     'rejects invalid count %s',
     (count) => {
       expect(() =>
-        getAccountingPeriodIntervalsHelper({
+        getCalendarPeriodIntervalsHelper({
           ...range('2028-01-01', '2028-01-07'),
           unit: EPeriodUnit.Day,
           count,
@@ -171,7 +171,7 @@ describe('getAccountingPeriodIntervalsHelper', () => {
 
   it('rejects an unsupported unit', () => {
     expect(() =>
-      getAccountingPeriodIntervalsHelper({
+      getCalendarPeriodIntervalsHelper({
         ...range('2028-01-01', '2028-01-07'),
         unit: 'invalid' as UPeriodUnit,
         count: 1,
@@ -181,7 +181,7 @@ describe('getAccountingPeriodIntervalsHelper', () => {
 
   it('rejects reversed dates', () => {
     expect(() =>
-      getAccountingPeriodIntervalsHelper({
+      getCalendarPeriodIntervalsHelper({
         ...range('2028-01-07', '2028-01-01'),
         unit: EPeriodUnit.Day,
         count: 1,
@@ -191,7 +191,7 @@ describe('getAccountingPeriodIntervalsHelper', () => {
 
   it('rejects an expired generation range', () => {
     expect(() =>
-      getAccountingPeriodIntervalsHelper({
+      getCalendarPeriodIntervalsHelper({
         ...range('2026-01-01', '2026-12-31'),
         unit: EPeriodUnit.Month,
         count: 12,
