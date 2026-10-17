@@ -3131,6 +3131,18 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IFiscalYearCreationReq: {
+    dataType: 'refObject',
+    properties: {
+      accountingEntityId: { dataType: 'string', required: true },
+      name: { dataType: 'string' },
+      startDate: { dataType: 'datetime', required: true },
+      endDate: { dataType: 'datetime', required: true },
+      status: { ref: 'UPeriodStatus', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IAccountingEntityUpdateReq: {
     dataType: 'refObject',
     properties: {
@@ -6796,6 +6808,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'onboardAccountingEntity',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_createFiscalYear: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IFiscalYearCreationReq',
+    },
+  };
+  app.post(
+    '/api/v1/accounting/fiscal-year',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.createFiscalYear
+    ),
+
+    async function AccountingController_createFiscalYear(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_createFiscalYear,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'createFiscalYear',
           controller,
           response,
           next,

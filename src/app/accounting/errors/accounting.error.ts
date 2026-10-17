@@ -3,6 +3,7 @@ import errorUtils from '@shared/utils/error';
 import appError from '@shared/values/errors/app.error';
 
 const EErrorKeys = {
+  EntityNotFound: 'app_error_accounting_entity_not_found',
   ActiveEntityNotFound: 'app_error_accounting_active_entity_not_found',
 } as const satisfies TErrorKeys<'app_error_accounting'>;
 

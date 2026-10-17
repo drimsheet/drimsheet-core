@@ -12,7 +12,8 @@ import toSchemaString from '../utils/to-schema-string';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export function up(pgm: MigrationBuilder) {
+  pgm.createExtension('btree_gist', { ifNotExists: true });
   pgm.createType(fiscalYearPeriodUnit, ['month']);
   pgm.createType(periodUnit, ['day', 'week', 'month', 'quarter', 'year']);
   pgm.createType(periodStatus, ['pending', 'open', 'closing', 'closed']);
@@ -77,9 +78,21 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       default: pgm.func('now()'),
     },
   });
+
+  pgm.addConstraint(fiscalYearsTable, 'fiscal_years_dates_ordered', {
+    check: 'start_date <= end_date',
+  });
+
+  // Inclusive dates: sharing even one day is a conflict, regardless of status.
+  pgm.sql(`ALTER TABLE ${toSchemaString(fiscalYearsTable)}
+    ADD CONSTRAINT fiscal_years_entity_dates_excl
+    EXCLUDE USING gist (
+      accounting_entity_id WITH =,
+      daterange(start_date, end_date, '[]') WITH &&
+    )`);
 }
 
-export async function down(pgm: MigrationBuilder): Promise<void> {
+export function down(pgm: MigrationBuilder) {
   pgm.dropTable(fiscalYearsTable);
 
   pgm.dropType(periodStatus);

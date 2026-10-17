@@ -1,5 +1,10 @@
 import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
+import IFiscalYearService from '@domain/accounting/types/fiscal-year.service.types';
+
+export const mockFiscalYearService: jest.Mocked<IFiscalYearService> = {
+  create: jest.fn(),
+};
 
 export const mockAccountingEntityService: jest.Mocked<IAccountingEntityService> =
   {

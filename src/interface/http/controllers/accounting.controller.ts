@@ -22,11 +22,16 @@ import {
   IAccountingEntitySwitchReq,
   IAccountingEntityUpdateReq,
 } from '@app/accounting/dtos/accounting/accounting.dto';
+import {
+  IFiscalYearCreationReq,
+  IFiscalYearDto,
+} from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   archiveAccountingEntityUseCase,
   createAccountingEntityUseCase,
+  createFiscalYearUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextsUseCase,
   getActiveAccountingEntityUseCase,
@@ -161,6 +166,27 @@ export class AccountingController extends Controller {
     @Body() body: IAccountingEntityOnboardingDto
   ): Promise<IAccountingEntityDto> {
     return await onboardAccountingEntityUseCase(body);
+  }
+
+  /** Creates only a fiscal year and its history for an existing entity owned by the caller. */
+  @Post('/fiscal-year')
+  @OperationId('createFiscalYear')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async createFiscalYear(
+    @Body() body: IFiscalYearCreationReq
+  ): Promise<IFiscalYearDto> {
+    return await createFiscalYearUseCase(body);
   }
 
   /** Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries. */

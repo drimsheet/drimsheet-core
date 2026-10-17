@@ -18,6 +18,8 @@ const EErrorKeys = {
   FiscalYearExceedsJurisdictionLimit:
     'accounting_error_period_fiscal_year_exceeds_jurisdiction_limit_invalid',
   OverlappingPeriods: 'accounting_error_period_overlap_conflict',
+  OverlappingFiscalYears:
+    'accounting_error_period_fiscal_year_overlap_conflict',
   PostingDateNotCovered:
     'accounting_error_period_posting_date_not_covered_invalid',
   PostingPeriodAmbiguous:
