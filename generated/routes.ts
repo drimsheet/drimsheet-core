@@ -3061,6 +3061,34 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingEntityDto: {
+    dataType: 'refObject',
+    properties: {
+      status: { ref: 'UAccountingEntityStatus', required: true },
+      id: { dataType: 'string', required: true },
+      createdBy: { dataType: 'string', required: true },
+      ownerId: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      type: { ref: 'UAccountingEntityType', required: true },
+      functionalCurrencyCode: { ref: 'UCurrencyCode', required: true },
+      jurisdictionCode: { ref: 'UJurisdictionCode', required: true },
+      createdAt: { dataType: 'datetime', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingEntityCreationDto: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+      entityType: { ref: 'UAccountingEntityType', required: true },
+      jurisdictionCode: { ref: 'UJurisdictionCode', required: true },
+      functionalCurrencyCode: { ref: 'UCurrencyCode', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IFiscalYearCreationDto: {
     dataType: 'refObject',
     properties: {
@@ -3083,39 +3111,22 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingEntityCreationDto: {
+  IAccountingEntityOnboardingDto: {
     dataType: 'refObject',
     properties: {
       name: { dataType: 'string', required: true },
       entityType: { ref: 'UAccountingEntityType', required: true },
       jurisdictionCode: { ref: 'UJurisdictionCode', required: true },
+      functionalCurrencyCode: { ref: 'UCurrencyCode', required: true },
       accountingStandardCode: {
         ref: 'UAccountingStandardCode',
         required: true,
       },
-      functionalCurrencyCode: { ref: 'UCurrencyCode', required: true },
       reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
       fiscalYear: { ref: 'IFiscalYearCreationDto', required: true },
       accountingPeriod: { ref: 'IPeriodCreationDto', required: true },
       reportingPeriod: { ref: 'IPeriodCreationDto', required: true },
       appPreferences: { ref: 'IUserAppPreferences', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingEntityDto: {
-    dataType: 'refObject',
-    properties: {
-      status: { ref: 'UAccountingEntityStatus', required: true },
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
-      ownerId: { dataType: 'string', required: true },
-      name: { dataType: 'string', required: true },
-      type: { ref: 'UAccountingEntityType', required: true },
-      functionalCurrencyCode: { ref: 'UCurrencyCode', required: true },
-      jurisdictionCode: { ref: 'UJurisdictionCode', required: true },
-      createdAt: { dataType: 'datetime', required: true },
-      updatedAt: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
   },
@@ -6736,6 +6747,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'createAccountingEntity',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_onboardAccountingEntity: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IAccountingEntityOnboardingDto',
+    },
+  };
+  app.post(
+    '/api/v1/accounting/accounting-entity/onboarding',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.onboardAccountingEntity
+    ),
+
+    async function AccountingController_onboardAccountingEntity(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_onboardAccountingEntity,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'onboardAccountingEntity',
           controller,
           response,
           next,

@@ -18,6 +18,7 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 import {
   IAccountingEntityCreationDto,
   IAccountingEntityDto,
+  IAccountingEntityOnboardingDto,
   IAccountingEntitySwitchReq,
   IAccountingEntityUpdateReq,
 } from '@app/accounting/dtos/accounting/accounting.dto';
@@ -32,6 +33,7 @@ import {
   getJurisdictionsUseCase,
   getReportingContextsUseCase,
   getUserAccountingEntitiesUseCase,
+  onboardAccountingEntityUseCase,
   switchAccountingEntityUseCase,
   updateAccountingEntityUseCase,
 } from '@infra/ioc/usecases/accounting';
@@ -122,7 +124,7 @@ export class AccountingController extends Controller {
   }
 
   /**
-   * Create a new accounting entity
+   * Create only an accounting entity. Calendar and context setup is separate.
    */
   @Post('/accounting-entity')
   @OperationId('createAccountingEntity')
@@ -138,8 +140,27 @@ export class AccountingController extends Controller {
   )
   public async createAccountingEntity(
     @Body() body: IAccountingEntityCreationDto
-  ) {
+  ): Promise<IAccountingEntityDto> {
     return await createAccountingEntityUseCase(body);
+  }
+
+  /** Creates an entity with its initial calendar and contexts for onboarding. */
+  @Post('/accounting-entity/onboarding')
+  @OperationId('onboardAccountingEntity')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async onboardAccountingEntity(
+    @Body() body: IAccountingEntityOnboardingDto
+  ): Promise<IAccountingEntityDto> {
+    return await onboardAccountingEntityUseCase(body);
   }
 
   /** Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries. */

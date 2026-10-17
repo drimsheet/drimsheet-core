@@ -10,8 +10,7 @@ export const accountingPeriodService = makeAccountingPeriodService({
 });
 
 export const accountingEntityService = makeAccountingEntityService({
+  accountingEntityRepo: accountingRepos.accountingEntity,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   journalEntryRepo: journalEntryRepos.journalEntry,
-  accountingEntityRepo: accountingRepos.accountingEntity,
-  accountingPeriodService,
 });

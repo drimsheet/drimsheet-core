@@ -100,18 +100,24 @@ export const accountingEntitySwitchReqSchema = z
   })
   .strict();
 
-export const accountingEntityOnboardingDtoSchema = z.object({
-  name: z.string(),
-  entityType: accountingEntityTypeValidation,
-  jurisdictionCode: jurisdictionCodeValidation,
-  accountingStandardCode: accountingStandardCodeValidation,
-  functionalCurrencyCode: currencyCodeValidation,
-  reportingCurrencyCode: currencyCodeValidation,
-  fiscalYear: fiscalYearCreationDtoSchema,
-  accountingPeriod: periodCreationDtoSchema,
-  reportingPeriod: periodCreationDtoSchema,
-  appPreferences: userAppPreferencesValidation,
-});
+export const accountingEntityCreationDtoSchema = z
+  .object({
+    name: z.string(new accountingEntityError.InvalidName().errorKey),
+    entityType: accountingEntityTypeValidation,
+    jurisdictionCode: jurisdictionCodeValidation,
+    functionalCurrencyCode: currencyCodeValidation,
+  })
+  .strict();
+
+export const accountingEntityOnboardingDtoSchema =
+  accountingEntityCreationDtoSchema.extend({
+    accountingStandardCode: accountingStandardCodeValidation,
+    reportingCurrencyCode: currencyCodeValidation,
+    fiscalYear: fiscalYearCreationDtoSchema,
+    accountingPeriod: periodCreationDtoSchema,
+    reportingPeriod: periodCreationDtoSchema,
+    appPreferences: userAppPreferencesValidation,
+  });
 
 export const accountingEntityUpdateReqSchema = z
   .object({

@@ -6,10 +6,14 @@ import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
 import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
+import makeOnboardAccountingEntityUsecase from '@app/accounting/usecases/onboard-accounting-entity.usecase';
 import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-accounting-entity.usecase';
 import makeUpdateAccountingEntityUsecase from '@app/accounting/usecases/update-accounting-entity.usecase';
 
-import { accountingEntityService } from '@infra/ioc/services/accounting';
+import {
+  accountingEntityService,
+  accountingPeriodService,
+} from '@infra/ioc/services/accounting';
 import { repoService } from '@infra/ioc/services/repo';
 import { userPreferencesAppService } from '@infra/ioc/services/user';
 import messaging from '@infra/messaging';
@@ -25,6 +29,18 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
   makeCreateAccountingEntityUseCase({
     appContext,
     accountingEntityRepo: accountingRepos.accountingEntity,
+    repoService,
+    accountingEntityService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+/** @deprecated Legacy combined onboarding; scheduled for removal. */
+export const onboardAccountingEntityUseCase = makeTracedUseCase(
+  'accounting.onboardAccountingEntityUseCase',
+  makeOnboardAccountingEntityUsecase({
+    appContext,
+    accountingEntityRepo: accountingRepos.accountingEntity,
     userPreferencesAppService,
     fiscalYearRepo: accountingRepos.fiscalYear,
     accountingPeriodRepo: accountingRepos.accountingPeriod,
@@ -33,6 +49,7 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
     reportingContextRepo: accountingRepos.reportingContext,
     repoService,
     accountingEntityService,
+    accountingPeriodService,
     eventBus: messaging.eventBus,
   })
 );

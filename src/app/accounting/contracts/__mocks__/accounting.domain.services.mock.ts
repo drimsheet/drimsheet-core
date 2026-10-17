@@ -3,8 +3,8 @@ import IAccountingPeriodService from '@domain/accounting/types/accounting-period
 
 export const mockAccountingEntityService: jest.Mocked<IAccountingEntityService> =
   {
-    delete: jest.fn(),
     create: jest.fn(),
+    delete: jest.fn(),
     update: jest.fn(),
     grantUserAccess: jest.fn(),
     validateAccess: jest.fn(),
