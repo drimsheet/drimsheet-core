@@ -337,8 +337,10 @@ function generateDbml(grouped) {
     const settings = [];
     const deleteAction = onDeleteAction(foreignKey.delete_action);
     if (deleteAction) settings.push(`delete: ${deleteAction}`);
-    settings.push(`name: '${escapeDbml(foreignKey.constraint_name)}'`);
-    lines.push(`Ref: ${source} > ${target} [${settings.join(', ')}]`);
+    const suffix = settings.length ? ` [${settings.join(', ')}]` : '';
+    lines.push(
+      `Ref ${foreignKey.constraint_name}: ${source} > ${target}${suffix}`
+    );
   }
 
   return `${lines.join('\n').trim()}\n`;
