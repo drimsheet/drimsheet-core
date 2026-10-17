@@ -129,45 +129,6 @@ Run the focused protocol and integration tests with:
 npm test -- --runInBand src/interface/mcp test/http/mcp src/infra/ioc/__specs__/mcp.spec.ts
 ```
 
-### Accounting entity creation and onboarding
-
-`POST /api/v1/accounting/accounting-entity` creates only an accounting entity.
-Its body contains `name`, `entityType`, `jurisdictionCode`, and
-`functionalCurrencyCode`. Ownership and creator identity come from authenticated
-request context. It returns `IAccountingEntityDto` after the entity and its
-history commit, followed by publication of the entity creation event. It does
-not create calendars, periods, contexts, schedules, or user preferences, and it
-does not select the new entity as active.
-
-The former combined creation contract has been retired from that endpoint.
-`accountingEntityService.create` now prepares only an entity; complete setup
-is coordinated directly by the deprecated `onboardAccountingEntityUseCase`.
-That legacy use case is retained temporarily and will be deleted in an upcoming
-ticket. The domain has no onboarding service or contract.
-Calendar, reporting, and preference fields are rejected instead of ignored.
-Clients needing the complete initial setup must use
-`POST /api/v1/accounting/accounting-entity/onboarding` with
-`IAccountingEntityOnboardingDto`. That operation retains the initial fiscal
-year, accounting periods, reporting periods, contexts, and active-entity
-preference in one transaction. Both endpoints retain authentication and Alpha 1
-access checks.
-
-| Consumer                                               | Classification and replacement                                                            |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| Entity creation HTTP operation and its use case        | Entity-only: `IAccountingEntityCreationDto` and `accountingEntityService.create`          |
-| Former full-setup HTTP payload and creation workflow   | Onboarding: `IAccountingEntityOnboardingDto`, deprecated `onboardAccountingEntityUseCase` |
-| Full-setup domain, application, and HTTP test fixtures | Migrated to onboarding; standalone creation has separate coverage                         |
-
-The controller was the only production caller of the former combined use case
-in this repository. External clients using its old payload must migrate to the
-onboarding endpoint; no compatibility alias silently performs onboarding.
-
-An entity without a calendar is a supported setup state. It can be listed and
-selected using the existing entity operations; context lists are empty until
-configured. Posting still requires exactly one covering Open accounting period
-and fails when periods are absent. Standalone fiscal-year and context setup
-operations are separate work.
-
 ### Testing
 
 Run the test suite:
