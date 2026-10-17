@@ -22,7 +22,10 @@
   must commit or roll back with the request.
 - Derive `expectedVersion` from the workflow's repository read.
 - Do not hide business rules in the use case body.
-- Move non-trivial decisions to domain entities, values, domain services, app services, or app policies.
+- Follow [Domain Services](service-ownership.md#domain-services) for invariant
+  enforcement; calling domain validators directly from a use case does not
+  satisfy that boundary. DTO shape validation and application authorization
+  remain orchestration concerns; app policies must not own domain invariants.
 - Do not extract a service only to shorten the use case.
 
 ## Persistence Services

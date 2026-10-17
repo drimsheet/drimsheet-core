@@ -1,9 +1,29 @@
+import { IAccountingContext } from '@domain/accounting/types/context.types';
+
 import { IAccountingContextDetails } from '@app/accounting/contracts/accounting-context.query.repo.contract';
 import accountingPeriodDtoMapper from '@app/accounting/dtos/accounting-period/accounting-period.dto.mapper';
 
-import { IAccountingContextDto } from './accounting-context.dto';
+import {
+  IAccountingContextDto,
+  IAccountingContextRecordDto,
+} from './accounting-context.dto';
 
 const accountingContextDtoMapper = {
+  toRecordDto(context: IAccountingContext): IAccountingContextRecordDto {
+    return {
+      id: context.id,
+      createdBy: context.createdBy,
+      name: context.name,
+      description: context.description,
+      accountingEntityId: context.accountingEntityId,
+      accountingStandardCode: context.accountingStandardCode,
+      fiscalYearId: context.fiscalYearId,
+      currentAccountingPeriodId: context.currentAccountingPeriodId,
+      createdAt: context.createdAt,
+      updatedAt: context.updatedAt,
+      closedAt: context.closedAt,
+    };
+  },
   toDto(context: IAccountingContextDetails): IAccountingContextDto {
     return {
       id: context.id,

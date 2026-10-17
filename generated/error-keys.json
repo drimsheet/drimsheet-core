@@ -65,6 +65,7 @@
   "address_error_city_invalid",
   "address_error_country_code_invalid",
   "address_error_line1_invalid",
+  "app_error_accounting_accounting_period_not_found",
   "app_error_accounting_active_entity_not_found",
   "app_error_accounting_entity_not_found",
   "app_error_accounting_fiscal_year_not_found",

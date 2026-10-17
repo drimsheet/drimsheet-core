@@ -15,6 +15,7 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
+import { IAccountingContextCreationReq } from '@app/accounting/dtos/accounting-context/accounting-context.dto';
 import {
   IAccountingPeriodDto,
   IAccountingPeriodsCreationReq,
@@ -34,6 +35,7 @@ import {
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   archiveAccountingEntityUseCase,
+  createAccountingContextUseCase,
   createAccountingEntityUseCase,
   createAccountingPeriodsUseCase,
   createFiscalYearUseCase,
@@ -214,6 +216,28 @@ export class AccountingController extends Controller {
     @Body() body: IAccountingPeriodsCreationReq
   ): Promise<IAccountingPeriodDto[]> {
     return await createAccountingPeriodsUseCase(body);
+  }
+
+  /** Creates a context for x-accounting-entity-id from existing records; archived entities return 409. Explicit period selection is required for current, historical, and future years and never changes period status or posting eligibility. */
+  @Post('/accounting-context')
+  @OperationId('createAccountingContext')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createAccountingContext(
+    @Body() body: IAccountingContextCreationReq
+  ) {
+    return await createAccountingContextUseCase(body);
   }
 
   /** Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries. */

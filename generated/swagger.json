@@ -3541,46 +3541,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "UAccountingStandardCode": {
-        "type": "string",
-        "enum": [
-          "AASB",
-          "ASPE",
-          "CAS",
-          "CGNC",
-          "EAS",
-          "HGB",
-          "HKFRS",
-          "IFRS",
-          "IND_AS",
-          "ISRAELI_GAAP",
-          "J_GAAP",
-          "K_IFRS",
-          "MFRS",
-          "NIF",
-          "NZ_IFRS",
-          "OIC",
-          "PCG",
-          "PFRS",
-          "PGC",
-          "PSAK",
-          "RAS",
-          "RJ",
-          "SCF",
-          "SFRS",
-          "SWISS_GAAP_FER",
-          "SYSCOHADA",
-          "TFRS",
-          "THAI_FRS",
-          "TIFRS",
-          "UK_GAAP",
-          "US_GAAP",
-          "VAS",
-          "LOCAL_GAAP",
-          "CASH_BASIS"
-        ],
-        "nullable": false
-      },
       "UPeriodStatus": {
         "type": "string",
         "enum": ["pending", "open", "closing", "closed"]
@@ -3699,6 +3659,46 @@
         ],
         "type": "object",
         "additionalProperties": false
+      },
+      "UAccountingStandardCode": {
+        "type": "string",
+        "enum": [
+          "AASB",
+          "ASPE",
+          "CAS",
+          "CGNC",
+          "EAS",
+          "HGB",
+          "HKFRS",
+          "IFRS",
+          "IND_AS",
+          "ISRAELI_GAAP",
+          "J_GAAP",
+          "K_IFRS",
+          "MFRS",
+          "NIF",
+          "NZ_IFRS",
+          "OIC",
+          "PCG",
+          "PFRS",
+          "PGC",
+          "PSAK",
+          "RAS",
+          "RJ",
+          "SCF",
+          "SFRS",
+          "SWISS_GAAP_FER",
+          "SYSCOHADA",
+          "TFRS",
+          "THAI_FRS",
+          "TIFRS",
+          "UK_GAAP",
+          "US_GAAP",
+          "VAS",
+          "LOCAL_GAAP",
+          "CASH_BASIS"
+        ],
+        "nullable": false
       },
       "IAccountingContextDto": {
         "properties": {
@@ -4339,6 +4339,94 @@
           }
         },
         "required": ["fiscalYearId", "unit", "count"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingContextRecordDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountingEntityId": {
+            "type": "string"
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "currentAccountingPeriodId": {
+            "type": "string",
+            "description": "Stored working-period selection, maintained independently of this read."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "createdBy",
+          "name",
+          "description",
+          "accountingEntityId",
+          "accountingStandardCode",
+          "fiscalYearId",
+          "currentAccountingPeriodId",
+          "createdAt",
+          "updatedAt",
+          "closedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingContextCreationReq": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "currentAccountingPeriodId": {
+            "type": "string",
+            "description": "Required for current, historical, and future years; selection never changes posting eligibility."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "fiscalYearId",
+          "accountingStandardCode",
+          "currentAccountingPeriodId",
+          "name",
+          "description"
+        ],
         "type": "object",
         "additionalProperties": false
       },
@@ -11050,6 +11138,107 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IAccountingPeriodsCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/accounting-context": {
+      "post": {
+        "operationId": "createAccountingContext",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountingContextRecordDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates a context for x-accounting-entity-id from existing records; archived entities return 409. Explicit period selection is required for current, historical, and future years and never changes period status or posting eligibility.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IAccountingContextCreationReq"
               }
             }
           }

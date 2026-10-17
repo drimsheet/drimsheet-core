@@ -62,6 +62,7 @@ describe('makeJournalEntryRectificationService', () => {
   const effectiveDate = new Date('2026-09-01T00:00:00.000Z');
   const now = new Date('2026-09-21T09:30:00.000Z');
   const periodRepo: jest.Mocked<IAccountingPeriodRepo> = {
+    findById: jest.fn(),
     create: jest.fn(),
     findByDate: jest.fn(),
     findAllByDate: jest.fn(),

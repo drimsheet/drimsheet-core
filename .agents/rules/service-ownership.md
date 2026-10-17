@@ -16,6 +16,12 @@ owner. Do not create a service merely to shorten a use case.
 
 ## Domain Services
 
+- Domain invariant enforcement must execute inside domain creation or mutation
+  capabilities. Use cases and other application code must never orchestrate
+  standalone domain invariant validators, even when those validators live in
+  domain modules. Pass the required facts to an entity, value, or domain-service
+  operation that validates and prepares the result internally. Cross-entity
+  invariants belong in a domain service. Test them through that domain API.
 - Own business invariants, domain decisions, and coordinated creation within
   one bounded context.
 - Remain dependency-free by default.

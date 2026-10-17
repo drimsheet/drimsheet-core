@@ -5,6 +5,11 @@ import { IAccountingPeriodHistory } from '@domain/accounting/types/period-audit.
 import { IAccountingPeriod } from '@domain/accounting/types/period.types';
 
 export default interface IAccountingPeriodRepo {
+  findById(
+    id: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IAccountingPeriod | null>;
+
   findByDate(
     accountingEntityId: TEntityId,
     date: Date,

@@ -1,4 +1,5 @@
 import makeArchiveAccountingEntityUsecase from '@app/accounting/usecases/archive-accounting-entity.usecase';
+import makeCreateAccountingContextUsecase from '@app/accounting/usecases/create-accounting-context.usecase';
 import makeCreateAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
 import makeCreateAccountingPeriodsUsecase from '@app/accounting/usecases/create-accounting-periods.usecase';
 import makeCreateFiscalYearUsecase from '@app/accounting/usecases/create-fiscal-year.usecase';
@@ -13,6 +14,7 @@ import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-a
 import makeUpdateAccountingEntityUsecase from '@app/accounting/usecases/update-accounting-entity.usecase';
 
 import {
+  accountingContextService,
   accountingEntityService,
   accountingPeriodService,
   fiscalYearService,
@@ -26,6 +28,18 @@ import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import userRepos from '@infra/persistence/repos/user';
 import appContext from '@infra/services/app-context.service';
+
+export const createAccountingContextUseCase = makeTracedUseCase(
+  'accounting.createAccountingContextUseCase',
+  makeCreateAccountingContextUsecase({
+    appContext,
+    accountingContextService,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    accountingPeriodRepo: accountingRepos.accountingPeriod,
+    accountingContextRepo: accountingRepos.accountingContext,
+    eventBus: messaging.eventBus,
+  })
+);
 
 export const createAccountingPeriodsUseCase = makeTracedUseCase(
   'accounting.createAccountingPeriodsUseCase',
