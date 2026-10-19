@@ -53,13 +53,13 @@ jest.mock('@interface/http/routes', () => ({
   ],
 }));
 
-jest.mock('../../../infra/server/cors', () => ({
+jest.mock('@infra/runtime/servers/express/cors', () => ({
   __esModule: true,
   default: () => (_request: Request, _response: Response, next: NextFunction) =>
     next(),
 }));
 
-jest.mock('../../../infra/server/swagger', () => ({
+jest.mock('@infra/runtime/servers/express/swagger', () => ({
   __esModule: true,
   default: () => [
     (_request: Request, _response: Response, next: NextFunction) => next(),

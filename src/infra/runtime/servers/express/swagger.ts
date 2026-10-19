@@ -3,7 +3,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import vars from '@infra/config/vars.config';
 
-import swaggerDoc from '../../../generated/swagger.json';
+import swaggerDoc from '../../../../../generated/swagger.json';
 
 export default function swagger() {
   const isSupportedEnv = ['development', 'local'].includes(vars.APP_ENV);

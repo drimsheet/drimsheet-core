@@ -4,8 +4,9 @@ import request from 'supertest';
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
 import * as authUseCase from '@infra/ioc/usecases/auth';
-import { createApplication } from '@infra/server';
 import appContext from '@infra/services/app-context.service';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

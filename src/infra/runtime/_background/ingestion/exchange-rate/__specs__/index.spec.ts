@@ -12,7 +12,7 @@ jest.mock('@infra/runtime/bootstrap/observability.bootstrap', () => ({
 }));
 
 jest.mock(
-  '@infra/runtime/_ingestion/exchange-rate/exchange-rate-ingestion.runtime',
+  '@infra/runtime/_background/ingestion/exchange-rate/exchange-rate-ingestion.runtime',
   () => {
     mockLoadOrder.push('runtime-module');
 
@@ -38,7 +38,7 @@ describe('exchange-rate ingestion bootstrap', () => {
 
   it('bootstraps observability before loading and running the job', async () => {
     await jest.isolateModulesAsync(async () => {
-      await import('@infra/runtime/_ingestion/exchange-rate/index');
+      await import('@infra/runtime/_background/ingestion/exchange-rate/index');
       await new Promise((resolve) => setImmediate(resolve));
     });
 

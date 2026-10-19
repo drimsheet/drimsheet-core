@@ -8,7 +8,7 @@ import { oAuthUseCase } from '@infra/ioc/usecases/auth';
 import observability from '@infra/observability';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
-import makeGlobalRateLimiter from '@infra/server/rate-limiter';
+import makeGlobalRateLimiter from '@infra/runtime/servers/express/rate-limiter';
 import appContext from '@infra/services/app-context.service';
 
 import makeAccountingEntityAccessMiddleware from '@interface/http/middlewares/accounting-entity-access.middleware';

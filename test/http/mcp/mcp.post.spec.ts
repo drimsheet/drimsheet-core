@@ -106,7 +106,7 @@ jest.mock('@interface/http/routes/bull.route', () => ({
   __esModule: true,
   default: jest.requireActual<typeof import('express')>('express').Router(),
 }));
-jest.mock('@infra/server/swagger', () => ({
+jest.mock('@infra/runtime/servers/express/swagger', () => ({
   __esModule: true,
   default: () => [Router()],
 }));

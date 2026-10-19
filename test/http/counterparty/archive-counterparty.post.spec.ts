@@ -19,8 +19,9 @@ import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.m
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import * as counterpartyUseCases from '@infra/ioc/usecases/counterparty';
-import { createApplication } from '@infra/server';
 import appContext from '@infra/services/app-context.service';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

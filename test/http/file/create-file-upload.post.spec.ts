@@ -14,7 +14,8 @@ import { EFileUploadPurpose } from '@app/file/types/file.types';
 import { tokenAppService } from '@infra/ioc/services/auth';
 import * as fileUseCases from '@infra/ioc/usecases/file';
 import userRepos from '@infra/persistence/repos/user';
-import { createApplication } from '@infra/server';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

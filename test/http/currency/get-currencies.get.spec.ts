@@ -5,7 +5,8 @@ import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-
 import { ICurrencyDto } from '@app/money/dtos/currency/currency.dto';
 
 import * as moneyUseCases from '@infra/ioc/usecases/money';
-import { createApplication } from '@infra/server';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

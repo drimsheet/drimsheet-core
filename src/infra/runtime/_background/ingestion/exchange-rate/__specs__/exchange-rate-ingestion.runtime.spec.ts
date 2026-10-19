@@ -20,7 +20,7 @@ import observability from '@infra/observability';
 import exchangeRateIngestionRuntime, {
   isRetryableExchangeRateIngestionError,
   makeExchangeRateIngestionRuntime,
-} from '@infra/runtime/_ingestion/exchange-rate/exchange-rate-ingestion.runtime';
+} from '@infra/runtime/_background/ingestion/exchange-rate/exchange-rate-ingestion.runtime';
 import observabilityLifecycle from '@infra/runtime/lifecycle/observability.lifecycle';
 import appContext from '@infra/services/app-context.service';
 

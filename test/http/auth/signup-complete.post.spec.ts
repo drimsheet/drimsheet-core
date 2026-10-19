@@ -8,7 +8,8 @@ import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-
 import { makeHashedRateLimitKey } from '@infra/config/rate-limiter.config';
 import middlewares from '@infra/ioc/middlewares/http';
 import * as authUseCase from '@infra/ioc/usecases/auth';
-import { createApplication } from '@infra/server';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

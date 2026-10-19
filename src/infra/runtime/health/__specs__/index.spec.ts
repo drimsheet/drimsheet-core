@@ -1,4 +1,4 @@
-type TRuntimeHealth = typeof import('@infra/server/health').default;
+type TRuntimeHealth = typeof import('@infra/runtime/health').default;
 let runtimeHealth: TRuntimeHealth;
 let postgres: typeof import('@infra/config/postgres.config').postgres;
 
@@ -10,7 +10,7 @@ describe('runtime health', () => {
   beforeEach(async () => {
     jest.resetModules();
     ({ postgres } = await import('@infra/config/postgres.config'));
-    ({ default: runtimeHealth } = await import('@infra/server/health'));
+    ({ default: runtimeHealth } = await import('@infra/runtime/health'));
   });
 
   it('does not probe PostgreSQL before startup completes', async () => {

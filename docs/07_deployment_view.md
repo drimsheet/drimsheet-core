@@ -69,8 +69,14 @@ prerelease succeeds, the approved changes are promoted independently to the
 
 Under `src/infra/runtime`, underscore-prefixed directories contain executable
 runtimes: `_http/index.ts` starts the API, and
-`_ingestion/exchange-rate/index.ts` runs exchange-rate ingestion. Unprefixed
+`_background/ingestion/exchange-rate/index.ts` runs exchange-rate ingestion.
+`servers/express/` owns Express-specific configuration and listener startup;
+`health/index.ts` owns startup readiness and the PostgreSQL probe. Unprefixed
 `bootstrap/` and `lifecycle/` directories contain shared runtime support.
+The HTTP process still registers email and ledger-balance workers from
+`src/infra/messaging`; there is no standalone worker process. HTTP health and
+MCP routes remain in `src/interface/http`, and MCP tool registration remains
+in `src/interface/mcp` with no separate listener.
 See the [runtime guide](../src/infra/runtime/__docs__/README.md) for the directory
 layout, startup chart, and lifecycle responsibilities.
 

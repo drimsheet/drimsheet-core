@@ -6,7 +6,7 @@ import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 import { healthHandlers, mcpRouteHandler } from '@infra/ioc/handlers/http';
 import { getJournalEntriesUseCase } from '@infra/ioc/usecases/journal-entry';
 import { getLedgerAccountsUseCase } from '@infra/ioc/usecases/ledger';
-import runtimeHealth from '@infra/server/health';
+import runtimeHealth from '@infra/runtime/health';
 
 jest.mock('@infra/ioc/usecases/money', () => ({
   getExchangeRateUseCase: jest.fn(),
@@ -17,7 +17,7 @@ jest.mock('@infra/ioc/usecases/counterparty', () => ({
   getCounterpartyUseCase: jest.fn(),
 }));
 
-jest.mock('@infra/server/health', () => ({
+jest.mock('@infra/runtime/health', () => ({
   __esModule: true,
   default: { isReady: jest.fn() },
 }));
