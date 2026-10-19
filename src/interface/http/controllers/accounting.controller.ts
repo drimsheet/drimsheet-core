@@ -31,6 +31,7 @@ import {
   IFiscalYearCreationReq,
   IFiscalYearDto,
 } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
+import { IReportingContextCreationReq } from '@app/accounting/dtos/reporting-context/reporting-context.dto';
 import {
   IReportingPeriodDto,
   IReportingPeriodsCreationReq,
@@ -43,6 +44,7 @@ import {
   createAccountingEntityUseCase,
   createAccountingPeriodsUseCase,
   createFiscalYearUseCase,
+  createReportingContextUseCase,
   createReportingPeriodsUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextsUseCase,
@@ -265,6 +267,28 @@ export class AccountingController extends Controller {
     @Body() body: IReportingPeriodsCreationReq
   ): Promise<IReportingPeriodDto[]> {
     return await createReportingPeriodsUseCase(body);
+  }
+
+  /** Creates only a reporting context and its history for x-accounting-entity-id; archived entities return 409. The selected reporting period must share the linked accounting context's entity and fiscal year. */
+  @Post('/reporting-context')
+  @OperationId('createReportingContext')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createReportingContext(
+    @Body() body: IReportingContextCreationReq
+  ) {
+    return await createReportingContextUseCase(body);
   }
 
   /** Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries. */

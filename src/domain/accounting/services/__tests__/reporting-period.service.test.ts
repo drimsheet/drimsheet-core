@@ -17,6 +17,7 @@ describe('reportingPeriodService', () => {
     status: 'closed',
   });
   const repo: jest.Mocked<IReportingPeriodRepo> = {
+    findById: jest.fn(),
     create: jest.fn(),
     findAllByFiscalYear: jest.fn(),
   };

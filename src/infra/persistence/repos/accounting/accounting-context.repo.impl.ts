@@ -11,6 +11,15 @@ import accountingContextMapper from '@infra/persistence/repos/accounting/mappers
 import accountingContextHistoryRepo from './accounting-context-history.repo.impl';
 
 const accountingContextRepoImpl: IAccountingContextRepo = {
+  findById: async (id, options) => {
+    const [row] = await getDbQuery(options)
+      .select()
+      .from(accountingContextsInCore)
+      .where(eq(accountingContextsInCore.id, id))
+      .limit(1);
+    return row ? accountingContextMapper.toDomain(row) : null;
+  },
+
   async deleteByAccountingEntityId(accountingEntityId, options) {
     await getDbQuery(options)
       .delete(accountingContextsInCore)

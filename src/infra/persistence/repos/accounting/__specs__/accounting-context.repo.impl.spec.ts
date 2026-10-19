@@ -104,3 +104,43 @@ describe('accounting-context atomic creation', () => {
     expect(fake.staged).toEqual([]);
   });
 });
+
+describe('accounting-context lookup', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+  const row = {
+    id,
+    createdBy: id,
+    accountingEntityId: id,
+    name: 'Accounting context',
+    description: null,
+    accountingStandardCode: 'IFRS',
+    fiscalYearId: id,
+    currentOperatingPeriodId: id,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    closedAt: null,
+  };
+  it.each([false, true])(
+    'loads and maps a context by ID, found=%j',
+    async (found) => {
+      const options = { correlationId: 'context-read' };
+      const limit = jest.fn().mockResolvedValue(found ? [row] : []);
+      const where = jest.fn().mockReturnValue({ limit });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+      const result = await repo.findById(id, options);
+      expect(result).toEqual(
+        found ? accountingContextMapper.toDomain(row) : null
+      );
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(from).toHaveBeenCalledWith(accountingContextsInCore);
+      expect(where).toHaveBeenCalledWith(eq(accountingContextsInCore.id, id));
+      expect(limit).toHaveBeenCalledWith(1);
+    }
+  );
+});

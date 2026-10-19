@@ -2,7 +2,13 @@ import IAccountingContextService from '@domain/accounting/types/accounting-conte
 import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import IFiscalYearService from '@domain/accounting/types/fiscal-year.service.types';
+import IReportingContextService from '@domain/accounting/types/reporting-context.service.types';
 import IReportingPeriodService from '@domain/accounting/types/reporting-period.service.types';
+
+export const mockReportingContextService: jest.Mocked<IReportingContextService> =
+  {
+    create: jest.fn(),
+  };
 
 export const mockReportingPeriodService: jest.Mocked<IReportingPeriodService> =
   {

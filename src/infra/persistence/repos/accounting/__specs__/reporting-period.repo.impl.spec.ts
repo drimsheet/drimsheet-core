@@ -1,4 +1,4 @@
-import { SQL } from 'drizzle-orm';
+import { eq, SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 
 import generateUUID from '@shared/utils/uuid-generator';
@@ -99,6 +99,47 @@ describe('reportingPeriodRepo', () => {
       );
       expect(from).toHaveBeenCalledWith(reportingPeriodsInCore);
       expect(getDbQuery).toHaveBeenCalledWith(options);
+    }
+  );
+
+  it.each([false, true])(
+    'loads a reporting period by ID, found=%j',
+    async (found) => {
+      const period = periods[0];
+      const row = reportingPeriodMapper.toRepo(period);
+      const readOptions = { correlationId: 'reporting-read' };
+      const limit = jest.fn().mockResolvedValue(found ? [row] : []);
+      const where = jest.fn().mockReturnValue({ limit });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+      const result = await reportingPeriodRepo.findById(period.id, readOptions);
+      expect(result).toEqual(
+        found
+          ? {
+              id: period.id,
+              createdBy: period.createdBy,
+              name: period.name,
+              accountingEntityId: period.accountingEntityId,
+              fiscalYearId: period.fiscalYearId,
+              unit: period.unit,
+              count: period.count,
+              startDate: period.startDate,
+              endDate: period.endDate,
+              updatedAt: period.updatedAt,
+            }
+          : null
+      );
+      expect(getDbQuery).toHaveBeenCalledWith(readOptions);
+      expect(from).toHaveBeenCalledWith(reportingPeriodsInCore);
+      expect(where).toHaveBeenCalledWith(
+        eq(reportingPeriodsInCore.id, period.id)
+      );
+      expect(limit).toHaveBeenCalledWith(1);
     }
   );
 

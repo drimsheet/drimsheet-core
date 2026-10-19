@@ -1,8 +1,29 @@
+import { IReportingContext } from '@domain/accounting/types/context.types';
+
 import { IReportingContextDetails } from '@app/accounting/contracts/reporting-context.query.repo.contract';
 
-import { IReportingContextDto } from './reporting-context.dto';
+import {
+  IReportingContextDto,
+  IReportingContextRecordDto,
+} from './reporting-context.dto';
 
 const reportingContextDtoMapper = {
+  toRecordDto(context: IReportingContext): IReportingContextRecordDto {
+    return {
+      id: context.id,
+      createdBy: context.createdBy,
+      name: context.name,
+      description: context.description,
+      accountingEntityId: context.accountingEntityId,
+      accountingStandardCode: context.accountingStandardCode,
+      accountingContextId: context.accountingContextId,
+      reportingCurrencyCode: context.reportingCurrencyCode,
+      currentReportingPeriodId: context.currentReportingPeriodId,
+      createdAt: context.createdAt,
+      updatedAt: context.updatedAt,
+      closedAt: context.closedAt,
+    };
+  },
   toDto(context: IReportingContextDetails): IReportingContextDto {
     return {
       id: context.id,

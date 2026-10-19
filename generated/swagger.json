@@ -4450,6 +4450,102 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IReportingContextRecordDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountingEntityId": {
+            "type": "string"
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "accountingContextId": {
+            "type": "string"
+          },
+          "reportingCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "currentReportingPeriodId": {
+            "type": "string",
+            "description": "Stored working-period selection, maintained independently of this read."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "createdBy",
+          "name",
+          "description",
+          "accountingEntityId",
+          "accountingStandardCode",
+          "accountingContextId",
+          "reportingCurrencyCode",
+          "currentReportingPeriodId",
+          "createdAt",
+          "updatedAt",
+          "closedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IReportingContextCreationReq": {
+        "properties": {
+          "accountingContextId": {
+            "type": "string"
+          },
+          "currentReportingPeriodId": {
+            "type": "string",
+            "description": "Explicit working-period selection within the linked accounting context's fiscal year."
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "reportingCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "accountingContextId",
+          "currentReportingPeriodId",
+          "accountingStandardCode",
+          "reportingCurrencyCode",
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IAccountingEntityUpdateReq": {
         "properties": {
           "name": {
@@ -11363,6 +11459,107 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IReportingPeriodsCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/reporting-context": {
+      "post": {
+        "operationId": "createReportingContext",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IReportingContextRecordDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates only a reporting context and its history for x-accounting-entity-id; archived entities return 409. The selected reporting period must share the linked accounting context's entity and fiscal year.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IReportingContextCreationReq"
               }
             }
           }

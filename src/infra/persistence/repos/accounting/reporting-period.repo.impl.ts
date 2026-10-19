@@ -12,6 +12,15 @@ import reportingPeriodMapper from '@infra/persistence/repos/accounting/mappers/r
 import reportingPeriodHistoryRepo from './reporting-period-history.repo.impl';
 
 const reportingPeriodRepoImpl: IReportingPeriodRepo = {
+  findById: async (id, options) => {
+    const [row] = await getDbQuery(options)
+      .select()
+      .from(reportingPeriodsInCore)
+      .where(eq(reportingPeriodsInCore.id, id))
+      .limit(1);
+    return row ? reportingPeriodMapper.toDomain(row) : null;
+  },
+
   findAllByFiscalYear: async (accountingEntityId, fiscalYearId, options) => {
     const rows = await getDbQuery(options)
       .select()
