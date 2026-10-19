@@ -1,6 +1,6 @@
 import vars from '@infra/config/vars.config';
 import observability from '@infra/observability';
-import runtimeHealth from '@infra/server/health';
+import runtimeHealth from '@infra/runtime/health';
 
 import makeHttpErrorHandler from '@interface/http/handlers/error.handler';
 import makeHealthHandlers from '@interface/http/handlers/health.handler';

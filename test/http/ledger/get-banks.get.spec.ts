@@ -12,7 +12,8 @@ import { IBankDirectoryDto } from '@app/ledger/dtos/bank-directory/bank-director
 import { tokenAppService } from '@infra/ioc/services/auth';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import userRepos from '@infra/persistence/repos/user';
-import { createApplication } from '@infra/server';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

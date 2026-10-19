@@ -17,7 +17,8 @@ import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.m
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import * as journalEntryUseCases from '@infra/ioc/usecases/journal-entry';
-import { createApplication } from '@infra/server';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/handlers/http', () => {
   const makeHttpErrorHandler = jest.requireActual<

@@ -15,7 +15,7 @@ const allowed = await lint(
     "import './sibling';",
     "import '@domain/accounting/types/accounting-entity.types';",
     "import '@app/auth/errors/auth.error';",
-    "import '@infra/server';",
+    "import '@infra/runtime/servers/express';",
     "import '@interface/http';",
     "import '@shared/types/uuid';",
   ].join('\n'),

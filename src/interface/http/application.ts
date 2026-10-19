@@ -5,8 +5,8 @@ import helmet from 'helmet';
 import passport from 'passport';
 
 import httpMiddlewares from '@infra/ioc/middlewares/http';
-import cors from '@infra/server/cors';
-import swagger from '@infra/server/swagger';
+import cors from '@infra/runtime/servers/express/cors';
+import swagger from '@infra/runtime/servers/express/swagger';
 
 import nonControllerRoutes from '@interface/http/routes';
 import healthRoute from '@interface/http/routes/health.route';

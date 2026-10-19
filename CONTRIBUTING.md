@@ -85,7 +85,7 @@ src/
 │  ├─ messaging/        # Domain event bus and BullMQ queues/workers
 │  ├─ observability/    # Logging, metrics, monitoring, and tracing
 │  ├─ persistence/      # Data persistence mechanisms including DB (Drizzle), caching, and concrete repo implementations
-│  ├─ server/           # Express (or other HTTP) server setup and bootstrapping
+│  ├─ runtime/          # HTTP and background-job entrypoints, servers/express listener setup, readiness, bootstrap, and lifecycle
 │  ├─ services/         # Concrete infrastructure capabilities that are not named platform integrations
 │  └─ templates/        # Email templates (MJML source and compiled TypeScript)
 │

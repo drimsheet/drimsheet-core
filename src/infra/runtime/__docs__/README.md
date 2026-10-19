@@ -10,11 +10,23 @@ and a separate exchange-rate ingestion process that exits after its run.
 runtime/
   _http/
     index.ts
-  _ingestion/
-    exchange-rate/
+  _background/
+    ingestion/
+      exchange-rate/
+        index.ts
+        exchange-rate-ingestion.runtime.ts
+        __specs__/
+  servers/
+    express/
       index.ts
-      exchange-rate-ingestion.runtime.ts
+      cors.ts
+      rate-limiter.ts
+      swagger.ts
       __specs__/
+  health/
+    index.ts
+    __specs__/
+      index.spec.ts
   bootstrap/
     accounting-context.bootstrap.ts
     currencies.bootstrap.ts
@@ -31,16 +43,20 @@ runtime/
 ```
 
 Single-underscore prefixes identify runtime categories. Their executable
-entrypoints are `index.ts` files; `_ingestion/` groups ingestion processes.
-Unprefixed directories contain shared support. Double-underscore directories
+entrypoints are `index.ts` files; `_background/` groups executable background
+jobs, with ingestion jobs under `ingestion/`. Unprefixed directories contain
+runtime support, including concrete listener setup under `servers/express/`.
+Double-underscore directories
 contain documentation or tests, not executable runtimes.
 
-| Location                    | Responsibility                                                                              |
-| --------------------------- | ------------------------------------------------------------------------------------------- |
-| `_http/`                    | Start the HTTP server and coordinate its dependency bootstrap.                              |
-| `_ingestion/exchange-rate/` | Fetch and ingest exchange rates, handle retries and cancellation, and clean up before exit. |
-| `bootstrap/`                | Initialize dependencies and register handlers when explicitly invoked by a runtime.         |
-| `lifecycle/`                | Coordinate resource initialization, shutdown, and telemetry flushing.                       |
+| Location                               | Responsibility                                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `_http/`                               | Start the HTTP server and coordinate its dependency bootstrap.                              |
+| `_background/ingestion/exchange-rate/` | Fetch and ingest exchange rates, handle retries and cancellation, and clean up before exit. |
+| `servers/express/`                     | Configure Express-specific adapters and start the HTTP listener.                            |
+| `health/`                              | Track startup readiness and probe PostgreSQL independently of Express.                      |
+| `bootstrap/`                           | Initialize dependencies and register handlers when explicitly invoked by a runtime.         |
+| `lifecycle/`                           | Coordinate resource initialization, shutdown, and telemetry flushing.                       |
 
 ## Runtime chart
 
@@ -63,7 +79,7 @@ flowchart TD
     end
 
     subgraph INGESTION["Exchange-rate ingestion process"]
-        I0["_ingestion/exchange-rate/index.ts"] --> I1["Initialize Sentry"]
+        I0["_background/ingestion/exchange-rate/index.ts"] --> I1["Initialize Sentry"]
         I1 --> I2["Dynamically load ingestion runtime"]
         I2 --> I3["Register cancellation handlers and start run"]
         I3 --> I4["Fetch CBN rates and map supported currencies"]
@@ -85,8 +101,8 @@ cancellation also pass through cleanup.
 ## HTTP process
 
 [`_http/index.ts`](../_http/index.ts) supplies the bootstrap callback to the
-[server](../../server/index.ts). The server starts listening before that callback
-finishes. [Readiness](../../server/health.ts) requires both successful startup and
+[server](../servers/express/index.ts). The server starts listening before that callback
+finishes. [Readiness](../health/index.ts) requires both successful startup and
 a successful PostgreSQL probe; listening alone does not mean the application is
 ready. Bootstrap failure marks startup as failed.
 
@@ -96,12 +112,20 @@ working context.
 
 The HTTP process currently also registers the transactional-email and
 ledger-balance-adjustment [workers](../../messaging/workers/index.ts). There is no
-separate background runtime or scheduler entrypoint.
+separate background-worker process or scheduler entrypoint. The `_background/`
+directory groups jobs such as the standalone ingestion process; it does not
+relocate these workers or change where they run.
+
+The [HTTP application](../../../interface/http/application.ts), health route,
+and MCP HTTP route remain in `src/interface/http`. MCP tool registration and
+protocol definitions remain in `src/interface/mcp`; the HTTP transport adapter
+remains in `src/interface/http/handlers/mcp-route.handler.ts`. MCP shares the
+HTTP listener and has no separate runtime or infrastructure server.
 
 ## Exchange-rate ingestion
 
-[`_ingestion/exchange-rate/index.ts`](../_ingestion/exchange-rate/index.ts) invokes
-the [ingestion runtime](../_ingestion/exchange-rate/exchange-rate-ingestion.runtime.ts)
+[`_background/ingestion/exchange-rate/index.ts`](../_background/ingestion/exchange-rate/index.ts) invokes
+the [ingestion runtime](../_background/ingestion/exchange-rate/exchange-rate-ingestion.runtime.ts)
 and assigns its result to `process.exitCode`.
 
 The runtime fetches CBN rates, maps supported currencies, resolves the

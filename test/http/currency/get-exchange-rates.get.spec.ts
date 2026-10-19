@@ -6,7 +6,8 @@ import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
 import * as moneyUseCases from '@infra/ioc/usecases/money';
-import { createApplication } from '@infra/server';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

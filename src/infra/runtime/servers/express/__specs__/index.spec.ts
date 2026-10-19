@@ -1,9 +1,7 @@
 import setupOAuth from '@infra/integrations/oauth/google-oauth.strategy';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
 import logger from '@infra/observability/logger';
-import setupServer, {
-  createApplication as exportedCreateApplication,
-} from '@infra/server';
+import setupServer from '@infra/runtime/servers/express';
 
 const mockListen = jest.fn();
 
@@ -12,7 +10,7 @@ jest.mock('@infra/integrations/oauth/google-oauth.strategy', () => ({
   default: jest.fn(),
 }));
 
-jest.mock('../../config/vars.config', () => ({
+jest.mock('@infra/config/vars.config', () => ({
   __esModule: true,
   default: {
     PORT: 3_000,
@@ -22,7 +20,7 @@ jest.mock('../../config/vars.config', () => ({
   },
 }));
 
-jest.mock('../../observability/logger', () => ({
+jest.mock('@infra/observability/logger', () => ({
   __esModule: true,
   default: { info: jest.fn() },
 }));
@@ -32,12 +30,12 @@ jest.mock('@infra/integrations/sentry/sentry-reporter', () => ({
   default: { report: jest.fn() },
 }));
 
-jest.mock('../../../interface/http/application', () => ({
+jest.mock('@interface/http/application', () => ({
   __esModule: true,
   default: jest.fn(() => ({ listen: mockListen })),
 }));
 
-jest.mock('@infra/server/health', () => ({
+jest.mock('@infra/runtime/health', () => ({
   __esModule: true,
   default: {
     markStartupComplete: jest.fn(),
@@ -45,8 +43,8 @@ jest.mock('@infra/server/health', () => ({
   },
 }));
 
-const runtimeHealth = jest.requireMock<typeof import('@infra/server/health')>(
-  '@infra/server/health'
+const runtimeHealth = jest.requireMock<typeof import('@infra/runtime/health')>(
+  '@infra/runtime/health'
 ).default;
 
 function getListenCallback(): () => Promise<void> {
@@ -58,7 +56,7 @@ function getListenCallback(): () => Promise<void> {
 }
 
 function getMockCreateApplication(): jest.Mock {
-  return jest.requireMock('../../../interface/http/application').default;
+  return jest.requireMock('@interface/http/application').default;
 }
 
 describe('server setup', () => {
@@ -72,7 +70,6 @@ describe('server setup', () => {
     setupServer(bootstrap);
 
     expect(setupOAuth).toHaveBeenCalledTimes(1);
-    expect(exportedCreateApplication).toBe(getMockCreateApplication());
     expect(getMockCreateApplication()).toHaveBeenCalledWith();
     expect(mockListen).toHaveBeenCalledWith(3_000, expect.any(Function));
 

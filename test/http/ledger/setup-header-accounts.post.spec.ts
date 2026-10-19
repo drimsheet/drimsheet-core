@@ -25,8 +25,9 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import * as ledgerServices from '@infra/ioc/services/ledger';
 import { setupHeaderAccountsUseCase } from '@infra/ioc/usecases/ledger';
-import { createApplication } from '@infra/server';
 import appContext from '@infra/services/app-context.service';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

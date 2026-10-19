@@ -4,12 +4,9 @@ import vars from '@infra/config/vars.config';
 import setupOAuth from '@infra/integrations/oauth/google-oauth.strategy';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
 import logger from '@infra/observability/logger';
+import runtimeHealth from '@infra/runtime/health';
 
 import createApplication from '@interface/http/application';
-
-import runtimeHealth from './health';
-
-export { default as createApplication } from '@interface/http/application';
 
 function setupServer(bootstrap?: () => Promise<void>) {
   setupOAuth();

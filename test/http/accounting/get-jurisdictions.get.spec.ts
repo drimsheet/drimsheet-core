@@ -6,7 +6,8 @@ import { SYSTEM_JURISDICTIONS } from '@domain/accounting/config/jurisdictions.co
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
 import * as accountingUsecases from '@infra/ioc/usecases/accounting';
-import { createApplication } from '@infra/server';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

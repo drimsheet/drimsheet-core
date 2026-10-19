@@ -20,7 +20,8 @@ import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.m
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import { createSuspenseAccountUseCase } from '@infra/ioc/usecases/ledger';
-import { createApplication } from '@infra/server';
+
+import createApplication from '@interface/http/application';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),

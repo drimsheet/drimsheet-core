@@ -23,7 +23,7 @@ async function startApplication(): Promise<void> {
     { default: bootstrapCurrencies },
   ] = await Promise.all([
     import('@infra/messaging/workers'),
-    import('@infra/server'),
+    import('@infra/runtime/servers/express'),
     import('@infra/runtime/bootstrap/accounting-context.bootstrap'),
     import('@infra/runtime/bootstrap/events.bootstrap'),
     import('@infra/runtime/bootstrap/feature-flag.bootstrap'),
