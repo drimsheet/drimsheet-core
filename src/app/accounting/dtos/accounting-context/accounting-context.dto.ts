@@ -1,27 +1,18 @@
 import { UAccountingStandardCode } from '@domain/accounting/config/accounting-standards.config';
-import {
-  UPeriodStatus,
-  UPeriodUnit,
-} from '@domain/accounting/types/period.types';
 
+import { IAccountingPeriodDto } from '@app/accounting/dtos/accounting-period/accounting-period.dto';
 import { IFiscalYearDto } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
 
-interface IAccountingPeriodDto {
-  id: string;
-  createdBy: string;
-  name: string;
-  accountingEntityId: string;
+export interface IAccountingContextCreationReq {
   fiscalYearId: string;
-  unit: UPeriodUnit;
-  count: number;
-  startDate: Date;
-  endDate: Date;
-  status: UPeriodStatus;
-  closedAt: Date | null;
-  updatedAt: Date;
+  accountingStandardCode: UAccountingStandardCode;
+  /** Required for current, historical, and future years; selection never changes posting eligibility. */
+  currentAccountingPeriodId: string;
+  name: string;
+  description: string | null;
 }
 
-export interface IAccountingContextDto {
+export interface IAccountingContextRecordDto {
   id: string;
   createdBy: string;
   name: string;
@@ -34,6 +25,9 @@ export interface IAccountingContextDto {
   createdAt: Date;
   updatedAt: Date;
   closedAt: Date | null;
+}
+
+export interface IAccountingContextDto extends IAccountingContextRecordDto {
   fiscalYear: IFiscalYearDto;
   accountingPeriods: IAccountingPeriodDto[];
 }

@@ -25,6 +25,7 @@ describe('accountingPeriodRepoImpl', () => {
 
   function mockRead(results: unknown[]) {
     const baseQuery = {
+      limit: jest.fn().mockResolvedValue(results),
       then: (resolve: (value: unknown[]) => void) => resolve(results),
     };
     const where = jest.fn<typeof baseQuery, [SQL]>().mockReturnValue(baseQuery);
@@ -38,6 +39,28 @@ describe('accountingPeriodRepoImpl', () => {
     jest.clearAllMocks();
     (accountingPeriodMapper.toDomain as jest.Mock).mockReturnValue(period);
   });
+
+  it.each([true, false])(
+    'findById maps an existing period or returns null: %s',
+    async (exists) => {
+      const query = mockRead(exists ? [row] : []);
+      const options = { correlationId: 'context-creation' };
+      const result = await accountingPeriodRepo.findById(
+        accountingEntityId,
+        options
+      );
+      expect(result).toEqual(exists ? period : null);
+      const predicate = new PgDialect().sqlToQuery(
+        query.where.mock.calls[0][0]
+      );
+      expect(predicate.sql).toBe('"core"."accounting_periods"."id" = $1');
+      expect(predicate.params).toEqual([accountingEntityId]);
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(accountingPeriodMapper.toDomain).toHaveBeenCalledTimes(
+        exists ? 1 : 0
+      );
+    }
+  );
 
   it.each([
     ['start boundary', new Date('2026-01-01T00:00:00.000Z')],

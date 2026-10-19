@@ -11,7 +11,7 @@ import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateTradePayableAccountDto } from '@app/ledger/dtos/payable-account/payable-account.dto';
 import { createTradePayableAccountValidation } from '@app/ledger/dtos/payable-account/payable-account.dto.validation';
@@ -27,15 +27,12 @@ jest.mock('@infra/ioc/services/user', () => ({
     '@app/user/contracts/__mocks__/actor.services.mock'
   ).mockActorService,
 }));
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual(
-      '@app/context/contracts/__mocks__/feature-flag.service.mock'
-    ).default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual(
+    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+  ).default,
+}));
 jest.mock('@infra/ioc/services/auth', () => ({
   tokenAppService: jest.requireActual(
     '@app/auth/contracts/__mocks__/token-service.mock'

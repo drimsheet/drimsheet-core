@@ -1,6 +1,7 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ILedgerAccountQueryRepo from '@app/ledger/contracts/ledger-account.query.repo.contract';
 import {
@@ -11,7 +12,7 @@ import chartOfAccountsMapper from '@app/ledger/dtos/chart-of-accounts/chart-of-a
 import { getChartOfAccountsQueryValidationSchema } from '@app/ledger/dtos/chart-of-accounts/chart-of-accounts.dto.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   ledgerAccountQueryRepo: ILedgerAccountQueryRepo;
   balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
 }

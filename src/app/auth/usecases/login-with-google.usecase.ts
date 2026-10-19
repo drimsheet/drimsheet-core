@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
   IRepoService,
@@ -21,14 +22,14 @@ import {
   TOAuthDoneCallback,
 } from '@app/auth/dtos/auth/auth.dto';
 import authError from '@app/auth/errors/auth.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
   actorRepo: IActorRepo;
   actorService: IActorService;
   userIdentityService: IUserIdentityService;
   eventBus: IEventBus;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   userRepo: IUserRepo;
   userAuthRepo: IUserAuthRepo;
   userAuthAppService: IUserAuthAppService;

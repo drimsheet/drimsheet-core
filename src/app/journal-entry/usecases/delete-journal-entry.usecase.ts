@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
   IRepoService,
@@ -15,7 +16,7 @@ import {
   IJournalEntryRemovalService,
 } from '@domain/journal-entry/types/journal-entry-removal.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
@@ -25,7 +26,7 @@ import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/cont
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   eventBus: IEventBus;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
   fxLotAppService: IFxLotAppService;

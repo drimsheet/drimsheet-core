@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
   IRepoService,
@@ -12,7 +13,7 @@ import historyValue from '@shared/values/history/history.vo';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening-balance-entry.service.contract';
 import { IOpeningBalanceCreationReq } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
@@ -23,7 +24,7 @@ import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   ledgerAccountRepo: ILedgerAccountRepo;
   eventBus: IEventBus;
   openingBalanceEntryAppService: IOpeningBalanceEntryAppService;
@@ -138,6 +139,7 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
       ...journalEvents,
       ...(fxAcquisition?.events ?? []),
     ];
-    deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
+
+    await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
   };
 }

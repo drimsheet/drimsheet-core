@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
@@ -6,7 +7,7 @@ import historyValue from '@shared/values/history/history.vo';
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import ICounterpartyService from '@domain/counterparty/types/counterparty.service.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import {
   ICounterpartyCreateReq,
   ICounterpartyDto,
@@ -15,7 +16,7 @@ import counterpartyDtoMapper from '@app/counterparty/dtos/counterparty/counterpa
 import { counterpartyCreateReqValidation } from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   counterpartyService: ICounterpartyService;
   counterpartyRepo: ICounterpartyRepo;
   eventBus: IEventBus;

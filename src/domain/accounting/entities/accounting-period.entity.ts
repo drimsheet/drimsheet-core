@@ -3,7 +3,7 @@ import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
-import getAccountingPeriodIntervalsHelper from '@domain/accounting/entities/helpers/get-accounting-period-intervals.helper';
+import getCalendarPeriodIntervalsHelper from '@domain/accounting/entities/helpers/get-calendar-period-intervals.helper';
 import accountingPeriodValidation from '@domain/accounting/entities/validations/accounting-period.validation';
 import periodError from '@domain/accounting/errors/period.error';
 import periodEvents from '@domain/accounting/events/period.events';
@@ -38,7 +38,7 @@ function make(
     payload.accountingEntityId,
     payload.fiscalYear
   );
-  const intervals = getAccountingPeriodIntervalsHelper({
+  const intervals = getCalendarPeriodIntervalsHelper({
     startDate: payload.fiscalYear.startDate,
     endDate: payload.fiscalYear.endDate,
     unit: payload.unit,

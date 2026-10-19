@@ -18,7 +18,7 @@ import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeDeleteCounterpartyUsecase from '@app/counterparty/usecases/delete-counterparty.usecase';
 import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
@@ -26,8 +26,8 @@ import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.m
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import * as counterpartyUseCases from '@infra/ioc/usecases/counterparty';
-import appContext from '@infra/runtime/app-context';
 import { createApplication } from '@infra/server';
+import appContext from '@infra/services/app-context.service';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -35,15 +35,12 @@ jest.mock('@infra/ioc/services/user', () => ({
     '@app/user/contracts/__mocks__/actor.services.mock'
   ).mockActorService,
 }));
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual(
-      '@app/context/contracts/__mocks__/feature-flag.service.mock'
-    ).default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual(
+    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+  ).default,
+}));
 jest.mock('@infra/ioc/services/auth', () => ({
   ...jest.requireActual('@infra/ioc/services/auth'),
   tokenAppService: jest.requireActual(

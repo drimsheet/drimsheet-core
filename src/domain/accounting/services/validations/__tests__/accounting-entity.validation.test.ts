@@ -9,7 +9,6 @@ import {
   EAccountingEntityType,
   IAccountingEntity,
 } from '@domain/accounting/types/accounting-entity.types';
-import { EPeriodUnit } from '@domain/accounting/types/period.types';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 
 const repo: jest.Mocked<IAccountingEntityRepo> = {
@@ -38,15 +37,7 @@ describe('accountingEntityServiceValidation', () => {
     type: EAccountingEntityType.Individual,
     ownerId,
     functionalCurrencyCode: 'USD',
-    reportingCurrencyCode: 'USD',
     jurisdictionCode: 'US',
-    accountingStandardCode: 'US_GAAP',
-    fiscalYear: {
-      startDate: new Date('2026-01-01T00:00:00.000Z'),
-      endDate: new Date('2026-12-31T23:59:59.999Z'),
-    },
-    accountingPeriod: { unit: EPeriodUnit.Month, count: 1 },
-    reportingPeriod: { unit: EPeriodUnit.Quarter, count: 1 },
   };
 
   describe('validateExistingIndividualEntity', () => {

@@ -2,10 +2,17 @@ import dateUtils from '@shared/utils/date';
 
 import { IPeriod } from '@domain/accounting/types/period.types';
 
-export default function getPeriodContainingCurrentDate(periods: IPeriod[]) {
-  const now = new Date();
+/** Selects by inclusive UTC calendar date, including the entire final day. */
+export default function getPeriodContainingCurrentDateHelper(
+  periods: IPeriod[]
+) {
+  const today = dateUtils.toUtcStartOfDay(new Date());
 
   return periods.find((period) =>
-    dateUtils.isWithinRange(now, period.startDate, period.endDate)
+    dateUtils.isWithinRange(
+      today,
+      dateUtils.toUtcStartOfDay(period.startDate),
+      dateUtils.toUtcStartOfDay(period.endDate)
+    )
   );
 }

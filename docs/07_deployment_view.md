@@ -67,10 +67,17 @@ prerelease succeeds, the approved changes are promoted independently to the
 
 **Mapping software to infrastructure:**
 
+Under `src/infra/runtime`, underscore-prefixed directories contain executable
+runtimes: `_http/index.ts` starts the API, and
+`_ingestion/exchange-rate/index.ts` runs exchange-rate ingestion. Unprefixed
+`bootstrap/` and `lifecycle/` directories contain shared runtime support.
+See the [runtime guide](../src/infra/runtime/__docs__/README.md) for the directory
+layout, startup chart, and lifecycle responsibilities.
+
 - TypeScript code (found in `src/*`) maps directly to a **single Node.js Docker Container image** artifact.
 - During a deployment, Coolify builds the Dockerfile, compiles the TypeScript, drops dev dependencies, and hot-swaps the container.
 - The runtime starts through the established
-  `src/infra/runtime/_bootstrap/index.ts` entry. That file initializes Sentry
+  `src/infra/runtime/_http/index.ts` entry. That file initializes Sentry
   before dynamically importing Express, PostgreSQL, Redis, BullMQ,
   and the rest of the application graph, allowing Sentry to install automatic
   instrumentation before those libraries load. Coolify admits the new container

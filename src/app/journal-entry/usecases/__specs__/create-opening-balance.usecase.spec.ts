@@ -27,7 +27,7 @@ import { IUser } from '@domain/user/types/user.types';
 import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
 import makeCreateOpeningBalanceUseCase from '@app/journal-entry/usecases/create-opening-balance.usecase';
@@ -329,6 +329,50 @@ describe('createOpeningBalanceUseCase', () => {
       mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
     );
     expect(mockEventBus.publish).toHaveBeenCalled();
+  });
+
+  it('persists the journal without account history when its opening date is already set', async () => {
+    const date = new Date('2026-04-24T00:00:00.000Z');
+    const [accountWithOpeningDate] =
+      ledgerAccountEntity.updateOpeningBalanceDate(mockAssetAccount, date);
+    mockLedgerAccountRepo.findById
+      .mockReset()
+      .mockResolvedValue(accountWithOpeningDate);
+
+    await getUseCase()({
+      accountId: accountWithOpeningDate.id,
+      amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+      exchangeRate: null,
+      date: new Date(date),
+    });
+
+    expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalledWith(
+      mockJournalCreation[0],
+      expect.objectContaining({
+        entityId: mockJournalCreation[0].id,
+        correlationId,
+      }),
+      expect.any(Array),
+      { correlationId, tx: 'mock-tx' }
+    );
+    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
+      mockJournalCreation[0].id,
+      { correlationId, tx: 'mock-tx' }
+    );
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
+      journalEntryId: mockJournalCreation[0].id,
+      correlationId,
+    });
+    expect(mockEventBus.publish).toHaveBeenCalledWith(
+      mockJournalCreation[1].map((event) =>
+        expect.objectContaining({
+          type: event.type,
+          data: event.data,
+          correlationId,
+        })
+      )
+    );
   });
 
   it('should record opening balance with an exchange rate', async () => {

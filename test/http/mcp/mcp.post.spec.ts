@@ -24,7 +24,7 @@ import httpHandlers, { mcpRouteHandler } from '@infra/ioc/handlers/http';
 import httpMiddlewares from '@infra/ioc/middlewares/http';
 import { getJournalEntriesUseCase } from '@infra/ioc/usecases/journal-entry';
 import { getLedgerAccountsUseCase } from '@infra/ioc/usecases/ledger';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
 import makeHttpErrorHandler from '@interface/http/handlers/error.handler';

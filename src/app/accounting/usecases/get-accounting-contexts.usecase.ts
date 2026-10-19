@@ -1,10 +1,12 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
+
 import IAccountingContextQueryRepo from '@app/accounting/contracts/accounting-context.query.repo.contract';
 import { IAccountingContextDto } from '@app/accounting/dtos/accounting-context/accounting-context.dto';
 import accountingContextDtoMapper from '@app/accounting/dtos/accounting-context/accounting-context.dto.mapper';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   accountingContextQueryRepo: IAccountingContextQueryRepo;
 }
 

@@ -1,6 +1,7 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import {
   IFileUploadDto,
@@ -9,7 +10,7 @@ import {
 import { fileUploadReqValidation } from '@app/file/dtos/file-upload/file-upload.dto.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   fileManagementAppService: IFileManagementAppService;
 }
 

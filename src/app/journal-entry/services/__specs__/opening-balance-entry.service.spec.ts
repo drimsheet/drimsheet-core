@@ -243,6 +243,34 @@ describe('opening balance entry service', () => {
     expect(result.entriesForBalancePropagation).toEqual([]);
   });
 
+  it('returns the unchanged draft without a persistence mutation or events for an identical revision', async () => {
+    const account = makeAccount();
+    const payload = getPayload(account);
+    const { creation } = await service.create(payload, repoOptions);
+    const originalEntry = toJournalDetails(creation[0]);
+    mockJournalEntryQueryRepo.findAll.mockResolvedValue({
+      data: [originalEntry],
+      meta: { page: 1, limit: 1, total: 1, totalPages: 1 },
+    });
+
+    const result = await service.createOrRevise(payload, repoOptions);
+
+    expect(result.currentJournalEntry).toBe(originalEntry);
+    expect(result.currentJournalEntry.version).toBe(originalEntry.version);
+    expect(result.currentJournalEntry.updatedAt).toBe(originalEntry.updatedAt);
+    expect(result.currentJournalEntry.lines).toBe(originalEntry.lines);
+    expect(result.mutation).toEqual({
+      entriesToCreate: [],
+      entryUpdate: null,
+      events: [],
+    });
+    expect(result.entriesForBalancePropagation).toEqual([]);
+    expect(result.fxAcquisition).toBeNull();
+    expect(
+      mockAccountingPeriodService.validatePostingPeriod
+    ).toHaveBeenCalledWith(accountingEntity.id, effectiveDate, repoOptions);
+  });
+
   it('creates a posted entry when no draft exists and returns its FX and propagation effects', async () => {
     const account = makeAccount('active');
     const fxAcquisition = { records: {}, events: [] } as unknown as Awaited<

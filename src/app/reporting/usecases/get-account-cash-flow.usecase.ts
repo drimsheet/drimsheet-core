@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 import stringUtils from '@shared/utils/string';
@@ -15,7 +16,7 @@ import {
 } from '@domain/ledger/types/ledger.types';
 import moneyValue from '@domain/money/values/money.vo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IAccountCashFlowQueryRepo from '@app/reporting/contracts/account-cash-flow.query.repo.contract';
 import {
   IAccountCashFlowDto,
@@ -29,7 +30,7 @@ import buildAccountCashFlowBucketsHelper from '@app/reporting/usecases/helpers/b
 import reportingValidation from '@app/reporting/validations/reporting.validation';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   ledgerAccountRepo: ILedgerAccountRepo;
   accountCashFlowQueryRepo: IAccountCashFlowQueryRepo;
 }

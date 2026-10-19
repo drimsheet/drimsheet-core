@@ -15,23 +15,44 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
+import { IAccountingContextCreationReq } from '@app/accounting/dtos/accounting-context/accounting-context.dto';
+import {
+  IAccountingPeriodDto,
+  IAccountingPeriodsCreationReq,
+} from '@app/accounting/dtos/accounting-period/accounting-period.dto';
 import {
   IAccountingEntityCreationDto,
   IAccountingEntityDto,
+  IAccountingEntityOnboardingDto,
   IAccountingEntitySwitchReq,
   IAccountingEntityUpdateReq,
 } from '@app/accounting/dtos/accounting/accounting.dto';
+import {
+  IFiscalYearCreationReq,
+  IFiscalYearDto,
+} from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
+import { IReportingContextCreationReq } from '@app/accounting/dtos/reporting-context/reporting-context.dto';
+import {
+  IReportingPeriodDto,
+  IReportingPeriodsCreationReq,
+} from '@app/accounting/dtos/reporting-period/reporting-period.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   archiveAccountingEntityUseCase,
+  createAccountingContextUseCase,
   createAccountingEntityUseCase,
+  createAccountingPeriodsUseCase,
+  createFiscalYearUseCase,
+  createReportingContextUseCase,
+  createReportingPeriodsUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextsUseCase,
   getActiveAccountingEntityUseCase,
   getJurisdictionsUseCase,
   getReportingContextsUseCase,
   getUserAccountingEntitiesUseCase,
+  onboardAccountingEntityUseCase,
   switchAccountingEntityUseCase,
   updateAccountingEntityUseCase,
 } from '@infra/ioc/usecases/accounting';
@@ -122,7 +143,7 @@ export class AccountingController extends Controller {
   }
 
   /**
-   * Create a new accounting entity
+   * Create only an accounting entity. Calendar and context setup is separate.
    */
   @Post('/accounting-entity')
   @OperationId('createAccountingEntity')
@@ -138,8 +159,136 @@ export class AccountingController extends Controller {
   )
   public async createAccountingEntity(
     @Body() body: IAccountingEntityCreationDto
-  ) {
+  ): Promise<IAccountingEntityDto> {
     return await createAccountingEntityUseCase(body);
+  }
+
+  /** Creates an entity with its initial calendar and contexts for onboarding. */
+  @Post('/accounting-entity/onboarding')
+  @OperationId('onboardAccountingEntity')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async onboardAccountingEntity(
+    @Body() body: IAccountingEntityOnboardingDto
+  ): Promise<IAccountingEntityDto> {
+    return await onboardAccountingEntityUseCase(body);
+  }
+
+  /** Creates only a fiscal year and its history for an existing entity owned by the caller. */
+  @Post('/fiscal-year')
+  @OperationId('createFiscalYear')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async createFiscalYear(
+    @Body() body: IFiscalYearCreationReq
+  ): Promise<IFiscalYearDto> {
+    return await createFiscalYearUseCase(body);
+  }
+
+  /** Generates the fiscal year's posting calendar for x-accounting-entity-id. Context and schedule setup are separate. */
+  @Post('/accounting-periods')
+  @OperationId('createAccountingPeriods')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createAccountingPeriods(
+    @Body() body: IAccountingPeriodsCreationReq
+  ): Promise<IAccountingPeriodDto[]> {
+    return await createAccountingPeriodsUseCase(body);
+  }
+
+  /** Creates a context for x-accounting-entity-id from existing records; archived entities return 409. Explicit period selection is required for current, historical, and future years and never changes period status or posting eligibility. */
+  @Post('/accounting-context')
+  @OperationId('createAccountingContext')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createAccountingContext(
+    @Body() body: IAccountingContextCreationReq
+  ) {
+    return await createAccountingContextUseCase(body);
+  }
+
+  /** Generates inclusive UTC reporting intervals for x-accounting-entity-id. A fiscal year with existing reporting periods returns 409, regardless of requested cadence. */
+  @Post('/reporting-periods')
+  @OperationId('createReportingPeriods')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createReportingPeriods(
+    @Body() body: IReportingPeriodsCreationReq
+  ): Promise<IReportingPeriodDto[]> {
+    return await createReportingPeriodsUseCase(body);
+  }
+
+  /** Creates only a reporting context and its history for x-accounting-entity-id; archived entities return 409. The selected reporting period must share the linked accounting context's entity and fiscal year. */
+  @Post('/reporting-context')
+  @OperationId('createReportingContext')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createReportingContext(
+    @Body() body: IReportingContextCreationReq
+  ) {
+    return await createReportingContextUseCase(body);
   }
 
   /** Updates the entity selected by x-accounting-entity-id. Currency changes require no journal entries. */

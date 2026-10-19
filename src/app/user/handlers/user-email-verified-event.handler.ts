@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IReporter from '@shared/contracts/reporter.contract';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
@@ -5,11 +6,11 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import { EUserEvents } from '@domain/user/events/user.events';
 import { IUser } from '@domain/user/types/user.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
   reporter: IReporter;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
 }
 
 function makeUserEmailVerifiedEventHandler(deps: IDependencies) {

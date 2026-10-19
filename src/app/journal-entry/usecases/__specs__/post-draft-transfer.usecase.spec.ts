@@ -15,7 +15,7 @@ import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
@@ -170,6 +170,41 @@ describe('post draft transfer use case', () => {
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
       throw error;
     });
+  });
+
+  it('commits without writes or downstream effects when posting returns no audit', async () => {
+    mockJournalEntryRepo.findById.mockResolvedValue(posting[0]);
+    mockJournalEntryService.postDraftTransfer.mockResolvedValue({
+      journalEntry: [posting[0], [], null],
+      sourceAccount: account,
+      destinationAssetAccount: destinationAccount,
+    });
+
+    await expect(usecase(posting[0].id)).resolves.toBeUndefined();
+
+    expect(mockJournalEntryService.postDraftTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({ entry: posting[0], actor: actorId }),
+      transactionOptions
+    );
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    expect(
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
+    ).not.toHaveBeenCalled();
+    expect(
+      mockFxLotCostBasisAppService.persistence.persistDisposition
+    ).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });
 
   it.each([

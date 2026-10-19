@@ -7,7 +7,7 @@ import appError from '@shared/values/errors/app.error';
 
 import { IResetPasswordReq } from '@app/auth/dtos/auth/auth.dto';
 import authError from '@app/auth/errors/auth.error';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
 import { makeIpRateLimitKey } from '@infra/config/rate-limiter.config';
 import middlewares from '@infra/ioc/middlewares/http';
@@ -21,15 +21,12 @@ jest.mock('@infra/ioc/services/user', () => ({
   ).mockActorService,
 }));
 
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual<
-      typeof import('@app/context/contracts/__mocks__/feature-flag.service.mock')
-    >('@app/context/contracts/__mocks__/feature-flag.service.mock').default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual<
+    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+}));
 
 const ENDPOINT = '/api/v1/auth/reset-password';
 let payloadSequence = 0;

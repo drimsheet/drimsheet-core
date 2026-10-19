@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
@@ -10,7 +11,7 @@ import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.t
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening-balance-entry.service.contract';
 import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
@@ -27,7 +28,7 @@ import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/cont
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   eventBus: IEventBus;
   cashAccountService: ICashAccountService;
   openingBalanceEntryAppService: IOpeningBalanceEntryAppService;

@@ -37,12 +37,13 @@ need not coincide with a separate legal person.
 A Fiscal Year identifies the annual accounting cycle for one Accounting Entity.
 Its dates bound that year's accounting and reporting periods.
 
-| ID         | Invariant                                                                                                   | Accounting basis / rationale                                                       | References (optional) |
-| ---------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------- |
-| ACC-FY-001 | A fiscal year must belong to one accounting entity.                                                         | **Structural integrity:** attribute annual results to one entity.                  | —                     |
-| ACC-FY-002 | Fiscal-year dates must satisfy the [shared date rules](#shared-period-rules).                               | **Accounting principle:** measure activity over a defined period.                  | —                     |
-| ACC-FY-003 | On creation, the fiscal-year duration must not exceed the maximum configured for the entity's jurisdiction. | **Drimsheet policy:** jurisdiction-specific product limit, not a statement of law. | —                     |
-| ACC-FY-004 | A fiscal-year status must be one of Pending, Open, Closing, or Closed.                                      | **Drimsheet policy:** identify the stage of the accounting cycle.                  | —                     |
+| ID         | Invariant                                                                                                                       | Accounting basis / rationale                                                                            | References (optional) |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------- |
+| ACC-FY-001 | A fiscal year must belong to one accounting entity.                                                                             | **Structural integrity:** attribute annual results to one entity.                                       | —                     |
+| ACC-FY-002 | Fiscal-year dates must satisfy the [shared date rules](#shared-period-rules).                                                   | **Accounting principle:** measure activity over a defined period.                                       | —                     |
+| ACC-FY-003 | On creation, the fiscal-year duration must not exceed the maximum configured for the entity's jurisdiction.                     | **Drimsheet policy:** jurisdiction-specific product limit, not a statement of law.                      | —                     |
+| ACC-FY-004 | A fiscal-year status must be one of Pending, Open, Closing, or Closed.                                                          | **Drimsheet policy:** identify the stage of the accounting cycle.                                       | —                     |
+| ACC-FY-005 | Fiscal years belonging to the same accounting entity must not overlap, regardless of status; start and end dates are inclusive. | **Data reliability:** each calendar date belongs to at most one annual accounting cycle for the entity. | —                     |
 
 An annual cycle need not be exactly twelve months. [IAS 1, paragraphs 36–37][ias1]
 allow changed reporting periods with required disclosures and 52-week reporting,
@@ -82,6 +83,13 @@ Its cadence may differ from the posting cadence; it does not authorize postings.
 | ACC-RP-004 | A period described as interim under IAS 34 must be shorter than a full financial year.                         | **IFRS requirement:** distinguish interim from annual reporting.          | [IAS 34, About][ias34] |
 
 Reporting intervals may overlap, as with quarterly and year-to-date reports.
+
+Generated reporting calendars use inclusive UTC calendar dates. Within one
+generated cadence, the next interval starts on the day after the previous
+interval ends: January–March includes March 31, and April–June starts April 1.
+The first and last intervals include the fiscal year's first and last dates.
+Different reporting cadences may cover the same dates without changing posting
+eligibility.
 
 ## Accounting Context
 

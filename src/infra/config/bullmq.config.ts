@@ -2,6 +2,7 @@ import { performance } from 'node:perf_hooks';
 
 import { Job, Worker } from 'bullmq';
 
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IQueueMetrics, {
   EQueueTransport,
 } from '@shared/contracts/queue-metrics.contract';
@@ -9,9 +10,7 @@ import ITracer from '@shared/contracts/tracer.contract';
 import { ICorrelationId } from '@shared/types/correlation-id.types';
 import { UTraceEnvelopePayload } from '@shared/types/observability.types';
 
-import IAppContext, {
-  IAppContextData,
-} from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 import reporter from '@infra/integrations/sentry/sentry-reporter';
 import {
@@ -39,7 +38,7 @@ function getWaitingDurationMs<T>(job: Job<T>) {
 export function registerBullMQWorker<T extends ICorrelationId>(
   name: string,
   processor: (payload: T) => Promise<void>,
-  appContext: IAppContext,
+  appContext: IAppContextService<IAppContextData>,
   getInitialStore: (payload: T) => IAppContextData,
   queueMetrics: IQueueMetrics,
   tracer: ITracer

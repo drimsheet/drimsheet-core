@@ -15,7 +15,7 @@ import ledgerAccountAudit from '@domain/ledger/values/ledger-account-audit.vo';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
@@ -297,6 +297,59 @@ describe('activate cash account use case', () => {
       mockJournalEntryService.postDraftOpeningBalance.mockResolvedValue(
         posting
       );
+    });
+
+    it('posts the opening balance without rewriting an already active account', async () => {
+      mockLedgerAccountRepo.findById.mockResolvedValue(activated);
+      mockAssetAccountService.activate.mockResolvedValue([activated, [], null]);
+      const transactionOptions = {
+        ...repoOptions,
+        tx: mockRepoTransaction.context,
+      };
+
+      await usecase(activated.id, { activateOpeningBalance: true });
+
+      expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryService.postDraftOpeningBalance
+      ).toHaveBeenCalledWith(
+        { entry: details, account: activated, actor: actorId },
+        repoOptions
+      );
+      expect(
+        mockJournalEntryPersistenceAppService.rectify
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entryUpdate: expect.objectContaining({
+            entry: posting[0],
+            expectedVersion: originalEntry.version,
+          }),
+        }),
+        transactionOptions
+      );
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).toHaveBeenCalledWith(originalEntry.id, transactionOptions);
+      expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+      expect(
+        mockRepoTransaction.commit.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
+      expect(mockEventBus.publish).toHaveBeenCalledWith(
+        posting[1].map((event) =>
+          expect.objectContaining({
+            type: event.type,
+            data: event.data,
+            correlationId: 'activate',
+            idempotencyKey: 'request',
+          })
+        )
+      );
+      expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
+        journalEntryId: originalEntry.id,
+        correlationId: 'activate',
+      });
+      expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     });
 
     it('activates only the account when opening-balance activation is false', async () => {

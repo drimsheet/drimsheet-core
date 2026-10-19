@@ -15,6 +15,7 @@ const accountingEntityId = '98402eb7-ec79-436f-b258-00a4fb9a572a' as TEntityId;
 const createdBy = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
 const repoOptions = { correlationId: 'period-test' };
 const repo: jest.Mocked<IAccountingPeriodRepo> = {
+  findById: jest.fn(),
   findByDate: jest.fn(),
   findAllByDate: jest.fn(),
   findByRange: jest.fn(),

@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
   IRepoService,
@@ -20,13 +21,13 @@ import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
 import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
 import { IUserSignupReq } from '@app/auth/dtos/auth/auth.dto';
 import { userSignupReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
   actorRepo: IActorRepo;
   actorService: IActorService;
   userIdentityService: IUserIdentityService;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   userRepo: IUserRepo;
   passwordAppService: IPasswordAppService;
   eventBus: IEventBus;

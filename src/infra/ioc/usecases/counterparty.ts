@@ -11,7 +11,7 @@ import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import journalRepos from '@infra/persistence/repos/journal-entry';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 import repoService from '@infra/services/repo.service';
 
 export const archiveCounterpartyUseCase = makeTracedUseCase(

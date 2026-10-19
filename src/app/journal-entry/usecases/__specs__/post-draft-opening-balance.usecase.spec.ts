@@ -16,7 +16,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
@@ -134,6 +134,43 @@ describe('post draft opening balance use case', () => {
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
       throw error;
     });
+  });
+
+  it('commits without writes or downstream effects when posting returns no audit', async () => {
+    mockJournalEntryRepo.findById.mockResolvedValue(posting[0]);
+    mockJournalEntryService.postDraftOpeningBalance.mockResolvedValue([
+      posting[0],
+      [],
+      null,
+    ]);
+
+    await expect(usecase(posting[0].id)).resolves.toBeUndefined();
+
+    expect(
+      mockJournalEntryService.postDraftOpeningBalance
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ entry: posting[0], actor: actorId }),
+      transactionOptions
+    );
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    expect(
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
+    ).not.toHaveBeenCalled();
+    expect(
+      mockFxLotCostBasisAppService.persistence.persistDisposition
+    ).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });
 
   it.each([false, true])(

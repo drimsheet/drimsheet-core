@@ -8,7 +8,7 @@ import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import counterpartyDtoMapper from '@app/counterparty/dtos/counterparty/counterparty.dto.mapper';
 import makeArchiveCounterpartyUsecase from '@app/counterparty/usecases/archive-counterparty.usecase';

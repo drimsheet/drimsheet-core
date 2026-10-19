@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import appError from '@shared/values/errors/app.error';
 
 import IUserRepo from '@domain/user/repos/user.repo';
@@ -7,11 +8,11 @@ import ITokenAppService from '@app/auth/contracts/token-service.contract';
 import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
 import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
 import authError from '@app/auth/errors/auth.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
   actorService: IActorService;
-  reqContext: IAppContext;
+  reqContext: IAppContextService<IAppContextData>;
   userRepo: IUserRepo;
   tokenAppService: ITokenAppService;
   userSessionAppService: IUserSessionAppService;

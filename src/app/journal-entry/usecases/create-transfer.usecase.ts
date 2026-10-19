@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
   IRepoService,
@@ -17,7 +18,7 @@ import {
 import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ICounterpartyAppService from '@app/counterparty/contracts/counterparty.service.contract';
 import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
@@ -35,7 +36,7 @@ import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/cont
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   counterpartyAppService: ICounterpartyAppService;
   fileManagementAppService: IFileManagementAppService;
   journalEntryService: IJournalEntryService;

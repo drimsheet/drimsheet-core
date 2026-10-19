@@ -1,10 +1,12 @@
 import { TCreationOmits } from '@shared/types/creation-omits.types';
+import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import getAccountingContextDescription from '@domain/accounting/entities/helpers/get-description.helper';
 import accountingContextValidation from '@domain/accounting/entities/validations/accounting-context.validation';
+import reportingContextValidation from '@domain/accounting/entities/validations/reporting-context.validation';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import reportingContextEvents from '@domain/accounting/events/reporting-context.events';
 import { IReportingContext } from '@domain/accounting/types/context.types';
@@ -46,7 +48,7 @@ function make(
 
   const timestamp = new Date();
 
-  const entity: IReportingContext = Object.freeze({
+  const entity: IReportingContext = deepFreeze({
     id: generateUUID(),
     createdBy: payload.createdBy,
     name,
@@ -74,6 +76,7 @@ function make(
 
 const reportingContextEntity = Object.freeze({
   make,
+  ...reportingContextValidation,
 });
 
 export default reportingContextEntity;

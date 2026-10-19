@@ -1,10 +1,12 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
+
 import ITokenAppService from '@app/auth/contracts/token-service.contract';
 import IUserSessionRepo from '@app/auth/contracts/user-session.repo.contract';
 import authError from '@app/auth/errors/auth.error';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {
-  reqContext: IAppContext;
+  reqContext: IAppContextService<IAppContextData>;
   tokenAppService: ITokenAppService;
   userSessionRepo: IUserSessionRepo;
 }

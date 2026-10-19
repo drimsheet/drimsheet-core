@@ -1,20 +1,18 @@
+import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
-import getPeriodIntervals from '@domain/accounting/entities/helpers/get-intervals.helper';
-import periodValidation from '@domain/accounting/entities/validations/period.validation';
+import getCalendarPeriodIntervalsHelper from '@domain/accounting/entities/helpers/get-calendar-period-intervals.helper';
+import reportingPeriodValidation from '@domain/accounting/entities/validations/reporting-period.validation';
 import periodError from '@domain/accounting/errors/period.error';
 import periodEvents from '@domain/accounting/events/period.events';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import { EPeriodActions } from '@domain/accounting/types/period-audit.types';
-import {
-  IAccountingPeriod,
-  IReportingPeriod,
-} from '@domain/accounting/types/period.types';
+import { IReportingPeriod } from '@domain/accounting/types/period.types';
 import reportingPeriodAudit from '@domain/accounting/values/reporting-period-audit.vo';
 
 interface IMakePayload extends Pick<
-  IAccountingPeriod,
+  IReportingPeriod,
   'createdBy' | 'accountingEntityId' | 'unit' | 'count'
 > {
   fiscalYear: IFiscalYear;
@@ -27,14 +25,25 @@ function make(
     payload.accountingEntityId,
     periodError.InvalidAccountingEntityId
   );
-  periodValidation.validateUnit(payload.unit);
+  stringUtils.validateUUID(
+    payload.fiscalYear.id,
+    periodError.InvalidFiscalYearId
+  );
+  reportingPeriodValidation.validateFiscalYearOwnership(
+    payload.accountingEntityId,
+    payload.fiscalYear
+  );
 
-  const intervals = getPeriodIntervals({
+  const intervals = getCalendarPeriodIntervalsHelper({
     startDate: payload.fiscalYear.startDate,
     endDate: payload.fiscalYear.endDate,
     unit: payload.unit,
     count: payload.count,
   });
+  reportingPeriodValidation.validateFiscalYearBounds(
+    intervals,
+    payload.fiscalYear
+  );
 
   stringUtils.validateUUID(payload.createdBy, periodError.InvalidCreatedBy);
 
@@ -42,7 +51,7 @@ function make(
 
   const reportingPeriods: IReportingPeriod[] = intervals.map(
     (interval, index) =>
-      Object.freeze({
+      deepFreeze({
         id: stringUtils.generateUUID(),
         createdBy: payload.createdBy,
         name: `Reporting Period ${index + 1}`,
@@ -71,6 +80,7 @@ function make(
 
 const reportingPeriodEntity = Object.freeze({
   make,
+  ...reportingPeriodValidation,
 });
 
 export default reportingPeriodEntity;

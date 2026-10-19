@@ -13,7 +13,7 @@ import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock'
 import { IUserAuth } from '@app/auth/contracts/auth.types';
 import makeRequestPasswordResetUseCase from '@app/auth/usecases/request-password-reset.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import mockTransactionalEmailAppService from '@app/notification/contracts/__mocks__/transactional-email-service.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 

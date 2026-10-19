@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
 import { ERepoLock } from '@shared/types/repo.types';
@@ -11,12 +12,12 @@ import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import counterpartyServiceValidation from '@domain/counterparty/services/validations/counterparty.validation';
 import IJournalLineRepo from '@domain/journal-entry/repos/journal-line.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import counterpartyMutationPolicy from '@app/counterparty/policies/counterparty-mutation.policy';
 
 interface IDependencies {
   repoService: IRepoService;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   journalLineRepo: IJournalLineRepo;
   counterpartyRepo: ICounterpartyRepo;
   eventBus: IEventBus;

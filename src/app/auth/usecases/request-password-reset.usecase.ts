@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import IVarsConfig from '@shared/contracts/vars-config.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -9,11 +10,11 @@ import IUserRepo from '@domain/user/repos/user.repo';
 import ITokenAppService from '@app/auth/contracts/token-service.contract';
 import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
 import { requestPasswordResetReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ITransactionalEmailAppService from '@app/notification/contracts/transactional-email-service.contract';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   userRepo: IUserRepo;
   tokenAppService: ITokenAppService;
   transactionEmailAppService: ITransactionalEmailAppService;

@@ -5,7 +5,7 @@ import counterpartyEntity from '@domain/counterparty/entities/counterparty.entit
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeGetCounterpartyDeletionEligibilityUsecase from '@app/counterparty/usecases/get-counterparty-deletion-eligibility.usecase';
 import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';

@@ -39,6 +39,14 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 
+// Keep real entity behavior by default; allow one contract test to supply a nullable audit.
+jest.mock('@domain/journal-entry/entities/journal-entry.entity', () => {
+  const actual = jest.requireActual<
+    typeof import('@domain/journal-entry/entities/journal-entry.entity')
+  >('@domain/journal-entry/entities/journal-entry.entity');
+  return { ...actual, __esModule: true, default: { ...actual.default } };
+});
+
 const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   delete: jest.fn(),
   create: jest.fn(),
@@ -62,6 +70,7 @@ describe('makeJournalEntryRectificationService', () => {
   const effectiveDate = new Date('2026-09-01T00:00:00.000Z');
   const now = new Date('2026-09-21T09:30:00.000Z');
   const periodRepo: jest.Mocked<IAccountingPeriodRepo> = {
+    findById: jest.fn(),
     create: jest.fn(),
     findByDate: jest.fn(),
     findAllByDate: jest.fn(),
@@ -209,6 +218,7 @@ describe('makeJournalEntryRectificationService', () => {
   });
 
   afterAll(() => jest.useRealTimers());
+  afterEach(() => jest.restoreAllMocks());
 
   it('rejects a reversal against an archived account without changing the original', async () => {
     const [originalEntry] = makeEntry({ posted: true });
@@ -521,6 +531,35 @@ describe('makeJournalEntryRectificationService', () => {
     expect(result.entryUpdate).toBeNull();
     expect(result.entriesToCreate).toEqual([]);
     expect(result.events).toEqual([]);
+  });
+
+  it('omits the original-entry update when the void operation returns no audit', async () => {
+    const [postedEntry] = makeEntry({ posted: true });
+    const [originalEntry] = journalEntryEntity.void(postedEntry, {
+      voidingEntryId: generateUUID(),
+    });
+    // The service consumes a nullable transition contract; normal reversal creates a fresh voiding ID.
+    const voidOperation = jest
+      .spyOn(journalEntryEntity, 'void')
+      .mockReturnValueOnce([originalEntry, [], null]);
+    const repoOptions = { correlationId: 'unchanged-void-contract' };
+
+    const result = await service.reverse(originalEntry, createdBy, repoOptions);
+
+    expect(voidOperation).toHaveBeenCalledWith(originalEntry, {
+      voidingEntryId: result.reversingJournalEntry.id,
+    });
+    expect(result.originalJournalEntryId).toBe(originalEntry.id);
+    expect(result.entryUpdate).toBeNull();
+    expect(result.entriesToCreate).toHaveLength(1);
+    expect(result.entriesToCreate[0][0]).toBe(result.reversingJournalEntry);
+    expect(result.events).toEqual(result.entriesToCreate[0][1]);
+    expect(result.events).not.toContainEqual(
+      expect.objectContaining({
+        type: 'domain:journal-entry:voided',
+      })
+    );
+    expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
   });
 
   it('rejects an already voided journal entry', async () => {

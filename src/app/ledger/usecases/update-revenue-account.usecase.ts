@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
@@ -9,7 +10,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import IRevenueAccountService from '@domain/ledger/types/revenue-account.service.types';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IUpdateRevenueAccountDto } from '@app/ledger/dtos/revenue-account/revenue-account.dto';
@@ -17,7 +18,7 @@ import { updateRevenueAccountValidation } from '@app/ledger/dtos/revenue-account
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 
 interface IDependencies {
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
   eventBus: IEventBus;
   ledgerAccountRepo: ILedgerAccountRepo;
   revenueAccountService: IRevenueAccountService;

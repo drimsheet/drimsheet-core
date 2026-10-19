@@ -3541,46 +3541,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "UAccountingStandardCode": {
-        "type": "string",
-        "enum": [
-          "AASB",
-          "ASPE",
-          "CAS",
-          "CGNC",
-          "EAS",
-          "HGB",
-          "HKFRS",
-          "IFRS",
-          "IND_AS",
-          "ISRAELI_GAAP",
-          "J_GAAP",
-          "K_IFRS",
-          "MFRS",
-          "NIF",
-          "NZ_IFRS",
-          "OIC",
-          "PCG",
-          "PFRS",
-          "PGC",
-          "PSAK",
-          "RAS",
-          "RJ",
-          "SCF",
-          "SFRS",
-          "SWISS_GAAP_FER",
-          "SYSCOHADA",
-          "TFRS",
-          "THAI_FRS",
-          "TIFRS",
-          "UK_GAAP",
-          "US_GAAP",
-          "VAS",
-          "LOCAL_GAAP",
-          "CASH_BASIS"
-        ],
-        "nullable": false
-      },
       "UPeriodStatus": {
         "type": "string",
         "enum": ["pending", "open", "closing", "closed"]
@@ -3699,6 +3659,46 @@
         ],
         "type": "object",
         "additionalProperties": false
+      },
+      "UAccountingStandardCode": {
+        "type": "string",
+        "enum": [
+          "AASB",
+          "ASPE",
+          "CAS",
+          "CGNC",
+          "EAS",
+          "HGB",
+          "HKFRS",
+          "IFRS",
+          "IND_AS",
+          "ISRAELI_GAAP",
+          "J_GAAP",
+          "K_IFRS",
+          "MFRS",
+          "NIF",
+          "NZ_IFRS",
+          "OIC",
+          "PCG",
+          "PFRS",
+          "PGC",
+          "PSAK",
+          "RAS",
+          "RJ",
+          "SCF",
+          "SFRS",
+          "SWISS_GAAP_FER",
+          "SYSCOHADA",
+          "TFRS",
+          "THAI_FRS",
+          "TIFRS",
+          "UK_GAAP",
+          "US_GAAP",
+          "VAS",
+          "LOCAL_GAAP",
+          "CASH_BASIS"
+        ],
+        "nullable": false
       },
       "IAccountingContextDto": {
         "properties": {
@@ -4045,11 +4045,13 @@
           },
           "startDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "First included UTC calendar date. Automatic current-period selection is handled separately."
           },
           "endDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Last included UTC calendar date; the completed interval is due for reporting from the following UTC day. Scheduling and report execution are separate."
           },
           "updatedAt": {
             "type": "string",
@@ -4144,87 +4146,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IFiscalYearCreationDto": {
-        "description": "Fiscal year creation DTO",
-        "properties": {
-          "startDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": ["startDate", "endDate"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IPeriodCreationDto": {
-        "properties": {
-          "unit": {
-            "$ref": "#/components/schemas/UPeriodUnit"
-          },
-          "count": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 1,
-            "maximum": 550
-          }
-        },
-        "required": ["unit", "count"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IAccountingEntityCreationDto": {
-        "description": "Accounting entity onboarding DTO",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "entityType": {
-            "$ref": "#/components/schemas/UAccountingEntityType"
-          },
-          "jurisdictionCode": {
-            "$ref": "#/components/schemas/UJurisdictionCode"
-          },
-          "accountingStandardCode": {
-            "$ref": "#/components/schemas/UAccountingStandardCode"
-          },
-          "functionalCurrencyCode": {
-            "$ref": "#/components/schemas/UCurrencyCode"
-          },
-          "reportingCurrencyCode": {
-            "$ref": "#/components/schemas/UCurrencyCode"
-          },
-          "fiscalYear": {
-            "$ref": "#/components/schemas/IFiscalYearCreationDto"
-          },
-          "accountingPeriod": {
-            "$ref": "#/components/schemas/IPeriodCreationDto"
-          },
-          "reportingPeriod": {
-            "$ref": "#/components/schemas/IPeriodCreationDto"
-          },
-          "appPreferences": {
-            "$ref": "#/components/schemas/IUserAppPreferences"
-          }
-        },
-        "required": [
-          "name",
-          "entityType",
-          "jurisdictionCode",
-          "accountingStandardCode",
-          "functionalCurrencyCode",
-          "reportingCurrencyCode",
-          "fiscalYear",
-          "accountingPeriod",
-          "reportingPeriod",
-          "appPreferences"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IAccountingEntityDto": {
         "properties": {
           "status": {
@@ -4271,6 +4192,356 @@
           "jurisdictionCode",
           "createdAt",
           "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingEntityCreationDto": {
+        "description": "Standalone accounting entity creation DTO",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "entityType": {
+            "$ref": "#/components/schemas/UAccountingEntityType"
+          },
+          "jurisdictionCode": {
+            "$ref": "#/components/schemas/UJurisdictionCode"
+          },
+          "functionalCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          }
+        },
+        "required": [
+          "name",
+          "entityType",
+          "jurisdictionCode",
+          "functionalCurrencyCode"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IFiscalYearCreationDto": {
+        "description": "Fiscal year creation DTO",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["startDate", "endDate"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPeriodCreationDto": {
+        "properties": {
+          "unit": {
+            "$ref": "#/components/schemas/UPeriodUnit"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 550
+          }
+        },
+        "required": ["unit", "count"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingEntityOnboardingDto": {
+        "description": "Complete initial accounting setup; separate from entity-only creation.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "entityType": {
+            "$ref": "#/components/schemas/UAccountingEntityType"
+          },
+          "jurisdictionCode": {
+            "$ref": "#/components/schemas/UJurisdictionCode"
+          },
+          "functionalCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "reportingCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "fiscalYear": {
+            "$ref": "#/components/schemas/IFiscalYearCreationDto"
+          },
+          "accountingPeriod": {
+            "$ref": "#/components/schemas/IPeriodCreationDto"
+          },
+          "reportingPeriod": {
+            "$ref": "#/components/schemas/IPeriodCreationDto"
+          },
+          "appPreferences": {
+            "$ref": "#/components/schemas/IUserAppPreferences"
+          }
+        },
+        "required": [
+          "name",
+          "entityType",
+          "jurisdictionCode",
+          "functionalCurrencyCode",
+          "accountingStandardCode",
+          "reportingCurrencyCode",
+          "fiscalYear",
+          "accountingPeriod",
+          "reportingPeriod",
+          "appPreferences"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IFiscalYearCreationReq": {
+        "properties": {
+          "accountingEntityId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UPeriodStatus"
+          }
+        },
+        "required": ["accountingEntityId", "startDate", "endDate", "status"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingPeriodsCreationReq": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UPeriodUnit"
+          },
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Number of intervals to generate across the complete fiscal year."
+          }
+        },
+        "required": ["fiscalYearId", "unit", "count"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingContextRecordDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountingEntityId": {
+            "type": "string"
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "currentAccountingPeriodId": {
+            "type": "string",
+            "description": "Stored working-period selection, maintained independently of this read."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "createdBy",
+          "name",
+          "description",
+          "accountingEntityId",
+          "accountingStandardCode",
+          "fiscalYearId",
+          "currentAccountingPeriodId",
+          "createdAt",
+          "updatedAt",
+          "closedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingContextCreationReq": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "currentAccountingPeriodId": {
+            "type": "string",
+            "description": "Required for current, historical, and future years; selection never changes posting eligibility."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "fiscalYearId",
+          "accountingStandardCode",
+          "currentAccountingPeriodId",
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IReportingPeriodsCreationReq": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UPeriodUnit"
+          },
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Number of intervals across the complete fiscal year. A fiscal year with existing reporting periods returns 409."
+          }
+        },
+        "required": ["fiscalYearId", "unit", "count"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IReportingContextRecordDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountingEntityId": {
+            "type": "string"
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "accountingContextId": {
+            "type": "string"
+          },
+          "reportingCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "currentReportingPeriodId": {
+            "type": "string",
+            "description": "Stored working-period selection, maintained independently of this read."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "createdBy",
+          "name",
+          "description",
+          "accountingEntityId",
+          "accountingStandardCode",
+          "accountingContextId",
+          "reportingCurrencyCode",
+          "currentReportingPeriodId",
+          "createdAt",
+          "updatedAt",
+          "closedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IReportingContextCreationReq": {
+        "properties": {
+          "accountingContextId": {
+            "type": "string"
+          },
+          "currentReportingPeriodId": {
+            "type": "string",
+            "description": "Explicit working-period selection within the linked accounting context's fiscal year."
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "reportingCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "accountingContextId",
+          "currentReportingPeriodId",
+          "accountingStandardCode",
+          "reportingCurrencyCode",
+          "name",
+          "description"
         ],
         "type": "object",
         "additionalProperties": false
@@ -10372,7 +10643,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IAccountingEntity"
+                  "$ref": "#/components/schemas/IAccountingEntityDto"
                 }
               }
             }
@@ -10428,7 +10699,7 @@
             }
           }
         },
-        "description": "Create a new accounting entity",
+        "description": "Create only an accounting entity. Calendar and context setup is separate.",
         "tags": ["Accounting"],
         "security": [],
         "parameters": [],
@@ -10701,6 +10972,598 @@
         "tags": ["Accounting"],
         "security": [],
         "parameters": []
+      }
+    },
+    "/accounting/accounting-entity/onboarding": {
+      "post": {
+        "operationId": "onboardAccountingEntity",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountingEntityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates an entity with its initial calendar and contexts for onboarding.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IAccountingEntityOnboardingDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/fiscal-year": {
+      "post": {
+        "operationId": "createFiscalYear",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IFiscalYearDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates only a fiscal year and its history for an existing entity owned by the caller.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IFiscalYearCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/accounting-periods": {
+      "post": {
+        "operationId": "createAccountingPeriods",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IAccountingPeriodDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Generates the fiscal year's posting calendar for x-accounting-entity-id. Context and schedule setup are separate.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IAccountingPeriodsCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/accounting-context": {
+      "post": {
+        "operationId": "createAccountingContext",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountingContextRecordDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates a context for x-accounting-entity-id from existing records; archived entities return 409. Explicit period selection is required for current, historical, and future years and never changes period status or posting eligibility.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IAccountingContextCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/reporting-periods": {
+      "post": {
+        "operationId": "createReportingPeriods",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IReportingPeriodDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Generates inclusive UTC reporting intervals for x-accounting-entity-id. A fiscal year with existing reporting periods returns 409, regardless of requested cadence.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IReportingPeriodsCreationReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/reporting-context": {
+      "post": {
+        "operationId": "createReportingContext",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IReportingContextRecordDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates only a reporting context and its history for x-accounting-entity-id; archived entities return 409. The selected reporting period must share the linked accounting context's entity and fiscal year.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IReportingContextCreationReq"
+              }
+            }
+          }
+        }
       }
     },
     "/accounting/accounting-entity/archive": {

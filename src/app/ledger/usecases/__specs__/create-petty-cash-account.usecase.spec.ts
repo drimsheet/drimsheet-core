@@ -597,9 +597,13 @@ describe('petty cash account creation workflow', () => {
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     }
   );
-  it.each([false, true])(
-    'persists domain promotion before the child and rolls back on failure=%s',
-    async (fails) => {
+  it.each([
+    { fails: false, unchangedPosting: false },
+    { fails: true, unchangedPosting: false },
+    { fails: false, unchangedPosting: true },
+  ])(
+    'persists promotion before the child: failure=$fails, unchanged posting=$unchangedPosting',
+    async ({ fails, unchangedPosting }) => {
       const [original] = ledgerAccountEntity.make({ ...bank[0] });
       const controlAccount =
         ledgerAccountEntity.clonePostingAccountToControlAccount(
@@ -623,7 +627,13 @@ describe('petty cash account creation workflow', () => {
       });
       const promotion = {
         controlAccount,
-        postingAccount,
+        postingAccount: unchangedPosting
+          ? ledgerAccountEntity.reparentPostingAccount(
+              posting,
+              control,
+              posting.code
+            )
+          : postingAccount,
         postingBalance: ledgerAccountBalanceEntity.updateAccountCode(
           existingBalance,
           posting.materializedPath
@@ -671,7 +681,14 @@ describe('petty cash account creation workflow', () => {
         tx: mockRepoTransaction.context,
         history: [
           expect.objectContaining({ entityId: control.id, actorId: actor.id }),
-          expect.objectContaining({ entityId: posting.id, actorId: actor.id }),
+          ...(unchangedPosting
+            ? []
+            : [
+                expect.objectContaining({
+                  entityId: posting.id,
+                  actorId: actor.id,
+                }),
+              ]),
         ],
       });
       expect(
@@ -684,7 +701,19 @@ describe('petty cash account creation workflow', () => {
       expect(
         mockRepoTransaction.commit.mock.invocationCallOrder[0]
       ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
-      expect(mockEventBus.publish.mock.calls[0][0]).toHaveLength(3);
+      expect(mockEventBus.publish.mock.calls[0][0]).toEqual(
+        [
+          ...promotion.controlAccount[1],
+          ...promotion.postingAccount[1],
+          ...bank[1],
+        ].map((event) =>
+          expect.objectContaining({
+            type: event.type,
+            data: event.data,
+            correlationId,
+          })
+        )
+      );
     }
   );
 });

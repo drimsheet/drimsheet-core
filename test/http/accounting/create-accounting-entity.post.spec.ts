@@ -4,13 +4,12 @@ import request from 'supertest';
 import { TEntityId } from '@shared/types/uuid';
 
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
-import periodError from '@domain/accounting/errors/period.error';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { IUser } from '@domain/user/types/user.types';
 
 import { IAccountingEntityCreationDto } from '@app/accounting/dtos/accounting/accounting.dto';
 import authError from '@app/auth/errors/auth.error';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
 import * as accountingUsecases from '@infra/ioc/usecases/accounting';
@@ -25,15 +24,12 @@ jest.mock('@infra/ioc/services/user', () => ({
   ).mockActorService,
 }));
 
-jest.mock(
-  '@infra/integrations/launchdarkly/launchdarkly-feature-flag.service',
-  () => ({
-    __esModule: true,
-    default: jest.requireActual<
-      typeof import('@app/context/contracts/__mocks__/feature-flag.service.mock')
-    >('@app/context/contracts/__mocks__/feature-flag.service.mock').default,
-  })
-);
+jest.mock('@infra/ioc/services/context', () => ({
+  __esModule: true,
+  featureFlagAppService: jest.requireActual<
+    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+}));
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({
   __esModule: true,
@@ -43,6 +39,7 @@ jest.mock('../../../src/infra/ioc/services/auth', () => ({
 jest.mock('../../../src/infra/ioc/usecases/accounting', () => ({
   __esModule: true,
   createAccountingEntityUseCase: jest.fn(),
+  onboardAccountingEntityUseCase: jest.fn(),
   getJurisdictionsUseCase: jest.fn(),
   getUserAccountingEntitiesUseCase: jest.fn(),
   getActiveAccountingEntityUseCase: jest.fn(),
@@ -68,26 +65,11 @@ jest.mock('../../../src/infra/persistence/repos/user', () => ({
 
 const ENDPOINT = '/api/v1/accounting/accounting-entity';
 const userId = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
-const maximumFiscalYearEndDate = new Date('2027-07-01T00:00:00.000Z');
-const overLimitFiscalYearEndDate = new Date('2027-07-01T00:00:00.001Z');
-
 const validPayload: IAccountingEntityCreationDto = {
   name: 'Ada Consulting',
   entityType: 'individual',
   jurisdictionCode: 'US',
-  accountingStandardCode: 'US_GAAP',
   functionalCurrencyCode: 'USD',
-  reportingCurrencyCode: 'USD',
-  fiscalYear: {
-    startDate: new Date('2026-01-01T00:00:00.000Z'),
-    endDate: new Date('2026-12-31T23:59:59.999Z'),
-  },
-  accountingPeriod: { unit: 'month', count: 12 },
-  reportingPeriod: { unit: 'quarter', count: 4 },
-  appPreferences: {
-    theme: 'system',
-    appUsageMode: 'non_power_user',
-  },
 };
 
 const createdEntity: IAccountingEntity = {
@@ -191,48 +173,6 @@ describe('POST /accounting/accounting-entity', () => {
       expect(mockCreateAccountingEntity).toHaveBeenCalledWith(
         privateCompanyPayload
       );
-    });
-  });
-
-  describe('400 Response', () => {
-    it('maps a jurisdiction fiscal year limit violation', async () => {
-      const overLimitPayload = {
-        ...validPayload,
-        fiscalYear: {
-          ...validPayload.fiscalYear,
-          endDate: overLimitFiscalYearEndDate,
-        },
-      };
-
-      mockCreateAccountingEntity.mockRejectedValue(
-        new periodError.FiscalYearExceedsJurisdictionLimit({
-          jurisdictionCode: validPayload.jurisdictionCode,
-          maxFiscalMonths: 18,
-          startDate: validPayload.fiscalYear.startDate,
-          endDate: overLimitFiscalYearEndDate,
-          maximumEndDate: maximumFiscalYearEndDate,
-        })
-      );
-
-      const response = await request(app)
-        .post(ENDPOINT)
-        .set('Authorization', 'Bearer valid-token')
-        .send(overLimitPayload);
-
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({
-        name: 'PeriodError',
-        errorKey:
-          'accounting_error_period_fiscal_year_exceeds_jurisdiction_limit_invalid',
-        cause: {
-          jurisdictionCode: validPayload.jurisdictionCode,
-          maxFiscalMonths: 18,
-          startDate: validPayload.fiscalYear.startDate.toISOString(),
-          endDate: overLimitFiscalYearEndDate.toISOString(),
-          maximumEndDate: maximumFiscalYearEndDate.toISOString(),
-        },
-      });
-      expect(mockCreateAccountingEntity).toHaveBeenCalledWith(overLimitPayload);
     });
   });
 
@@ -379,12 +319,17 @@ describe('POST /accounting/accounting-entity', () => {
         { accountingPeriod: { unit: 'day', count: 551 } },
       ],
       ['caller-supplied owner identity', { ownerId: userId }],
+      ['caller-supplied creator', { createdBy: userId }],
+      [
+        'calendar configuration',
+        { fiscalYear: { startDate: '2026-01-01', endDate: '2026-12-31' } },
+      ],
       [
         'malformed fiscal year date',
         {
           fiscalYear: {
             startDate: 'not-a-date',
-            endDate: validPayload.fiscalYear.endDate,
+            endDate: '2026-12-31',
           },
         },
       ],

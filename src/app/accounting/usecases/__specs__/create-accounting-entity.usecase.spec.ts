@@ -2,19 +2,16 @@ import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
 import { ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import appError from '@shared/values/errors/app.error';
 
+import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
-import makeAccountingEntityService from '@domain/accounting/services/accounting-entity.service';
+import periodError from '@domain/accounting/errors/period.error';
 import makeAccountingPeriodService from '@domain/accounting/services/accounting-period.service';
-import { IAccountingEntityCreationResult } from '@domain/accounting/types/accounting-entity.service.types';
-import {
-  EAccountingEntityType,
-  IAccountingEntity,
-} from '@domain/accounting/types/accounting-entity.types';
-import { EPeriodUnit } from '@domain/accounting/types/period.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
+import mockAccountingContextQueryRepo from '@app/accounting/contracts/__mocks__/accounting-context.query.repo.mock';
 import { mockAccountingEntityService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import {
   mockAccountingContextRepo,
@@ -24,306 +21,242 @@ import {
   mockReportingContextRepo,
   mockReportingPeriodRepo,
 } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
+import mockReportingContextQueryRepo from '@app/accounting/contracts/__mocks__/reporting-context.query.repo.mock';
 import { IAccountingEntityCreationDto } from '@app/accounting/dtos/accounting/accounting.dto';
-import createAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
+import accountingEntityDtoMapper from '@app/accounting/dtos/accounting/accounting.dto.mapper';
+import makeCreateAccountingEntityUsecase from '@app/accounting/usecases/create-accounting-entity.usecase';
+import makeGetAccountingContextsUsecase from '@app/accounting/usecases/get-accounting-contexts.usecase';
+import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
+import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
-import { EAppUsageModePreference } from '@app/user/types/user-preferences.types';
+import { mockUserPreferencesRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
-const mockAccountingDomainServices = Object.freeze({
-  accountingEntity: mockAccountingEntityService,
+const actor = actorEntity.makeUser({
+  email: 'actor@example.com',
+  displayName: 'Actor',
+})[0];
+const userId = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+const correlationId = 'entity-only-creation';
+const payload: IAccountingEntityCreationDto = {
+  name: 'Standalone business',
+  entityType: 'sole_trader',
+  functionalCurrencyCode: 'NGN',
+  jurisdictionCode: 'NG',
+};
+const creation = accountingEntityEntity.make({
+  name: payload.name,
+  type: payload.entityType,
+  functionalCurrencyCode: payload.functionalCurrencyCode,
+  jurisdictionCode: payload.jurisdictionCode,
+  ownerId: userId,
+  createdBy: actor.id,
+});
+const [entity, events] = creation;
+const tx = {} as ITransactionContext;
+const execute = makeCreateAccountingEntityUsecase({
+  appContext: mockAppContext,
+  accountingEntityRepo: mockAccountingEntityRepo,
+  accountingEntityService: mockAccountingEntityService,
+  repoService: mockRepoService,
+  eventBus: mockEventBus,
 });
 
-const actor = {
-  ...actorEntity.makeUser({
-    email: 'actor@example.com',
-    displayName: 'Actor',
-  })[0],
-  id: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-};
-
-describe('createAccountingEntityUseCase', () => {
-  const correlationId = 'test-corr-id';
-  const userId = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
-  const validPayload: IAccountingEntityCreationDto = {
-    name: 'Test Business',
-    entityType: EAccountingEntityType.Individual,
-    accountingStandardCode: 'US_GAAP',
-    functionalCurrencyCode: 'USD',
-    reportingCurrencyCode: 'USD',
-    jurisdictionCode: 'US',
-    appPreferences: {
-      theme: 'dark',
-      appUsageMode: EAppUsageModePreference.NonPowerUser,
-    },
-    fiscalYear: {
-      startDate: new Date('2026-01-01T00:00:00.000Z'),
-      endDate: new Date('2026-12-31T23:59:59.999Z'),
-    },
-    accountingPeriod: { unit: EPeriodUnit.Month, count: 1 },
-    reportingPeriod: { unit: EPeriodUnit.Quarter, count: 1 },
-  };
-  let accounting: IAccountingEntityCreationResult;
-  let accountingEntity: IAccountingEntity;
-  const getUseCase = () =>
-    createAccountingEntityUseCase({
-      appContext: mockAppContext,
-      repoService: mockRepoService,
-      accountingEntityRepo: mockAccountingEntityRepo,
-      userPreferencesAppService: mockUserPreferencesAppService,
-      fiscalYearRepo: mockFiscalYearRepo,
-      accountingPeriodRepo: mockAccountingPeriodRepo,
-      accountingContextRepo: mockAccountingContextRepo,
-      reportingPeriodRepo: mockReportingPeriodRepo,
-      reportingContextRepo: mockReportingContextRepo,
-      accountingEntityService: mockAccountingDomainServices.accountingEntity,
-      eventBus: mockEventBus,
-    });
-
-  beforeEach(async () => {
-    mockAccountingPeriodRepo.findByRange.mockResolvedValue([]);
-    mockAccountingEntityRepo.findByUserId.mockResolvedValue([]);
-    accounting = await makeAccountingEntityService({
-      ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
-      journalEntryRepo: mockJournalEntryRepo,
-      accountingPeriodService: makeAccountingPeriodService({
-        accountingPeriodRepo: mockAccountingPeriodRepo,
-      }),
-      accountingEntityRepo: mockAccountingEntityRepo,
-    }).create(
-      {
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        name: validPayload.name,
-        type: validPayload.entityType,
-        ownerId: userId,
-        functionalCurrencyCode: validPayload.functionalCurrencyCode,
-        reportingCurrencyCode: validPayload.reportingCurrencyCode,
-        jurisdictionCode: validPayload.jurisdictionCode,
-        accountingStandardCode: validPayload.accountingStandardCode,
-        fiscalYear: validPayload.fiscalYear,
-        accountingPeriod: validPayload.accountingPeriod,
-        reportingPeriod: validPayload.reportingPeriod,
-      },
-      { correlationId }
-    );
-    accountingEntity = accounting.accountingEntity[0];
-
-    jest.clearAllMocks();
-    mockRepoService.runInTransaction
-      .mockReset()
-      .mockImplementation(async (transactionFn) =>
-        transactionFn('mock-tx' as unknown as ITransactionContext)
-      );
+describe('makeCreateAccountingEntityUsecase', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
     mockAppContext.get.mockReturnValue({
       actor,
+      user: { id: userId } as IUser,
       correlationId,
-      user: {
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        actorId: 'b2222222-2222-4222-8222-222222222222' as TEntityId,
-        id: userId,
-      } as IUser,
     } as ReturnType<typeof mockAppContext.get>);
-    mockAccountingDomainServices.accountingEntity.create.mockResolvedValue(
-      accounting
+    mockAccountingEntityService.create.mockResolvedValue(creation);
+    mockRepoService.runInTransaction.mockImplementation(async (write) =>
+      write(tx)
     );
-    mockUserPreferencesAppService.update.mockResolvedValue({
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      userId,
-      lastActiveAccountingEntityId: accountingEntity.id,
-      appPreferences: validPayload.appPreferences,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
     mockEventBus.publish.mockResolvedValue();
   });
 
-  it('validates the request before accessing dependencies', async () => {
-    await expect(
-      getUseCase()({ ...validPayload, name: 1 as unknown as string })
-    ).rejects.toThrow();
-    expect(mockAppContext.get).not.toHaveBeenCalled();
-  });
-
-  it('creates a private company through the existing workflow', async () => {
-    const privateCompanyPayload = {
-      ...validPayload,
-      entityType: EAccountingEntityType.PrivateCompany,
-    };
-    const privateCompanyAccounting = await makeAccountingEntityService({
-      ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
-      journalEntryRepo: mockJournalEntryRepo,
-      accountingPeriodService: makeAccountingPeriodService({
-        accountingPeriodRepo: mockAccountingPeriodRepo,
-      }),
-      accountingEntityRepo: mockAccountingEntityRepo,
-    }).create(
+  it('creates only the entity with authenticated ownership and returns an application DTO', async () => {
+    const result = await execute(payload);
+    expect(result).toEqual(accountingEntityDtoMapper.toDto(entity));
+    expect(result).not.toBe(entity);
+    expect(mockAppContext.get).toHaveBeenCalledWith(['user', 'actor']);
+    expect(mockAccountingEntityService.create).toHaveBeenCalledWith(
       {
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        name: privateCompanyPayload.name,
-        type: privateCompanyPayload.entityType,
+        name: payload.name,
+        type: payload.entityType,
+        functionalCurrencyCode: payload.functionalCurrencyCode,
+        jurisdictionCode: payload.jurisdictionCode,
         ownerId: userId,
-        functionalCurrencyCode: privateCompanyPayload.functionalCurrencyCode,
-        reportingCurrencyCode: privateCompanyPayload.reportingCurrencyCode,
-        jurisdictionCode: privateCompanyPayload.jurisdictionCode,
-        accountingStandardCode: privateCompanyPayload.accountingStandardCode,
-        fiscalYear: privateCompanyPayload.fiscalYear,
-        accountingPeriod: privateCompanyPayload.accountingPeriod,
-        reportingPeriod: privateCompanyPayload.reportingPeriod,
+        createdBy: actor.id,
       },
       { correlationId }
     );
-    const privateCompanyEntity = privateCompanyAccounting.accountingEntity[0];
-
-    mockAccountingDomainServices.accountingEntity.create.mockResolvedValueOnce(
-      privateCompanyAccounting
-    );
-
-    await expect(getUseCase()(privateCompanyPayload)).resolves.toBe(
-      privateCompanyEntity
-    );
-
-    expect(
-      mockAccountingDomainServices.accountingEntity.create
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: EAccountingEntityType.PrivateCompany,
-        ownerId: userId,
-      }),
-      { correlationId }
-    );
-    expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
-    expect(mockAppContext.set).toHaveBeenCalledWith({
-      accountingEntity: privateCompanyEntity,
+    expect(mockAccountingEntityRepo.create).toHaveBeenCalledTimes(1);
+    expect(mockAccountingEntityRepo.create).toHaveBeenCalledWith(entity, {
+      correlationId,
+      tx,
+      history: expect.objectContaining({ actorId: actor.id, correlationId }),
     });
+    expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish).toHaveBeenCalledWith(
+      events.map((event) =>
+        expect.objectContaining({
+          type: event.type,
+          data: entity,
+          correlationId,
+        })
+      )
+    );
+    for (const repo of [
+      mockFiscalYearRepo,
+      mockAccountingPeriodRepo,
+      mockReportingPeriodRepo,
+      mockAccountingContextRepo,
+      mockReportingContextRepo,
+    ]) {
+      expect(repo.create).not.toHaveBeenCalled();
+    }
+    expect(mockUserPreferencesAppService.update).not.toHaveBeenCalled();
+    expect(mockUserPreferencesRepo.update).not.toHaveBeenCalled();
+    expect(mockAppContext.set).not.toHaveBeenCalled();
   });
 
-  it('propagates the existing individual accounting entity error', async () => {
-    mockAccountingDomainServices.accountingEntity.create.mockRejectedValueOnce(
-      new accountingEntityError.OnlyOneIndividualAccountingEntityAllowed({
-        ownerId: userId,
-      })
+  it('supports calendarless entity and context reads while rejecting posting', async () => {
+    await execute(payload);
+    mockAppContext.get.mockReturnValue({
+      actor,
+      user: { id: userId } as IUser,
+      accountingEntity: entity,
+      correlationId,
+    } as ReturnType<typeof mockAppContext.get>);
+    mockAccountingEntityRepo.findByUserId.mockResolvedValue([entity]);
+    mockAccountingContextQueryRepo.findActiveByAccountingEntityId.mockResolvedValue(
+      []
     );
+    mockReportingContextQueryRepo.findActiveByAccountingEntityId.mockResolvedValue(
+      []
+    );
+    mockAccountingPeriodRepo.findAllByDate.mockResolvedValue([]);
 
-    await expect(getUseCase()(validPayload)).rejects.toThrow(
-      'accounting_error_accounting_entity_only_one_individual_accounting_entity_allowed_conflict'
+    const readEntities = makeGetUserAccountingEntitiesUseCase({
+      appContext: mockAppContext,
+      accountingEntityRepo: mockAccountingEntityRepo,
+    });
+    const readAccountingContexts = makeGetAccountingContextsUsecase({
+      appContext: mockAppContext,
+      accountingContextQueryRepo: mockAccountingContextQueryRepo,
+    });
+    const readReportingContexts = makeGetReportingContextsUsecase({
+      appContext: mockAppContext,
+      reportingContextQueryRepo: mockReportingContextQueryRepo,
+    });
+    const postingPeriods = makeAccountingPeriodService({
+      accountingPeriodRepo: mockAccountingPeriodRepo,
+    });
+
+    await expect(readEntities()).resolves.toEqual([entity]);
+    await expect(readAccountingContexts()).resolves.toEqual([]);
+    await expect(readReportingContexts()).resolves.toEqual([]);
+    await expect(
+      postingPeriods.validatePostingPeriod(entity.id, new Date('2026-10-17'), {
+        correlationId,
+      })
+    ).rejects.toBeInstanceOf(periodError.PostingDateNotCovered);
+  });
+
+  it.each([
+    { name: 123 },
+    { entityType: 'unsupported' },
+    { jurisdictionCode: 'ZZ' },
+    { functionalCurrencyCode: 'ZZ' },
+    { ownerId: userId },
+    { createdBy: actor.id },
+    { fiscalYear: {} },
+    { accountingPeriod: {} },
+    { reportingPeriod: {} },
+    { accountingStandardCode: 'US_GAAP' },
+    { reportingCurrencyCode: 'USD' },
+    { appPreferences: { appUsageMode: 'non_power_user' } },
+  ])(
+    'rejects invalid or obsolete fields before orchestration: %j',
+    async (override) => {
+      await expect(
+        execute({ ...payload, ...override } as IAccountingEntityCreationDto)
+      ).rejects.toBeInstanceOf(appError.UnprocessableEntity);
+      expect(mockAppContext.get).not.toHaveBeenCalled();
+      expect(mockAccountingEntityService.create).not.toHaveBeenCalled();
+      expect(mockAccountingEntityRepo.create).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('does not create when authenticated context is missing', async () => {
+    mockAppContext.get.mockImplementation(() => {
+      throw new appError.Unauthorized();
+    });
+    await expect(execute(payload)).rejects.toBeInstanceOf(
+      appError.Unauthorized
+    );
+    expect(mockAccountingEntityService.create).not.toHaveBeenCalled();
+    expect(mockAccountingEntityRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('propagates the Individual ownership invariant without persistence', async () => {
+    mockAccountingEntityService.create.mockRejectedValueOnce(
+      new accountingEntityError.OnlyOneIndividualAccountingEntityAllowed()
+    );
+    await expect(
+      execute({ ...payload, entityType: 'individual' })
+    ).rejects.toBeInstanceOf(
+      accountingEntityError.OnlyOneIndividualAccountingEntityAllowed
     );
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('orchestrates accounting creation and transactional persistence', async () => {
-    await expect(getUseCase()(validPayload)).resolves.toBe(accountingEntity);
+  it('does not publish when entity or history persistence fails', async () => {
+    const failure = new Error('history insert failed');
+    mockAccountingEntityRepo.create.mockRejectedValueOnce(failure);
+    await expect(execute(payload)).rejects.toBe(failure);
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
 
-    expect(
-      mockAccountingDomainServices.accountingEntity.create
-    ).toHaveBeenCalledWith(expect.objectContaining({ ownerId: userId }), {
-      correlationId,
+  it('does not publish when the outer transaction fails to commit', async () => {
+    const failure = new Error('commit failed');
+    mockRepoService.runInTransaction.mockImplementationOnce(async (write) => {
+      await write(tx);
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+      throw failure;
     });
-    expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
+    await expect(execute(payload)).rejects.toBe(failure);
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('waits for successful commit before publishing', async () => {
+    let finishCommit!: () => void;
+    mockRepoService.runInTransaction.mockImplementationOnce(async (write) => {
+      await write(tx);
+      await new Promise<void>((resolve) => {
+        finishCommit = resolve;
+      });
+    });
+    const result = execute(payload);
+    await new Promise(process.nextTick);
     expect(mockAccountingEntityRepo.create).toHaveBeenCalled();
-    expect(mockUserPreferencesAppService.update).toHaveBeenCalledWith(
-      {
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        userId,
-        lastActiveAccountingEntityId: accountingEntity.id,
-        appPreferences: {
-          appUsageMode: EAppUsageModePreference.NonPowerUser,
-        },
-      },
-      { correlationId, tx: 'mock-tx' }
-    );
-    expect(mockFiscalYearRepo.create).toHaveBeenCalled();
-    expect(mockAccountingPeriodRepo.create).toHaveBeenCalled();
-    expect(mockAccountingContextRepo.create).toHaveBeenCalled();
-    expect(mockReportingPeriodRepo.create).toHaveBeenCalled();
-    expect(mockReportingContextRepo.create).toHaveBeenCalled();
-    expect(mockAppContext.set).toHaveBeenCalledWith({ accountingEntity });
-
-    expect(
-      mockAccountingEntityRepo.create.mock.invocationCallOrder[0]
-    ).toBeLessThan(
-      mockUserPreferencesAppService.update.mock.invocationCallOrder[0]
-    );
-    expect(
-      mockUserPreferencesAppService.update.mock.invocationCallOrder[0]
-    ).toBeLessThan(mockFiscalYearRepo.create.mock.invocationCallOrder[0]);
-  });
-
-  it('does not update context or publish when persistence fails', async () => {
-    mockAccountingEntityRepo.create.mockRejectedValueOnce(
-      new Error('persistence failed')
-    );
-
-    await expect(getUseCase()(validPayload)).rejects.toThrow(
-      'persistence failed'
-    );
-    expect(mockAppContext.set).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
+    finishCommit();
+    await expect(result).resolves.toEqual(
+      accountingEntityDtoMapper.toDto(entity)
+    );
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
   });
 
-  it('does not update context or publish when preference persistence fails', async () => {
-    mockUserPreferencesAppService.update.mockRejectedValueOnce(
-      new Error('preference persistence failed')
-    );
-
-    await expect(getUseCase()(validPayload)).rejects.toThrow(
-      'preference persistence failed'
-    );
-    expect(mockAppContext.set).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-
-  it('publishes only accounting events without bootstrapping ledger accounts', async () => {
-    await getUseCase()(validPayload);
-
-    const expectedEvents = [
-      ...accounting.accountingEntity[1],
-      ...accounting.fiscalYear[1],
-      ...accounting.accountingPeriods.flatMap(([, events]) => events),
-      ...accounting.accountingContext[1],
-      ...accounting.reportingPeriods.flatMap(([, events]) => events),
-      ...accounting.reportingContext[1],
-    ];
-    const published = mockEventBus.publish.mock.calls[0][0];
-    if (!Array.isArray(published)) {
-      throw new Error('Expected a batch of events');
-    }
-    expect(published).toHaveLength(expectedEvents.length);
-    expect(published.map((event) => event.type)).toEqual(
-      expectedEvents.map((event) => event.type)
-    );
-    expect(
-      published.every((event) => event.correlationId === correlationId)
-    ).toBe(true);
-  });
-
-  it('awaits publication after the transaction and context update', async () => {
-    let resolvePublication: (() => void) | undefined;
-    mockEventBus.publish.mockReturnValueOnce(
-      new Promise<void>((resolve) => {
-        resolvePublication = resolve;
-      })
-    );
-
-    const result = getUseCase()(validPayload);
-    await new Promise(process.nextTick);
-    expect(mockAppContext.set).toHaveBeenCalled();
-
-    let settled = false;
-    void result.then(() => {
-      settled = true;
-    });
-    await new Promise(process.nextTick);
-    expect(settled).toBe(false);
-
-    resolvePublication?.();
-    await expect(result).resolves.toBe(accountingEntity);
-    expect(
-      mockRepoService.runInTransaction.mock.invocationCallOrder[0]
-    ).toBeLessThan(mockAppContext.set.mock.invocationCallOrder[0]);
-    expect(mockAppContext.set.mock.invocationCallOrder[0]).toBeLessThan(
-      mockEventBus.publish.mock.invocationCallOrder[0]
-    );
+  it('awaits event publication and propagates publication failure after commit', async () => {
+    const failure = new Error('publish failed');
+    mockEventBus.publish.mockRejectedValueOnce(failure);
+    await expect(execute(payload)).rejects.toBe(failure);
+    expect(mockAccountingEntityRepo.create).toHaveBeenCalledTimes(1);
   });
 });

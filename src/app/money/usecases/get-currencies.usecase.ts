@@ -1,11 +1,13 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
+
 import ICurrencyRepo from '@domain/money/repos/currency.repo';
 
-import IAppContext from '@app/context/contracts/app-context.contract';
+import { IAppContextData } from '@app/context/types/app-context.types';
 import { ICurrencyDto } from '@app/money/dtos/currency/currency.dto';
 
 interface IDependencies {
   currencyRepo: ICurrencyRepo;
-  appContext: IAppContext;
+  appContext: IAppContextService<IAppContextData>;
 }
 
 export default function makeGetCurrenciesUseCase(deps: IDependencies) {

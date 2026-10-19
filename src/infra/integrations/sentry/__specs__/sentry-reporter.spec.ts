@@ -4,7 +4,7 @@ import * as sanitizer from '@shared/utils/sanitizer';
 
 import reporter from '@infra/integrations/sentry/sentry-reporter';
 import logger from '@infra/observability/logger';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 const originalAppEnv = process.env.APP_ENV;
 

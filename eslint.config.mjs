@@ -273,7 +273,9 @@ export default [
       'src/infra/ioc/handlers/mcp.ts',
       'src/infra/ioc/middlewares/http.ts',
       'src/infra/server/index.ts',
-      'src/infra/runtime/_bootstrap/**/*.ts',
+      'src/infra/runtime/bootstrap/**/*.ts',
+      'src/infra/runtime/_http/index.ts',
+      'src/infra/runtime/_ingestion/exchange-rate/index.ts',
     ],
     languageOptions: {
       parser: tsParser,

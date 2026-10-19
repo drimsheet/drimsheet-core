@@ -26,7 +26,7 @@ import observability from '@infra/observability';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import cacheStorage from '@infra/persistence/cache/cache-storage.impl';
 import userRepos from '@infra/persistence/repos/user';
-import appContext from '@infra/runtime/app-context';
+import appContext from '@infra/services/app-context.service';
 
 const emailVerificationAppService = makeEmailVerificationAppService({
   cacheStorage,

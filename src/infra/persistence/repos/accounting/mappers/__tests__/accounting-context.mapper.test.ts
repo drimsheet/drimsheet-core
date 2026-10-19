@@ -57,3 +57,39 @@ describe('accountingContextMapper', () => {
     expect(result.closedAt).toBe('2026-12-31T00:00:00.000Z');
   });
 });
+
+describe('accountingContextMapper.toDomain', () => {
+  it.each([null, '2026-12-31T00:00:00.000Z'])(
+    'maps stored IDs, dates, and working selection with closedAt=%j',
+    (closedAt) => {
+      const row = {
+        id: 'context',
+        createdBy: 'actor',
+        name: 'Context',
+        description: null,
+        accountingEntityId: 'entity',
+        accountingStandardCode: 'IFRS',
+        fiscalYearId: 'year',
+        currentOperatingPeriodId: 'period',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-02-01T00:00:00.000Z',
+        closedAt,
+      };
+      const result = accountingContextMapper.toDomain(row);
+      expect(result).toEqual({
+        id: 'context',
+        createdBy: 'actor',
+        name: 'Context',
+        description: null,
+        accountingEntityId: 'entity',
+        accountingStandardCode: 'IFRS',
+        fiscalYearId: 'year',
+        currentAccountingPeriodId: 'period',
+        createdAt: new Date(row.createdAt),
+        updatedAt: new Date(row.updatedAt),
+        closedAt: closedAt ? new Date(closedAt) : null,
+      });
+      expect(Object.isFrozen(result)).toBe(true);
+    }
+  );
+});

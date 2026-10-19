@@ -69,6 +69,25 @@ describe('accountingContextDtoMapper', () => {
     expect(dto.accountingPeriods[0].status).toBe('closed');
   });
 
+  it('maps a created context without leaking prerequisite collections or private fields', () => {
+    const record = {
+      id: context.id,
+      createdBy: context.createdBy,
+      name: context.name,
+      description: context.description,
+      accountingEntityId: context.accountingEntityId,
+      accountingStandardCode: context.accountingStandardCode,
+      fiscalYearId: context.fiscalYearId,
+      currentAccountingPeriodId: context.currentAccountingPeriodId,
+      createdAt: context.createdAt,
+      updatedAt: context.updatedAt,
+      closedAt: context.closedAt,
+    };
+    const input = { ...context, privateField: 'secret' };
+    expect(accountingContextDtoMapper.toRecordDto(input)).toEqual(record);
+    expect(accountingContextDtoMapper.toRecordDto(input)).not.toBe(input);
+  });
+
   it('preserves an empty period collection', () => {
     expect(
       accountingContextDtoMapper.toDto({ ...context, accountingPeriods: [] })
