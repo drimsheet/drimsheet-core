@@ -299,6 +299,59 @@ describe('activate cash account use case', () => {
       );
     });
 
+    it('posts the opening balance without rewriting an already active account', async () => {
+      mockLedgerAccountRepo.findById.mockResolvedValue(activated);
+      mockAssetAccountService.activate.mockResolvedValue([activated, [], null]);
+      const transactionOptions = {
+        ...repoOptions,
+        tx: mockRepoTransaction.context,
+      };
+
+      await usecase(activated.id, { activateOpeningBalance: true });
+
+      expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryService.postDraftOpeningBalance
+      ).toHaveBeenCalledWith(
+        { entry: details, account: activated, actor: actorId },
+        repoOptions
+      );
+      expect(
+        mockJournalEntryPersistenceAppService.rectify
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entryUpdate: expect.objectContaining({
+            entry: posting[0],
+            expectedVersion: originalEntry.version,
+          }),
+        }),
+        transactionOptions
+      );
+      expect(
+        mockOutboxAppService.createBalancePropagation
+      ).toHaveBeenCalledWith(originalEntry.id, transactionOptions);
+      expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+      expect(
+        mockRepoTransaction.commit.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
+      expect(mockEventBus.publish).toHaveBeenCalledWith(
+        posting[1].map((event) =>
+          expect.objectContaining({
+            type: event.type,
+            data: event.data,
+            correlationId: 'activate',
+            idempotencyKey: 'request',
+          })
+        )
+      );
+      expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
+        journalEntryId: originalEntry.id,
+        correlationId: 'activate',
+      });
+      expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+      expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
+    });
+
     it('activates only the account when opening-balance activation is false', async () => {
       await usecase(account.id, { activateOpeningBalance: false });
 

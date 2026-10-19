@@ -139,6 +139,7 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
       ...journalEvents,
       ...(fxAcquisition?.events ?? []),
     ];
-    deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
+
+    await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
   };
 }

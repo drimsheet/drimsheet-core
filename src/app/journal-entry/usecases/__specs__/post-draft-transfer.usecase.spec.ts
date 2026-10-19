@@ -172,6 +172,41 @@ describe('post draft transfer use case', () => {
     });
   });
 
+  it('commits without writes or downstream effects when posting returns no audit', async () => {
+    mockJournalEntryRepo.findById.mockResolvedValue(posting[0]);
+    mockJournalEntryService.postDraftTransfer.mockResolvedValue({
+      journalEntry: [posting[0], [], null],
+      sourceAccount: account,
+      destinationAssetAccount: destinationAccount,
+    });
+
+    await expect(usecase(posting[0].id)).resolves.toBeUndefined();
+
+    expect(mockJournalEntryService.postDraftTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({ entry: posting[0], actor: actorId }),
+      transactionOptions
+    );
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    expect(
+      mockFxLotCostBasisAppService.persistence.persistAcquisition
+    ).not.toHaveBeenCalled();
+    expect(
+      mockFxLotCostBasisAppService.persistence.persistDisposition
+    ).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+  });
+
   it.each([
     [false, false],
     [true, false],

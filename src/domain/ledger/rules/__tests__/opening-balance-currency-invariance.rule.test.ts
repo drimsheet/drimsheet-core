@@ -22,4 +22,19 @@ describe('opening balance currency invariance rule', () => {
       )
     ).toThrow(ledgerAccountError.OpeningBalanceCurrencyMismatch);
   });
+  it('rejects an opening balance when the account has no fixed currency', () => {
+    const accountId = generateUUID();
+    expect(() =>
+      openingBalanceCurrencyInvarianceRule.validate(
+        { id: accountId, currency: null },
+        SYSTEM_CURRENCIES.NGN
+      )
+    ).toThrow(
+      new ledgerAccountError.OpeningBalanceCurrencyMismatch({
+        accountId,
+        accountCurrencyCode: null,
+        openingBalanceCurrencyCode: 'NGN',
+      })
+    );
+  });
 });
