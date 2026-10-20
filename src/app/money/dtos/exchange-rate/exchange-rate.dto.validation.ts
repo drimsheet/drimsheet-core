@@ -26,10 +26,19 @@ export const exchangeRateDtoValidation = z.object({
     .max(100, new exchangeRateError.InvalidSource().errorKey),
 });
 
-export const exchangeRateIngestionDtoValidation = z.object({
-  correlationId: z.uuid(),
-  exchangeRates: z.array(exchangeRateDtoValidation),
-});
+export const exchangeRateIngestionDtoValidation = z
+  .object({
+    startDate: z.date(new exchangeRateError.InvalidDate().errorKey).optional(),
+    endDate: z.date(new exchangeRateError.InvalidDate().errorKey).optional(),
+  })
+  .refine(
+    ({ startDate, endDate }) =>
+      startDate === undefined || endDate === undefined || startDate <= endDate,
+    {
+      path: ['endDate'],
+      message: new exchangeRateError.InvalidDate().errorKey,
+    }
+  );
 
 export const getExchangeRatesQueryValidationSchema = z.object({
   ...omit(paginationDtoValidation.shape, ['search', 'sortDirection']),

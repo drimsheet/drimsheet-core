@@ -61,30 +61,22 @@ Install and run PostgreSQL and Redis on your machine and configure the connectio
 ### Running the core app
 
 - Ensure PostgreSQL and Redis are running (see above)
-- Run `npm run dev`
+- Run `yarn dev` (starts HTTP and route generation)
 - The app should now be running on `http://localhost:${PORT}`
 
 ### Ingesting CBN exchange rates
 
-After building the image and applying database migrations, run the standalone
-one-shot process with:
+Exchange rates are ingested daily at **18:00 Africa/Lagos** by a separate
+background process. Run `yarn dev:background` in another terminal for development,
+or `yarn start:background` in production with one active instance.
 
-```bash
-yarn ingest:exchange-rates
-```
+Before the first ingestion, apply migrations and let HTTP finish bootstrapping
+currency reference data.
 
-The process fetches official CBN `centralrate` observations and uses 2024-01-01
-as the initial boundary for each currency pair without stored history. On later
-runs, the latest committed observation date for each pair becomes that pair's
-inclusive cutoff. PostgreSQL exchange-rate observations are therefore the
-ingestion progress record; no separate last-run state is configured or
-maintained.
-
-Selected observations are written transactionally to PostgreSQL. The process
-retries bounded transient failures and exits non-zero after terminal failure.
-It does not start the API or workers. Coolify owns the production cron schedule
-and any platform-level rerun policy. The job requires `POSTGRES_URL` and may use
-the same optional Sentry and Better Stack configuration as the API.
+See the [background runtime guide](src/infra/runtime/__docs__/README.md#background-process)
+for scheduling and startup behavior, and the
+[operations runbook](docs/observability-operations.md#cbn-exchange-rate-worker)
+for deployment, monitoring, and shutdown.
 
 ### MCP server foundation
 

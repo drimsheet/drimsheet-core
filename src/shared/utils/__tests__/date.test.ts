@@ -22,6 +22,29 @@ describe('dateUtils', () => {
     }
   });
 
+  describe('getStartOfPreviousDay', () => {
+    it.each([
+      ['2026-10-20T22:59:59Z', 'Africa/Lagos', '2026-10-18T23:00:00Z'],
+      ['2026-10-20T23:00:00Z', 'Africa/Lagos', '2026-10-19T23:00:00Z'],
+      ['2027-01-01T12:00:00Z', 'Africa/Lagos', '2026-12-30T23:00:00Z'],
+      ['2028-03-01T12:00:00Z', 'Africa/Lagos', '2028-02-28T23:00:00Z'],
+      ['2026-03-09T12:00:00Z', 'America/New_York', '2026-03-08T05:00:00Z'],
+      ['2026-11-02T12:00:00Z', 'America/New_York', '2026-11-01T04:00:00Z'],
+    ])('finds the previous day for %s in %s', (value, timeZone, expected) => {
+      const input = new Date(value);
+      expect(dateUtils.getStartOfPreviousDay(input, timeZone)).toEqual(
+        new Date(expected)
+      );
+      expect(input).toEqual(new Date(value));
+    });
+
+    it('rejects an invalid reference date', () => {
+      expect(() =>
+        dateUtils.getStartOfPreviousDay(new Date(NaN), 'Africa/Lagos')
+      ).toThrow(dateError.InvalidDate);
+    });
+  });
+
   describe('UTC calendar dates', () => {
     it.each([
       ['2028-02-29T23:59:59.999Z', '2028-02-29'],

@@ -23,8 +23,8 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 
-export const audit = pgSchema('audit');
 export const core = pgSchema('core');
+export const audit = pgSchema('audit');
 export const accountingEntityStatusInCore = core.enum(
   'accounting_entity_status',
   ['active', 'archived']
@@ -123,206 +123,6 @@ export const subledgerFxCostBasisLotStatusInCore = core.enum(
   ['open', 'closed']
 );
 
-export const subledgerFxCostBasisLotDispositionHistoryInAudit = audit.table(
-  'subledger_fx_cost_basis_lot_disposition_history',
-  {
-    id: bigserial({ mode: 'bigint' }).primaryKey().notNull(),
-    dispositionId: uuid('disposition_id').notNull(),
-    accountingEntityId: uuid('accounting_entity_id').notNull(),
-    actorId: uuid('actor_id').notNull(),
-    onBehalfOf: uuid('on_behalf_of'),
-    action: varchar({ length: 50 }).notNull(),
-    diff: jsonb().notNull(),
-    correlationId: varchar('correlation_id', { length: 255 }),
-    occurredAt: timestamp('occurred_at', {
-      withTimezone: true,
-      mode: 'string',
-    }).notNull(),
-    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    index().using('btree', table.actorId.asc().nullsLast().op('uuid_ops')),
-    index(
-      'subledger_fx_cost_basis_lot_disposition_history_on_behalf_of_in'
-    ).using('btree', table.onBehalfOf.asc().nullsLast().op('uuid_ops')),
-    index(
-      'subledger_fx_cost_basis_lot_disposition_history_tenant_timeline'
-    ).using(
-      'btree',
-      table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('timestamptz_ops')
-    ),
-    index('subledger_fx_cost_basis_lot_disposition_history_timeline_idx').using(
-      'btree',
-      table.dispositionId.asc().nullsLast().op('timestamptz_ops'),
-      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
-      table.id.desc().nullsFirst().op('int8_ops')
-    ),
-    foreignKey({
-      columns: [table.onBehalfOf],
-      foreignColumns: [actorsInCore.id],
-      name: 'subledger_fx_cost_basis_lot_disposition_histo_on_behalf_of_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.actorId],
-      foreignColumns: [actorsInCore.id],
-      name: 'subledger_fx_cost_basis_lot_disposition_history_actor_id_fkey',
-    }).onDelete('restrict'),
-    check(
-      'subledger_fx_cost_basis_lot_disposition_history_diff_check',
-      sql`(jsonb_typeof(diff) = 'object'::text) AND (diff ? 'before'::text) AND (diff ? 'after'::text) AND (((diff -> 'before'::text) <> 'null'::jsonb) OR ((diff -> 'after'::text) <> 'null'::jsonb))`
-    ),
-  ]
-);
-
-export const subledgerFxCostBasisLotDispositionAllocationsInCore = core.table(
-  'subledger_fx_cost_basis_lot_disposition_allocations',
-  {
-    createdBy: uuid('created_by').notNull(),
-    id: uuid()
-      .default(sql`uuid_generate_v4()`)
-      .primaryKey()
-      .notNull(),
-    dispositionId: uuid('disposition_id').notNull(),
-    lotId: uuid('lot_id').notNull(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    quantityAmount: bigint('quantity_amount', { mode: 'number' }).notNull(),
-    quantityCurrency: varchar('quantity_currency', { length: 3 }).notNull(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    costBasisConsumedAmount: bigint('cost_basis_consumed_amount', {
-      mode: 'number',
-    }).notNull(),
-    costBasisConsumedCurrency: varchar('cost_basis_consumed_currency', {
-      length: 3,
-    }).notNull(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    proceedsAmount: bigint('proceeds_amount', { mode: 'number' }).notNull(),
-    proceedsCurrency: varchar('proceeds_currency', { length: 3 }).notNull(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    realizedGainLossAmount: bigint('realized_gain_loss_amount', {
-      mode: 'number',
-    }).notNull(),
-    realizedGainLossCurrency: varchar('realized_gain_loss_currency', {
-      length: 3,
-    }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.costBasisConsumedCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lot__cost_basis_consumed_currency_fkey1',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.realizedGainLossCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lot_d_realized_gain_loss_currency_fkey1',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.proceedsCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lot_disposition__proceeds_currency_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.quantityCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lot_disposition__quantity_currency_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.dispositionId],
-      foreignColumns: [subledgerFxCostBasisLotDispositionsInCore.id],
-      name: 'subledger_fx_cost_basis_lot_disposition_all_disposition_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [actorsInCore.id],
-      name: 'subledger_fx_cost_basis_lot_disposition_allocat_created_by_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.lotId],
-      foreignColumns: [subledgerFxCostBasisLotsInCore.id],
-      name: 'subledger_fx_cost_basis_lot_disposition_allocations_lot_id_fkey',
-    }).onDelete('cascade'),
-  ]
-);
-
-export const outboxInCore = core.table(
-  'outbox',
-  {
-    id: uuid().primaryKey().notNull(),
-    correlationId: varchar('correlation_id', { length: 255 }).notNull(),
-    type: varchar({ length: 255 }).notNull(),
-    data: jsonb(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    index('outbox_type_created_at_id_idx').using(
-      'btree',
-      table.type.asc().nullsLast().op('text_ops'),
-      table.createdAt.asc().nullsLast().op('uuid_ops'),
-      table.id.asc().nullsLast().op('text_ops')
-    ),
-  ]
-);
-
-export const accountingEntitiesInCore = core.table(
-  'accounting_entities',
-  {
-    createdBy: uuid('created_by').notNull(),
-    id: uuid()
-      .default(sql`uuid_generate_v4()`)
-      .primaryKey()
-      .notNull(),
-    type: accountingEntityTypeInCore().notNull(),
-    name: varchar({ length: 255 }).notNull(),
-    ownerId: uuid('owner_id').notNull(),
-    functionalCurrencyCode: varchar('functional_currency_code', {
-      length: 3,
-    }).notNull(),
-    jurisdictionCode: varchar('jurisdiction_code', { length: 2 }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-    status: accountingEntityStatusInCore().default('active').notNull(),
-  },
-  (table) => [
-    index().using('btree', table.createdBy.asc().nullsLast().op('uuid_ops')),
-    uniqueIndex('accounting_entities_unique_individual_owner_idx')
-      .using('btree', table.ownerId.asc().nullsLast().op('uuid_ops'))
-      .where(sql`(type = 'individual'::accounting_entity_type)`),
-    foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [actorsInCore.id],
-      name: 'accounting_entities_created_by_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.functionalCurrencyCode],
-      foreignColumns: [currenciesInCore.code],
-      name: 'accounting_entities_functional_currency_code_fkey',
-    }),
-    foreignKey({
-      columns: [table.jurisdictionCode],
-      foreignColumns: [jurisdictionsInCore.code],
-      name: 'accounting_entities_jurisdiction_code_fkey',
-    }),
-    foreignKey({
-      columns: [table.ownerId],
-      foreignColumns: [usersInCore.id],
-      name: 'accounting_entities_owner_id_fkey',
-    }).onDelete('cascade'),
-  ]
-);
-
 export const actorsInCore = core.table(
   'actors',
   {
@@ -345,17 +145,30 @@ export const actorsInCore = core.table(
   (table) => [
     index().using('btree', table.createdBy.asc().nullsLast().op('uuid_ops')),
     foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [table.id],
-      name: 'actors_created_by_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
       columns: [table.ownerActorId],
       foreignColumns: [table.id],
       name: 'actors_owner_actor_id_fkey',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [table.id],
+      name: 'actors_created_by_fkey',
+    }).onDelete('restrict'),
     unique('actors_username_key').on(table.username),
     unique('actors_owner_name_key').on(table.ownerActorId, table.agentName),
+    check(
+      'actors_type_ck',
+      sql`(type)::text = ANY ((ARRAY['user'::character varying, 'system'::character varying, 'migration'::character varying, 'ai_agent'::character varying])::text[])`
+    ),
+    check(
+      'actors_status_ck',
+      sql`(status)::text = ANY ((ARRAY['active'::character varying, 'disabled'::character varying])::text[])`
+    ),
+    check('actors_version_ck', sql`version > 0`),
+    check(
+      'actors_username_canonical_ck',
+      sql`(length((username)::text) > 0) AND ((username)::text = lower(btrim((username)::text)))`
+    ),
     check(
       'actors_display_name_ck',
       sql`length(btrim((display_name)::text)) > 0`
@@ -365,22 +178,9 @@ export const actorsInCore = core.table(
       sql`((owner_actor_id IS NULL) AND (agent_name IS NULL)) OR (((type)::text = 'ai_agent'::text) AND (owner_actor_id IS NOT NULL) AND (agent_name IS NOT NULL) AND ((agent_name)::text ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text) AND (owner_actor_id <> id))`
     ),
     check(
-      'actors_status_ck',
-      sql`(status)::text = ANY ((ARRAY['active'::character varying, 'disabled'::character varying])::text[])`
-    ),
-    check(
-      'actors_type_ck',
-      sql`(type)::text = ANY ((ARRAY['user'::character varying, 'system'::character varying, 'migration'::character varying, 'ai_agent'::character varying])::text[])`
-    ),
-    check(
-      'actors_username_canonical_ck',
-      sql`(length((username)::text) > 0) AND ((username)::text = lower(btrim((username)::text)))`
-    ),
-    check(
       'actors_username_kind_ck',
       sql`(((type)::text = 'user'::text) AND ((username)::text ~~ '%@%'::text)) OR (((type)::text = 'system'::text) AND ((username)::text = 'drimsheet-core'::text)) OR (((type)::text = 'migration'::text) AND ((username)::text = 'drimsheet-migration'::text)) OR (((type)::text = 'ai_agent'::text) AND (((owner_actor_id IS NULL) AND ((username)::text = 'drimsheet-core-ai'::text)) OR ((owner_actor_id IS NOT NULL) AND ((username)::text ~~ ('%@%/'::text || (agent_name)::text)))))`
     ),
-    check('actors_version_ck', sql`version > 0`),
   ]
 );
 
@@ -406,7 +206,7 @@ export const actorHistoryInAudit = audit.table(
     index().using(
       'btree',
       table.actorEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.asc().nullsLast().op('int8_ops'),
+      table.occurredAt.asc().nullsLast().op('timestamptz_ops'),
       table.id.asc().nullsLast().op('int8_ops')
     ),
     index().using('btree', table.actorId.asc().nullsLast().op('uuid_ops')),
@@ -540,31 +340,6 @@ export const userSessionsInCore = core.table(
   ]
 );
 
-export const currenciesInCore = core.table(
-  'currencies',
-  {
-    createdBy: uuid('created_by').notNull(),
-    code: varchar({ length: 3 }).primaryKey().notNull(),
-    symbol: varchar({ length: 5 }).notNull(),
-    name: varchar({ length: 50 }).notNull(),
-    minorUnit: smallint('minor_unit').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-    deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [actorsInCore.id],
-      name: 'currencies_created_by_fkey',
-    }).onDelete('restrict'),
-  ]
-);
-
 export const userProfileHistoryInAudit = audit.table(
   'user_profile_history',
   {
@@ -609,6 +384,31 @@ export const userProfileHistoryInAudit = audit.table(
   ]
 );
 
+export const currenciesInCore = core.table(
+  'currencies',
+  {
+    createdBy: uuid('created_by').notNull(),
+    code: varchar({ length: 3 }).primaryKey().notNull(),
+    symbol: varchar({ length: 5 }).notNull(),
+    name: varchar({ length: 50 }).notNull(),
+    minorUnit: smallint('minor_unit').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [actorsInCore.id],
+      name: 'currencies_created_by_fkey',
+    }).onDelete('restrict'),
+  ]
+);
+
 export const currencyExchangeRatesInCore = core.table(
   'currency_exchange_rates',
   {
@@ -629,15 +429,15 @@ export const currencyExchangeRatesInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.baseCurrencyCode],
-      foreignColumns: [currenciesInCore.code],
-      name: 'currency_exchange_rates_base_currency_code_fkey',
-    }),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'currency_exchange_rates_created_by_fkey',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.baseCurrencyCode],
+      foreignColumns: [currenciesInCore.code],
+      name: 'currency_exchange_rates_base_currency_code_fkey',
+    }),
     foreignKey({
       columns: [table.targetCurrencyCode],
       foreignColumns: [currenciesInCore.code],
@@ -704,11 +504,56 @@ export const jurisdictionsInCore = core.table(
   ]
 );
 
-export const pgmigrations = pgTable('pgmigrations', {
-  id: serial().primaryKey().notNull(),
-  name: varchar({ length: 255 }).notNull(),
-  runOn: timestamp('run_on', { mode: 'string' }).notNull(),
-});
+export const accountingEntitiesInCore = core.table(
+  'accounting_entities',
+  {
+    createdBy: uuid('created_by').notNull(),
+    id: uuid()
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey()
+      .notNull(),
+    type: accountingEntityTypeInCore().notNull(),
+    status: accountingEntityStatusInCore().default('active').notNull(),
+    name: varchar({ length: 255 }).notNull(),
+    ownerId: uuid('owner_id').notNull(),
+    functionalCurrencyCode: varchar('functional_currency_code', {
+      length: 3,
+    }).notNull(),
+    jurisdictionCode: varchar('jurisdiction_code', { length: 2 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index().using('btree', table.createdBy.asc().nullsLast().op('uuid_ops')),
+    uniqueIndex('accounting_entities_unique_individual_owner_idx')
+      .using('btree', table.ownerId.asc().nullsLast().op('uuid_ops'))
+      .where(sql`(type = 'individual'::accounting_entity_type)`),
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [actorsInCore.id],
+      name: 'accounting_entities_created_by_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.ownerId],
+      foreignColumns: [usersInCore.id],
+      name: 'accounting_entities_owner_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.functionalCurrencyCode],
+      foreignColumns: [currenciesInCore.code],
+      name: 'accounting_entities_functional_currency_code_fkey',
+    }),
+    foreignKey({
+      columns: [table.jurisdictionCode],
+      foreignColumns: [jurisdictionsInCore.code],
+      name: 'accounting_entities_jurisdiction_code_fkey',
+    }),
+  ]
+);
 
 export const accountingEntityHistoryInAudit = audit.table(
   'accounting_entity_history',
@@ -749,57 +594,6 @@ export const accountingEntityHistoryInAudit = audit.table(
     }).onDelete('restrict'),
     check(
       'accounting_entity_history_diff_check',
-      sql`(jsonb_typeof(diff) = 'object'::text) AND (diff ? 'before'::text) AND (diff ? 'after'::text) AND (((diff -> 'before'::text) <> 'null'::jsonb) OR ((diff -> 'after'::text) <> 'null'::jsonb))`
-    ),
-  ]
-);
-
-export const fiscalYearHistoryInAudit = audit.table(
-  'fiscal_year_history',
-  {
-    id: bigserial({ mode: 'bigint' }).primaryKey().notNull(),
-    fiscalYearId: uuid('fiscal_year_id').notNull(),
-    accountingEntityId: uuid('accounting_entity_id').notNull(),
-    actorId: uuid('actor_id').notNull(),
-    onBehalfOf: uuid('on_behalf_of'),
-    action: varchar({ length: 50 }).notNull(),
-    diff: jsonb().notNull(),
-    correlationId: varchar('correlation_id', { length: 255 }),
-    occurredAt: timestamp('occurred_at', {
-      withTimezone: true,
-      mode: 'string',
-    }).notNull(),
-    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    index().using('btree', table.actorId.asc().nullsLast().op('uuid_ops')),
-    index().using('btree', table.onBehalfOf.asc().nullsLast().op('uuid_ops')),
-    index('fiscal_year_history_tenant_timeline_idx').using(
-      'btree',
-      table.accountingEntityId.asc().nullsLast().op('int8_ops'),
-      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
-      table.id.desc().nullsFirst().op('timestamptz_ops')
-    ),
-    index('fiscal_year_history_timeline_idx').using(
-      'btree',
-      table.fiscalYearId.asc().nullsLast().op('timestamptz_ops'),
-      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
-      table.id.desc().nullsFirst().op('int8_ops')
-    ),
-    foreignKey({
-      columns: [table.actorId],
-      foreignColumns: [actorsInCore.id],
-      name: 'fiscal_year_history_actor_id_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.onBehalfOf],
-      foreignColumns: [actorsInCore.id],
-      name: 'fiscal_year_history_on_behalf_of_fkey',
-    }).onDelete('restrict'),
-    check(
-      'fiscal_year_history_diff_check',
       sql`(jsonb_typeof(diff) = 'object'::text) AND (diff ? 'before'::text) AND (diff ? 'after'::text) AND (((diff -> 'before'::text) <> 'null'::jsonb) OR ((diff -> 'after'::text) <> 'null'::jsonb))`
     ),
   ]
@@ -861,15 +655,67 @@ export const fiscalYearsInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'fiscal_years_accounting_entity_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'fiscal_years_created_by_fkey',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'fiscal_years_accounting_entity_id_fkey',
+    }).onDelete('cascade'),
+    check('fiscal_years_dates_ordered', sql`start_date <= end_date`),
+  ]
+);
+
+export const fiscalYearHistoryInAudit = audit.table(
+  'fiscal_year_history',
+  {
+    id: bigserial({ mode: 'bigint' }).primaryKey().notNull(),
+    fiscalYearId: uuid('fiscal_year_id').notNull(),
+    accountingEntityId: uuid('accounting_entity_id').notNull(),
+    actorId: uuid('actor_id').notNull(),
+    onBehalfOf: uuid('on_behalf_of'),
+    action: varchar({ length: 50 }).notNull(),
+    diff: jsonb().notNull(),
+    correlationId: varchar('correlation_id', { length: 255 }),
+    occurredAt: timestamp('occurred_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index().using('btree', table.actorId.asc().nullsLast().op('uuid_ops')),
+    index().using('btree', table.onBehalfOf.asc().nullsLast().op('uuid_ops')),
+    index('fiscal_year_history_tenant_timeline_idx').using(
+      'btree',
+      table.accountingEntityId.asc().nullsLast().op('int8_ops'),
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
+    ),
+    index('fiscal_year_history_timeline_idx').using(
+      'btree',
+      table.fiscalYearId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
+    ),
+    foreignKey({
+      columns: [table.actorId],
+      foreignColumns: [actorsInCore.id],
+      name: 'fiscal_year_history_actor_id_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.onBehalfOf],
+      foreignColumns: [actorsInCore.id],
+      name: 'fiscal_year_history_on_behalf_of_fkey',
+    }).onDelete('restrict'),
+    check(
+      'fiscal_year_history_diff_check',
+      sql`(jsonb_typeof(diff) = 'object'::text) AND (diff ? 'before'::text) AND (diff ? 'after'::text) AND (((diff -> 'before'::text) <> 'null'::jsonb) OR ((diff -> 'after'::text) <> 'null'::jsonb))`
+    ),
   ]
 );
 
@@ -896,15 +742,15 @@ export const accountingPeriodsInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'accounting_periods_accounting_entity_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'accounting_periods_created_by_fkey',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'accounting_periods_accounting_entity_id_fkey',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.fiscalYearId],
       foreignColumns: [fiscalYearsInCore.id],
@@ -965,6 +811,12 @@ export const accountingPeriodHistoryInAudit = audit.table(
   ]
 );
 
+export const pgmigrations = pgTable('pgmigrations', {
+  id: serial().primaryKey().notNull(),
+  name: varchar({ length: 255 }).notNull(),
+  runOn: timestamp('run_on', { mode: 'string' }).notNull(),
+});
+
 export const accountingContextsInCore = core.table(
   'accounting_contexts',
   {
@@ -991,6 +843,11 @@ export const accountingContextsInCore = core.table(
   },
   (table) => [
     foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [actorsInCore.id],
+      name: 'accounting_contexts_created_by_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
       columns: [table.accountingEntityId],
       foreignColumns: [accountingEntitiesInCore.id],
       name: 'accounting_contexts_accounting_entity_id_fkey',
@@ -1001,20 +858,15 @@ export const accountingContextsInCore = core.table(
       name: 'accounting_contexts_accounting_standard_code_fkey',
     }).onDelete('restrict'),
     foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [actorsInCore.id],
-      name: 'accounting_contexts_created_by_fkey',
-    }).onDelete('restrict'),
+      columns: [table.fiscalYearId],
+      foreignColumns: [fiscalYearsInCore.id],
+      name: 'accounting_contexts_fiscal_year_id_fkey',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.currentOperatingPeriodId],
       foreignColumns: [accountingPeriodsInCore.id],
       name: 'accounting_contexts_current_operating_period_id_fkey',
     }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.fiscalYearId],
-      foreignColumns: [fiscalYearsInCore.id],
-      name: 'accounting_contexts_fiscal_year_id_fkey',
-    }).onDelete('cascade'),
   ]
 );
 
@@ -1090,20 +942,24 @@ export const reportingPeriodsInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'reporting_periods_accounting_entity_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'reporting_periods_created_by_fkey',
     }).onDelete('restrict'),
     foreignKey({
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'reporting_periods_accounting_entity_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
       columns: [table.fiscalYearId],
       foreignColumns: [fiscalYearsInCore.id],
       name: 'reporting_periods_fiscal_year_id_fkey',
     }).onDelete('cascade'),
+    unique('reporting_periods_fiscal_year_start_date_key').on(
+      table.fiscalYearId,
+      table.startDate
+    ),
   ]
 );
 
@@ -1187,9 +1043,9 @@ export const reportingContextsInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.accountingContextId],
-      foreignColumns: [accountingContextsInCore.id],
-      name: 'reporting_contexts_accounting_context_id_fkey',
+      columns: [table.createdBy],
+      foreignColumns: [actorsInCore.id],
+      name: 'reporting_contexts_created_by_fkey',
     }).onDelete('restrict'),
     foreignKey({
       columns: [table.accountingEntityId],
@@ -1197,14 +1053,14 @@ export const reportingContextsInCore = core.table(
       name: 'reporting_contexts_accounting_entity_id_fkey',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.accountingStandardCode],
-      foreignColumns: [accountingStandardsInCore.code],
-      name: 'reporting_contexts_accounting_standard_code_fkey',
+      columns: [table.reportingCurrencyCode],
+      foreignColumns: [currenciesInCore.code],
+      name: 'reporting_contexts_reporting_currency_code_fkey',
     }).onDelete('restrict'),
     foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [actorsInCore.id],
-      name: 'reporting_contexts_created_by_fkey',
+      columns: [table.accountingContextId],
+      foreignColumns: [accountingContextsInCore.id],
+      name: 'reporting_contexts_accounting_context_id_fkey',
     }).onDelete('restrict'),
     foreignKey({
       columns: [table.currentReportingPeriodId],
@@ -1212,9 +1068,9 @@ export const reportingContextsInCore = core.table(
       name: 'reporting_contexts_current_reporting_period_id_fkey',
     }).onDelete('restrict'),
     foreignKey({
-      columns: [table.reportingCurrencyCode],
-      foreignColumns: [currenciesInCore.code],
-      name: 'reporting_contexts_reporting_currency_code_fkey',
+      columns: [table.accountingStandardCode],
+      foreignColumns: [accountingStandardsInCore.code],
+      name: 'reporting_contexts_accounting_standard_code_fkey',
     }).onDelete('restrict'),
   ]
 );
@@ -1317,6 +1173,11 @@ export const ledgerAccountsInCore = core.table(
         sql`(((sub_type)::text = 'suspense'::text) AND (type = ANY (ARRAY['asset'::ledger_type, 'liability'::ledger_type])))`
       ),
     foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [actorsInCore.id],
+      name: 'ledger_accounts_created_by_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
       columns: [table.accountingEntityId],
       foreignColumns: [accountingEntitiesInCore.id],
       name: 'ledger_accounts_accounting_entity_id_fkey',
@@ -1325,11 +1186,6 @@ export const ledgerAccountsInCore = core.table(
       columns: [table.controlAccountId],
       foreignColumns: [table.id],
       name: 'ledger_accounts_control_account_id_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [actorsInCore.id],
-      name: 'ledger_accounts_created_by_fkey',
     }).onDelete('restrict'),
     foreignKey({
       columns: [table.currencyCode],
@@ -1344,11 +1200,11 @@ export const ledgerAccountsInCore = core.table(
       table.materializedPath,
       table.accountingEntityId
     ),
+    check('ledger_accounts_version_positive_ck', sql`version > 0`),
     check(
       'ledger_accounts_suspense_currency_required_ck',
       sql`(NOT (((sub_type)::text = 'suspense'::text) AND (type = ANY (ARRAY['asset'::ledger_type, 'liability'::ledger_type])))) OR (currency_code IS NOT NULL)`
     ),
-    check('ledger_accounts_version_positive_ck', sql`version > 0`),
   ]
 );
 
@@ -1432,15 +1288,20 @@ export const ledgerAccountBalancesInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'ledger_account_balances_accounting_entity_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'ledger_account_balances_created_by_fkey',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.ledgerAccountId],
+      foreignColumns: [ledgerAccountsInCore.id],
+      name: 'ledger_account_balances_ledger_account_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'ledger_account_balances_accounting_entity_id_fkey',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.currencyCode],
       foreignColumns: [currenciesInCore.code],
@@ -1451,11 +1312,6 @@ export const ledgerAccountBalancesInCore = core.table(
       foreignColumns: [currenciesInCore.code],
       name: 'ledger_account_balances_functional_currency_code_fkey',
     }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.ledgerAccountId],
-      foreignColumns: [ledgerAccountsInCore.id],
-      name: 'ledger_account_balances_ledger_account_id_fkey',
-    }).onDelete('cascade'),
     unique('ledger_account_balances_path_entity_id_uk').on(
       table.accountingEntityId,
       table.accountMaterializedPath
@@ -1490,30 +1346,30 @@ export const counterpartiesInCore = core.table(
       table.accountingEntityId.asc().nullsLast().op('uuid_ops')
     ),
     foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'counterparties_accounting_entity_id_fkey',
-    }),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'counterparties_created_by_fkey',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'counterparties_accounting_entity_id_fkey',
+    }),
     check(
-      'counterparties_contractor_meta_check',
-      sql`(NOT (meta ? 'contractor'::text)) OR COALESCE((jsonb_typeof((meta -> 'contractor'::text)) = 'object'::text), false)`
+      'counterparties_meta_check',
+      sql`(jsonb_typeof(meta) = 'object'::text) AND ((meta - ARRAY['employer'::text, 'vendor'::text, 'contractor'::text]) = '{}'::jsonb)`
     ),
     check(
       'counterparties_employer_meta_check',
       sql`(NOT (meta ? 'employer'::text)) OR COALESCE((jsonb_typeof((meta -> 'employer'::text)) = 'object'::text), false)`
     ),
     check(
-      'counterparties_meta_check',
-      sql`(jsonb_typeof(meta) = 'object'::text) AND ((meta - ARRAY['employer'::text, 'vendor'::text, 'contractor'::text]) = '{}'::jsonb)`
-    ),
-    check(
       'counterparties_vendor_meta_check',
       sql`(NOT (meta ? 'vendor'::text)) OR COALESCE((jsonb_typeof((meta -> 'vendor'::text)) = 'object'::text), false)`
+    ),
+    check(
+      'counterparties_contractor_meta_check',
+      sql`(NOT (meta ? 'contractor'::text)) OR COALESCE((jsonb_typeof((meta -> 'contractor'::text)) = 'object'::text), false)`
     ),
   ]
 );
@@ -1570,6 +1426,47 @@ export const counterpartyHistoryInAudit = audit.table(
   ]
 );
 
+export const journalEntriesInCore = core.table(
+  'journal_entries',
+  {
+    createdBy: uuid('created_by').notNull(),
+    id: uuid().primaryKey().notNull(),
+    accountingEntityId: uuid('accounting_entity_id').notNull(),
+    sourceType: journalEntrySourceTypeInCore('source_type').notNull(),
+    memo: varchar({ length: 100 }),
+    status: journalEntryStatusInCore().notNull(),
+    effectiveDate: date('effective_date').notNull(),
+    postedAt: timestamp('posted_at', { withTimezone: true, mode: 'string' }),
+    voidedAt: timestamp('voided_at', { withTimezone: true, mode: 'string' }),
+    voidingEntryId: uuid('voiding_entry_id'),
+    version: integer().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [actorsInCore.id],
+      name: 'journal_entries_created_by_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'journal_entries_accounting_entity_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.voidingEntryId],
+      foreignColumns: [table.id],
+      name: 'journal_entries_voiding_entry_id_fkey',
+    }),
+    unique('journal_entries_voiding_entry_id_key').on(table.voidingEntryId),
+  ]
+);
+
 export const journalEntryHistoryInAudit = audit.table(
   'journal_entry_history',
   {
@@ -1619,47 +1516,6 @@ export const journalEntryHistoryInAudit = audit.table(
       'journal_entry_history_diff_check',
       sql`(jsonb_typeof(diff) = 'object'::text) AND (diff ? 'before'::text) AND (diff ? 'after'::text) AND (((diff -> 'before'::text) <> 'null'::jsonb) OR ((diff -> 'after'::text) <> 'null'::jsonb))`
     ),
-  ]
-);
-
-export const journalEntriesInCore = core.table(
-  'journal_entries',
-  {
-    createdBy: uuid('created_by').notNull(),
-    id: uuid().primaryKey().notNull(),
-    accountingEntityId: uuid('accounting_entity_id').notNull(),
-    sourceType: journalEntrySourceTypeInCore('source_type').notNull(),
-    memo: varchar({ length: 100 }),
-    status: journalEntryStatusInCore().notNull(),
-    effectiveDate: date('effective_date').notNull(),
-    postedAt: timestamp('posted_at', { withTimezone: true, mode: 'string' }),
-    voidedAt: timestamp('voided_at', { withTimezone: true, mode: 'string' }),
-    voidingEntryId: uuid('voiding_entry_id'),
-    version: integer().notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'journal_entries_accounting_entity_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [actorsInCore.id],
-      name: 'journal_entries_created_by_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.voidingEntryId],
-      foreignColumns: [table.id],
-      name: 'journal_entries_voiding_entry_id_fkey',
-    }),
-    unique('journal_entries_voiding_entry_id_key').on(table.voidingEntryId),
   ]
 );
 
@@ -1720,6 +1576,16 @@ export const journalLinesInCore = core.table(
       table.entryId.asc().nullsLast().op('uuid_ops')
     ),
     foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [actorsInCore.id],
+      name: 'journal_lines_created_by_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.entryId],
+      foreignColumns: [journalEntriesInCore.id],
+      name: 'journal_lines_entry_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
       columns: [table.accountId],
       foreignColumns: [ledgerAccountsInCore.id],
       name: 'journal_lines_account_id_fkey',
@@ -1730,20 +1596,10 @@ export const journalLinesInCore = core.table(
       name: 'journal_lines_counterparty_id_fkey',
     }),
     foreignKey({
-      columns: [table.createdBy],
-      foreignColumns: [actorsInCore.id],
-      name: 'journal_lines_created_by_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
       columns: [table.currencyCode],
       foreignColumns: [currenciesInCore.code],
       name: 'journal_lines_currency_code_fkey',
     }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.entryId],
-      foreignColumns: [journalEntriesInCore.id],
-      name: 'journal_lines_entry_id_fkey',
-    }).onDelete('cascade'),
     foreignKey({
       columns: [table.functionalCurrencyCode],
       foreignColumns: [currenciesInCore.code],
@@ -1833,29 +1689,29 @@ export const ledgerAccountBalanceAdjustmentsInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.functionalCurrencyCode],
-      foreignColumns: [currenciesInCore.code],
-      name: 'ledger_account_balance_adjustment_functional_currency_code_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'ledger_account_balance_adjustments_created_by_fkey',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.ledgerAccountId],
+      foreignColumns: [ledgerAccountsInCore.id],
+      name: 'ledger_account_balance_adjustments_ledger_account_id_fkey',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.currencyCode],
       foreignColumns: [currenciesInCore.code],
       name: 'ledger_account_balance_adjustments_currency_code_fkey',
     }).onDelete('restrict'),
     foreignKey({
+      columns: [table.functionalCurrencyCode],
+      foreignColumns: [currenciesInCore.code],
+      name: 'ledger_account_balance_adjustment_functional_currency_code_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
       columns: [table.journalEntryId],
       foreignColumns: [journalEntriesInCore.id],
       name: 'ledger_account_balance_adjustments_journal_entry_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.ledgerAccountId],
-      foreignColumns: [ledgerAccountsInCore.id],
-      name: 'ledger_account_balance_adjustments_ledger_account_id_fkey',
     }).onDelete('cascade'),
     unique('ledger_account_balance_adjustments_account_entry_uk').on(
       table.ledgerAccountId,
@@ -1917,16 +1773,6 @@ export const subledgerFxCostBasisLotsInCore = core.table(
       table.id.asc().nullsLast().op('uuid_ops')
     ),
     foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'subledger_fx_cost_basis_lots_accounting_entity_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.costBasisCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lots_cost_basis_currency_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'subledger_fx_cost_basis_lots_created_by_fkey',
@@ -1937,9 +1783,19 @@ export const subledgerFxCostBasisLotsInCore = core.table(
       name: 'subledger_fx_cost_basis_lots_ledger_account_id_fkey',
     }).onDelete('cascade'),
     foreignKey({
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'subledger_fx_cost_basis_lots_accounting_entity_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
       columns: [table.originalQuantityCurrency],
       foreignColumns: [currenciesInCore.code],
       name: 'subledger_fx_cost_basis_lots_original_quantity_currency_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.costBasisCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lots_cost_basis_currency_fkey',
     }).onDelete('restrict'),
   ]
 );
@@ -2022,29 +1878,19 @@ export const subledgerFxCostBasisLotAcquisitionsInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'subledger_fx_cost_basis_lot_acquisiti_accounting_entity_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.costBasisCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lot_acquisitio_cost_basis_currency_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'subledger_fx_cost_basis_lot_acquisitions_created_by_fkey',
     }).onDelete('restrict'),
     foreignKey({
-      columns: [table.journalEntryId],
-      foreignColumns: [journalEntriesInCore.id],
-      name: 'subledger_fx_cost_basis_lot_acquisitions_journal_entry_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
       columns: [table.ledgerAccountId],
       foreignColumns: [ledgerAccountsInCore.id],
       name: 'subledger_fx_cost_basis_lot_acquisitions_ledger_account_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'subledger_fx_cost_basis_lot_acquisiti_accounting_entity_id_fkey',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.lotId],
@@ -2052,9 +1898,19 @@ export const subledgerFxCostBasisLotAcquisitionsInCore = core.table(
       name: 'subledger_fx_cost_basis_lot_acquisitions_lot_id_fkey',
     }).onDelete('cascade'),
     foreignKey({
+      columns: [table.journalEntryId],
+      foreignColumns: [journalEntriesInCore.id],
+      name: 'subledger_fx_cost_basis_lot_acquisitions_journal_entry_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
       columns: [table.quantityCurrency],
       foreignColumns: [currenciesInCore.code],
       name: 'subledger_fx_cost_basis_lot_acquisitions_quantity_currency_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.costBasisCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lot_acquisitio_cost_basis_currency_fkey',
     }).onDelete('restrict'),
   ]
 );
@@ -2099,14 +1955,14 @@ export const subledgerFxCostBasisLotAcquisitionHistoryInAudit = audit.table(
       table.id.desc().nullsFirst().op('int8_ops')
     ),
     foreignKey({
-      columns: [table.onBehalfOf],
-      foreignColumns: [actorsInCore.id],
-      name: 'subledger_fx_cost_basis_lot_acquisition_histo_on_behalf_of_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
       columns: [table.actorId],
       foreignColumns: [actorsInCore.id],
       name: 'subledger_fx_cost_basis_lot_acquisition_history_actor_id_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.onBehalfOf],
+      foreignColumns: [actorsInCore.id],
+      name: 'subledger_fx_cost_basis_lot_acquisition_histo_on_behalf_of_fkey',
     }).onDelete('restrict'),
     check(
       'subledger_fx_cost_basis_lot_acquisition_history_diff_check',
@@ -2155,46 +2011,206 @@ export const subledgerFxCostBasisLotDispositionsInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.costBasisConsumedCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lot_d_cost_basis_consumed_currency_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.realizedGainLossCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lot_di_realized_gain_loss_currency_fkey',
-    }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.accountingEntityId],
-      foreignColumns: [accountingEntitiesInCore.id],
-      name: 'subledger_fx_cost_basis_lot_dispositi_accounting_entity_id_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],
       name: 'subledger_fx_cost_basis_lot_dispositions_created_by_fkey',
     }).onDelete('restrict'),
-    foreignKey({
-      columns: [table.journalEntryId],
-      foreignColumns: [journalEntriesInCore.id],
-      name: 'subledger_fx_cost_basis_lot_dispositions_journal_entry_id_fkey',
-    }).onDelete('cascade'),
     foreignKey({
       columns: [table.ledgerAccountId],
       foreignColumns: [ledgerAccountsInCore.id],
       name: 'subledger_fx_cost_basis_lot_dispositions_ledger_account_id_fkey',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.proceedsCurrency],
-      foreignColumns: [currenciesInCore.code],
-      name: 'subledger_fx_cost_basis_lot_dispositions_proceeds_currency_fkey',
-    }).onDelete('restrict'),
+      columns: [table.accountingEntityId],
+      foreignColumns: [accountingEntitiesInCore.id],
+      name: 'subledger_fx_cost_basis_lot_dispositi_accounting_entity_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.journalEntryId],
+      foreignColumns: [journalEntriesInCore.id],
+      name: 'subledger_fx_cost_basis_lot_dispositions_journal_entry_id_fkey',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.quantityCurrency],
       foreignColumns: [currenciesInCore.code],
       name: 'subledger_fx_cost_basis_lot_dispositions_quantity_currency_fkey',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.costBasisConsumedCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lot_d_cost_basis_consumed_currency_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.proceedsCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lot_dispositions_proceeds_currency_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.realizedGainLossCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lot_di_realized_gain_loss_currency_fkey',
+    }).onDelete('restrict'),
   ]
+);
+
+export const subledgerFxCostBasisLotDispositionHistoryInAudit = audit.table(
+  'subledger_fx_cost_basis_lot_disposition_history',
+  {
+    id: bigserial({ mode: 'bigint' }).primaryKey().notNull(),
+    dispositionId: uuid('disposition_id').notNull(),
+    accountingEntityId: uuid('accounting_entity_id').notNull(),
+    actorId: uuid('actor_id').notNull(),
+    onBehalfOf: uuid('on_behalf_of'),
+    action: varchar({ length: 50 }).notNull(),
+    diff: jsonb().notNull(),
+    correlationId: varchar('correlation_id', { length: 255 }),
+    occurredAt: timestamp('occurred_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index().using('btree', table.actorId.asc().nullsLast().op('uuid_ops')),
+    index(
+      'subledger_fx_cost_basis_lot_disposition_history_on_behalf_of_in'
+    ).using('btree', table.onBehalfOf.asc().nullsLast().op('uuid_ops')),
+    index(
+      'subledger_fx_cost_basis_lot_disposition_history_tenant_timeline'
+    ).using(
+      'btree',
+      table.accountingEntityId.asc().nullsLast().op('int8_ops'),
+      table.occurredAt.desc().nullsFirst().op('uuid_ops'),
+      table.id.desc().nullsFirst().op('timestamptz_ops')
+    ),
+    index('subledger_fx_cost_basis_lot_disposition_history_timeline_idx').using(
+      'btree',
+      table.dispositionId.asc().nullsLast().op('timestamptz_ops'),
+      table.occurredAt.desc().nullsFirst().op('timestamptz_ops'),
+      table.id.desc().nullsFirst().op('int8_ops')
+    ),
+    foreignKey({
+      columns: [table.actorId],
+      foreignColumns: [actorsInCore.id],
+      name: 'subledger_fx_cost_basis_lot_disposition_history_actor_id_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.onBehalfOf],
+      foreignColumns: [actorsInCore.id],
+      name: 'subledger_fx_cost_basis_lot_disposition_histo_on_behalf_of_fkey',
+    }).onDelete('restrict'),
+    check(
+      'subledger_fx_cost_basis_lot_disposition_history_diff_check',
+      sql`(jsonb_typeof(diff) = 'object'::text) AND (diff ? 'before'::text) AND (diff ? 'after'::text) AND (((diff -> 'before'::text) <> 'null'::jsonb) OR ((diff -> 'after'::text) <> 'null'::jsonb))`
+    ),
+  ]
+);
+
+export const subledgerFxCostBasisLotDispositionAllocationsInCore = core.table(
+  'subledger_fx_cost_basis_lot_disposition_allocations',
+  {
+    createdBy: uuid('created_by').notNull(),
+    id: uuid()
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey()
+      .notNull(),
+    dispositionId: uuid('disposition_id').notNull(),
+    lotId: uuid('lot_id').notNull(),
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    quantityAmount: bigint('quantity_amount', { mode: 'number' }).notNull(),
+    quantityCurrency: varchar('quantity_currency', { length: 3 }).notNull(),
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    costBasisConsumedAmount: bigint('cost_basis_consumed_amount', {
+      mode: 'number',
+    }).notNull(),
+    costBasisConsumedCurrency: varchar('cost_basis_consumed_currency', {
+      length: 3,
+    }).notNull(),
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    proceedsAmount: bigint('proceeds_amount', { mode: 'number' }).notNull(),
+    proceedsCurrency: varchar('proceeds_currency', { length: 3 }).notNull(),
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    realizedGainLossAmount: bigint('realized_gain_loss_amount', {
+      mode: 'number',
+    }).notNull(),
+    realizedGainLossCurrency: varchar('realized_gain_loss_currency', {
+      length: 3,
+    }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [actorsInCore.id],
+      name: 'subledger_fx_cost_basis_lot_disposition_allocat_created_by_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.dispositionId],
+      foreignColumns: [subledgerFxCostBasisLotDispositionsInCore.id],
+      name: 'subledger_fx_cost_basis_lot_disposition_all_disposition_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.lotId],
+      foreignColumns: [subledgerFxCostBasisLotsInCore.id],
+      name: 'subledger_fx_cost_basis_lot_disposition_allocations_lot_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.quantityCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lot_disposition__quantity_currency_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.costBasisConsumedCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lot__cost_basis_consumed_currency_fkey1',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.proceedsCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lot_disposition__proceeds_currency_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.realizedGainLossCurrency],
+      foreignColumns: [currenciesInCore.code],
+      name: 'subledger_fx_cost_basis_lot_d_realized_gain_loss_currency_fkey1',
+    }).onDelete('restrict'),
+  ]
+);
+
+export const outboxInCore = core.table(
+  'outbox',
+  {
+    id: uuid().primaryKey().notNull(),
+    correlationId: varchar('correlation_id', { length: 255 }).notNull(),
+    type: varchar({ length: 255 }).notNull(),
+    data: jsonb(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index('outbox_type_created_at_id_idx').using(
+      'btree',
+      table.type.asc().nullsLast().op('text_ops'),
+      table.createdAt.asc().nullsLast().op('uuid_ops'),
+      table.id.asc().nullsLast().op('text_ops')
+    ),
+  ]
+);
+
+export const backgroundJobCheckpointsInCore = core.table(
+  'background_job_checkpoints',
+  {
+    jobKey: text('job_key').primaryKey().notNull(),
+    lastSucceededAt: timestamp('last_succeeded_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).notNull(),
+  }
 );
 
 export const jurisdictionAccountingStandardsInCore = core.table(
@@ -2216,14 +2232,14 @@ export const jurisdictionAccountingStandardsInCore = core.table(
   },
   (table) => [
     foreignKey({
-      columns: [table.accountingStandardCode],
-      foreignColumns: [accountingStandardsInCore.code],
-      name: 'jurisdiction_accounting_standards_accounting_standard_code_fkey',
-    }).onDelete('cascade'),
-    foreignKey({
       columns: [table.jurisdictionCode],
       foreignColumns: [jurisdictionsInCore.code],
       name: 'jurisdiction_accounting_standards_jurisdiction_code_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.accountingStandardCode],
+      foreignColumns: [accountingStandardsInCore.code],
+      name: 'jurisdiction_accounting_standards_accounting_standard_code_fkey',
     }).onDelete('cascade'),
     primaryKey({
       columns: [

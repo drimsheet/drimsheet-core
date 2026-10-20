@@ -1,4 +1,3 @@
-import { ICorrelationId } from '@shared/types/correlation-id.types';
 import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 
 import { UExchangeRateType } from '@domain/money/types/exchange-rate.types';
@@ -12,8 +11,9 @@ export interface IExchangeRateDto {
   source: string;
 }
 
-export interface IExchangeRateIngestionDto extends ICorrelationId {
-  exchangeRates: IExchangeRateDto[];
+export interface IExchangeRateIngestionDto {
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export interface IExchangeRateQueryParam extends Omit<

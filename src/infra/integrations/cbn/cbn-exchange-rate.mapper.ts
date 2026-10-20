@@ -2,8 +2,6 @@ import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dt
 
 import { TCbnExchangeRateRecord } from './cbn-exchange-rate.schema';
 
-const CBN_EXCHANGE_RATE_INITIAL_CUTOFF = '2024-01-01';
-
 const CBN_CURRENCY_CODE_BY_LABEL: Readonly<Record<string, string>> =
   Object.freeze({
     AED: 'AED',
@@ -45,7 +43,9 @@ function normalizeCbnCurrencyLabel(currency: string): string {
 }
 
 export function mapCbnExchangeRates(
-  records: TCbnExchangeRateRecord[]
+  records: TCbnExchangeRateRecord[],
+  startDate: Date,
+  endDate: Date
 ): ICbnExchangeRateMapping {
   const exchangeRates: IExchangeRateDto[] = [];
   const unsupportedCurrencyLabels = new Set<string>();
@@ -62,12 +62,14 @@ export function mapCbnExchangeRates(
       continue;
     }
 
-    if (record.ratedate < CBN_EXCHANGE_RATE_INITIAL_CUTOFF) {
+    const asOf = new Date(`${record.ratedate}T00:00:00.000Z`);
+    const isOutsideRange = asOf < startDate || asOf > endDate;
+    if (isOutsideRange) {
       continue;
     }
 
     exchangeRates.push({
-      asOf: new Date(`${record.ratedate}T00:00:00.000Z`),
+      asOf,
       baseCurrencyCode,
       rate: Number(record.centralrate),
       source: 'CBN',

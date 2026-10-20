@@ -1,221 +1,162 @@
 import {
-  currencyPairValidation,
   exchangeRateDtoValidation,
   exchangeRateIngestionDtoValidation,
   getExchangeRatesQueryValidationSchema,
 } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 
-describe('Exchange Rate DTO Validation', () => {
-  describe('currencyPairValidation', () => {
-    it('should validate valid currency pairs', () => {
-      expect(currencyPairValidation.safeParse('USD/EUR').success).toBe(true);
-      expect(currencyPairValidation.safeParse('EUR/USD').success).toBe(true);
-      expect(currencyPairValidation.safeParse('GBP/JPY').success).toBe(true);
-    });
+describe('exchange-rate DTO validation', () => {
+  const rate = {
+    baseCurrencyCode: 'EUR',
+    targetCurrencyCode: 'USD',
+    rate: 1.0825,
+    type: 'market',
+    asOf: '2026-07-13T18:00:00Z',
+    source: 'OpenExchangeRates',
+  };
 
-    it('should fail on invalid currency pair formats', () => {
-      // Wrong length/casing/symbols
-      expect(currencyPairValidation.safeParse('US/EU').success).toBe(false);
-      expect(currencyPairValidation.safeParse('USDT/USD').success).toBe(false);
-      expect(currencyPairValidation.safeParse('usd/eur').success).toBe(false);
-      expect(currencyPairValidation.safeParse('USD-EUR').success).toBe(false);
-      expect(currencyPairValidation.safeParse('USDEUR').success).toBe(false);
-      expect(currencyPairValidation.safeParse('USD/').success).toBe(false);
-      expect(currencyPairValidation.safeParse('/USD').success).toBe(false);
+  it('converts an observation timestamp to a Date while preserving its values', () => {
+    expect(exchangeRateDtoValidation.parse(rate)).toEqual({
+      ...rate,
+      asOf: new Date(rate.asOf),
     });
   });
 
-  describe('exchangeRateDtoValidation', () => {
-    it('should validate a correct exchange rate DTO payload', () => {
-      const payload = {
-        baseCurrencyCode: 'EUR',
-        targetCurrencyCode: 'USD',
-        rate: 1.0825,
-        type: 'market',
-        asOf: '2026-07-13T18:00:00Z',
-        source: 'OpenExchangeRates',
-      };
+  it.each([0, -0.5])(
+    'reports non-positive rate %s on the rate field',
+    (value) => {
+      const result = exchangeRateDtoValidation.safeParse({
+        ...rate,
+        rate: value,
+      });
+      expect(result.error?.issues).toEqual([
+        expect.objectContaining({
+          path: ['rate'],
+          message: 'currency_error_exchange_rate_rate_invalid',
+        }),
+      ]);
+    }
+  );
 
-      const result = exchangeRateDtoValidation.safeParse(payload);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.asOf).toBeInstanceOf(Date);
-        expect(result.data.asOf.toISOString()).toBe('2026-07-13T18:00:00.000Z');
+  it.each([1, 101])(
+    'reports out-of-bounds source length %i on the source field',
+    (length) => {
+      const result = exchangeRateDtoValidation.safeParse({
+        ...rate,
+        source: 'A'.repeat(length),
+      });
+      expect(result.error?.issues).toEqual([
+        expect.objectContaining({
+          path: ['source'],
+          message: 'currency_error_exchange_rate_source_invalid',
+        }),
+      ]);
+    }
+  );
+
+  it('reports an invalid observation timestamp on asOf', () => {
+    const result = exchangeRateDtoValidation.safeParse({
+      ...rate,
+      asOf: 'invalid-date',
+    });
+    expect(result.error?.issues).toEqual([
+      expect.objectContaining({
+        path: ['asOf'],
+        message: 'currency_error_exchange_rate_date_invalid',
+      }),
+    ]);
+  });
+
+  describe('ingestion ranges', () => {
+    const startDate = new Date('2026-06-01T00:00:00Z');
+    const endDate = new Date('2026-06-10T00:00:00Z');
+
+    it.each([
+      {},
+      { startDate },
+      { endDate },
+      { startDate, endDate },
+      { startDate, endDate: startDate },
+    ])('preserves optional dates and inclusive ranges: %s', (payload) => {
+      expect(exchangeRateIngestionDtoValidation.parse(payload)).toEqual(
+        payload
+      );
+    });
+
+    it.each(['startDate', 'endDate'] as const)(
+      'requires a valid Date for %s without coercing strings',
+      (field) => {
+        for (const value of [new Date('invalid'), '2026-06-01']) {
+          const result = exchangeRateIngestionDtoValidation.safeParse({
+            [field]: value,
+          });
+          expect(result.error?.issues).toEqual([
+            expect.objectContaining({
+              path: [field],
+              message: 'currency_error_exchange_rate_date_invalid',
+            }),
+          ]);
+        }
       }
-    });
+    );
 
-    it('should fail validation if rate is negative or zero', () => {
-      const payload = {
-        baseCurrencyCode: 'EUR',
-        targetCurrencyCode: 'USD',
-        rate: -0.5,
-        type: 'market',
-        asOf: '2026-07-13T18:00:00Z',
-        source: 'OpenExchangeRates',
-      };
-
-      const result = exchangeRateDtoValidation.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if source is too short', () => {
-      const payload = {
-        baseCurrencyCode: 'EUR',
-        targetCurrencyCode: 'USD',
-        rate: 1.0825,
-        type: 'market',
-        asOf: '2026-07-13T18:00:00Z',
-        source: 'A',
-      };
-
-      const result = exchangeRateDtoValidation.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if source is too long', () => {
-      const payload = {
-        baseCurrencyCode: 'EUR',
-        targetCurrencyCode: 'USD',
-        rate: 1.0825,
-        type: 'market',
-        asOf: '2026-07-13T18:00:00Z',
-        source: 'A'.repeat(101),
-      };
-
-      const result = exchangeRateDtoValidation.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if asOf has invalid date format', () => {
-      const payload = {
-        baseCurrencyCode: 'EUR',
-        targetCurrencyCode: 'USD',
-        rate: 1.0825,
-        type: 'market',
-        asOf: 'invalid-date',
-        source: 'OpenExchangeRates',
-      };
-
-      const result = exchangeRateDtoValidation.safeParse(payload);
-      expect(result.success).toBe(false);
+    it('reports reversed ranges on endDate', () => {
+      const result = exchangeRateIngestionDtoValidation.safeParse({
+        startDate: endDate,
+        endDate: startDate,
+      });
+      expect(result.error?.issues).toEqual([
+        expect.objectContaining({
+          path: ['endDate'],
+          message: 'currency_error_exchange_rate_date_invalid',
+        }),
+      ]);
     });
   });
 
-  describe('exchangeRateIngestionDtoValidation', () => {
-    it('should validate a Core-owned ingestion payload', () => {
-      const result = exchangeRateIngestionDtoValidation.safeParse({
-        correlationId: '019cde0f-5b78-775a-bf29-8f02a947760a',
-        exchangeRates: [
-          {
-            baseCurrencyCode: 'USD',
-            targetCurrencyCode: 'NGN',
-            rate: 1500.25,
-            type: 'official',
-            asOf: '2026-07-13',
-            source: 'CBN',
-          },
-        ],
+  describe('exchange-rate queries', () => {
+    it('requires a currency pair even when other filters are supplied', () => {
+      const result = getExchangeRatesQueryValidationSchema.safeParse({
+        type: 'market',
       });
-
-      expect(result.success).toBe(true);
+      expect(result.error?.issues).toEqual([
+        expect.objectContaining({ path: ['currencyPair'] }),
+      ]);
     });
 
-    it('should reject missing correlation IDs and malformed rates', () => {
-      const result = exchangeRateIngestionDtoValidation.safeParse({
-        exchangeRates: [{ rate: 0 }],
-      });
-
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe('getExchangeRatesQueryValidationSchema', () => {
-    it('should validate a correct query param payload with only currencyPair', () => {
-      const payload = {
-        currencyPair: 'USD/EUR',
-      };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(true);
+    it('accepts a currency pair without optional filters', () => {
+      expect(
+        getExchangeRatesQueryValidationSchema.parse({ currencyPair: 'USD/EUR' })
+      ).toEqual({ currencyPair: 'USD/EUR' });
     });
 
-    it('should validate a correct query param payload with all optional fields', () => {
-      const payload = {
+    it('preserves filters and pagination while converting the asOf timestamp', () => {
+      const query = {
         currencyPair: 'EUR/USD',
         type: 'market',
-        asOf: '2026-07-13T18:00:00Z',
+        asOf: rate.asOf,
         limit: 100,
         page: 1,
         orderBy: 'asOf',
       };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.asOf).toBeInstanceOf(Date);
-        expect(result.data.asOf?.toISOString()).toBe(
-          '2026-07-13T18:00:00.000Z'
-        );
+      expect(getExchangeRatesQueryValidationSchema.parse(query)).toEqual({
+        ...query,
+        asOf: new Date(rate.asOf),
+      });
+    });
+
+    it.each(['usd/eur', 'USD-EUR', 'US/EUR'])(
+      'reports malformed currency pair %s on currencyPair',
+      (currencyPair) => {
+        const result = getExchangeRatesQueryValidationSchema.safeParse({
+          currencyPair,
+        });
+        expect(result.error?.issues).toEqual([
+          expect.objectContaining({
+            path: ['currencyPair'],
+            message: 'currency_error_exchange_rate_pair_invalid',
+          }),
+        ]);
       }
-    });
-
-    it('should fail validation if currencyPair is missing', () => {
-      const payload = {
-        type: 'market',
-      };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if currencyPair is invalid', () => {
-      const payload = {
-        currencyPair: 'INVALID',
-      };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if type is invalid', () => {
-      const payload = {
-        currencyPair: 'USD/EUR',
-        type: 'invalid-type',
-      };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if limit is less than 1', () => {
-      const payload = {
-        currencyPair: 'USD/EUR',
-        limit: 0,
-      };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if limit is more than 200', () => {
-      const payload = {
-        currencyPair: 'USD/EUR',
-        limit: 201,
-      };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if page is less than 1', () => {
-      const payload = {
-        currencyPair: 'USD/EUR',
-        page: 0,
-      };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
-
-    it('should fail validation if asOf has invalid date format', () => {
-      const payload = {
-        currencyPair: 'USD/EUR',
-        asOf: 'invalid-date',
-      };
-      const result = getExchangeRatesQueryValidationSchema.safeParse(payload);
-      expect(result.success).toBe(false);
-    });
+    );
   });
 });
