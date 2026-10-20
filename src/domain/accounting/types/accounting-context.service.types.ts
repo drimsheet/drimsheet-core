@@ -20,7 +20,7 @@ interface ICreateAccountingContextInput extends Pick<
   accountingPeriod: IAccountingPeriod;
 }
 
-export interface ICurrentAccountingPeriodUpdateInput {
+interface ICurrentAccountingPeriodUpdateInput {
   accountingContextId: TEntityId;
   previousState: {
     currentAccountPeriod: TEntityId;

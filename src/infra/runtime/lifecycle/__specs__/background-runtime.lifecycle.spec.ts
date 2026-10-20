@@ -11,9 +11,15 @@ const mockCloseDatabase = jest.fn();
 const mockShutdownQueues = jest.fn();
 const mockShutdownObservability = jest.fn();
 const mockRegisterAccountingWorker = jest.fn();
-jest.mock('@infra/messaging/workers/current-accounting-period.worker', () => ({
+const mockRegisterEmailWorker = jest.fn();
+const mockRegisterLedgerWorker = jest.fn();
+jest.mock('@infra/messaging/workers', () => ({
   __esModule: true,
-  default: () => mockRegisterAccountingWorker(),
+  default: [
+    () => mockRegisterEmailWorker(),
+    () => mockRegisterLedgerWorker(),
+    () => mockRegisterAccountingWorker(),
+  ],
 }));
 jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
   __esModule: true,
@@ -88,6 +94,8 @@ describe('background runtime lifecycle', () => {
     async (signal) => {
       await runBackground();
       expect(mockRegisterAccountingWorker).toHaveBeenCalledTimes(1);
+      expect(mockRegisterEmailWorker).toHaveBeenCalledTimes(1);
+      expect(mockRegisterLedgerWorker).toHaveBeenCalledTimes(1);
       const tasks = [...cron.getTasks().values()];
       expect(tasks.map((task) => task.getStatus())).toEqual(['idle', 'idle']);
       expect(mockLogger.info).toHaveBeenCalledWith(
@@ -110,9 +118,13 @@ describe('background runtime lifecycle', () => {
     }
   );
 
-  it('waits for all initializers before starting tasks and registering shutdown handlers', async () => {
+  it('registers shutdown handlers before workers and waits for initializers before starting tasks', async () => {
     const interruptListeners = process.listenerCount('SIGINT');
     const terminateListeners = process.listenerCount('SIGTERM');
+    mockRegisterEmailWorker.mockImplementation(() => {
+      expect(process.listenerCount('SIGINT')).toBe(interruptListeners + 1);
+      expect(process.listenerCount('SIGTERM')).toBe(terminateListeners + 1);
+    });
     let finish!: () => void;
     mockInitializeSecond.mockReturnValue(
       new Promise<void>((resolve) => {
@@ -123,14 +135,120 @@ describe('background runtime lifecycle', () => {
     const starting = runBackground();
     await tick();
     expect([...cron.getTasks().values()][0].getStatus()).toBe('stopped');
-    expect(process.listenerCount('SIGINT')).toBe(interruptListeners);
-    expect(process.listenerCount('SIGTERM')).toBe(terminateListeners);
+    expect(process.listenerCount('SIGINT')).toBe(interruptListeners + 1);
+    expect(process.listenerCount('SIGTERM')).toBe(terminateListeners + 1);
 
     finish();
     await starting;
     expect([...cron.getTasks().values()][0].getStatus()).toBe('idle');
     expect(process.listenerCount('SIGINT')).toBe(interruptListeners + 1);
     expect(process.listenerCount('SIGTERM')).toBe(terminateListeners + 1);
+  });
+
+  it.each(['SIGINT', 'SIGTERM'] as const)(
+    'finishes the active initializer and cleans up its tasks without continuing startup on %s',
+    async (signal) => {
+      let finish!: () => void;
+      mockInitializeFirst.mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          finish = resolve;
+        });
+        cron.createTask('0 17 * * *', () => undefined);
+      });
+      const starting = runBackground();
+      await tick();
+
+      process.emit(signal);
+      process.emit(signal);
+      await tick();
+      expect(mockShutdownQueues).not.toHaveBeenCalled();
+      expect(mockCloseDatabase).not.toHaveBeenCalled();
+      expect(mockInitializeSecond).not.toHaveBeenCalled();
+
+      finish();
+      await starting;
+
+      expect(mockInitializeSecond).not.toHaveBeenCalled();
+      expect(cron.getTasks().size).toBe(0);
+      expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+      expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+      expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+      expect(mockLogger.info).not.toHaveBeenCalled();
+      expect(process.exitCode).toBeUndefined();
+    }
+  );
+
+  it('stops registering workers if shutdown is requested during registration', async () => {
+    mockRegisterEmailWorker.mockImplementation(() => {
+      process.emit('SIGTERM');
+    });
+
+    await runBackground();
+
+    expect(mockRegisterLedgerWorker).not.toHaveBeenCalled();
+    expect(mockRegisterAccountingWorker).not.toHaveBeenCalled();
+    expect(mockInitializeFirst).not.toHaveBeenCalled();
+    expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+    expect(mockLogger.info).not.toHaveBeenCalled();
+  });
+
+  it('does not start another task when shutdown interrupts task startup', async () => {
+    let finish!: () => void;
+    const startFirst = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const startSecond = jest.fn();
+    mockInitializeFirst.mockImplementation(() => {
+      const task = cron.createTask('0 17 * * *', () => undefined);
+      jest.spyOn(task, 'start').mockImplementation(startFirst);
+    });
+    mockInitializeSecond.mockImplementation(() => {
+      const task = cron.createTask('0 18 * * *', () => undefined);
+      jest.spyOn(task, 'start').mockImplementation(startSecond);
+    });
+    const starting = runBackground();
+    await tick();
+    expect(startFirst).toHaveBeenCalledTimes(1);
+
+    process.emit('SIGTERM');
+    finish();
+    await starting;
+
+    expect(startSecond).not.toHaveBeenCalled();
+    expect(cron.getTasks().size).toBe(0);
+    expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    expect(mockLogger.info).not.toHaveBeenCalled();
+  });
+
+  it('reports initialization failure during shutdown and cleans up only once', async () => {
+    let fail!: (error: Error) => void;
+    mockInitializeFirst.mockReturnValue(
+      new Promise<void>((_resolve, reject) => {
+        fail = reject;
+      })
+    );
+    const starting = runBackground();
+    await tick();
+    process.emit('SIGTERM');
+    const failure = new Error('Initialization failed');
+    fail(failure);
+
+    await starting;
+
+    expect(mockReporter.report).toHaveBeenCalledWith(
+      'runtime.background.failed',
+      failure
+    );
+    expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+    expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+    expect(mockInitializeSecond).not.toHaveBeenCalled();
+    expect(mockLogger.info).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
   });
 
   it('awaits shutdown before closing clients and ignores repeated signals', async () => {

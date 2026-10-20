@@ -144,9 +144,8 @@ export default function makeActivateCashAccountUsecase(deps: IDependencies) {
       );
 
       if (openingBalancePosting) {
-        await deps.ledgerBalanceAdjustmentQueue.add({
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
           journalEntryId: openingBalancePosting.entry.id,
-          correlationId,
         });
       }
     } catch (error) {

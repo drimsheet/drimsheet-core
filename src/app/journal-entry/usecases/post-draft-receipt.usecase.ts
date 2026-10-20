@@ -148,9 +148,8 @@ export default function makePostDraftReceiptUsecase(deps: IDependencies) {
         eventValue.enrichAll(events, { correlationId, idempotencyKey })
       );
 
-      await deps.ledgerBalanceAdjustmentQueue.add({
+      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
         journalEntryId: entry.id,
-        correlationId,
       });
     } catch (error) {
       return await transaction.handleError(error);

@@ -8,6 +8,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
+import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockLedgerBalancePropagationPreparationAppService from '@app/ledger/contracts/__mocks__/ledger-balance-propagation-preparation.service.mock';
 import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
@@ -77,11 +78,11 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
   ];
   const payload: ILedgerAccountBalanceAdjustmentDto = {
     journalEntryId,
-    correlationId,
   };
 
   const getUseCase = () =>
     makeAdjustLedgerAccountBalanceUseCase({
+      appContext: mockAppContext,
       repoService: mockRepoService,
       outboxRepo: mockOutboxRepo,
       ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
@@ -92,6 +93,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAppContext.get.mockReturnValue({ correlationId, idempotencyKey: '' });
     mockRepoService.runInTransaction.mockImplementation((fn) => fn(tx));
     mockOutboxRepo.findByIdAndType.mockResolvedValue(outbox);
     mockOutboxRepo.delete.mockResolvedValue(true);
@@ -139,6 +141,25 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     expect(adjustmentCallOrder[adjustmentCallOrder.length - 1]).toBeLessThan(
       mockOutboxRepo.delete.mock.invocationCallOrder[0]
     );
+  });
+
+  it('uses app context even when an existing payload contains correlation metadata', async () => {
+    const existingPayload = {
+      ...payload,
+      correlationId: 'payload-correlation',
+    };
+
+    await getUseCase()(existingPayload);
+
+    expect(mockOutboxRepo.findByIdAndType).toHaveBeenCalledWith(
+      journalEntryId,
+      EOutboxType.BalancePropagation,
+      { correlationId }
+    );
+    expect(mockOutboxRepo.delete).toHaveBeenCalledWith(journalEntryId, {
+      correlationId,
+      tx,
+    });
   });
 
   it('reports a missing outbox row and skips balance updates', async () => {

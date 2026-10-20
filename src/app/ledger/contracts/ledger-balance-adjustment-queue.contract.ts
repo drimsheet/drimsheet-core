@@ -4,5 +4,8 @@ export const LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME =
   'ledger-account-balance-adjustment-queue' as const;
 
 export default interface ILedgerBalanceAdjustmentQueue {
-  add(payload: ILedgerAccountBalanceAdjustmentDto): Promise<void>;
+  add(
+    correlationId: string,
+    payload: ILedgerAccountBalanceAdjustmentDto
+  ): Promise<void>;
 }

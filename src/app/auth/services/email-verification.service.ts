@@ -44,7 +44,6 @@ function makeSend(deps: IDependencies): IEmailVerificationAppService['send'] {
       await deps.transactionalEmailAppService.sendEmailVerification({
         user,
         verificationLink,
-        correlationId,
       });
 
       return true;

@@ -319,10 +319,12 @@ describe('createOpeningBalanceUseCase', () => {
       persistedJournalEntry.id,
       expect.objectContaining({ correlationId, tx: expect.anything() })
     );
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-      journalEntryId: persistedJournalEntry.id,
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
-    });
+      {
+        journalEntryId: persistedJournalEntry.id,
+      }
+    );
     expect(
       mockRepoService.runInTransaction.mock.invocationCallOrder[0]
     ).toBeLessThan(
@@ -360,10 +362,12 @@ describe('createOpeningBalanceUseCase', () => {
       mockJournalCreation[0].id,
       { correlationId, tx: 'mock-tx' }
     );
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-      journalEntryId: mockJournalCreation[0].id,
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
-    });
+      {
+        journalEntryId: mockJournalCreation[0].id,
+      }
+    );
     expect(mockEventBus.publish).toHaveBeenCalledWith(
       mockJournalCreation[1].map((event) =>
         expect.objectContaining({

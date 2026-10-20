@@ -4,7 +4,6 @@ describe('Ledger Account Balance Adjustment DTO Validation', () => {
   it('should validate a correct balance adjustment DTO payload', () => {
     const payload = {
       journalEntryId: '2b4c1064-a09e-4e4f-b6a3-23945cc87f74',
-      correlationId: '1c4c1064-a09e-4e4f-b6a3-23945cc87f75',
     };
 
     const result = ledgerAccountBalanceAdjustmentDtoSchema.safeParse(payload);
@@ -14,17 +13,6 @@ describe('Ledger Account Balance Adjustment DTO Validation', () => {
   it('should fail if the journal entry ID is not a UUID', () => {
     const payload = {
       journalEntryId: 'invalid-uuid',
-      correlationId: '1c4c1064-a09e-4e4f-b6a3-23945cc87f75',
-    };
-
-    const result = ledgerAccountBalanceAdjustmentDtoSchema.safeParse(payload);
-    expect(result.success).toBe(false);
-  });
-
-  it('should fail if the correlation ID is not a UUID', () => {
-    const payload = {
-      journalEntryId: '2b4c1064-a09e-4e4f-b6a3-23945cc87f74',
-      correlationId: 'invalid-uuid',
     };
 
     const result = ledgerAccountBalanceAdjustmentDtoSchema.safeParse(payload);

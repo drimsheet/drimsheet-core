@@ -1,6 +1,4 @@
-import { ICorrelationId } from '@shared/types/correlation-id.types';
-
-export interface ITransactionalEmailDto extends ICorrelationId {
+export interface ITransactionalEmailDto {
   emails: string[];
   subject: string;
   html: string;

@@ -1,5 +1,5 @@
 {
-  "entryFile": "src/infra/runtime/_http/index.ts",
+  "entryFile": "src/infra/runtime/process/http.process.ts",
   "compilerOptions": {
     "paths": {
       "@domain/*": ["./src/domain/*"],

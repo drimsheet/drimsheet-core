@@ -27,9 +27,11 @@ jest.mock('@infra/messaging/workers', () => {
 
   return {
     __esModule: true,
-    default: jest.fn(() => {
-      mockLoadOrder.push('workers');
-    }),
+    default: [
+      () => {
+        mockLoadOrder.push('workers');
+      },
+    ],
   };
 });
 
@@ -88,7 +90,7 @@ describe('HTTP runtime bootstrap', () => {
 
   it('initializes observability before dependencies and bootstraps in order after listening', async () => {
     await jest.isolateModulesAsync(async () => {
-      await import('@infra/runtime/_http');
+      await import('@infra/runtime/process/http.process');
       await new Promise((resolve) => setImmediate(resolve));
 
       expect(mockLoadOrder[0]).toBe('observability');
@@ -98,20 +100,20 @@ describe('HTTP runtime bootstrap', () => {
         'events-module',
         'feature-flags-module',
         'server-module',
-        'workers-module',
       ]);
       expect(mockLoadOrder[mockLoadOrder.length - 1]).toBe('listen');
       expect(mockBootstrap).toBeDefined();
 
       await mockBootstrap!();
 
-      expect(mockLoadOrder.slice(-5)).toEqual([
+      expect(mockLoadOrder.slice(-4)).toEqual([
         'feature-flags',
         'currencies',
         'accounting-context',
-        'workers',
         'events',
       ]);
+      expect(mockLoadOrder).not.toContain('workers-module');
+      expect(mockLoadOrder).not.toContain('workers');
     });
   });
 });

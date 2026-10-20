@@ -72,8 +72,8 @@ describe('queue lifecycle', () => {
         await import('@infra/runtime/lifecycle/queue.lifecycle')
       ).default;
       const queue = makeAccountingQueue(mockTracer);
-      await queue.add(payload);
-      await queue.add(payload);
+      await queue.add('queue-correlation', payload);
+      await queue.add('queue-correlation', payload);
       getLedgerAccountBalanceAdjustmentQueue();
       getLedgerAccountBalanceAdjustmentQueue();
       getTransactionalEmailQueue();
@@ -109,7 +109,7 @@ describe('queue lifecycle', () => {
       const lifecycle = (
         await import('@infra/runtime/lifecycle/queue.lifecycle')
       ).default;
-      await makeAccountingQueue(mockTracer).add(payload);
+      await makeAccountingQueue(mockTracer).add('queue-correlation', payload);
       getLedgerAccountBalanceAdjustmentQueue();
       getTransactionalEmailQueue();
       const firstFailure = new Error('Accounting queue close failed');
@@ -179,7 +179,7 @@ describe('queue lifecycle', () => {
       const worker = { close: closeWorker } as unknown as Worker;
       resources.registerWorker(worker);
       resources.registerWorker(worker);
-      await makeQueue(mockTracer).add(payload);
+      await makeQueue(mockTracer).add('queue-correlation', payload);
 
       const shuttingDown = lifecycle.shutdown();
       await Promise.resolve();
@@ -208,7 +208,7 @@ describe('queue lifecycle', () => {
       const failure = new Error('Worker close failed');
       const closeWorker = jest.fn().mockRejectedValue(failure);
       resources.registerWorker({ close: closeWorker } as unknown as Worker);
-      await makeQueue(mockTracer).add(payload);
+      await makeQueue(mockTracer).add('queue-correlation', payload);
 
       await expect(lifecycle.shutdown()).rejects.toMatchObject({
         errors: [failure],

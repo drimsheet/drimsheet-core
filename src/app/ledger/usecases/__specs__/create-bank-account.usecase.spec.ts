@@ -268,9 +268,8 @@ describe('bank account creation workflow', () => {
         );
         expect(
           mockLedgerAccountBalanceAdjustmentQueue.add
-        ).toHaveBeenCalledWith({
+        ).toHaveBeenCalledWith(correlationId, {
           journalEntryId: journal[0].id,
-          correlationId,
         });
       } else {
         expect(

@@ -6,7 +6,6 @@ import makeTransactionalEmailWorker from '@app/notification/workers/transactiona
 
 describe('makeTransactionalEmailWorker', () => {
   const payload: ITransactionalEmailDto = {
-    correlationId: 'correlation-id',
     emails: ['recipient@example.com'],
     subject: 'Transaction update',
     html: '<p>Transaction update</p>',

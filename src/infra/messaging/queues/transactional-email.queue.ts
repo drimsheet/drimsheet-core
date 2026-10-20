@@ -5,7 +5,7 @@ import IQueueMetrics, {
 } from '@shared/contracts/queue-metrics.contract';
 import IReporter from '@shared/contracts/reporter.contract';
 import ITracer from '@shared/contracts/tracer.contract';
-import { UTraceEnvelopePayload } from '@shared/types/observability.types';
+import { ITraceEnvelope } from '@shared/types/observability.types';
 
 import ITransactionalEmailQueue, {
   TRANSACTIONAL_EMAIL_QUEUE_NAME,
@@ -18,11 +18,11 @@ import { makeTraceEnvelope } from '@infra/messaging/trace-context';
 import queueResources from './queue-resources';
 
 let transactionalEmailQueue:
-  | Queue<UTraceEnvelopePayload<ITransactionalEmailDto>>
+  | Queue<ITraceEnvelope<ITransactionalEmailDto>>
   | undefined;
 
 export function getTransactionalEmailQueue(): Queue<
-  UTraceEnvelopePayload<ITransactionalEmailDto>
+  ITraceEnvelope<ITransactionalEmailDto>
 > {
   transactionalEmailQueue ??= new Queue(TRANSACTIONAL_EMAIL_QUEUE_NAME, {
     connection: getQueueConnection(),
@@ -37,9 +37,9 @@ export function getTransactionalEmailQueue(): Queue<
   return transactionalEmailQueue;
 }
 
-function getConfig(payload: ITransactionalEmailDto) {
+function getConfig(correlationId: string) {
   return Object.freeze({
-    jobId: `${TRANSACTIONAL_EMAIL_QUEUE_NAME}_${payload.correlationId}`,
+    jobId: `${TRANSACTIONAL_EMAIL_QUEUE_NAME}_${correlationId}`,
     removeOnComplete: true,
     removeOnFail: 20,
     attempts: 3,
@@ -56,12 +56,12 @@ export default function makeTransactionalEmailQueue(
   tracer: ITracer
 ): ITransactionalEmailQueue {
   return {
-    async add(payload) {
+    async add(correlationId, payload) {
       try {
         await getTransactionalEmailQueue().add(
           TRANSACTIONAL_EMAIL_QUEUE_NAME,
-          makeTraceEnvelope(payload, tracer),
-          getConfig(payload)
+          makeTraceEnvelope(correlationId, payload, tracer),
+          getConfig(correlationId)
         );
         queueMetrics.recordEnqueueSucceeded({
           queueName: TRANSACTIONAL_EMAIL_QUEUE_NAME,

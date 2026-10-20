@@ -11,6 +11,6 @@ export default interface ITransactionalEmailAgent {
 }
 
 export interface IInternalMailer extends ITransactionalEmailAgent {
-  send(payload: Omit<ITransactionalEmailDto, 'correlationId'>): Promise<void>;
+  send(payload: ITransactionalEmailDto): Promise<void>;
   getEmail(email: string, subject: string): ITransactionalEmailDto | null;
 }

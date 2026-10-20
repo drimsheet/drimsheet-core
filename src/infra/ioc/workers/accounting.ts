@@ -18,6 +18,7 @@ export const setCurrentAccountingPeriodWorker =
 
 export const currentAccountingPeriodSchedulerWorker =
   makeCurrentAccountingPeriodSchedulerWorker({
+    appContext,
     usecase: getNextCurrentAccountingPeriodUseCase,
     queue: queues.currentAccountingPeriod,
   });

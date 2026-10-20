@@ -3,14 +3,11 @@ import { performance } from 'node:perf_hooks';
 import { Job, Processor, Worker } from 'bullmq';
 
 import mockQueueMetrics from '@shared/contracts/__mocks__/queue-metrics.mock';
+import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
-import { ICorrelationId } from '@shared/types/correlation-id.types';
-import { UTraceEnvelopePayload } from '@shared/types/observability.types';
-
-import { IAppContextData } from '@app/context/types/app-context.types';
+import { ITraceEnvelope } from '@shared/types/observability.types';
 
 import { registerBullMQWorker } from '@infra/config/bullmq.config';
-import reporter from '@infra/integrations/sentry/sentry-reporter';
 import appContext from '@infra/services/app-context.service';
 
 jest.mock('bullmq', () => ({
@@ -23,18 +20,11 @@ jest.mock('../redis.config', () => ({
 
 jest.mock('@infra/integrations/sentry/sentry-reporter', () => ({
   __esModule: true,
-  default: {
-    report: jest.fn(),
-    reportAbuse: jest.fn(),
-  },
+  default: jest.requireActual('@shared/contracts/__mocks__/reporter.mock')
+    .default,
 }));
 
 describe('registerBullMQWorker', () => {
-  const getInitialStore = (payload: ICorrelationId): IAppContextData => ({
-    correlationId: payload.correlationId,
-    idempotencyKey: '',
-  });
-
   function getRegisteredProcessor() {
     const processor = jest.mocked(Worker).mock.calls[0][1];
 
@@ -42,38 +32,34 @@ describe('registerBullMQWorker', () => {
       throw new Error('Expected a registered BullMQ processor');
     }
 
-    return processor as Processor<
-      UTraceEnvelopePayload<ICorrelationId>,
-      void,
-      string
-    >;
+    return processor as Processor<ITraceEnvelope<{ id: string }>, void, string>;
   }
 
   function makeJob(
-    correlationId: string,
+    id: string,
     timing: {
       timestamp?: number;
       processedOn?: number;
       attemptsMade?: number;
       trace?: { sentryTrace: string };
+      correlationId?: string;
     } = {}
   ) {
     return {
-      data: timing.trace
-        ? {
-            __observabilityEnvelopeVersion: 1,
-            payload: { correlationId },
-            trace: timing.trace,
-          }
-        : { correlationId },
+      data: {
+        __observabilityEnvelopeVersion: 1,
+        correlationId: timing.correlationId ?? 'producer-correlation',
+        payload: { id },
+        trace: timing.trace,
+      },
       timestamp: timing.timestamp ?? 1_000,
       processedOn: timing.processedOn ?? 1_500,
       attemptsMade: timing.attemptsMade ?? 1,
-    } as Job<ICorrelationId>;
+    } as Job<ITraceEnvelope<{ id: string }>>;
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     mockTracer.continueTrace.mockImplementation((_carrier, operation) =>
       operation()
     );
@@ -89,20 +75,19 @@ describe('registerBullMQWorker', () => {
     jest.restoreAllMocks();
   });
 
-  it('runs processing inside the payload context', async () => {
+  it('runs processing inside app context', async () => {
     jest
       .spyOn(performance, 'now')
       .mockReturnValueOnce(10)
       .mockReturnValueOnce(35);
     const processor = jest.fn(async () => {
-      expect(appContext.get().correlationId).toBe('job-correlation');
+      expect(appContext.get().correlationId).toBe('producer-correlation');
     });
 
     registerBullMQWorker(
       'test-queue',
       processor,
       appContext,
-      getInitialStore,
       mockQueueMetrics,
       mockTracer
     );
@@ -113,9 +98,9 @@ describe('registerBullMQWorker', () => {
     );
 
     expect(processor).toHaveBeenCalledWith({
-      correlationId: 'job-correlation',
+      id: 'job-correlation',
     });
-    expect(reporter.report).not.toHaveBeenCalled();
+    expect(mockReporter.report).not.toHaveBeenCalled();
     expect(mockQueueMetrics.recordProcessingCompleted).toHaveBeenCalledWith({
       queueName: 'test-queue',
       transport: 'bullmq',
@@ -137,48 +122,80 @@ describe('registerBullMQWorker', () => {
     );
   });
 
-  it('initializes app context for a payload without correlation metadata', async () => {
-    const payload = { accountingContextId: 'context-id' };
+  it('restores envelope correlation before processing and preserves the surrounding context', async () => {
     const processor = jest.fn(async () => {
-      expect(appContext.get().correlationId).toBe('context-correlation');
+      expect(appContext.get()).toEqual({
+        correlationId: 'producer-correlation',
+        idempotencyKey: '',
+      });
+      appContext.set({ idempotencyKey: 'worker-change' });
     });
     registerBullMQWorker(
-      'accounting-queue',
+      'test-queue',
       processor,
       appContext,
-      () => ({ correlationId: 'context-correlation', idempotencyKey: '' }),
       mockQueueMetrics,
       mockTracer
     );
-    const registeredProcessor = jest.mocked(Worker).mock
-      .calls[0][1] as Processor<typeof payload, void, string>;
 
-    await registeredProcessor({
-      data: payload,
-      timestamp: 1_000,
-      processedOn: 1_500,
-      attemptsMade: 0,
-    } as Job<typeof payload>);
-
-    expect(processor).toHaveBeenCalledWith(payload);
+    await appContext.init(
+      { correlationId: 'outer-correlation', idempotencyKey: 'outer-key' },
+      async () => {
+        await getRegisteredProcessor()(makeJob('job-id'));
+        expect(appContext.get()).toEqual({
+          correlationId: 'outer-correlation',
+          idempotencyKey: 'outer-key',
+        });
+      }
+    );
+    expect(processor).toHaveBeenCalledWith({ id: 'job-id' });
   });
 
-  it('reports and rethrows processing failures inside the payload context', async () => {
+  it('retains correlation across retries while resetting attempt context', async () => {
+    const failure = new Error('Retry this job');
+    const processor = jest.fn(async () => {
+      expect(appContext.get()).toEqual({
+        correlationId: 'producer-correlation',
+        idempotencyKey: '',
+      });
+      appContext.set({
+        correlationId: 'changed-in-attempt',
+        idempotencyKey: 'attempt-key',
+      });
+      if (processor.mock.calls.length === 1) {
+        throw failure;
+      }
+    });
+    registerBullMQWorker(
+      'test-queue',
+      processor,
+      appContext,
+      mockQueueMetrics,
+      mockTracer
+    );
+    const registeredProcessor = getRegisteredProcessor();
+    await expect(
+      registeredProcessor(makeJob('retry-job', { attemptsMade: 0 }))
+    ).rejects.toBe(failure);
+    await registeredProcessor(makeJob('retry-job', { attemptsMade: 1 }));
+    expect(processor).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports and rethrows processing failures inside app context', async () => {
     jest
       .spyOn(performance, 'now')
       .mockReturnValueOnce(20)
       .mockReturnValueOnce(50);
     const processingError = new Error('processing failed');
     const processor = jest.fn().mockRejectedValue(processingError);
-    jest.mocked(reporter.report).mockImplementation(() => {
-      expect(appContext.get().correlationId).toBe('failed-job-correlation');
+    mockReporter.report.mockImplementation(() => {
+      expect(appContext.get().correlationId).toBe('producer-correlation');
     });
 
     registerBullMQWorker(
       'test-queue',
       processor,
       appContext,
-      getInitialStore,
       mockQueueMetrics,
       mockTracer
     );
@@ -187,7 +204,7 @@ describe('registerBullMQWorker', () => {
       getRegisteredProcessor()(makeJob('failed-job-correlation'))
     ).rejects.toBe(processingError);
 
-    expect(reporter.report).toHaveBeenCalledWith(
+    expect(mockReporter.report).toHaveBeenCalledWith(
       'queue.job.processing_failed',
       processingError,
       {
@@ -218,7 +235,6 @@ describe('registerBullMQWorker', () => {
       'test-queue',
       processor,
       appContext,
-      getInitialStore,
       mockQueueMetrics,
       mockTracer
     );
@@ -242,10 +258,10 @@ describe('registerBullMQWorker', () => {
       releaseFirst = resolve;
     });
     const observations: string[] = [];
-    const processor = jest.fn(async (payload: ICorrelationId) => {
+    const processor = jest.fn(async (payload: { id: string }) => {
       observations.push(appContext.get().correlationId);
 
-      if (payload.correlationId === 'first-correlation') {
+      if (payload.id === 'first-correlation') {
         await firstCanFinish;
       } else {
         releaseFirst?.();
@@ -258,15 +274,18 @@ describe('registerBullMQWorker', () => {
       'test-queue',
       processor,
       appContext,
-      getInitialStore,
       mockQueueMetrics,
       mockTracer
     );
     const registeredProcessor = getRegisteredProcessor();
 
     await Promise.all([
-      registeredProcessor(makeJob('first-correlation')),
-      registeredProcessor(makeJob('second-correlation')),
+      registeredProcessor(
+        makeJob('first-correlation', { correlationId: 'first-correlation' })
+      ),
+      registeredProcessor(
+        makeJob('second-correlation', { correlationId: 'second-correlation' })
+      ),
     ]);
 
     expect(observations).toEqual([

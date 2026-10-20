@@ -11,7 +11,7 @@ import {
   toRepoDate,
 } from '@infra/persistence/helpers/date.mapper';
 
-export interface IAccountingContextRepoModel extends InferInsertModel<
+interface IAccountingContextRepoModel extends InferInsertModel<
   typeof accountingContextsInCore
 > {}
 

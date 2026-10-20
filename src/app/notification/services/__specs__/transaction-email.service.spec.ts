@@ -2,20 +2,22 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IUser } from '@domain/user/types/user.types';
 
+import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
+import mockQueue from '@app/notification/contracts/__mocks__/transactional-email-queue.mock';
 import mockTransactionalEmailTemplate from '@app/notification/contracts/__mocks__/transactional-email-template.mock';
-import ITransactionalEmailQueue from '@app/notification/contracts/transactional-email-queue.contract';
 import makeTransactionalEmailAppService from '@app/notification/services/transaction-email.service';
 
 describe('transactionEmailAppService', () => {
   const verificationEmailHtml = '<html>verification email</html>';
   const passwordResetEmailHtml = '<html>password reset email</html>';
-  const mockQueue: jest.Mocked<ITransactionalEmailQueue> = {
-    add: jest.fn(),
-  };
   let service: ReturnType<typeof makeTransactionalEmailAppService>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    mockAppContext.get.mockReturnValue({
+      correlationId: 'email-correlation',
+      idempotencyKey: '',
+    });
     mockTransactionalEmailTemplate.emailVerification.mockReturnValue(
       verificationEmailHtml
     );
@@ -24,6 +26,7 @@ describe('transactionEmailAppService', () => {
     );
 
     service = makeTransactionalEmailAppService({
+      appContext: mockAppContext,
       transactionalEmailQueue: mockQueue,
       transactionalEmailTemplate: mockTransactionalEmailTemplate,
     });
@@ -36,7 +39,6 @@ describe('transactionEmailAppService', () => {
         firstName: 'Alice',
       });
       const payload = {
-        correlationId: 'corr-id-1',
         user,
         verificationLink: 'https://example.com/verify',
       };
@@ -56,11 +58,10 @@ describe('transactionEmailAppService', () => {
         mockTransactionalEmailTemplate.passwordResetRequest
       ).not.toHaveBeenCalled();
       expect(mockQueue.add).toHaveBeenCalledTimes(1);
-      expect(mockQueue.add).toHaveBeenCalledWith({
+      expect(mockQueue.add).toHaveBeenCalledWith('email-correlation', {
         emails: ['alice@example.com'],
         subject: 'Action Required: Verify Your Email Address',
         html: verificationEmailHtml,
-        correlationId: 'corr-id-1',
       });
     });
 
@@ -74,7 +75,6 @@ describe('transactionEmailAppService', () => {
 
       await expect(
         service.sendEmailVerification({
-          correlationId: 'corr-id-1',
           user: makeUser({
             email: 'alice@example.com',
             firstName: 'Alice',
@@ -94,7 +94,6 @@ describe('transactionEmailAppService', () => {
         firstName: '<Bob>&"\'',
       });
       const payload = {
-        correlationId: 'corr-id-2',
         user,
         resetLink: 'https://example.com/reset',
       };
@@ -115,11 +114,10 @@ describe('transactionEmailAppService', () => {
         mockTransactionalEmailTemplate.emailVerification
       ).not.toHaveBeenCalled();
       expect(mockQueue.add).toHaveBeenCalledTimes(1);
-      expect(mockQueue.add).toHaveBeenCalledWith({
+      expect(mockQueue.add).toHaveBeenCalledWith('email-correlation', {
         emails: ['bob@example.com'],
         subject: 'Reset your password',
         html: passwordResetEmailHtml,
-        correlationId: 'corr-id-2',
       });
     });
 
@@ -129,7 +127,6 @@ describe('transactionEmailAppService', () => {
 
       await expect(
         service.sendPasswordResetLink({
-          correlationId: 'corr-id-2',
           user: makeUser({
             email: 'bob@example.com',
             firstName: 'Bob',

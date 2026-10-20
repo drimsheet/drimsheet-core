@@ -476,10 +476,12 @@ describe('makeCreateReceiptUsecase', () => {
       journalEntry.id,
       expect.objectContaining({ correlationId, tx: expect.anything() })
     );
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-      journalEntryId: journalEntry.id,
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
-    });
+      {
+        journalEntryId: journalEntry.id,
+      }
+    );
     expect(
       mockRepoService.runInTransaction.mock.invocationCallOrder[0]
     ).toBeLessThan(

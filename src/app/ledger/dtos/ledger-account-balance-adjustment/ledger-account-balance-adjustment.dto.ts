@@ -1,6 +1,5 @@
-import { ICorrelationId } from '@shared/types/correlation-id.types';
 import { TEntityId } from '@shared/types/uuid';
 
-export interface ILedgerAccountBalanceAdjustmentDto extends ICorrelationId {
+export interface ILedgerAccountBalanceAdjustmentDto {
   journalEntryId: TEntityId;
 }

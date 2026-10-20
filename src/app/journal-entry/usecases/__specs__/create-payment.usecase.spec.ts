@@ -445,10 +445,12 @@ describe('makeCreatePaymentUsecase', () => {
       postedJournalEntry.id,
       expect.objectContaining({ correlationId, tx: expect.anything() })
     );
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-      journalEntryId: postedJournalEntry.id,
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
-    });
+      {
+        journalEntryId: postedJournalEntry.id,
+      }
+    );
     expect(mockEventBus.publish).toHaveBeenCalled();
     expect(result).toEqual(journalEntryDtoMapper.toDto(postedJournalEntry));
   });

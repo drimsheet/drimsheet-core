@@ -7,7 +7,7 @@ import IQueueMetrics, {
   EQueueTransport,
 } from '@shared/contracts/queue-metrics.contract';
 import ITracer from '@shared/contracts/tracer.contract';
-import { UTraceEnvelopePayload } from '@shared/types/observability.types';
+import { ITraceEnvelope } from '@shared/types/observability.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 
@@ -38,15 +38,17 @@ export function registerBullMQWorker<T>(
   name: string,
   processor: (payload: T) => Promise<void>,
   appContext: IAppContextService<IAppContextData>,
-  getInitialStore: (payload: T) => IAppContextData,
   queueMetrics: IQueueMetrics,
   tracer: ITracer
-): Worker<UTraceEnvelopePayload<T>> {
-  return new Worker<UTraceEnvelopePayload<T>>(
+): Worker<ITraceEnvelope<T>> {
+  return new Worker<ITraceEnvelope<T>>(
     name,
     async (job) => {
-      const { payload, trace } = unwrapTraceEnvelope(job.data);
-      const initialStore = getInitialStore(payload);
+      const { correlationId, payload, trace } = unwrapTraceEnvelope(job.data);
+      const initialStore: IAppContextData = {
+        correlationId,
+        idempotencyKey: '',
+      };
 
       return traceQueueProcessing(
         tracer,

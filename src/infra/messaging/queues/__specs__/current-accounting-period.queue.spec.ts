@@ -42,12 +42,13 @@ describe('current accounting period queue', () => {
   });
 
   it('enqueues the transition and trace metadata using the existing retry options', async () => {
-    await queue.add(payload);
+    await queue.add('producer-correlation', payload);
 
     expect(mockQueueAdd).toHaveBeenCalledWith(
       CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME,
       {
         __observabilityEnvelopeVersion: 1,
+        correlationId: 'producer-correlation',
         payload,
         trace: { sentryTrace: 'trace-carrier' },
       },
@@ -62,19 +63,25 @@ describe('current accounting period queue', () => {
   });
 
   it('reuses the queue and transition job ID across scheduler runs', async () => {
-    await queue.add(payload);
-    await queue.add(payload);
+    await queue.add('producer-correlation', payload);
+    await queue.add('producer-correlation', payload);
     expect(mockQueueConstructor).toHaveBeenCalledTimes(1);
     expect(mockQueueAdd.mock.calls[0][2].jobId).toBe(
       mockQueueAdd.mock.calls[1][2].jobId
     );
 
-    await queue.add({ ...payload, nextPeriodId: generateUUID() });
+    await queue.add('producer-correlation', {
+      ...payload,
+      nextPeriodId: generateUUID(),
+    });
     expect(mockQueueAdd.mock.calls[2][2].jobId).not.toBe(
       mockQueueAdd.mock.calls[0][2].jobId
     );
 
-    await queue.add({ ...payload, accountingContextId: generateUUID() });
+    await queue.add('producer-correlation', {
+      ...payload,
+      accountingContextId: generateUUID(),
+    });
     expect(mockQueueAdd.mock.calls[3][2].jobId).not.toBe(
       mockQueueAdd.mock.calls[0][2].jobId
     );
@@ -83,6 +90,8 @@ describe('current accounting period queue', () => {
   it('rejects enqueue failures so the scheduler can report them', async () => {
     const failure = new Error('Queue unavailable');
     mockQueueAdd.mockRejectedValue(failure);
-    await expect(queue.add(payload)).rejects.toBe(failure);
+    await expect(queue.add('producer-correlation', payload)).rejects.toBe(
+      failure
+    );
   });
 });

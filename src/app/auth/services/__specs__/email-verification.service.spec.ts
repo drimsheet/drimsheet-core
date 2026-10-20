@@ -57,7 +57,6 @@ describe('makeEmailVerificationAppService', () => {
       user,
       verificationLink:
         'https://test-app.com/auth/signup/complete?token=token-123',
-      correlationId,
     });
   });
 

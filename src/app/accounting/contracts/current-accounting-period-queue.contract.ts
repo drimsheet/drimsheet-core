@@ -5,5 +5,8 @@ export const CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME =
 
 export default interface ICurrentAccountingPeriodQueue {
   /** Rejects when the job cannot be enqueued. */
-  add(payload: INextCurrentAccountingPeriodDto): Promise<void>;
+  add(
+    correlationId: string,
+    payload: INextCurrentAccountingPeriodDto
+  ): Promise<void>;
 }

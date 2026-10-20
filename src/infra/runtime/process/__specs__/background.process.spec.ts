@@ -20,7 +20,7 @@ describe('background entrypoint', () => {
     const originalExitCode = process.exitCode;
     try {
       await jest.isolateModulesAsync(async () => {
-        await import('@infra/runtime/_background/index');
+        await import('@infra/runtime/process/background.process');
         await new Promise((resolve) => setImmediate(resolve));
       });
       expect(mockLoadOrder).toEqual(['observability', 'lifecycle', 'run']);

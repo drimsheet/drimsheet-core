@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
 
 import ITracer from '@shared/contracts/tracer.contract';
-import { UTraceEnvelopePayload } from '@shared/types/observability.types';
+import { ITraceEnvelope } from '@shared/types/observability.types';
 
 import ICurrentAccountingPeriodQueue, {
   CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME,
@@ -14,11 +14,11 @@ import { makeTraceEnvelope } from '@infra/messaging/trace-context';
 import queueResources from './queue-resources';
 
 let currentAccountingPeriodQueue:
-  | Queue<UTraceEnvelopePayload<INextCurrentAccountingPeriodDto>>
+  | Queue<ITraceEnvelope<INextCurrentAccountingPeriodDto>>
   | undefined;
 
 function getCurrentAccountingPeriodQueue(): Queue<
-  UTraceEnvelopePayload<INextCurrentAccountingPeriodDto>
+  ITraceEnvelope<INextCurrentAccountingPeriodDto>
 > {
   currentAccountingPeriodQueue ??= new Queue(
     CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME,
@@ -46,10 +46,10 @@ export default function makeCurrentAccountingPeriodQueue(
   tracer: ITracer
 ): ICurrentAccountingPeriodQueue {
   return {
-    async add(payload) {
+    async add(correlationId, payload) {
       await getCurrentAccountingPeriodQueue().add(
         CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME,
-        makeTraceEnvelope(payload, tracer),
+        makeTraceEnvelope(correlationId, payload, tracer),
         getConfig(payload)
       );
     },

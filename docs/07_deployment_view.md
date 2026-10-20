@@ -27,7 +27,7 @@ All internal systems run as Docker containers strictly managed and orchestrated 
 | ---------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Reverse Proxy**      | Traefik / Caddy            | Handled natively by Coolify. Acts as the entry point, resolving domains, terminating SSL certificates (via Let's Encrypt), and forwarding requests to the Node.js API container. |
 | **Drimsheet Core**     | Node.js Runtime            | The monolith serving our API, Application, and Domain rules (compiled to JavaScript). Multiple instances/replicas can be spun up by Coolify based on load.                       |
-| **Background runtime** | Node.js background process | Independently started with `yarn start:background`; manages registered node-cron tasks, each with its own schedule. Exchange-rate ingestion runs daily at 18:00 Africa/Lagos.    |
+| **Background runtime** | Node.js background process | Independently started with `yarn start:background`; runs all queue workers and registered node-cron tasks. Exchange-rate ingestion runs daily at 18:00 Africa/Lagos.             |
 | **PostgreSQL**         | Relational Database        | The primary transactional database where ledgers, journals, and official exchange rates are stored. Runs persistently on attached volumes ensuring ACID compliance.              |
 | **Redis**              | In-Memory Data Store       | Acts as a fast response cache and the backbone for the background job processing (BullMQ / Bull Board).                                                                          |
 | **Qdrant**             | Vector Database            | Maintains semantic context and vector embeddings, particularly for enabling intelligent AI Agent integrations into the product.                                                  |
@@ -67,14 +67,14 @@ prerelease succeeds, the approved changes are promoted independently to the
 
 **Mapping software to infrastructure:**
 
-Under `src/infra/runtime`, underscore-prefixed directories contain executable
-runtimes: `_http/index.ts` starts the API and its email/ledger workers;
-`_background/index.ts` starts node-cron schedules independently of HTTP.
+Under `src/infra/runtime/process`, `http.process.ts` starts the API;
+`background.process.ts` starts all queue workers and node-cron schedules.
 `servers/express/` owns Express-specific configuration and listener startup;
-`health/index.ts` owns startup readiness and the PostgreSQL probe. Unprefixed
+`health/index.ts` owns startup readiness and the PostgreSQL probe. The
 `bootstrap/` and `lifecycle/` directories contain shared runtime support.
-The HTTP process registers email and ledger-balance workers from
-`src/infra/messaging`; scheduled jobs share the background process. HTTP health and
+The background process starts the registration array from
+`src/infra/messaging/workers/index.ts` for email, ledger-balance, and accounting-period
+workers. HTTP health and
 MCP routes remain in `src/interface/http`, and MCP tool registration remains
 in `src/interface/mcp` with no separate listener.
 See the [runtime guide](../src/infra/runtime/__docs__/README.md) for the directory
@@ -83,7 +83,7 @@ layout, startup chart, and lifecycle responsibilities.
 - TypeScript code (found in `src/*`) maps directly to a **single Node.js Docker Container image** artifact.
 - During a deployment, Coolify builds the Dockerfile, compiles the TypeScript, drops dev dependencies, and hot-swaps the container.
 - The runtime starts through the established
-  `src/infra/runtime/_http/index.ts` entry. That file initializes Sentry
+  `src/infra/runtime/process/http.process.ts` entry. That file initializes Sentry
   before dynamically importing Express, PostgreSQL, Redis, BullMQ,
   and the rest of the application graph, allowing Sentry to install automatic
   instrumentation before those libraries load. Coolify admits the new container

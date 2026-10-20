@@ -383,10 +383,12 @@ describe('makeCreateTransferUsecase', () => {
       postedJournalEntry[0].id,
       { correlationId, tx: 'mock-tx' }
     );
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-      journalEntryId: postedJournalEntry[0].id,
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
-    });
+      {
+        journalEntryId: postedJournalEntry[0].id,
+      }
+    );
     expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
       {
         journalEntry: postedJournalEntry[0],

@@ -1,43 +1,56 @@
-import { ICorrelationId } from '@shared/types/correlation-id.types';
-import generateUUID from '@shared/utils/uuid-generator';
-
-import { IAppContextData } from '@app/context/types/app-context.types';
+import { CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-accounting-period-queue.contract';
+import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 import { LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME } from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
 import { TRANSACTIONAL_EMAIL_QUEUE_NAME } from '@app/notification/contracts/transactional-email-queue.contract';
 import { ITransactionalEmailDto } from '@app/notification/dtos/transactional-email/transactional-email.dto';
 
 import { registerBullMQWorker } from '@infra/config/bullmq.config';
+import { setCurrentAccountingPeriodWorker } from '@infra/ioc/workers/accounting';
 import { ledgerAccountBalanceAdjustmentWorker } from '@infra/ioc/workers/ledger';
 import { transactionalEmailWorker } from '@infra/ioc/workers/notification';
+import queueResources from '@infra/messaging/queues/queue-resources';
 import observability from '@infra/observability';
 import appContext from '@infra/services/app-context.service';
 
-function getInitialStore(payload: ICorrelationId): IAppContextData {
-  return {
-    correlationId: payload.correlationId || generateUUID(),
-    idempotencyKey: '',
-  };
-}
-
-function workerRegistration() {
-  registerBullMQWorker<ITransactionalEmailDto>(
+function registerTransactionalEmailWorker(): void {
+  const worker = registerBullMQWorker<ITransactionalEmailDto>(
     TRANSACTIONAL_EMAIL_QUEUE_NAME,
     transactionalEmailWorker,
     appContext,
-    getInitialStore,
     observability.queueMetrics,
     observability.tracer
   );
 
-  registerBullMQWorker<ILedgerAccountBalanceAdjustmentDto>(
+  queueResources.registerWorker(worker);
+}
+
+function registerLedgerAccountBalanceAdjustmentWorker(): void {
+  const worker = registerBullMQWorker<ILedgerAccountBalanceAdjustmentDto>(
     LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME,
     ledgerAccountBalanceAdjustmentWorker,
     appContext,
-    getInitialStore,
     observability.queueMetrics,
     observability.tracer
   );
+
+  queueResources.registerWorker(worker);
 }
 
-export default workerRegistration;
+function registerCurrentAccountingPeriodWorker(): void {
+  const worker = registerBullMQWorker<INextCurrentAccountingPeriodDto>(
+    CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME,
+    setCurrentAccountingPeriodWorker,
+    appContext,
+    observability.queueMetrics,
+    observability.tracer
+  );
+
+  queueResources.registerWorker(worker);
+}
+
+export default Object.freeze([
+  registerTransactionalEmailWorker,
+  registerLedgerAccountBalanceAdjustmentWorker,
+  registerCurrentAccountingPeriodWorker,
+]);

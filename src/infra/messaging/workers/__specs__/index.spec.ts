@@ -1,20 +1,33 @@
-import { TEntityId } from '@shared/types/uuid';
-import generateUUID from '@shared/utils/uuid-generator';
+import { Worker } from 'bullmq';
 
+import mockQueueMetrics from '@shared/contracts/__mocks__/queue-metrics.mock';
+import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
+
+import { CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-accounting-period-queue.contract';
 import { LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME } from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
 import { TRANSACTIONAL_EMAIL_QUEUE_NAME } from '@app/notification/contracts/transactional-email-queue.contract';
-import { ITransactionalEmailDto } from '@app/notification/dtos/transactional-email/transactional-email.dto';
 
 import { registerBullMQWorker } from '@infra/config/bullmq.config';
+import { setCurrentAccountingPeriodWorker } from '@infra/ioc/workers/accounting';
 import { ledgerAccountBalanceAdjustmentWorker } from '@infra/ioc/workers/ledger';
 import { transactionalEmailWorker } from '@infra/ioc/workers/notification';
-import workerRegistration from '@infra/messaging/workers';
+import queueResources from '@infra/messaging/queues/queue-resources';
+import workerRegistrations from '@infra/messaging/workers';
+import appContext from '@infra/services/app-context.service';
 
-jest.mock('@shared/utils/uuid-generator');
+jest.mock('bullmq', () => ({ Worker: jest.fn() }));
 
 jest.mock('@infra/config/bullmq.config', () => ({
   registerBullMQWorker: jest.fn(),
+}));
+
+jest.mock('@infra/ioc/workers/accounting', () => ({
+  setCurrentAccountingPeriodWorker: jest.fn(),
+}));
+
+jest.mock('@infra/messaging/queues/queue-resources', () => ({
+  __esModule: true,
+  default: { registerWorker: jest.fn() },
 }));
 
 jest.mock('@infra/ioc/workers/ledger', () => ({
@@ -36,60 +49,54 @@ jest.mock('@infra/observability', () => ({
   },
 }));
 
-describe('workerRegistration', () => {
+describe('worker registrations', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest
-      .mocked(generateUUID)
-      .mockReturnValue('generated-correlation' as TEntityId);
+      .mocked(registerBullMQWorker)
+      .mockImplementation((name) => new Worker(name, async () => undefined));
   });
 
   it('registers each worker with its queue and processor', () => {
-    workerRegistration();
+    for (const registerWorker of workerRegistrations) {
+      registerWorker();
+    }
 
-    expect(registerBullMQWorker).toHaveBeenCalledTimes(2);
+    expect(registerBullMQWorker).toHaveBeenCalledTimes(3);
     expect(registerBullMQWorker).toHaveBeenNthCalledWith(
       1,
       TRANSACTIONAL_EMAIL_QUEUE_NAME,
       transactionalEmailWorker,
-      expect.any(Object),
-      expect.any(Function),
-      expect.any(Object),
-      expect.any(Object)
+      appContext,
+      mockQueueMetrics,
+      mockTracer
     );
     expect(registerBullMQWorker).toHaveBeenNthCalledWith(
       2,
       LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME,
       ledgerAccountBalanceAdjustmentWorker,
-      expect.any(Object),
-      expect.any(Function),
-      expect.any(Object),
-      expect.any(Object)
+      appContext,
+      mockQueueMetrics,
+      mockTracer
+    );
+    expect(registerBullMQWorker).toHaveBeenNthCalledWith(
+      3,
+      CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME,
+      setCurrentAccountingPeriodWorker,
+      appContext,
+      mockQueueMetrics,
+      mockTracer
+    );
+    expect(jest.mocked(queueResources.registerWorker).mock.calls).toEqual(
+      jest
+        .mocked(registerBullMQWorker)
+        .mock.results.map((result) => [result.value])
     );
   });
 
-  it('maps the payload correlation and existing idempotency default', () => {
-    workerRegistration();
-    const getInitialStore = jest.mocked(registerBullMQWorker).mock.calls[0][3];
-
-    const initialStore = getInitialStore({
-      correlationId: 'payload-correlation',
-    } as ITransactionalEmailDto);
-
-    expect(initialStore).toEqual({
-      correlationId: 'payload-correlation',
-      idempotencyKey: '',
-    });
-  });
-
-  it('generates a correlation when an unvalidated payload omits it', () => {
-    workerRegistration();
-    const getInitialStore = jest.mocked(registerBullMQWorker).mock.calls[1][3];
-
-    const initialStore = getInitialStore({
-      correlationId: '',
-    } as ILedgerAccountBalanceAdjustmentDto);
-
-    expect(initialStore.correlationId).toBe('generated-correlation');
+  it('does not start workers until their registrations are invoked', () => {
+    expect(workerRegistrations).toHaveLength(3);
+    expect(Object.isFrozen(workerRegistrations)).toBe(true);
+    expect(registerBullMQWorker).not.toHaveBeenCalled();
   });
 });

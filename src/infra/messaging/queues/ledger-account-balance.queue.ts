@@ -5,7 +5,7 @@ import IQueueMetrics, {
 } from '@shared/contracts/queue-metrics.contract';
 import IReporter from '@shared/contracts/reporter.contract';
 import ITracer from '@shared/contracts/tracer.contract';
-import { UTraceEnvelopePayload } from '@shared/types/observability.types';
+import { ITraceEnvelope } from '@shared/types/observability.types';
 
 import ILedgerBalanceAdjustmentQueue, {
   LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME,
@@ -18,11 +18,11 @@ import { makeTraceEnvelope } from '@infra/messaging/trace-context';
 import queueResources from './queue-resources';
 
 let ledgerAccountBalanceAdjustmentQueue:
-  | Queue<UTraceEnvelopePayload<ILedgerAccountBalanceAdjustmentDto>>
+  | Queue<ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>>
   | undefined;
 
 export function getLedgerAccountBalanceAdjustmentQueue(): Queue<
-  UTraceEnvelopePayload<ILedgerAccountBalanceAdjustmentDto>
+  ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>
 > {
   ledgerAccountBalanceAdjustmentQueue ??= new Queue(
     LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME,
@@ -59,11 +59,11 @@ export default function makeLedgerAccountBalanceAdjustmentQueue(
   tracer: ITracer
 ): ILedgerBalanceAdjustmentQueue {
   return {
-    async add(payload) {
+    async add(correlationId, payload) {
       try {
         await getLedgerAccountBalanceAdjustmentQueue().add(
           LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME,
-          makeTraceEnvelope(payload, tracer),
+          makeTraceEnvelope(correlationId, payload, tracer),
           getConfig(payload)
         );
         queueMetrics.recordEnqueueSucceeded({

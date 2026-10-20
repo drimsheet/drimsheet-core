@@ -546,10 +546,12 @@ describe('update bank account workflow', () => {
       creation[0].id,
       transactionOptions
     );
-    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-      journalEntryId: creation[0].id,
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
-    });
+      {
+        journalEntryId: creation[0].id,
+      }
+    );
     expect(mockEventBus.publish).toHaveBeenCalledWith([
       ...[
         ...(

@@ -128,9 +128,8 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
     await deps.repoService.runInTransaction(transactionFn);
 
     for (const entry of openingBalanceCreation.entriesForBalancePropagation) {
-      await deps.ledgerBalanceAdjustmentQueue.add({
+      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
         journalEntryId: entry.id,
-        correlationId,
       });
     }
 

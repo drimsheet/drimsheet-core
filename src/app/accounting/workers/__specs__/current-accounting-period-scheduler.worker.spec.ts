@@ -3,6 +3,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import mockCurrentAccountingPeriodQueue from '@app/accounting/contracts/__mocks__/current-accounting-period-queue.mock';
 import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 import makeCurrentAccountingPeriodSchedulerWorker from '@app/accounting/workers/current-accounting-period-scheduler.worker';
+import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 
 describe('current accounting period scheduler worker', () => {
   const periods: INextCurrentAccountingPeriodDto[] = [1, 2].map(() => ({
@@ -14,12 +15,17 @@ describe('current accounting period scheduler worker', () => {
   }));
   const usecase = jest.fn<Promise<INextCurrentAccountingPeriodDto[]>, []>();
   const worker = makeCurrentAccountingPeriodSchedulerWorker({
+    appContext: mockAppContext,
     usecase,
     queue: mockCurrentAccountingPeriodQueue,
   });
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockAppContext.get.mockReturnValue({
+      correlationId: 'scheduler-correlation',
+      idempotencyKey: '',
+    });
     usecase.mockResolvedValue(periods);
     mockCurrentAccountingPeriodQueue.add.mockResolvedValue(undefined);
   });
@@ -30,7 +36,7 @@ describe('current accounting period scheduler worker', () => {
     expect(usecase).toHaveBeenCalledWith();
     expect(usecase).toHaveBeenCalledTimes(1);
     expect(mockCurrentAccountingPeriodQueue.add.mock.calls).toEqual(
-      periods.map((period) => [period])
+      periods.map((period) => ['scheduler-correlation', period])
     );
   });
 
