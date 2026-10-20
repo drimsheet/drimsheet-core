@@ -46,13 +46,16 @@ describe('makeCreateAccountingContextUsecase', () => {
     endDate: new Date('2026-12-31'),
     status: 'open',
   })[0];
-  const period = accountingPeriodEntity.make({
-    accountingEntityId: entity.id,
-    createdBy: actor.id,
-    fiscalYear: year,
-    unit: 'month',
-    count: 12,
-  })[3][0];
+  const periods = accountingPeriodEntity
+    .make({
+      accountingEntityId: entity.id,
+      createdBy: actor.id,
+      fiscalYear: year,
+      unit: 'month',
+      count: 12,
+    })
+    .map(([period]) => period);
+  const period = periods[3];
   const payload: IAccountingContextCreationReq = {
     fiscalYearId: year.id,
     currentAccountingPeriodId: period.id,
@@ -65,6 +68,8 @@ describe('makeCreateAccountingContextUsecase', () => {
     accountingEntityId: entity.id,
     fiscalYearId: year.id,
     currentAccountingPeriodId: period.id,
+    previousAccountingPeriodId: periods[2].id,
+    nextAccountingPeriodId: periods[4].id,
     createdBy: actor.id,
   });
   const correlationId = 'create-accounting-context';
@@ -86,7 +91,7 @@ describe('makeCreateAccountingContextUsecase', () => {
     } as ReturnType<typeof mockAppContext.get>);
     mockFiscalYearRepo.findById.mockResolvedValue(year);
     mockAccountingPeriodRepo.findById.mockResolvedValue(period);
-    mockAccountingContextService.create.mockReturnValue(creation);
+    mockAccountingContextService.create.mockResolvedValue(creation);
     mockAccountingContextRepo.create.mockResolvedValue(undefined);
   });
 
@@ -103,17 +108,22 @@ describe('makeCreateAccountingContextUsecase', () => {
     expect(mockAccountingPeriodRepo.findById).toHaveBeenCalledWith(period.id, {
       correlationId,
     });
-    expect(mockAccountingContextService.create).toHaveBeenCalledWith({
-      accountingEntity: entity,
-      fiscalYear: year,
-      accountingPeriod: period,
-      accountingStandardCode: payload.accountingStandardCode,
-      name: payload.name,
-      description: payload.description,
-      createdBy: actor.id,
-    });
+    expect(mockAccountingContextService.create).toHaveBeenCalledWith(
+      {
+        accountingEntity: entity,
+        fiscalYear: year,
+        accountingPeriod: period,
+        accountingStandardCode: payload.accountingStandardCode,
+        name: payload.name,
+        description: payload.description,
+        createdBy: actor.id,
+      },
+      { correlationId }
+    );
     expect(result).toEqual({
       ...payload,
+      previousAccountingPeriodId: periods[2].id,
+      nextAccountingPeriodId: periods[4].id,
       accountingEntityId: entity.id,
       id: expect.any(String),
       createdBy: actor.id,
@@ -177,9 +187,7 @@ describe('makeCreateAccountingContextUsecase', () => {
     'propagates domain creation rejection without persisting or publishing',
     async (ErrorType) => {
       const error = new ErrorType();
-      mockAccountingContextService.create.mockImplementation(() => {
-        throw error;
-      });
+      mockAccountingContextService.create.mockRejectedValue(error);
       await expect(execute(payload)).rejects.toBe(error);
       expect(mockAccountingContextService.create).toHaveBeenCalledTimes(1);
       expect(mockAccountingContextRepo.create).not.toHaveBeenCalled();
@@ -214,6 +222,28 @@ describe('makeCreateAccountingContextUsecase', () => {
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
+
+  it('waits for the service to resolve the period references before persisting', async () => {
+    let finishCreation!: () => void;
+    mockAccountingContextService.create.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishCreation = () => resolve(creation);
+        })
+    );
+
+    const pending = execute(payload);
+    await new Promise(process.nextTick);
+    expect(mockAccountingContextRepo.create).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+
+    finishCreation();
+    await pending;
+    expect(mockAccountingContextRepo.create).toHaveBeenCalledWith(
+      creation[0],
+      expect.objectContaining({ correlationId })
+    );
+  });
 
   it('waits for repository creation to resolve before publishing', async () => {
     let commit!: () => void;

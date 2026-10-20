@@ -13,6 +13,10 @@ const EErrorKeys = {
   InvalidFiscalYearId: 'accounting_error_fiscal_year_id_invalid',
   InvalidCurrentAccountingPeriodId:
     'accounting_error_current_accounting_period_id_invalid',
+  InvalidPreviousAccountingPeriodId:
+    'accounting_error_previous_accounting_period_id_invalid',
+  InvalidNextAccountingPeriodId:
+    'accounting_error_next_accounting_period_id_invalid',
   InvalidAccountingContextId: 'accounting_error_accounting_context_id_invalid',
   InvalidCurrentReportingPeriodId:
     'accounting_error_current_reporting_period_id_invalid',

@@ -6,37 +6,47 @@ import { IAccountingContext } from '@domain/accounting/types/context.types';
 import accountingContextMapper from '@infra/persistence/repos/accounting/mappers/accounting-context.mapper';
 
 describe('accountingContextMapper', () => {
-  it('should map IAccountingContext to IAccountingContextRepoModel', () => {
-    const domain: IAccountingContext = {
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      id: 'uuid-1' as TEntityId,
-      name: 'Primary Context',
-      description: 'Main context',
-      accountingEntityId: 'entity-1' as TEntityId,
-      accountingStandardCode: 'IFRS' as UAccountingStandardCode,
-      fiscalYearId: 'fy-1' as TEntityId,
-      currentAccountingPeriodId: 'ap-1' as TEntityId,
-      createdAt: new Date('2026-01-01T00:00:00Z'),
-      updatedAt: new Date('2026-01-01T00:00:00Z'),
-      closedAt: null,
-    };
+  it.each([
+    [null, null],
+    ['ap-0' as TEntityId, 'ap-2' as TEntityId],
+  ])(
+    'maps previous=%s and next=%s to storage',
+    (previousAccountingPeriodId, nextAccountingPeriodId) => {
+      const domain: IAccountingContext = {
+        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        id: 'uuid-1' as TEntityId,
+        name: 'Primary Context',
+        description: 'Main context',
+        accountingEntityId: 'entity-1' as TEntityId,
+        accountingStandardCode: 'IFRS' as UAccountingStandardCode,
+        fiscalYearId: 'fy-1' as TEntityId,
+        currentAccountingPeriodId: 'ap-1' as TEntityId,
+        previousAccountingPeriodId,
+        nextAccountingPeriodId,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+        closedAt: null,
+      };
 
-    const result = accountingContextMapper.toRepo(domain);
+      const result = accountingContextMapper.toRepo(domain);
 
-    expect(result).toEqual({
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      id: 'uuid-1',
-      name: 'Primary Context',
-      description: 'Main context',
-      accountingEntityId: 'entity-1',
-      accountingStandardCode: 'IFRS',
-      fiscalYearId: 'fy-1',
-      currentOperatingPeriodId: 'ap-1',
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-      closedAt: null,
-    });
-  });
+      expect(result).toEqual({
+        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
+        id: 'uuid-1',
+        name: 'Primary Context',
+        description: 'Main context',
+        accountingEntityId: 'entity-1',
+        accountingStandardCode: 'IFRS',
+        fiscalYearId: 'fy-1',
+        currentOperatingPeriodId: 'ap-1',
+        previousAccountingPeriodId,
+        nextAccountingPeriodId,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        closedAt: null,
+      });
+    }
+  );
 
   it('should map closedAt', () => {
     const domain = {
@@ -48,6 +58,8 @@ describe('accountingContextMapper', () => {
       accountingStandardCode: 'IFRS' as UAccountingStandardCode,
       fiscalYearId: 'fy-1' as TEntityId,
       currentAccountingPeriodId: 'ap-1' as TEntityId,
+      previousAccountingPeriodId: null,
+      nextAccountingPeriodId: null,
       createdAt: new Date('2026-01-01T00:00:00Z'),
       updatedAt: new Date('2026-01-01T00:00:00Z'),
       closedAt: new Date('2026-12-31T00:00:00Z'),
@@ -59,9 +71,12 @@ describe('accountingContextMapper', () => {
 });
 
 describe('accountingContextMapper.toDomain', () => {
-  it.each([null, '2026-12-31T00:00:00.000Z'])(
+  it.each([
+    [null, null, null],
+    ['2026-12-31T00:00:00.000Z', 'previous-period', 'next-period'],
+  ])(
     'maps stored IDs, dates, and working selection with closedAt=%j',
-    (closedAt) => {
+    (closedAt, previousAccountingPeriodId, nextAccountingPeriodId) => {
       const row = {
         id: 'context',
         createdBy: 'actor',
@@ -71,6 +86,8 @@ describe('accountingContextMapper.toDomain', () => {
         accountingStandardCode: 'IFRS',
         fiscalYearId: 'year',
         currentOperatingPeriodId: 'period',
+        previousAccountingPeriodId,
+        nextAccountingPeriodId,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-02-01T00:00:00.000Z',
         closedAt,
@@ -85,6 +102,8 @@ describe('accountingContextMapper.toDomain', () => {
         accountingStandardCode: 'IFRS',
         fiscalYearId: 'year',
         currentAccountingPeriodId: 'period',
+        previousAccountingPeriodId,
+        nextAccountingPeriodId,
         createdAt: new Date(row.createdAt),
         updatedAt: new Date(row.updatedAt),
         closedAt: closedAt ? new Date(closedAt) : null,

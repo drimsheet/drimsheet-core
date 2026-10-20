@@ -62,6 +62,18 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       onDelete: 'RESTRICT',
     },
 
+    previous_accounting_period_id: {
+      type: 'uuid',
+      references: accountingPeriodsTable,
+      onDelete: 'RESTRICT',
+    },
+
+    next_accounting_period_id: {
+      type: 'uuid',
+      references: accountingPeriodsTable,
+      onDelete: 'RESTRICT',
+    },
+
     created_at: {
       type: 'timestamptz',
       notNull: true,

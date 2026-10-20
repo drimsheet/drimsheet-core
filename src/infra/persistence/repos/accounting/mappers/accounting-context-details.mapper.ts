@@ -40,6 +40,10 @@ const accountingContextDetailsMapper = {
         context.accountingStandardCode as UAccountingStandardCode,
       fiscalYearId: context.fiscalYearId as TEntityId,
       currentAccountingPeriodId: context.currentOperatingPeriodId as TEntityId,
+      previousAccountingPeriodId:
+        context.previousAccountingPeriodId as TEntityId | null,
+      nextAccountingPeriodId:
+        context.nextAccountingPeriodId as TEntityId | null,
       createdAt: fromRepoDate(context.createdAt),
       updatedAt: fromRepoDate(context.updatedAt),
       closedAt: context.closedAt ? fromRepoDate(context.closedAt) : null,

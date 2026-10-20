@@ -1,3 +1,4 @@
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
 import { IAccountingEntity } from './accounting-entity.types';
@@ -15,8 +16,14 @@ interface ICreateAccountingContextInput extends Pick<
 }
 
 export default interface IAccountingContextService {
-  /** Rejects archived entities and enforces reference ownership and framework eligibility before preparing the context, event, and audit. Never persists. */
+  /**
+   * Resolves previous/next periods from storage after enforcing ownership
+   * and eligibility. Rejects lookup or validation failures; never persists.
+   */
   create(
-    input: ICreateAccountingContextInput
-  ): TAuditedEntity<IAccountingContext, IAccountingContext, IAccountingContext>;
+    input: ICreateAccountingContextInput,
+    repoOptions: IReadRepoOptions
+  ): Promise<
+    TAuditedEntity<IAccountingContext, IAccountingContext, IAccountingContext>
+  >;
 }

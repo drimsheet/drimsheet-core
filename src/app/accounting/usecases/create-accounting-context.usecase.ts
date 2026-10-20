@@ -57,15 +57,19 @@ export default function makeCreateAccountingContextUsecase(
       throw new accountingAppError.AccountingPeriodNotFound();
     }
 
-    const [context, events, audit] = deps.accountingContextService.create({
-      accountingEntity,
-      fiscalYear,
-      accountingPeriod,
-      accountingStandardCode: payload.accountingStandardCode,
-      name: payload.name,
-      description: payload.description,
-      createdBy: actor.id,
-    });
+    const creation = await deps.accountingContextService.create(
+      {
+        accountingEntity,
+        fiscalYear,
+        accountingPeriod,
+        accountingStandardCode: payload.accountingStandardCode,
+        name: payload.name,
+        description: payload.description,
+        createdBy: actor.id,
+      },
+      repoOptions
+    );
+    const [context, events, audit] = creation;
 
     const history = historyValue.make(audit, actor.id, correlationId);
 

@@ -833,6 +833,8 @@ export const accountingContextsInCore = core.table(
     }).notNull(),
     fiscalYearId: uuid('fiscal_year_id').notNull(),
     currentOperatingPeriodId: uuid('current_operating_period_id').notNull(),
+    previousAccountingPeriodId: uuid('previous_accounting_period_id'),
+    nextAccountingPeriodId: uuid('next_accounting_period_id'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
@@ -866,6 +868,16 @@ export const accountingContextsInCore = core.table(
       columns: [table.currentOperatingPeriodId],
       foreignColumns: [accountingPeriodsInCore.id],
       name: 'accounting_contexts_current_operating_period_id_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.previousAccountingPeriodId],
+      foreignColumns: [accountingPeriodsInCore.id],
+      name: 'accounting_contexts_previous_accounting_period_id_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.nextAccountingPeriodId],
+      foreignColumns: [accountingPeriodsInCore.id],
+      name: 'accounting_contexts_next_accounting_period_id_fkey',
     }).onDelete('restrict'),
   ]
 );

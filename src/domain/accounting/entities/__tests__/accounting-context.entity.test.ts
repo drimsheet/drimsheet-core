@@ -31,6 +31,8 @@ describe('accountingContextEntity', () => {
     fiscalYearId: '123e4567-e89b-12d3-a456-426614174001' as TEntityId,
     currentAccountingPeriodId:
       '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
+    previousAccountingPeriodId: null,
+    nextAccountingPeriodId: null,
   } as const;
 
   describe('isValidAccountingStandardCode', () => {
@@ -179,6 +181,41 @@ describe('accountingContextEntity', () => {
   });
 
   describe('make', () => {
+    it('preserves previous and next period references in the entity, event, and audit', () => {
+      const previousAccountingPeriodId =
+        '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
+      const nextAccountingPeriodId =
+        '123e4567-e89b-12d3-a456-426614174004' as TEntityId;
+      const [entity, events, audit] = accountingContextEntity.make({
+        ...validPayload,
+        previousAccountingPeriodId,
+        nextAccountingPeriodId,
+      });
+
+      expect(entity.previousAccountingPeriodId).toBe(
+        previousAccountingPeriodId
+      );
+      expect(entity.nextAccountingPeriodId).toBe(nextAccountingPeriodId);
+      expect(events[0].data).toEqual(entity);
+      expect(audit.diff.after).toEqual(entity);
+      expect(Object.isFrozen(entity)).toBe(true);
+    });
+
+    it.each([
+      [
+        'previousAccountingPeriodId',
+        accountingError.InvalidPreviousAccountingPeriodId,
+      ],
+      ['nextAccountingPeriodId', accountingError.InvalidNextAccountingPeriodId],
+    ] as const)('rejects an invalid %s', (field, ErrorType) => {
+      expect(() =>
+        accountingContextEntity.make({
+          ...validPayload,
+          [field]: 'invalid-uuid' as TEntityId,
+        })
+      ).toThrow(ErrorType);
+    });
+
     it('creates a valid accounting context entity with events', () => {
       const [entity, events, audit] =
         accountingContextEntity.make(validPayload);
@@ -192,6 +229,8 @@ describe('accountingContextEntity', () => {
         accountingStandardCode: validPayload.accountingStandardCode,
         fiscalYearId: validPayload.fiscalYearId,
         currentAccountingPeriodId: validPayload.currentAccountingPeriodId,
+        previousAccountingPeriodId: null,
+        nextAccountingPeriodId: null,
         createdAt: new Date('2024-01-01T00:00:00Z'),
         updatedAt: new Date('2024-01-01T00:00:00Z'),
         closedAt: null,

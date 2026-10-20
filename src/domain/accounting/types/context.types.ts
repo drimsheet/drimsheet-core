@@ -12,6 +12,8 @@ export interface IAccountingContext {
   accountingStandardCode: UAccountingStandardCode;
   fiscalYearId: TEntityId;
   currentAccountingPeriodId: TEntityId;
+  previousAccountingPeriodId: TEntityId | null;
+  nextAccountingPeriodId: TEntityId | null;
   createdAt: Date;
   updatedAt: Date;
   closedAt: Date | null;

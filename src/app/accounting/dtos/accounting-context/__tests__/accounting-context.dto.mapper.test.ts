@@ -17,6 +17,8 @@ const context: IAccountingContextDetails = {
   accountingStandardCode: 'IFRS',
   fiscalYearId,
   currentAccountingPeriodId: periodId,
+  previousAccountingPeriodId: null,
+  nextAccountingPeriodId: null,
   createdAt: timestamp,
   updatedAt: timestamp,
   closedAt: null,
@@ -50,6 +52,26 @@ const context: IAccountingContextDetails = {
 };
 
 describe('accountingContextDtoMapper', () => {
+  it('preserves populated period references in record and detail DTOs', () => {
+    const previousAccountingPeriodId =
+      '123e4567-e89b-12d3-a456-426614174005' as TEntityId;
+    const nextAccountingPeriodId =
+      '123e4567-e89b-12d3-a456-426614174006' as TEntityId;
+    const input = {
+      ...context,
+      previousAccountingPeriodId,
+      nextAccountingPeriodId,
+    };
+
+    for (const dto of [
+      accountingContextDtoMapper.toRecordDto(input),
+      accountingContextDtoMapper.toDto(input),
+    ]) {
+      expect(dto.previousAccountingPeriodId).toBe(previousAccountingPeriodId);
+      expect(dto.nextAccountingPeriodId).toBe(nextAccountingPeriodId);
+    }
+  });
+
   it('returns explicit context, fiscal-year and period fields without persistence extras', () => {
     const input = {
       ...context,
@@ -79,6 +101,8 @@ describe('accountingContextDtoMapper', () => {
       accountingStandardCode: context.accountingStandardCode,
       fiscalYearId: context.fiscalYearId,
       currentAccountingPeriodId: context.currentAccountingPeriodId,
+      previousAccountingPeriodId: null,
+      nextAccountingPeriodId: null,
       createdAt: context.createdAt,
       updatedAt: context.updatedAt,
       closedAt: context.closedAt,

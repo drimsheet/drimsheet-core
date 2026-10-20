@@ -16,16 +16,17 @@ export function up(pgm: MigrationBuilder) {
   pgm.createExtension('btree_gist', { ifNotExists: true });
 
   pgm.createTable(accountingPeriodsTable, {
+    id: {
+      type: 'uuid',
+      default: pgm.func('uuid_generate_v4()'),
+      primaryKey: true,
+    },
+
     created_by: {
       type: 'uuid',
       notNull: true,
       references: actorsTable,
       onDelete: 'RESTRICT',
-    },
-    id: {
-      type: 'uuid',
-      default: pgm.func('uuid_generate_v4()'),
-      primaryKey: true,
     },
 
     name: {
@@ -82,6 +83,7 @@ export function up(pgm: MigrationBuilder) {
       default: pgm.func('now()'),
     },
   });
+
   pgm.addConstraint(
     accountingPeriodsTable,
     'accounting_periods_dates_ordered',
@@ -89,6 +91,7 @@ export function up(pgm: MigrationBuilder) {
       check: 'start_date <= end_date',
     }
   );
+
   pgm.sql(`ALTER TABLE ${toSchemaString(accountingPeriodsTable)}
     ADD CONSTRAINT accounting_periods_entity_dates_excl
     EXCLUDE USING gist (

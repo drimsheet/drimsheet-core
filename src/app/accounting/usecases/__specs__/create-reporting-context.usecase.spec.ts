@@ -58,6 +58,8 @@ describe('makeCreateReportingContextUsecase', () => {
     accountingEntityId: entity.id,
     fiscalYearId: year.id,
     currentAccountingPeriodId: generateUUID(),
+    previousAccountingPeriodId: null,
+    nextAccountingPeriodId: null,
     accountingStandardCode: 'IFRS',
     createdBy: actor.id,
     name: 'Accounting context',

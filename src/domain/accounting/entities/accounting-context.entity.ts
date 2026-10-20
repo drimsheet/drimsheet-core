@@ -29,6 +29,18 @@ function make(
     payload.currentAccountingPeriodId,
     accountingError.InvalidCurrentAccountingPeriodId
   );
+  if (payload.previousAccountingPeriodId !== null) {
+    stringUtils.validateUUID(
+      payload.previousAccountingPeriodId,
+      accountingError.InvalidPreviousAccountingPeriodId
+    );
+  }
+  if (payload.nextAccountingPeriodId !== null) {
+    stringUtils.validateUUID(
+      payload.nextAccountingPeriodId,
+      accountingError.InvalidNextAccountingPeriodId
+    );
+  }
 
   const name = stringUtils.sanitizeAndValidate(
     payload.name,
@@ -53,6 +65,8 @@ function make(
     accountingStandardCode: payload.accountingStandardCode,
     fiscalYearId: payload.fiscalYearId,
     currentAccountingPeriodId: payload.currentAccountingPeriodId,
+    previousAccountingPeriodId: payload.previousAccountingPeriodId,
+    nextAccountingPeriodId: payload.nextAccountingPeriodId,
     createdAt: timestamp,
     updatedAt: timestamp,
     closedAt: null,

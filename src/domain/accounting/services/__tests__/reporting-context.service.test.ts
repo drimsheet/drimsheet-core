@@ -45,6 +45,8 @@ describe('reportingContextService.create', () => {
       accountingEntityId: accountingEntity.id,
       fiscalYearId: fiscalYear.id,
       currentAccountingPeriodId: generateUUID(),
+      previousAccountingPeriodId: null,
+      nextAccountingPeriodId: null,
       accountingStandardCode: 'IFRS',
       createdBy,
       name: 'Accounting context',

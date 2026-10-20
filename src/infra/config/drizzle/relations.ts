@@ -657,7 +657,27 @@ export const accountingPeriodsInCoreRelations = relations(
       fields: [accountingPeriodsInCore.fiscalYearId],
       references: [fiscalYearsInCore.id],
     }),
-    accountingContextsInCores: many(accountingContextsInCore),
+    accountingContextsInCores_currentOperatingPeriodId: many(
+      accountingContextsInCore,
+      {
+        relationName:
+          'accountingContextsInCore_currentOperatingPeriodId_accountingPeriodsInCore_id',
+      }
+    ),
+    accountingContextsInCores_previousAccountingPeriodId: many(
+      accountingContextsInCore,
+      {
+        relationName:
+          'accountingContextsInCore_previousAccountingPeriodId_accountingPeriodsInCore_id',
+      }
+    ),
+    accountingContextsInCores_nextAccountingPeriodId: many(
+      accountingContextsInCore,
+      {
+        relationName:
+          'accountingContextsInCore_nextAccountingPeriodId_accountingPeriodsInCore_id',
+      }
+    ),
   })
 );
 
@@ -696,10 +716,33 @@ export const accountingContextsInCoreRelations = relations(
       fields: [accountingContextsInCore.fiscalYearId],
       references: [fiscalYearsInCore.id],
     }),
-    accountingPeriodsInCore: one(accountingPeriodsInCore, {
-      fields: [accountingContextsInCore.currentOperatingPeriodId],
-      references: [accountingPeriodsInCore.id],
-    }),
+    accountingPeriodsInCore_currentOperatingPeriodId: one(
+      accountingPeriodsInCore,
+      {
+        fields: [accountingContextsInCore.currentOperatingPeriodId],
+        references: [accountingPeriodsInCore.id],
+        relationName:
+          'accountingContextsInCore_currentOperatingPeriodId_accountingPeriodsInCore_id',
+      }
+    ),
+    accountingPeriodsInCore_previousAccountingPeriodId: one(
+      accountingPeriodsInCore,
+      {
+        fields: [accountingContextsInCore.previousAccountingPeriodId],
+        references: [accountingPeriodsInCore.id],
+        relationName:
+          'accountingContextsInCore_previousAccountingPeriodId_accountingPeriodsInCore_id',
+      }
+    ),
+    accountingPeriodsInCore_nextAccountingPeriodId: one(
+      accountingPeriodsInCore,
+      {
+        fields: [accountingContextsInCore.nextAccountingPeriodId],
+        references: [accountingPeriodsInCore.id],
+        relationName:
+          'accountingContextsInCore_nextAccountingPeriodId_accountingPeriodsInCore_id',
+      }
+    ),
     reportingContextsInCores: many(reportingContextsInCore),
   })
 );

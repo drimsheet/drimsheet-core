@@ -131,6 +131,8 @@ describe('makeOnboardAccountingEntityUsecase (deprecated)', () => {
         accountingEntityId: entity.id,
         fiscalYearId: fiscalYear.id,
         currentAccountingPeriodId: periods[5].id,
+        previousAccountingPeriodId: periods[4].id,
+        nextAccountingPeriodId: periods[6].id,
       });
       expect(reportingContext).toMatchObject({
         accountingEntityId: entity.id,
@@ -192,6 +194,10 @@ describe('makeOnboardAccountingEntityUsecase (deprecated)', () => {
       mockAccountingContextRepo.create.mock.calls[0][0]
         .currentAccountingPeriodId
     ).toBe([mockAccountingPeriodRepo.create.mock.calls[0][0]].flat()[0].id);
+    const context = mockAccountingContextRepo.create.mock.calls[0][0];
+    const periods = [mockAccountingPeriodRepo.create.mock.calls[0][0]].flat();
+    expect(context.previousAccountingPeriodId).toBeNull();
+    expect(context.nextAccountingPeriodId).toBe(periods[1].id);
     expect(
       mockReportingContextRepo.create.mock.calls[0][0].currentReportingPeriodId
     ).toBe([mockReportingPeriodRepo.create.mock.calls[0][0]].flat()[0].id);
