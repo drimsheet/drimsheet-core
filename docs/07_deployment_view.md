@@ -23,23 +23,19 @@ _Figure 1: View the mermaid sourcecode here: [07.1-deployment-infrastructure.mer
 
 All internal systems run as Docker containers strictly managed and orchestrated by Coolify.
 
-| Container / Node       | Role / Technology          | Description                                                                                                                                                                      |
-| ---------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reverse Proxy**      | Traefik / Caddy            | Handled natively by Coolify. Acts as the entry point, resolving domains, terminating SSL certificates (via Let's Encrypt), and forwarding requests to the Node.js API container. |
-| **Drimsheet Core**     | Node.js Runtime            | The monolith serving our API, Application, and Domain rules (compiled to JavaScript). Multiple instances/replicas can be spun up by Coolify based on load.                       |
-| **Background runtime** | Node.js background process | Independently started with `yarn start:background`; runs all queue workers and registered node-cron tasks. Exchange-rate ingestion runs daily at 18:00 Africa/Lagos.             |
-| **PostgreSQL**         | Relational Database        | The primary transactional database where ledgers, journals, and official exchange rates are stored. Runs persistently on attached volumes ensuring ACID compliance.              |
-| **Redis**              | In-Memory Data Store       | Acts as a fast response cache and the backbone for the background job processing (BullMQ / Bull Board).                                                                          |
-| **Qdrant**             | Vector Database            | Maintains semantic context and vector embeddings, particularly for enabling intelligent AI Agent integrations into the product.                                                  |
+| Container / Node                          | Role / Technology          | Description                                                                                                                                                                      |
+| ----------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reverse Proxy**                         | Traefik / Caddy            | Handled natively by Coolify. Acts as the entry point, resolving domains, terminating SSL certificates (via Let's Encrypt), and forwarding requests to the Node.js API container. |
+| **Drimsheet Core**                        | Node.js Runtime            | The monolith serving our API, Application, and Domain rules (compiled to JavaScript). Multiple instances/replicas can be spun up by Coolify based on load.                       |
+| **Background runtime (not yet deployed)** | Node.js background process | Intended as a separate Coolify service; runs all queue workers and registered node-cron tasks. Exchange-rate ingestion runs daily at 18:00 Africa/Lagos.                         |
+| **PostgreSQL**                            | Relational Database        | The primary transactional database where ledgers, journals, and official exchange rates are stored. Runs persistently on attached volumes ensuring ACID compliance.              |
+| **Redis**                                 | In-Memory Data Store       | Acts as a fast response cache and the backbone for the background job processing (BullMQ / Bull Board).                                                                          |
+| **Qdrant**                                | Vector Database            | Maintains semantic context and vector embeddings, particularly for enabling intelligent AI Agent integrations into the product.                                                  |
 
-Coolify routes application traffic using `GET /health/ready`. The route stays
-unavailable until asynchronous startup completes and a bounded PostgreSQL
-`SELECT 1` succeeds. `GET /health/live` checks only whether the Node process can
-serve HTTP. Redis, BullMQ, Better Stack, Sentry, and
-outbound integrations do not participate in readiness; their failures are
-operational alert conditions and must not prevent authoritative journal writes.
-Both routes return minimal, non-cacheable responses and run before product HTTP
-middleware.
+Configure Coolify's HTTP health check as `GET /health/ready` so replacement
+containers receive traffic only when ready. See the
+[runtime guide](../src/infra/runtime/__docs__/README.md#http-process) for readiness
+and liveness semantics.
 
 ### 7.1.3 External Cloud Services
 
@@ -67,33 +63,35 @@ prerelease succeeds, the approved changes are promoted independently to the
 
 **Mapping software to infrastructure:**
 
-Under `src/infra/runtime/process`, `http.process.ts` starts the API;
-`background.process.ts` starts all queue workers and node-cron schedules.
-`servers/express/` owns Express-specific configuration and listener startup;
-`health/index.ts` owns startup readiness and the PostgreSQL probe. The
-`bootstrap/` and `lifecycle/` directories contain shared runtime support.
-The background process starts the registration array from
-`src/infra/messaging/workers/index.ts` for email, ledger-balance, and accounting-period
-workers. HTTP health and
-MCP routes remain in `src/interface/http`, and MCP tool registration remains
-in `src/interface/mcp` with no separate listener.
-See the [runtime guide](../src/infra/runtime/__docs__/README.md) for the directory
-layout, startup chart, and lifecycle responsibilities.
+The HTTP and background processes share one container image and run as separate
+services. See the [runtime guide](../src/infra/runtime/__docs__/README.md) for
+entrypoints, startup ordering, and resource ownership.
 
 - TypeScript code (found in `src/*`) maps directly to a **single Node.js Docker Container image** artifact.
-- During a deployment, Coolify builds the Dockerfile, compiles the TypeScript, drops dev dependencies, and hot-swaps the container.
-- The runtime starts through the established
-  `src/infra/runtime/process/http.process.ts` entry. That file initializes Sentry
-  before dynamically importing Express, PostgreSQL, Redis, BullMQ,
-  and the rest of the application graph, allowing Sentry to install automatic
-  instrumentation before those libraries load. Coolify admits the new container
-  only after `/health/ready` succeeds.
-- `yarn start` applies migrations, then starts HTTP only. Start and supervise
-  the background service independently with `yarn start:background`.
-  In development, `yarn dev` watches HTTP and routes; `yarn dev:background`
-  separately watches the background runtime. There is no readiness-wait script
-  or shared process supervision. Allow more than 60 seconds for background
-  shutdown before the service supervisor enforces termination.
+- Coolify uses the **Nixpacks** build pack to generate the container build and
+  run the repository's install and build scripts. There is no maintained
+  Dockerfile in this repository.
+- Nixpacks selects the Node major from `package.json`'s `engines.node`.
+  A Coolify `NIXPACKS_NODE_VERSION` override takes precedence; keep it aligned
+  or remove it. Verify that the resolved version in the build log satisfies
+  the declared range. See [Nixpacks Node configuration](https://nixpacks.com/docs/providers/node).
+- Only HTTP is currently deployed. For the existing single HTTP service, set
+  Coolify's **Start Command** directly to
+  `npm run db:migrate up && exec node ./dist/src/infra/runtime/process/http.process.js`.
+  The final `exec` replaces the container's start shell with Node so termination
+  signals reach the HTTP lifecycle. An `exec` inside an npm script only replaces
+  npm's child shell; it does not replace the outer npm process.
+- When deploying background processing, create one separate Coolify service from
+  this repository with Start Command
+  `exec node ./dist/src/infra/runtime/process/background.process.js`.
+  It has no HTTP listener, domain, or `/health/ready` endpoint. Coolify supervises
+  each service independently; running both processes in one container with PM2
+  would be a separate deployment choice.
+- Set the supervisor's termination grace period to allow HTTP draining and
+  resource cleanup. Background shutdown needs more than 60 seconds to allow
+  scheduled jobs to finish and clients to close. The supervisor enforces the
+  final deadline; the [runtime guide](../src/infra/runtime/__docs__/README.md)
+  defines shutdown guarantees and limitations.
 - Currency reference data is bootstrapped by the HTTP runtime.
   Apply migrations and allow HTTP bootstrap to finish before the first background
   ingestion; this ordering is the developer's or deployment operator's responsibility.
@@ -104,7 +102,8 @@ layout, startup chart, and lifecycle responsibilities.
   freshness. Completion is recorded after ingestion commits; conflict-ignore
   inserts make replays safe. No queue or automatic retry is used for ingestion.
 - Run exactly one background process. For multiple HTTP replicas, apply migrations once,
-  run one `yarn start:background` service and use `yarn start:http` for the
+  run one background service and use
+  `exec node ./dist/src/infra/runtime/process/http.process.js` for the
   HTTP replicas. Node-cron's overlap prevention applies within one process;
   there is no distributed lock. Disable the old Coolify cron and any previously
   deployed BullMQ exchange-rate scheduler before switching.

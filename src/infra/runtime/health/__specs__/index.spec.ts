@@ -26,6 +26,27 @@ describe('runtime health', () => {
     expect(postgres.$client.query).not.toHaveBeenCalled();
   });
 
+  it('becomes unready immediately when shutdown begins', async () => {
+    runtimeHealth.markStartupComplete();
+    runtimeHealth.markStopping();
+    await expect(runtimeHealth.isReady()).resolves.toBe(false);
+    expect(postgres.$client.query).not.toHaveBeenCalled();
+  });
+
+  it('does not return ready when shutdown starts during a PostgreSQL probe', async () => {
+    let finish!: () => void;
+    jest.mocked(postgres.$client.query).mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }) as never
+    );
+    runtimeHealth.markStartupComplete();
+    const readiness = runtimeHealth.isReady();
+    runtimeHealth.markStopping();
+    finish();
+    await expect(readiness).resolves.toBe(false);
+  });
+
   it('requires completed startup and a bounded PostgreSQL probe', async () => {
     jest.mocked(postgres.$client.query).mockResolvedValueOnce({} as never);
     runtimeHealth.markStartupComplete();

@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -17,6 +19,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -116,6 +120,7 @@ const rectification: IJournalEntryRectificationDto = {
 
 describe('POST /journal-entries/{id}/rectify', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -123,7 +128,7 @@ describe('POST /journal-entries/{id}/rectify', () => {
   const mockRectifyJournalEntryUseCase =
     rectifyJournalEntryUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -141,10 +146,15 @@ describe('POST /journal-entries/{id}/rectify', () => {
     } as IAccountingEntity);
     mockRectifyJournalEntryUseCase.mockResolvedValue(rectification);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const makeRequest = (payload: object = validPayload) =>
-    request(app)
+    request(server)
       .post(`/api/v1/journal-entries/${journalEntryId}/rectify`)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId)
@@ -215,7 +225,7 @@ describe('POST /journal-entries/{id}/rectify', () => {
   });
 
   it('rejects unauthenticated requests', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .post(`/api/v1/journal-entries/${journalEntryId}/rectify`)
       .set('x-accounting-entity-id', accountingEntityId)
       .send(validPayload);
@@ -228,7 +238,7 @@ describe('POST /journal-entries/{id}/rectify', () => {
     mockRectifyJournalEntryUseCase.mockRejectedValueOnce(
       new journalEntryError.InvalidJournalEntry()
     );
-    const response = await request(app)
+    const response = await request(server)
       .post('/api/v1/journal-entries/not-a-uuid/rectify')
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId)

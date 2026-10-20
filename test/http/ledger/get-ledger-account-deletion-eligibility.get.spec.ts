@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -17,6 +19,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/handlers/http', () => {
   const makeHttpErrorHandler = jest.requireActual<
@@ -107,11 +111,12 @@ const endpoint = `/api/v1/ledger/${accountId}/deletion-eligibility`;
 
 describe('GET /ledger/{accountId}/deletion-eligibility', () => {
   let app: Express;
+  let server: Server;
   const getEligibility = jest.mocked(
     ledgerUseCases.getLedgerAccountDeletionEligibilityUseCase
   );
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -126,10 +131,15 @@ describe('GET /ledger/{accountId}/deletion-eligibility', () => {
     );
     getEligibility.mockResolvedValue({ canDelete: true });
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const getEligibilityResponse = () =>
-    request(app)
+    request(server)
       .get(endpoint)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -157,7 +167,7 @@ describe('GET /ledger/{accountId}/deletion-eligibility', () => {
   describe('400 Response', () => {
     it('maps an invalid account ID', async () => {
       getEligibility.mockRejectedValueOnce(new ledgerAccountError.InvalidId());
-      const response = await request(app)
+      const response = await request(server)
         .get('/api/v1/ledger/invalid-id/deletion-eligibility')
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -167,7 +177,7 @@ describe('GET /ledger/{accountId}/deletion-eligibility', () => {
   });
   describe('401 Response', () => {
     it('requires authentication before orchestration', async () => {
-      expect((await request(app).get(endpoint)).status).toBe(401);
+      expect((await request(server).get(endpoint)).status).toBe(401);
       expect(getEligibility).not.toHaveBeenCalled();
     });
   });

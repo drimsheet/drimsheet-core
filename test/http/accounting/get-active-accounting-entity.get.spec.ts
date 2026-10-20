@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -17,6 +19,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -74,6 +78,7 @@ const entity: IAccountingEntity = {
 
 describe('GET /accounting/accounting-entity', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindEntity = accountingRepos.accountingEntity
@@ -81,7 +86,7 @@ describe('GET /accounting/accounting-entity', () => {
   const mockGetActiveEntity =
     accountingUsecases.getActiveAccountingEntityUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -93,6 +98,11 @@ describe('GET /accounting/accounting-entity', () => {
     mockFindEntity.mockResolvedValue(entity);
     mockGetActiveEntity.mockResolvedValue(entity);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterEach(() => {
@@ -101,7 +111,7 @@ describe('GET /accounting/accounting-entity', () => {
 
   describe('200 Response', () => {
     it('returns the selected owned entity contract with security headers', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', entity.id);
@@ -125,7 +135,7 @@ describe('GET /accounting/accounting-entity', () => {
 
   describe('400 Response', () => {
     it('rejects a malformed entity ID before orchestration', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', 'not-a-uuid');
@@ -137,7 +147,7 @@ describe('GET /accounting/accounting-entity', () => {
 
   describe('401 Response', () => {
     it('rejects missing authorization', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('x-accounting-entity-id', entity.id);
 
@@ -152,7 +162,7 @@ describe('GET /accounting/accounting-entity', () => {
         .mockImplementation(() => undefined);
       mockGetAuthUser.mockRejectedValue(new authError.ExpiredToken());
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer expired-token')
         .set('x-accounting-entity-id', entity.id)
@@ -177,7 +187,7 @@ describe('GET /accounting/accounting-entity', () => {
     it('rejects a user without Alpha 1 access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', entity.id);
@@ -201,7 +211,7 @@ describe('GET /accounting/accounting-entity', () => {
       mockGetActiveEntity.mockRejectedValue(
         new accountingAppError.ActiveEntityNotFound()
       );
-      const requestBuilder = request(app)
+      const requestBuilder = request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
       if (id) {
@@ -223,7 +233,7 @@ describe('GET /accounting/accounting-entity', () => {
     it('sanitizes unexpected failures', async () => {
       mockGetActiveEntity.mockRejectedValue(new Error('database credentials'));
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', entity.id);

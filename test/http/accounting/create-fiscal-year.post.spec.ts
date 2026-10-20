@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -16,6 +18,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -87,8 +91,9 @@ const year = {
 
 describe('POST /accounting/fiscal-year', () => {
   let app: Express;
+  let server: Server;
   const create = jest.mocked(accountingUsecases.createFiscalYearUseCase);
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     (tokenAppService.getAuthUser as jest.Mock).mockResolvedValue({
@@ -104,11 +109,16 @@ describe('POST /accounting/fiscal-year', () => {
     ).mockResolvedValue(null);
     create.mockResolvedValue({ ...year, status: 'open' });
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('201 Response', () => {
     it('accepts an explicit entity without an active-entity header and returns only the fiscal year', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send(payload);
@@ -134,7 +144,7 @@ describe('POST /accounting/fiscal-year', () => {
     ])('maps domain date rejection', async (ErrorType) => {
       const error = new ErrorType();
       create.mockRejectedValue(error);
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send(payload);
@@ -144,7 +154,7 @@ describe('POST /accounting/fiscal-year', () => {
   });
   describe('401 Response', () => {
     it('requires authentication', async () => {
-      const response = await request(app).post(ENDPOINT).send(payload);
+      const response = await request(server).post(ENDPOINT).send(payload);
       expect(response.status).toBe(401);
       expect(create).not.toHaveBeenCalled();
     });
@@ -153,7 +163,7 @@ describe('POST /accounting/fiscal-year', () => {
     it('maps inaccessible entity errors', async () => {
       const error = new accountingEntityError.Unauthorized();
       create.mockRejectedValue(error);
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send(payload);
@@ -162,7 +172,7 @@ describe('POST /accounting/fiscal-year', () => {
     });
     it('checks feature access before orchestration', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send(payload);
@@ -173,7 +183,7 @@ describe('POST /accounting/fiscal-year', () => {
   describe('404 Response', () => {
     it('maps a missing entity', async () => {
       create.mockRejectedValue(new accountingAppError.EntityNotFound());
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send(payload);
@@ -186,7 +196,7 @@ describe('POST /accounting/fiscal-year', () => {
   describe('409 Response', () => {
     it('maps overlapping fiscal years', async () => {
       create.mockRejectedValue(new periodError.OverlappingFiscalYears());
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send(payload);
@@ -203,7 +213,7 @@ describe('POST /accounting/fiscal-year', () => {
       { accountingEntityId: undefined },
       { createdBy: userId },
     ])('rejects malformed payload before orchestration: %j', async (change) => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send({ ...payload, ...change });
@@ -214,7 +224,7 @@ describe('POST /accounting/fiscal-year', () => {
   describe('500 Response', () => {
     it('sanitizes unexpected failures', async () => {
       create.mockRejectedValue(new Error('private database detail'));
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send(payload);

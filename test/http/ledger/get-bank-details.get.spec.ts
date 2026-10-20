@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -17,6 +19,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -103,13 +107,14 @@ const bankDetails: IBankDetails = {
 
 describe('GET /ledger/:accountId/bank-details', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
     .findByIdAndUserId as jest.Mock;
   const mockGetBankDetails = ledgerUseCases.getBankDetailsUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -117,11 +122,16 @@ describe('GET /ledger/:accountId/bank-details', () => {
     mockFindAccountingEntity.mockResolvedValue(accountingEntity);
     mockGetBankDetails.mockResolvedValue(bankDetails);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns bank details and forwards the ledger account path ID', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -142,7 +152,7 @@ describe('GET /ledger/:accountId/bank-details', () => {
   describe('400 Response', () => {
     it('maps an invalid account ID error', async () => {
       mockGetBankDetails.mockRejectedValue(new ledgerAccountError.InvalidId());
-      const response = await request(app)
+      const response = await request(server)
         .get('/api/v1/ledger/invalid-id/bank-details')
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -156,7 +166,7 @@ describe('GET /ledger/:accountId/bank-details', () => {
       mockGetBankDetails.mockRejectedValue(
         new ledgerAccountError.InvalidBehavior()
       );
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -172,7 +182,7 @@ describe('GET /ledger/:accountId/bank-details', () => {
       mockGetBankDetails.mockRejectedValue(
         new ledgerAppError.AccountNotFound()
       );
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -184,7 +194,7 @@ describe('GET /ledger/:accountId/bank-details', () => {
   describe('500 Response', () => {
     it('rejects access to another user accounting entity', async () => {
       mockFindAccountingEntity.mockResolvedValue(null);
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -193,7 +203,7 @@ describe('GET /ledger/:accountId/bank-details', () => {
     });
 
     it('rejects a request without an active accounting entity', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
 
@@ -208,7 +218,7 @@ describe('GET /ledger/:accountId/bank-details', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('x-accounting-entity-id', accountingEntityId);
 
@@ -221,7 +231,7 @@ describe('GET /ledger/:accountId/bank-details', () => {
     it('rejects a user without Alpha 1 access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);

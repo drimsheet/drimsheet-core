@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -15,6 +17,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -87,6 +91,7 @@ const mockResult = {
 
 describe('GET /counterparties', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -94,7 +99,7 @@ describe('GET /counterparties', () => {
   const mockGetCounterparties =
     counterpartyUseCases.getCounterpartiesUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -106,10 +111,15 @@ describe('GET /counterparties', () => {
     mockFindAccountingEntity.mockResolvedValue(accountingEntity);
     mockGetCounterparties.mockResolvedValue(mockResult);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const makeRequest = (query: object = {}) =>
-    request(app)
+    request(server)
       .get(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId)
@@ -139,7 +149,7 @@ describe('GET /counterparties', () => {
 
   describe('500 Response', () => {
     it('rejects a missing active accounting entity header', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
 
@@ -154,7 +164,7 @@ describe('GET /counterparties', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('x-accounting-entity-id', accountingEntityId);
 

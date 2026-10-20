@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -23,6 +25,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -110,7 +114,8 @@ const aggregate = {
 
 describe('GET /reporting/accounts/{accountId}/counterparty-participation', () => {
   let app: Express;
-  beforeEach(() => {
+  let server: Server;
+  beforeEach(async () => {
     jest.resetAllMocks();
     jest.mocked(tokenAppService.getAuthUser).mockResolvedValue({ id: userId });
     jest
@@ -126,12 +131,17 @@ describe('GET /reporting/accounts/{accountId}/counterparty-participation', () =>
       [aggregate]
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
   const getReport = (
     query: Record<string, string | number | undefined> = {},
     path = endpoint
   ) =>
-    request(app)
+    request(server)
       .get(path)
       .query(query)
       .set('Authorization', 'Bearer test-token')
@@ -250,7 +260,7 @@ describe('GET /reporting/accounts/{accountId}/counterparty-participation', () =>
     it('requires authentication before reading the account', async () => {
       expect(
         (
-          await request(app)
+          await request(server)
             .get(endpoint)
             .set('x-accounting-entity-id', entityId)
         ).status

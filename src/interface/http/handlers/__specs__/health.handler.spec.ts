@@ -1,16 +1,34 @@
+import { Server } from 'node:http';
+
 import express from 'express';
 import request from 'supertest';
 
 import makeHealthHandlers from '@interface/http/handlers/health.handler';
 
+import {
+  closeTestServer,
+  startTestServer,
+} from '../../../../../test/setup/http-listener';
+
 describe('health handlers', () => {
+  let app: express.Express;
+  let server: Server;
+
+  beforeEach(async () => {
+    app = express();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
+  });
+
   it('serves liveness without consulting readiness', async () => {
     const isReady = jest.fn<Promise<boolean>, []>();
     const handlers = makeHealthHandlers({ isReady });
 
-    const response = await request(express().get('/live', handlers.live)).get(
-      '/live'
-    );
+    app.get('/live', handlers.live);
+    const response = await request(server).get('/live');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: 'ok' });
@@ -27,9 +45,8 @@ describe('health handlers', () => {
       const isReady = jest.fn<Promise<boolean>, []>().mockResolvedValue(ready);
       const handlers = makeHealthHandlers({ isReady });
 
-      const response = await request(
-        express().get('/ready', handlers.ready)
-      ).get('/ready');
+      app.get('/ready', handlers.ready);
+      const response = await request(server).get('/ready');
 
       expect(response.status).toBe(status);
       expect(response.body).toEqual({ status: bodyStatus });

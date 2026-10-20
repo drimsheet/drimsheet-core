@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -15,6 +17,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import { tokenAppService } from '@infra/ioc/services/auth';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -65,9 +69,10 @@ const [user] = userEntity.make({
 
 describe('PATCH /users/profile', () => {
   let app: Express;
+  let server: Server;
   const getAuthUser = tokenAppService.getAuthUser as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     getAuthUser.mockResolvedValue({ id: user.id });
     mockActorService.resolveUser.mockResolvedValue(actor);
@@ -75,6 +80,11 @@ describe('PATCH /users/profile', () => {
     mockUserRepo.update.mockResolvedValue(undefined);
     mockEventBus.publish.mockResolvedValue(undefined);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterEach(() => {
@@ -89,7 +99,7 @@ describe('PATCH /users/profile', () => {
     ])(
       'updates only the supplied names and returns the public profile',
       async (payload) => {
-        const response = await request(app)
+        const response = await request(server)
           .patch(`${ENDPOINT}?userId=someone-else`)
           .set('Authorization', 'Bearer valid-token')
           .set('x-user-id', 'someone-else')
@@ -119,7 +129,7 @@ describe('PATCH /users/profile', () => {
     it.each([{}, { firstName: ' First ', lastName: 'Last' }])(
       'returns unchanged profiles without persistence or events',
       async (payload) => {
-        const response = await request(app)
+        const response = await request(server)
           .patch(ENDPOINT)
           .set('Authorization', 'Bearer valid-token')
           .send(payload);
@@ -134,7 +144,7 @@ describe('PATCH /users/profile', () => {
 
   describe('401 Response', () => {
     it('requires authentication', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .send({ firstName: 'Updated' });
       expect(response.status).toBe(401);
@@ -143,7 +153,7 @@ describe('PATCH /users/profile', () => {
 
     it('rejects expired tokens', async () => {
       getAuthUser.mockRejectedValue(new authError.ExpiredToken());
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .set('Authorization', 'Bearer expired')
         .send({ firstName: 'Updated' });
@@ -171,7 +181,7 @@ describe('PATCH /users/profile', () => {
     ])(
       'rejects invalid or unsupported fields before persistence',
       async (payload) => {
-        const response = await request(app)
+        const response = await request(server)
           .patch(ENDPOINT)
           .set('Authorization', 'Bearer valid-token')
           .send(payload);
@@ -189,7 +199,7 @@ describe('PATCH /users/profile', () => {
   describe('409 Response', () => {
     it('rejects concurrent changes without publishing', async () => {
       mockUserRepo.update.mockRejectedValue(new repoError.VersionNotFound());
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ firstName: 'Updated' });
@@ -203,7 +213,7 @@ describe('PATCH /users/profile', () => {
       mockUserRepo.update.mockRejectedValue(
         new Error('private database details')
       );
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ firstName: 'Updated' });

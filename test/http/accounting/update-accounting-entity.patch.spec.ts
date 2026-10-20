@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -17,6 +19,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -75,12 +79,13 @@ const entity: IAccountingEntity = {
 
 describe('PATCH /accounting/accounting-entity', () => {
   let app: Express;
+  let server: Server;
   const update = jest.mocked(accountingUsecases.updateAccountingEntityUseCase);
   const findEntity = jest.mocked(
     accountingRepos.accountingEntity.findByIdAndUserId
   );
   const getUser = jest.mocked(tokenAppService.getAuthUser);
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     getUser.mockResolvedValue({ id: userId } as never);
@@ -92,10 +97,15 @@ describe('PATCH /accounting/accounting-entity', () => {
     findEntity.mockResolvedValue(entity);
     update.mockResolvedValue(entity);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   function patch(payload: object) {
-    return request(app)
+    return request(server)
       .patch(ENDPOINT)
       .set('Authorization', 'Bearer token')
       .set('x-accounting-entity-id', entity.id)
@@ -136,7 +146,7 @@ describe('PATCH /accounting/accounting-entity', () => {
   });
   describe('400 Response', () => {
     it('rejects malformed entity headers', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', 'bad-id')

@@ -1,10 +1,8 @@
 import { QueryConfig } from 'pg';
 
-import { postgres } from '@infra/config/postgres.config';
-
 const POSTGRES_PROBE_TIMEOUT_MS = 1_000;
 
-let startupState: 'starting' | 'ready' | 'failed' = 'starting';
+let startupState: 'starting' | 'ready' | 'failed' | 'stopping' = 'starting';
 
 async function probePostgres(): Promise<void> {
   const query = {
@@ -13,6 +11,7 @@ async function probePostgres(): Promise<void> {
   } as QueryConfig & { query_timeout: number };
 
   // pg supports per-query timeouts although the external type package omits it.
+  const { postgres } = await import('@infra/config/postgres.config');
   await postgres.$client.query(query);
 }
 
@@ -24,7 +23,7 @@ async function isReady(): Promise<boolean> {
 
   try {
     await probePostgres();
-    return true;
+    return startupState === 'ready';
   } catch {
     return false;
   }
@@ -36,6 +35,9 @@ const runtimeHealth = Object.freeze({
   },
   markStartupFailed: () => {
     startupState = 'failed';
+  },
+  markStopping: () => {
+    startupState = 'stopping';
   },
   isReady,
 });

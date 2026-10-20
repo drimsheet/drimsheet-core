@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -21,6 +23,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import { createTradePayableAccountUseCase } from '@infra/ioc/usecases/ledger';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -114,7 +118,8 @@ const mockCreate = jest.mocked(createTradePayableAccountUseCase);
 
 describe('POST /ledger/liability/payables/trade', () => {
   let app: Express;
-  beforeEach(() => {
+  let server: Server;
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -132,9 +137,14 @@ describe('POST /ledger/liability/payables/trade', () => {
       return created;
     });
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
   const send = (payload: object = valid) =>
-    request(app)
+    request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId)
@@ -179,7 +189,7 @@ describe('POST /ledger/liability/payables/trade', () => {
   });
   describe('401 Response', () => {
     it('requires authentication', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('x-accounting-entity-id', accountingEntityId)
         .send(valid);

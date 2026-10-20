@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -19,6 +21,8 @@ import { tokenAppService } from '@infra/ioc/services/auth';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -59,6 +63,7 @@ describe('PATCH /users/preferences', () => {
   });
 
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindPreferences = userRepos.userPreferences.findById as jest.Mock;
@@ -81,7 +86,7 @@ describe('PATCH /users/preferences', () => {
     updatedAt: new Date('2026-08-02T00:00:00.000Z'),
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockActorService.resolveUser.mockReset().mockResolvedValue({
       ...actorEntity.makeUser({
@@ -95,11 +100,16 @@ describe('PATCH /users/preferences', () => {
     mockFindPreferences.mockResolvedValue(existingPreferences);
     mockUpdatePreferences.mockResolvedValue(undefined);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('updates and returns the authenticated user preferences', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ theme: EAppThemePreference.Dark });
@@ -134,7 +144,7 @@ describe('PATCH /users/preferences', () => {
 
   describe('401 Response', () => {
     it('rejects a missing authorization header before persistence', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .send({ theme: EAppThemePreference.Dark });
 
@@ -145,7 +155,7 @@ describe('PATCH /users/preferences', () => {
     it('rejects an expired bearer token', async () => {
       mockGetAuthUser.mockRejectedValue(new authError.ExpiredToken());
 
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .set('Authorization', 'Bearer expired-token')
         .send({ theme: EAppThemePreference.Dark });
@@ -170,7 +180,7 @@ describe('PATCH /users/preferences', () => {
         },
       ],
     ])('rejects %s before persistence', async (_label, payload) => {
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(payload);
@@ -190,7 +200,7 @@ describe('PATCH /users/preferences', () => {
         new Error('database credentials leaked')
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .patch(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ theme: EAppThemePreference.System });

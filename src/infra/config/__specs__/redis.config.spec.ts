@@ -1,7 +1,7 @@
 import IORedis from 'ioredis';
 
 import {
-  closeQueueConnection,
+  closeRedisConnections,
   getQueueConnection,
   getRedis,
   getRedisPublisher,
@@ -21,14 +21,15 @@ jest.mock('@infra/config/vars.config', () => ({
 describe('Redis connections', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDisconnect.mockReset();
   });
 
   afterEach(() => {
-    closeQueueConnection();
+    closeRedisConnections();
   });
 
   it('does not open a connection for cleanup before first use', () => {
-    closeQueueConnection();
+    closeRedisConnections();
     expect(IORedis).not.toHaveBeenCalled();
     expect(mockDisconnect).not.toHaveBeenCalled();
   });
@@ -41,13 +42,13 @@ describe('Redis connections', () => {
       maxRetriesPerRequest: null,
     });
 
-    closeQueueConnection();
-    closeQueueConnection();
+    closeRedisConnections();
+    closeRedisConnections();
     expect(mockDisconnect).toHaveBeenCalledTimes(1);
     expect(getQueueConnection()).not.toBe(connection);
   });
 
-  it('leaves other Redis clients independent of queue cleanup', () => {
+  it('closes every initialized Redis client through messaging cleanup', () => {
     const redis = getRedis();
     const publisher = getRedisPublisher();
     const subscriber = getRedisSubscriber();
@@ -56,7 +57,30 @@ describe('Redis connections', () => {
     expect(getRedisSubscriber()).toBe(subscriber);
     expect(IORedis).toHaveBeenCalledTimes(3);
 
-    closeQueueConnection();
-    expect(mockDisconnect).not.toHaveBeenCalled();
+    closeRedisConnections();
+    expect(mockDisconnect).toHaveBeenCalledTimes(3);
+    closeRedisConnections();
+    expect(mockDisconnect).toHaveBeenCalledTimes(3);
+    expect(getRedis()).not.toBe(redis);
+    expect(getRedisPublisher()).not.toBe(publisher);
+    expect(getRedisSubscriber()).not.toBe(subscriber);
+  });
+
+  it('attempts every connection even when a disconnect throws', () => {
+    getRedis();
+    getRedisPublisher();
+    getRedisSubscriber();
+    getQueueConnection();
+    const failure = new Error('Disconnect failed');
+    mockDisconnect.mockImplementationOnce(() => {
+      throw failure;
+    });
+
+    expect(closeRedisConnections).toThrow(
+      new AggregateError([failure], 'Redis shutdown failed')
+    );
+    expect(mockDisconnect).toHaveBeenCalledTimes(4);
+    closeRedisConnections();
+    expect(mockDisconnect).toHaveBeenCalledTimes(4);
   });
 });

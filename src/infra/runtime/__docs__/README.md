@@ -27,14 +27,12 @@ runtime/
     accounting-context.bootstrap.ts
     currencies.bootstrap.ts
     events.bootstrap.ts
-    feature-flag.bootstrap.ts
     observability.bootstrap.ts
     __specs__/
   lifecycle/
     background-runtime.lifecycle.ts
-    feature-flag.lifecycle.ts
+    http-runtime.lifecycle.ts
     observability.lifecycle.ts
-    queue.lifecycle.ts
     __specs__/
   __docs__/
     README.md
@@ -46,7 +44,7 @@ documentation or tests.
 
 | Location                        | Responsibility                                                                      |
 | ------------------------------- | ----------------------------------------------------------------------------------- |
-| `process/http.process.ts`       | Start HTTP and coordinate its dependency bootstrap.                                 |
+| `process/http.process.ts`       | Initialize observability and invoke the HTTP lifecycle.                             |
 | `process/background.process.ts` | Initialize observability and invoke the background lifecycle.                       |
 | `servers/express/`              | Configure Express-specific adapters and start the HTTP listener.                    |
 | `health/`                       | Track startup readiness and probe PostgreSQL independently of Express.              |
@@ -61,9 +59,11 @@ Arrows show startup and execution order in the two independent processes.
 flowchart TD
     subgraph HTTP["HTTP process"]
         H0["process/http.process.ts"] --> H1["Initialize Sentry"]
-        H1 --> H2["Dynamically load application dependencies"]
-        H2 --> H3["Configure OAuth and Express; begin listening"]
-        H3 --> H4["Listening callback: initialize feature flags and register shutdown"]
+        H1 --> H2["Dynamically load HTTP coordinator"]
+        H2 --> H2A["HTTP lifecycle: register shutdown handlers"]
+        H2A --> H2B["Load application dependencies under cleanup ownership"]
+        H2B --> H3["Configure OAuth and Express; begin listening"]
+        H3 --> H4["HTTP lifecycle: await listening, then initialize feature flags"]
         H4 --> H5["Bootstrap currencies"]
         H5 --> H6["Bootstrap accounting reference data"]
         H6 --> H8["Subscribe user event handlers"]
@@ -86,11 +86,38 @@ application dependency graph. Preserve that ordering for automatic instrumentati
 
 ## HTTP process
 
-[`process/http.process.ts`](../process/http.process.ts) supplies the bootstrap callback to the
-[server](../servers/express/index.ts). The server starts listening before that callback
-finishes. [Readiness](../health/index.ts) requires both successful startup and
-a successful PostgreSQL probe; listening alone does not mean the application is
-ready. Bootstrap failure marks startup as failed.
+The [HTTP lifecycle](../lifecycle/http-runtime.lifecycle.ts) registers shutdown
+signals before loading application dependencies. It starts the listener, then
+initializes feature flags, currencies, accounting reference data, and event
+handlers in order. Feature-flag initialization is best-effort; its lazy client
+is created only when used, and cleanup never creates an unused client.
+
+`GET /health/ready` requires completed startup and a bounded PostgreSQL probe;
+it rechecks shutdown state after the probe. `GET /health/live` checks only that
+HTTP responds. Both routes run before product middleware. Redis and outbound
+integrations do not determine readiness.
+
+On `SIGINT` or `SIGTERM`, the runtime:
+
+1. Marks readiness false and closes the HTTP listener once any pending bind
+   settles. `server.close()` drains active HTTP connections.
+2. Waits for any running initializer; subsequent startup steps are skipped.
+3. Closes LaunchDarkly, messaging producers and Redis, PostgreSQL, then
+   observability. Dependencies stay available until draining and initialization
+   settle. HTTP does not start queue workers.
+
+Work continuing after a client disconnects or a response ends is not tracked
+separately and may encounter closed dependencies. The runtime does not
+force-close active requests or interrupt initializers; the supervisor owns the
+final termination deadline.
+
+Repeated signals share one cleanup operation. Normal signal exit statuses are
+`130` for `SIGINT` and `143` for `SIGTERM`. Application-loading, bootstrap, and
+listener-binding failures report `runtime.startup.failed`; subsequent listener
+errors report `runtime.server.failed`. Both trigger cleanup and exit status `1`.
+Cleanup failures report `runtime.http.cleanup_failed` with the resource in
+`source`, set exit status `1`, and allow remaining cleanup to proceed. Provider
+cleanup retains its own best-effort reporting.
 
 The accounting-context bootstrap initializes accounting standards, jurisdictions,
 and their permitted combinations. It does not create an accounting entity's
@@ -120,13 +147,8 @@ Before invoking a worker, the shared queue adapter initializes an isolated app
 context with the envelope’s correlation ID. Workers and use cases read it from
 that context. Retries retain the producer’s ID and start with fresh context state.
 
-Start it with:
-
-- Development: `yarn dev:background`
-- Production: `yarn start:background`
-
-Run one background instance. Apply migrations and let HTTP complete currency
-bootstrap before the first ingestion.
+For service commands, instance count, and bootstrap prerequisites, see the
+[deployment guide](../../../../docs/07_deployment_view.md#72-deployment-mapping-and-artifacts).
 
 Exchange rates are ingested daily at 6:00 PM Africa/Lagos. On startup, ingestion
 also runs if no successful run was recorded yesterday or today.
@@ -140,16 +162,9 @@ for deployment, recovery, and monitoring details.
 
 ## Shared support and ownership
 
-- **Bootstrap:** each runtime calls only the initialization it needs. The HTTP
-  entrypoint initializes feature flags and reference data and registers event
-  handlers. The background runtime invokes the messaging worker registrations.
-  Scheduled job initializers own their prerequisites and startup catch-up behavior;
-  the background runtime starts their node-cron tasks.
-- **Lifecycle:** the HTTP feature-flag lifecycle handles `SIGINT` and `SIGTERM`,
-  closes LaunchDarkly, shuts down observability, and exits.
-  The background runtime delegates task shutdown to node-cron and closes its own clients.
-  The current HTTP lifecycle does not explicitly drain HTTP requests
-  or close database and Redis connections.
+- **Bootstrap and lifecycle:** each runtime owns its initialization, signals,
+  cleanup ordering, and protection against repeated shutdown. Concrete SDK
+  initialization and cleanup stay with their integrations.
 - **Services:** execution-context storage lives in
   [`infra/services/app-context.service.ts`](../../services/app-context.service.ts).
   Flag evaluation lives in
@@ -161,19 +176,7 @@ for deployment, recovery, and monitoring details.
 
 ## Running and testing
 
-Run these commands from the repository root:
-
-| Command                                  | Behaviour                                              |
-| ---------------------------------------- | ------------------------------------------------------ |
-| `yarn dev`                               | Watch HTTP and generate routes.                        |
-| `yarn dev:background`                    | Watch the background runtime independently.            |
-| `yarn start:background`                  | Run the compiled standalone background process.        |
-| `yarn start`                             | Apply migrations, then start compiled HTTP.            |
-| `yarn start:http`                        | Run compiled HTTP without migrations.                  |
-| `npm run test:types`                     | Type-check source and tests.                           |
-| `npx jest src/infra/runtime --runInBand` | Run the runtime specs with mocked external boundaries. |
-
-Production commands require built output. See the
-[deployment documentation](../../../../docs/07_deployment_view.md) for operational
-configuration and readiness handling. Runtime specs stay beside their subjects
-in `__specs__/`.
+See [CONTRIBUTING](../../../../CONTRIBUTING.md#testing) for local commands and
+HTTP test fixtures, and the [deployment guide](../../../../docs/07_deployment_view.md#72-deployment-mapping-and-artifacts)
+for Coolify configuration. Runtime specs stay beside their subjects in
+`__specs__/`.

@@ -32,7 +32,7 @@ This repo contains the core accounting module of Drimsheet. It encompasses the c
 
 - [PostgreSQL](https://www.postgresql.org/) (>=16)
 - [Redis](https://redis.io/) (>=8)
-- Node.js (>=20.18.1 as specified in `package.json`)
+- Node.js 22 (version range specified in `package.json`; use `nvm install && nvm use`)
 - npm
 - Backblaze B2 bucket and bucket-scoped application credentials
 - API credentials for 3rd party integrations (Paystack, Mono, ZeptoMail) managed securely via Doppler

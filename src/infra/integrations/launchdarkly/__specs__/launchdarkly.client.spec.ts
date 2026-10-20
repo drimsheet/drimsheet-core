@@ -12,8 +12,13 @@ jest.mock('@infra/config/vars.config', () => ({
 }));
 
 describe('LaunchDarkly client', () => {
-  it('creates the process client with the configured server SDK key', () => {
+  it('defers client creation until first use and reuses the initialized client', () => {
+    expect(init).not.toHaveBeenCalled();
+    expect(launchDarklyClient.getInitialized()).toBeUndefined();
+    expect(launchDarklyClient.get()).toBe('launchdarkly-client');
+    expect(launchDarklyClient.get()).toBe('launchdarkly-client');
+    expect(launchDarklyClient.getInitialized()).toBe('launchdarkly-client');
+    expect(init).toHaveBeenCalledTimes(1);
     expect(init).toHaveBeenCalledWith('test-sdk-key');
-    expect(launchDarklyClient).toBe('launchdarkly-client');
   });
 });

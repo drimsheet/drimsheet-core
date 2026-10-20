@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -18,6 +20,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -119,6 +123,7 @@ const createdAccount: ILedgerAccountDto = {
 
 describe('POST /ledger/asset/petty-cash', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -126,7 +131,7 @@ describe('POST /ledger/asset/petty-cash', () => {
   const mockCreatePettyCashAccount =
     ledgerUseCases.createPettyCashAccountUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -138,10 +143,15 @@ describe('POST /ledger/asset/petty-cash', () => {
     mockFindAccountingEntity.mockResolvedValue(accountingEntity);
     mockCreatePettyCashAccount.mockResolvedValue(createdAccount);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const makeRequest = (payload: object = validPayload) =>
-    request(app)
+    request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId)
@@ -222,7 +232,7 @@ describe('POST /ledger/asset/petty-cash', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request before orchestration', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('x-accounting-entity-id', accountingEntityId)
         .send(validPayload);
@@ -269,7 +279,7 @@ describe('POST /ledger/asset/petty-cash', () => {
 
   describe('500 Response', () => {
     it('rejects a missing active accounting entity before orchestration', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(validPayload);

@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -44,6 +46,8 @@ import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -119,13 +123,14 @@ const openingBalance = {
 
 describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
   let app: Express;
+  let server: Server;
   const update = jest.mocked(ledgerUseCases.updatePettyCashAccountUseCase);
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
     bankAccountRepo: mockBankAccountRepo,
     ledgerAccountService: mockLedgerAccountService,
   });
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(
       ledgerAccountBalanceEntity.make({
@@ -181,9 +186,14 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
       })
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
   const patch = (payload: object, id: string = account.id) =>
-    request(app)
+    request(server)
       .patch(`${ENDPOINT}/${id}`)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntity.id)
@@ -329,7 +339,7 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
     it('rejects unauthenticated callers before orchestration', async () => {
       expect(
         (
-          await request(app)
+          await request(server)
             .patch(`${ENDPOINT}/${account.id}`)
             .send({ name: 'Changed' })
         ).status

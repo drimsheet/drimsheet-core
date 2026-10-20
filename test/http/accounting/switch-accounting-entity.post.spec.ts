@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -16,6 +18,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -74,12 +78,13 @@ const entity: IAccountingEntity = {
 
 describe('POST /accounting/accounting-entity/switch', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockSwitchAccountingEntity =
     accountingUsecases.switchAccountingEntityUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -90,11 +95,16 @@ describe('POST /accounting/accounting-entity/switch', () => {
     } as IUser);
     mockSwitchAccountingEntity.mockResolvedValue(entity);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns the selected accounting entity contract', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ accountingEntityId: entity.id });
@@ -121,7 +131,7 @@ describe('POST /accounting/accounting-entity/switch', () => {
         id: priorEntityId,
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', priorEntityId)
@@ -145,7 +155,7 @@ describe('POST /accounting/accounting-entity/switch', () => {
       ['wrong authorization scheme', 'Basic token'],
       ['authorization with extra segments', 'Bearer token extra'],
     ])('rejects %s', async (_label, authorization) => {
-      const requestBuilder = request(app)
+      const requestBuilder = request(server)
         .post(ENDPOINT)
         .send({ accountingEntityId: entity.id });
       if (authorization) {
@@ -161,7 +171,7 @@ describe('POST /accounting/accounting-entity/switch', () => {
     it('rejects an expired token', async () => {
       mockGetAuthUser.mockRejectedValue(new authError.ExpiredToken());
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer expired-token')
         .send({ accountingEntityId: entity.id });
@@ -173,7 +183,7 @@ describe('POST /accounting/accounting-entity/switch', () => {
     it('rejects a nonexistent user', async () => {
       mockFindUser.mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ accountingEntityId: entity.id });
@@ -187,7 +197,7 @@ describe('POST /accounting/accounting-entity/switch', () => {
     it('rejects a user without Alpha 1 access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ accountingEntityId: entity.id });
@@ -209,7 +219,7 @@ describe('POST /accounting/accounting-entity/switch', () => {
           new accountingAppError.ActiveEntityNotFound()
         );
 
-        const response = await request(app)
+        const response = await request(server)
           .post(ENDPOINT)
           .set('Authorization', 'Bearer valid-token')
           .send({ accountingEntityId: entity.id });
@@ -235,7 +245,7 @@ describe('POST /accounting/accounting-entity/switch', () => {
         },
       ],
     ])('rejects %s before orchestration', async (_label, payload) => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(payload);
@@ -255,7 +265,7 @@ describe('POST /accounting/accounting-entity/switch', () => {
         new Error('database credentials')
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ accountingEntityId: entity.id });

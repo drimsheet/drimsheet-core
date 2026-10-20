@@ -21,9 +21,9 @@ jest.mock('@infra/messaging/workers', () => ({
     () => mockRegisterAccountingWorker(),
   ],
 }));
-jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
+jest.mock('@infra/messaging/queues/queue-resources', () => ({
   __esModule: true,
-  default: { shutdown: () => mockShutdownQueues() },
+  default: { close: () => mockShutdownQueues() },
 }));
 jest.mock('@infra/observability/logger', () => ({
   __esModule: true,

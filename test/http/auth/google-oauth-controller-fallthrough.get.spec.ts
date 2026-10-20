@@ -1,9 +1,13 @@
+import { Server } from 'node:http';
+
 import { Express, NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -38,10 +42,16 @@ jest.mock('@infra/ioc/middlewares/http', () => {
 
 describe('GET /auth/google controller fallthrough', () => {
   let app: Express;
+  let server: Server;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterEach(() => {
@@ -51,7 +61,7 @@ describe('GET /auth/google controller fallthrough', () => {
   it.each(['/api/v1/auth/google', '/api/v1/auth/google/callback'])(
     'executes the TSOA controller contract for %s when middleware continues',
     async (endpoint) => {
-      const response = await request(app).get(endpoint);
+      const response = await request(server).get(endpoint);
 
       expect(response.status).toBe(302);
       expect(response.body).toEqual({});
