@@ -11,7 +11,7 @@ import { actorsTable } from '../config/actors';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export function up(pgm: MigrationBuilder) {
   pgm.createTable(accountingContextsTable, {
     created_by: {
       type: 'uuid',
@@ -92,6 +92,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   });
 }
 
-export async function down(pgm: MigrationBuilder): Promise<void> {
+export function down(pgm: MigrationBuilder) {
   pgm.dropTable(accountingContextsTable);
 }

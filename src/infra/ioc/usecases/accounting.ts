@@ -9,6 +9,7 @@ import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-a
 import makeGetAccountingContextsUsecase from '@app/accounting/usecases/get-accounting-contexts.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
+import makeGetNextCurrentAccountingPeriodUsecase from '@app/accounting/usecases/get-next-current-accounting-period.usecase';
 import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import makeOnboardAccountingEntityUsecase from '@app/accounting/usecases/onboard-accounting-entity.usecase';
@@ -32,6 +33,15 @@ import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import userRepos from '@infra/persistence/repos/user';
 import appContext from '@infra/services/app-context.service';
+
+export const getNextCurrentAccountingPeriodUseCase = makeTracedUseCase(
+  'accounting.getNextCurrentAccountingPeriodUseCase',
+  makeGetNextCurrentAccountingPeriodUsecase({
+    appContext,
+    nextCurrentAccountingPeriodQueryRepo:
+      accountingRepos.nextCurrentAccountingPeriodQuery,
+  })
+);
 
 export const createReportingContextUseCase = makeTracedUseCase(
   'accounting.createReportingContextUseCase',
