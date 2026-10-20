@@ -4,6 +4,7 @@ import { ELogOutcome } from '@shared/types/observability.types';
 
 import { postgres } from '@infra/config/postgres.config';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
+import registerCurrentAccountingPeriodWorker from '@infra/messaging/workers/current-accounting-period.worker';
 import logger from '@infra/observability/logger';
 import scheduledJobs from '@infra/scheduling';
 
@@ -40,6 +41,7 @@ export default async function runBackground(): Promise<void> {
   }
 
   try {
+    registerCurrentAccountingPeriodWorker();
     for (const initialize of scheduledJobs) {
       await initialize();
     }

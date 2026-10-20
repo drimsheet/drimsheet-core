@@ -7,7 +7,6 @@ import IQueueMetrics, {
   EQueueTransport,
 } from '@shared/contracts/queue-metrics.contract';
 import ITracer from '@shared/contracts/tracer.contract';
-import { ICorrelationId } from '@shared/types/correlation-id.types';
 import { UTraceEnvelopePayload } from '@shared/types/observability.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -35,7 +34,7 @@ function getWaitingDurationMs<T>(job: Job<T>) {
   return Math.max(0, processedOn - job.timestamp);
 }
 
-export function registerBullMQWorker<T extends ICorrelationId>(
+export function registerBullMQWorker<T>(
   name: string,
   processor: (payload: T) => Promise<void>,
   appContext: IAppContextService<IAppContextData>,

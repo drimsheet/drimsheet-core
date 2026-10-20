@@ -10,6 +10,11 @@ const mockInitializeSecond = jest.fn();
 const mockCloseDatabase = jest.fn();
 const mockShutdownQueues = jest.fn();
 const mockShutdownObservability = jest.fn();
+const mockRegisterAccountingWorker = jest.fn();
+jest.mock('@infra/messaging/workers/current-accounting-period.worker', () => ({
+  __esModule: true,
+  default: () => mockRegisterAccountingWorker(),
+}));
 jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
   __esModule: true,
   default: { shutdown: () => mockShutdownQueues() },
@@ -82,6 +87,7 @@ describe('background runtime lifecycle', () => {
     'starts every schedule and closes tasks before clients on %s',
     async (signal) => {
       await runBackground();
+      expect(mockRegisterAccountingWorker).toHaveBeenCalledTimes(1);
       const tasks = [...cron.getTasks().values()];
       expect(tasks.map((task) => task.getStatus())).toEqual(['idle', 'idle']);
       expect(mockLogger.info).toHaveBeenCalledWith(
@@ -176,11 +182,15 @@ describe('background runtime lifecycle', () => {
     expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['initialize', 'start'])(
+  it.each(['worker', 'initialize', 'start'])(
     'cleans up registered tasks when startup fails during %s',
     async (phase) => {
       const failure = new Error('Startup failed');
-      if (phase === 'initialize') {
+      if (phase === 'worker') {
+        mockRegisterAccountingWorker.mockImplementation(() => {
+          throw failure;
+        });
+      } else if (phase === 'initialize') {
         mockInitializeSecond.mockRejectedValue(failure);
       } else {
         mockInitializeSecond.mockImplementation(() => {

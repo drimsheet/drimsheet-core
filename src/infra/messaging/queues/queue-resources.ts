@@ -1,19 +1,31 @@
-import type { Queue } from 'bullmq';
+import type { Queue, Worker } from 'bullmq';
 
 import { closeQueueConnection } from '@infra/config/redis.config';
 
 const initializedQueues = new Set<Queue>();
+const initializedWorkers = new Set<Worker>();
 
 function register(queue: Queue): void {
   initializedQueues.add(queue);
 }
 
+function registerWorker(worker: Worker): void {
+  initializedWorkers.add(worker);
+}
+
 /**
- * Closes every initialized producer before releasing the shared connection.
+ * Drains workers, then closes producers before releasing the shared connection.
  * Reports failures to the runtime after all cleanup has been attempted.
  */
 async function closeQueues(): Promise<void> {
-  const results = await Promise.allSettled(
+  const workerResults = await Promise.allSettled(
+    [...initializedWorkers].map(async (worker) => {
+      await worker.close();
+    })
+  );
+  initializedWorkers.clear();
+
+  const queueResults = await Promise.allSettled(
     [...initializedQueues].map(async (queue) => {
       await queue.close();
     })
@@ -21,7 +33,7 @@ async function closeQueues(): Promise<void> {
   initializedQueues.clear();
 
   const failures: unknown[] = [];
-  for (const result of results) {
+  for (const result of [...workerResults, ...queueResults]) {
     if (result.status === 'rejected') {
       failures.push(result.reason);
     }
@@ -38,6 +50,10 @@ async function closeQueues(): Promise<void> {
   }
 }
 
-const queueResources = Object.freeze({ register, close: closeQueues });
+const queueResources = Object.freeze({
+  register,
+  registerWorker,
+  close: closeQueues,
+});
 
 export default queueResources;

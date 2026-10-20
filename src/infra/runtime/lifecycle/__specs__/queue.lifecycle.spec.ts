@@ -1,3 +1,5 @@
+import type { Worker } from 'bullmq';
+
 import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 
@@ -153,6 +155,66 @@ describe('queue lifecycle', () => {
       await expect(lifecycle.shutdown()).rejects.toMatchObject({
         errors: [failure],
       });
+    });
+  });
+
+  it('drains workers before closing producers and the shared connection', async () => {
+    await jest.isolateModulesAsync(async () => {
+      const resources = (
+        await import('@infra/messaging/queues/queue-resources')
+      ).default;
+      const makeQueue = (
+        await import('@infra/messaging/queues/current-accounting-period.queue')
+      ).default;
+      const lifecycle = (
+        await import('@infra/runtime/lifecycle/queue.lifecycle')
+      ).default;
+      let finish!: () => void;
+      const closeWorker = jest.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          })
+      );
+      const worker = { close: closeWorker } as unknown as Worker;
+      resources.registerWorker(worker);
+      resources.registerWorker(worker);
+      await makeQueue(mockTracer).add(payload);
+
+      const shuttingDown = lifecycle.shutdown();
+      await Promise.resolve();
+      expect(closeWorker).toHaveBeenCalledTimes(1);
+      expect(mockQueueClose).not.toHaveBeenCalled();
+      expect(mockDisconnect).not.toHaveBeenCalled();
+
+      finish();
+      await shuttingDown;
+      expect(mockQueueClose).toHaveBeenCalledTimes(1);
+      expect(mockDisconnect).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('attempts all cleanup when a worker cannot close', async () => {
+    await jest.isolateModulesAsync(async () => {
+      const resources = (
+        await import('@infra/messaging/queues/queue-resources')
+      ).default;
+      const makeQueue = (
+        await import('@infra/messaging/queues/current-accounting-period.queue')
+      ).default;
+      const lifecycle = (
+        await import('@infra/runtime/lifecycle/queue.lifecycle')
+      ).default;
+      const failure = new Error('Worker close failed');
+      const closeWorker = jest.fn().mockRejectedValue(failure);
+      resources.registerWorker({ close: closeWorker } as unknown as Worker);
+      await makeQueue(mockTracer).add(payload);
+
+      await expect(lifecycle.shutdown()).rejects.toMatchObject({
+        errors: [failure],
+      });
+      expect(mockQueueClose).toHaveBeenCalledTimes(1);
+      expect(mockDisconnect).toHaveBeenCalledTimes(1);
     });
   });
 });

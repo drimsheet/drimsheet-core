@@ -137,6 +137,32 @@ describe('registerBullMQWorker', () => {
     );
   });
 
+  it('initializes app context for a payload without correlation metadata', async () => {
+    const payload = { accountingContextId: 'context-id' };
+    const processor = jest.fn(async () => {
+      expect(appContext.get().correlationId).toBe('context-correlation');
+    });
+    registerBullMQWorker(
+      'accounting-queue',
+      processor,
+      appContext,
+      () => ({ correlationId: 'context-correlation', idempotencyKey: '' }),
+      mockQueueMetrics,
+      mockTracer
+    );
+    const registeredProcessor = jest.mocked(Worker).mock
+      .calls[0][1] as Processor<typeof payload, void, string>;
+
+    await registeredProcessor({
+      data: payload,
+      timestamp: 1_000,
+      processedOn: 1_500,
+      attemptsMade: 0,
+    } as Job<typeof payload>);
+
+    expect(processor).toHaveBeenCalledWith(payload);
+  });
+
   it('reports and rethrows processing failures inside the payload context', async () => {
     jest
       .spyOn(performance, 'now')
