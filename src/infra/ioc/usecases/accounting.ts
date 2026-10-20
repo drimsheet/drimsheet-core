@@ -10,10 +10,12 @@ import makeGetAccountingContextsUsecase from '@app/accounting/usecases/get-accou
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
 import makeGetNextCurrentAccountingPeriodUsecase from '@app/accounting/usecases/get-next-current-accounting-period.usecase';
+import makeGetNextCurrentReportingPeriodUsecase from '@app/accounting/usecases/get-next-current-reporting-period.usecase';
 import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import makeOnboardAccountingEntityUsecase from '@app/accounting/usecases/onboard-accounting-entity.usecase';
 import makeSetCurrentAccountingPeriodUsecase from '@app/accounting/usecases/set-current-accounting-period.usecase';
+import makeSetCurrentReportingPeriodUsecase from '@app/accounting/usecases/set-current-reporting-period.usecase';
 import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-accounting-entity.usecase';
 import makeUpdateAccountingEntityUsecase from '@app/accounting/usecases/update-accounting-entity.usecase';
 
@@ -51,6 +53,25 @@ export const getNextCurrentAccountingPeriodUseCase = makeTracedUseCase(
     appContext,
     nextCurrentAccountingPeriodQueryRepo:
       accountingRepos.nextCurrentAccountingPeriodQuery,
+  })
+);
+
+export const setCurrentReportingPeriodUseCase = makeTracedUseCase(
+  'accounting.setCurrentReportingPeriodUseCase',
+  makeSetCurrentReportingPeriodUsecase({
+    appContext,
+    reportingContextService,
+    reportingContextRepo: accountingRepos.reportingContext,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const getNextCurrentReportingPeriodUseCase = makeTracedUseCase(
+  'accounting.getNextCurrentReportingPeriodUseCase',
+  makeGetNextCurrentReportingPeriodUsecase({
+    appContext,
+    nextCurrentReportingPeriodQueryRepo:
+      accountingRepos.nextCurrentReportingPeriodQuery,
   })
 );
 

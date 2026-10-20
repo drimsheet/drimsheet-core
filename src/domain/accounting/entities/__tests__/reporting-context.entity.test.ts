@@ -127,4 +127,59 @@ describe('reportingContextEntity', () => {
       );
     });
   });
+  describe('update', () => {
+    it('changes only the selected period and timestamp, with an event and audit', () => {
+      const [context] = reportingContextEntity.make(validPayload);
+      const nextId = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
+      jest.setSystemTime(new Date('2024-02-01T00:00:00Z'));
+      const [updated, events, audit] = reportingContextEntity.update(context, {
+        currentReportingPeriodId: nextId,
+      });
+      expect(updated).toEqual({
+        ...context,
+        currentReportingPeriodId: nextId,
+        updatedAt: new Date('2024-02-01T00:00:00Z'),
+      });
+      expect(Object.isFrozen(updated)).toBe(true);
+      expect(Object.isFrozen(updated.updatedAt)).toBe(true);
+      expect(context.currentReportingPeriodId).toBe(
+        validPayload.currentReportingPeriodId
+      );
+      expect(events).toEqual([
+        expect.objectContaining({
+          type: EReportingContextEvents.Updated,
+          data: updated,
+        }),
+      ]);
+      expect(audit).toMatchObject({
+        action: EReportingContextActions.Updated,
+        diff: {
+          before: {
+            currentReportingPeriodId: context.currentReportingPeriodId,
+          },
+          after: { currentReportingPeriodId: nextId },
+        },
+      });
+    });
+
+    it('preserves identity, timestamps and audit state for an identical selection', () => {
+      const [context] = reportingContextEntity.make(validPayload);
+      const [updated, events, audit] = reportingContextEntity.update(context, {
+        currentReportingPeriodId: context.currentReportingPeriodId,
+      });
+      expect(updated).toBe(context);
+      expect(updated.updatedAt).toBe(context.updatedAt);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it('rejects invalid period IDs', () => {
+      const [context] = reportingContextEntity.make(validPayload);
+      expect(() =>
+        reportingContextEntity.update(context, {
+          currentReportingPeriodId: 'invalid' as TEntityId,
+        })
+      ).toThrow(accountingError.InvalidCurrentReportingPeriodId);
+    });
+  });
 });

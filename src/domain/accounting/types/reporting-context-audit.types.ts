@@ -7,6 +7,7 @@ import { IReportingContext } from './context.types';
 
 export const EReportingContextActions = {
   Created: 'created',
+  Updated: 'updated',
 } as const;
 
 export type UReportingContextActions =

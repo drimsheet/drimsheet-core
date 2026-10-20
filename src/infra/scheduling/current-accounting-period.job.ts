@@ -6,7 +6,7 @@ import reporter from '@infra/integrations/sentry/sentry-reporter';
 import { currentAccountingPeriodSchedulerWorker } from '@infra/ioc/workers/accounting';
 import appContext from '@infra/services/app-context.service';
 
-export default async function currentAccountingPeriodJob(): Promise<void> {
+export default function currentAccountingPeriodJob() {
   cron.createTask(
     '0 * * * *',
     (context) =>
