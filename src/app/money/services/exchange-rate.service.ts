@@ -7,16 +7,22 @@ interface IDependencies {
   exchangeRateRepo: IExchangeRateRepo;
 }
 
+/** Prefer an explicitly supplied official rate; otherwise read the stored rate. */
+function makeGetOfficialRate(
+  deps: IDependencies
+): IExchangeRateAppService['getOfficialRate'] {
+  return async (pair, asOf, repoOptions, userProvided) => {
+    if (userProvided?.type === EExchangeRateType.Official) {
+      return userProvided;
+    }
+    return deps.exchangeRateRepo.findByPairAndDate(pair, asOf, repoOptions);
+  };
+}
+
 export default function makeExchangeRateAppService(
   deps: IDependencies
 ): IExchangeRateAppService {
-  return {
-    async getOfficialRate(pair, asOf, repoOptions, userProvided) {
-      if (userProvided?.type === EExchangeRateType.Official) {
-        return userProvided;
-      }
-
-      return deps.exchangeRateRepo.findByPairAndDate(pair, asOf, repoOptions);
-    },
-  };
+  return Object.freeze({
+    getOfficialRate: makeGetOfficialRate(deps),
+  });
 }

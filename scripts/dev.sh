@@ -11,6 +11,6 @@ fi
 # Start dev services
 # NOTE: Infrastructure (Postgres and Redis) should be started
 # separately via drimsheet-platforms: bash bin/start.sh
-npx concurrently \
-  "nodemon" \
+exec npx concurrently --names http,routes \
+  "nodemon --signal SIGTERM" \
   "nodemon -x 'npm run build:routes'"

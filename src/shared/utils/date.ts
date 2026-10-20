@@ -1,10 +1,12 @@
 import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 
 import { TErrorConstructor } from '@shared/types/error.types';
 import dateError from '@shared/values/errors/date.error';
 
 dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export interface IStartAndEndDates {
   start: Date;
@@ -227,6 +229,16 @@ function toUtcStartOfDay(date: Date) {
   return dayjs.utc(date).startOf('day').toDate();
 }
 
+/** Returns the start of the previous calendar day in the given timezone. */
+function getStartOfPreviousDay(date: Date, timeZone: string) {
+  validateDate(date, dateError.InvalidDate);
+  const previousDay = dayjs(date)
+    .tz(timeZone)
+    .subtract(1, 'day')
+    .format('YYYY-MM-DD');
+  return dayjs.tz(previousDay, timeZone).toDate();
+}
+
 function isSameUtcDay(first: Date, second: Date) {
   return dayjs.utc(first).isSame(dayjs.utc(second), 'day');
 }
@@ -253,6 +265,7 @@ function addUtcCalendarUnits(date: Date, count: number, unit: TCalendarUnit) {
 const dateUtils = Object.freeze({
   now,
   toUtcStartOfDay,
+  getStartOfPreviousDay,
   isSameUtcDay,
   getUtcCalendarDistance,
   addUtcCalendarUnits,

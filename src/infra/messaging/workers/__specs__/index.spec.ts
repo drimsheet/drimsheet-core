@@ -11,18 +11,29 @@ import { ledgerAccountBalanceAdjustmentWorker } from '@infra/ioc/workers/ledger'
 import { transactionalEmailWorker } from '@infra/ioc/workers/notification';
 import workerRegistration from '@infra/messaging/workers';
 
-jest.mock('../../../../shared/utils/uuid-generator');
+jest.mock('@shared/utils/uuid-generator');
 
-jest.mock('../../../config/bullmq.config', () => ({
+jest.mock('@infra/config/bullmq.config', () => ({
   registerBullMQWorker: jest.fn(),
 }));
 
-jest.mock('../../../ioc/workers/ledger', () => ({
+jest.mock('@infra/ioc/workers/ledger', () => ({
   ledgerAccountBalanceAdjustmentWorker: jest.fn(),
 }));
 
-jest.mock('../../../ioc/workers/notification', () => ({
+jest.mock('@infra/ioc/workers/notification', () => ({
   transactionalEmailWorker: jest.fn(),
+}));
+
+jest.mock('@infra/observability', () => ({
+  __esModule: true,
+  default: {
+    queueMetrics: jest.requireActual(
+      '@shared/contracts/__mocks__/queue-metrics.mock'
+    ).default,
+    tracer: jest.requireActual('@shared/contracts/__mocks__/tracer.mock')
+      .default,
+  },
 }));
 
 describe('workerRegistration', () => {
@@ -36,6 +47,7 @@ describe('workerRegistration', () => {
   it('registers each worker with its queue and processor', () => {
     workerRegistration();
 
+    expect(registerBullMQWorker).toHaveBeenCalledTimes(2);
     expect(registerBullMQWorker).toHaveBeenNthCalledWith(
       1,
       TRANSACTIONAL_EMAIL_QUEUE_NAME,

@@ -23,14 +23,14 @@ _Figure 1: View the mermaid sourcecode here: [07.1-deployment-infrastructure.mer
 
 All internal systems run as Docker containers strictly managed and orchestrated by Coolify.
 
-| Container / Node           | Role / Technology     | Description                                                                                                                                                                      |
-| -------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reverse Proxy**          | Traefik / Caddy       | Handled natively by Coolify. Acts as the entry point, resolving domains, terminating SSL certificates (via Let's Encrypt), and forwarding requests to the Node.js API container. |
-| **Drimsheet Core**         | Node.js Runtime       | The monolith serving our API, Application, and Domain rules (compiled to JavaScript). Multiple instances/replicas can be spun up by Coolify based on load.                       |
-| **CBN exchange-rate cron** | One-shot Node process | Coolify runs `yarn ingest:exchange-rates` from the built Core image on its schedule. The process fetches CBN rates, writes PostgreSQL directly, cleans up, and exits.            |
-| **PostgreSQL**             | Relational Database   | The primary transactional database where ledgers, journals, and official exchange rates are stored. Runs persistently on attached volumes ensuring ACID compliance.              |
-| **Redis**                  | In-Memory Data Store  | Acts as a fast response cache and the backbone for the background job processing (BullMQ / Bull Board).                                                                          |
-| **Qdrant**                 | Vector Database       | Maintains semantic context and vector embeddings, particularly for enabling intelligent AI Agent integrations into the product.                                                  |
+| Container / Node       | Role / Technology          | Description                                                                                                                                                                      |
+| ---------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reverse Proxy**      | Traefik / Caddy            | Handled natively by Coolify. Acts as the entry point, resolving domains, terminating SSL certificates (via Let's Encrypt), and forwarding requests to the Node.js API container. |
+| **Drimsheet Core**     | Node.js Runtime            | The monolith serving our API, Application, and Domain rules (compiled to JavaScript). Multiple instances/replicas can be spun up by Coolify based on load.                       |
+| **Background runtime** | Node.js background process | Independently started with `yarn start:background`; manages registered node-cron tasks, each with its own schedule. Exchange-rate ingestion runs daily at 18:00 Africa/Lagos.    |
+| **PostgreSQL**         | Relational Database        | The primary transactional database where ledgers, journals, and official exchange rates are stored. Runs persistently on attached volumes ensuring ACID compliance.              |
+| **Redis**              | In-Memory Data Store       | Acts as a fast response cache and the backbone for the background job processing (BullMQ / Bull Board).                                                                          |
+| **Qdrant**             | Vector Database            | Maintains semantic context and vector embeddings, particularly for enabling intelligent AI Agent integrations into the product.                                                  |
 
 Coolify routes application traffic using `GET /health/ready`. The route stays
 unavailable until asynchronous startup completes and a bounded PostgreSQL
@@ -52,7 +52,7 @@ The Node.js API container relies entirely on these third-party systems via HTTPS
   receive Sentry traces/errors or provider-native BullMQ inventory.
 - **Doppler**: Centralized configuration management (discussed comprehensively in Section 7.3).
 - **Core Systems**: FIRS Tax ProMax (taxation), Mono (open banking), Paystack (billing), and ZeptoMail (transactional email).
-- **CBN**: Provides the official foreign-currency/NGN `centralrate` history used by the standalone exchange-rate ingestion process.
+- **CBN**: Provides the official foreign-currency/NGN `centralrate` history used by the scheduled exchange-rate ingestion job.
 - **Identity & Marketing**: Google Auth, Mailchimp, and MailerLite.
 
 ---
@@ -68,13 +68,13 @@ prerelease succeeds, the approved changes are promoted independently to the
 **Mapping software to infrastructure:**
 
 Under `src/infra/runtime`, underscore-prefixed directories contain executable
-runtimes: `_http/index.ts` starts the API, and
-`_background/ingestion/exchange-rate/index.ts` runs exchange-rate ingestion.
+runtimes: `_http/index.ts` starts the API and its email/ledger workers;
+`_background/index.ts` starts node-cron schedules independently of HTTP.
 `servers/express/` owns Express-specific configuration and listener startup;
 `health/index.ts` owns startup readiness and the PostgreSQL probe. Unprefixed
 `bootstrap/` and `lifecycle/` directories contain shared runtime support.
-The HTTP process still registers email and ledger-balance workers from
-`src/infra/messaging`; there is no standalone worker process. HTTP health and
+The HTTP process registers email and ledger-balance workers from
+`src/infra/messaging`; scheduled jobs share the background process. HTTP health and
 MCP routes remain in `src/interface/http`, and MCP tool registration remains
 in `src/interface/mcp` with no separate listener.
 See the [runtime guide](../src/infra/runtime/__docs__/README.md) for the directory
@@ -88,12 +88,26 @@ layout, startup chart, and lifecycle responsibilities.
   and the rest of the application graph, allowing Sentry to install automatic
   instrumentation before those libraries load. Coolify admits the new container
   only after `/health/ready` succeeds.
-- The separate exchange-rate entrypoint initializes observability before
-  dynamically loading the CBN/PostgreSQL runtime. Coolify runs
-  `yarn ingest:exchange-rates` only after the image is built and migrations are
-  applied. The process needs `POSTGRES_URL`, may use the API's optional
-  Sentry/Better Stack settings, and exits `0` on success or non-zero on terminal
-  failure or cancellation.
+- `yarn start` applies migrations, then starts HTTP only. Start and supervise
+  the background service independently with `yarn start:background`.
+  In development, `yarn dev` watches HTTP and routes; `yarn dev:background`
+  separately watches the background runtime. There is no readiness-wait script
+  or shared process supervision. Allow more than 60 seconds for background
+  shutdown before the service supervisor enforces termination.
+- Currency reference data is bootstrapped by the HTTP runtime.
+  Apply migrations and allow HTTP bootstrap to finish before the first background
+  ingestion; this ordering is the developer's or deployment operator's responsibility.
+  The exchange-rate job initializer reads `last_succeeded_at`
+  from `core.background_job_checkpoints`. It executes ingestion at startup only
+  when there was no success yesterday or today in Africa/Lagos, then starts
+  node-cron for daily 18:00 Africa/Lagos execution. Scheduled runs do not check
+  freshness. Completion is recorded after ingestion commits; conflict-ignore
+  inserts make replays safe. No queue or automatic retry is used for ingestion.
+- Run exactly one background process. For multiple HTTP replicas, apply migrations once,
+  run one `yarn start:background` service and use `yarn start:http` for the
+  HTTP replicas. Node-cron's overlap prevention applies within one process;
+  there is no distributed lock. Disable the old Coolify cron and any previously
+  deployed BullMQ exchange-rate scheduler before switching.
 - **Database Schema Mapping**: The Drizzle ORM schema represents the artifact for database structure. As a pre-start (or hook) step during deployment, Drizzle database migration scripts are applied to the PostgreSQL container to ensure code and table definitions remain deeply synchronized.
 
 ---

@@ -33,3 +33,4 @@ The following architectural decision records (ADRs) capture the critical technic
 | [ADR-0017](./adrs/0017-infrastructure-integration-adapters.md)                 | Infrastructure Integration Adapters                      | Accepted               |
 | [ADR-0018](./adrs/0018-first-class-domain-validations.md)                      | First-Class Domain Validations                           | Accepted               |
 | [ADR-0019](./adrs/0019-internal-concurrency-tokens.md)                         | Internal Concurrency Tokens                              | Accepted               |
+| [ADR-0020](./adrs/0020-dedicated-scheduling-runtime.md)                        | Dedicated background runtime                             | Accepted               |

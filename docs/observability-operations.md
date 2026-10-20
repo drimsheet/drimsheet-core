@@ -83,15 +83,72 @@ queue-state gauges. Application enqueue,
 processing count, duration, and trustworthy wait-duration metrics remain. Use
 Bull Board for direct BullMQ inspection.
 
-## CBN exchange-rate cron
+## CBN exchange-rate worker
 
-Coolify runs `yarn ingest:exchange-rates` from the already-built Core image
-after migrations have been applied. Supply `POSTGRES_URL` and the same optional
-Sentry/Better Stack values used by Core. The process owns up to three bounded
-attempts for transient CBN/PostgreSQL faults, structured lifecycle events,
-resource cleanup, and its terminal exit status. Coolify owns the schedule and
-any platform-level rerun policy. Alert on non-zero exits and the
-`integration.cbn_exchange_rate.failed` event.
+`yarn start` applies migrations and starts HTTP only. Start exactly one separate
+background service with `yarn start:background`, with its own supervision.
+For development, run `yarn dev` for HTTP and routes, and manually run
+`yarn dev:background` in another terminal. The scheduler has no HTTP listener
+and neither runtime's launcher controls the other.
+
+Currency reference data is bootstrapped by the HTTP runtime.
+Apply migrations and wait for HTTP to complete that bootstrap before the first
+background ingestion. The launchers do not enforce this prerequisite.
+The exchange-rate job initializer checks `last_succeeded_at` in
+`core.background_job_checkpoints`, and executes ingestion if it never succeeded
+or last succeeded before yesterday in Africa/Lagos. It then starts node-cron
+for daily 18:00 Africa/Lagos execution. Scheduled runs always execute independently
+of freshness; overlapping runs within the scheduler process are skipped.
+A morning startup run does not suppress that evening's scheduled run.
+
+Success, including runs with no new rates, records only `last_succeeded_at`.
+Failures leave that time unchanged. If completion bookkeeping fails after rates
+commit, later ingestion is safe because inserts ignore conflicts. There is no
+BullMQ queue, Bull Board entry, distributed lock, or automatic retry for ingestion.
+A failed startup execution is reported and the daily schedule still starts.
+The job callback rejects on ingestion errors. Node-cron records the failed run,
+and the job's task-level error hook reports errors through the existing application
+reporter using `scheduling.exchange_rate_ingestion.failed`. This is the single
+reporting owner for that task's execution and listener errors. Startup catches
+the rejected `task.execute()` promise so the daily
+schedule can still start. Worker execution uses node-cron's execution ID as its
+correlation ID. Node-cron's logger receives no execution context, so scheduler
+error reports do not automatically include that execution correlation ID.
+
+Monitor `runtime.background.started` for startup and
+`scheduling.exchange_rate_ingestion.failed` for exchange-rate task failures. Each run
+receives a fresh application context and correlation ID. Success emits
+`exchange_rate.ingestion.completed`; `processedCount` counts selected observations,
+including conflict-ignore replays. Unsupported labels still emit
+`integration.cbn_exchange_rate.currency_skipped`.
+Migrate old `runtime.exchange_rate_worker.*` and exchange-rate
+`queue.job.processing_failed` alerts to these scheduling events. Replace
+`runtime.scheduler.failed` queries for ingestion with
+`scheduling.exchange_rate_ingestion.failed`.
+Rename `runtime.scheduling.*` queries to `runtime.background.*`; the runtime
+lifecycle events now describe the shared background process.
+
+Checkpoint-read, task-registration, and schedule-start failures emit
+`runtime.background.failed` and exit non-zero after cleanup.
+Shutdown handlers are registered after all initializers finish and schedules
+start. Signals during startup use default process termination without graceful
+cleanup. After startup, `SIGINT`/`SIGTERM` call `cron.shutdown(60_000)` before
+closing PostgreSQL and telemetry. Node-cron owns stopping, waiting for, and
+destroying registered tasks;
+individual task stop/destroy errors use node-cron's native console logging
+rather than being rethrown. Other node-cron diagnostics also retain console
+logging. There is no global scheduler logger or universal per-level event mapping;
+jobs and runtime lifecycle code choose their own reporting keys.
+Node-cron's timeout ends its wait; it does not cancel running JavaScript or
+terminate the process. Configure the background service's supervisor to enforce
+termination, allowing more than 60 seconds for task shutdown and client cleanup.
+The runtime no longer emits `runtime.background.shutdown_timeout`; monitor
+supervisor termination events instead.
+Runtime cleanup failures emit `runtime.background.cleanup_failed`. Normal shutdown exits zero.
+
+Disable the former Coolify cron and any previously deployed BullMQ exchange-rate
+scheduler before starting node-cron. The success timestamp continues to support
+startup freshness without Redis scheduling state.
 
 ## Deployment and cutover checklist
 
