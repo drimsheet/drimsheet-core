@@ -20,7 +20,7 @@ jest.mock('@infra/config/redis.config', () => ({
   closeRedisConnections: mockDisconnect,
 }));
 
-describe('queue resources', () => {
+describe('queue lifecycle', () => {
   const payload: INextCurrentAccountingPeriodDto = {
     accountingContextId: generateUUID(),
     fiscalYearId: generateUUID(),
@@ -46,11 +46,11 @@ describe('queue resources', () => {
       await import('@infra/messaging/queues/current-accounting-period.queue');
       await import('@infra/messaging/queues/ledger-account-balance.queue');
       await import('@infra/messaging/queues/transactional-email.queue');
-      const queueResources = (
-        await import('@infra/messaging/queues/queue-resources')
+      const queueLifecycle = (
+        await import('@infra/runtime/lifecycle/queue.lifecycle')
       ).default;
 
-      await queueResources.close();
+      await queueLifecycle.shutdown();
 
       expect(mockQueueConstructor).not.toHaveBeenCalled();
       expect(mockGetConnection).not.toHaveBeenCalled();
@@ -68,8 +68,8 @@ describe('queue resources', () => {
         await import('@infra/messaging/queues/ledger-account-balance.queue');
       const { getTransactionalEmailQueue } =
         await import('@infra/messaging/queues/transactional-email.queue');
-      const queueResources = (
-        await import('@infra/messaging/queues/queue-resources')
+      const queueLifecycle = (
+        await import('@infra/runtime/lifecycle/queue.lifecycle')
       ).default;
       const queue = makeAccountingQueue(mockTracer);
       await queue.add('queue-correlation', payload);
@@ -82,7 +82,10 @@ describe('queue resources', () => {
         expect(mockDisconnect).not.toHaveBeenCalled();
       });
 
-      await queueResources.close();
+      const shuttingDown = queueLifecycle.shutdown();
+      expect(queueLifecycle.shutdown()).toBe(shuttingDown);
+      await shuttingDown;
+      await queueLifecycle.shutdown();
 
       expect(mockQueueConstructor).toHaveBeenCalledTimes(3);
       expect(mockQueueClose.mock.calls).toEqual([
@@ -103,8 +106,8 @@ describe('queue resources', () => {
         await import('@infra/messaging/queues/ledger-account-balance.queue');
       const { getTransactionalEmailQueue } =
         await import('@infra/messaging/queues/transactional-email.queue');
-      const queueResources = (
-        await import('@infra/messaging/queues/queue-resources')
+      const queueLifecycle = (
+        await import('@infra/runtime/lifecycle/queue.lifecycle')
       ).default;
       await makeAccountingQueue(mockTracer).add('queue-correlation', payload);
       getLedgerAccountBalanceAdjustmentQueue();
@@ -123,7 +126,7 @@ describe('queue resources', () => {
           })
         );
 
-      const shuttingDown = queueResources.close();
+      const shuttingDown = queueLifecycle.shutdown();
       const rejection = expect(shuttingDown).rejects.toMatchObject({
         message: 'Queue shutdown failed',
         errors: [firstFailure, secondFailure],
@@ -133,6 +136,7 @@ describe('queue resources', () => {
       expect(mockDisconnect).not.toHaveBeenCalled();
       finish();
       await rejection;
+      expect(queueLifecycle.shutdown()).toBe(shuttingDown);
 
       expect(mockDisconnect).toHaveBeenCalledTimes(1);
     });
@@ -140,15 +144,15 @@ describe('queue resources', () => {
 
   it('propagates shared connection cleanup failures to the runtime', async () => {
     await jest.isolateModulesAsync(async () => {
-      const queueResources = (
-        await import('@infra/messaging/queues/queue-resources')
+      const queueLifecycle = (
+        await import('@infra/runtime/lifecycle/queue.lifecycle')
       ).default;
       const failure = new Error('Redis disconnect failed');
       mockDisconnect.mockImplementation(() => {
         throw failure;
       });
 
-      await expect(queueResources.close()).rejects.toMatchObject({
+      await expect(queueLifecycle.shutdown()).rejects.toMatchObject({
         errors: [failure],
       });
     });
@@ -159,8 +163,8 @@ describe('queue resources', () => {
       const makeQueue = (
         await import('@infra/messaging/queues/current-accounting-period.queue')
       ).default;
-      const queueResources = (
-        await import('@infra/messaging/queues/queue-resources')
+      const queueLifecycle = (
+        await import('@infra/runtime/lifecycle/queue.lifecycle')
       ).default;
       let finish!: () => void;
       const closeWorker = jest.fn(
@@ -170,11 +174,12 @@ describe('queue resources', () => {
           })
       );
       const worker = { close: closeWorker } as unknown as Worker;
-      queueResources.registerWorker(worker);
-      queueResources.registerWorker(worker);
+      queueLifecycle.registerWorker(worker);
+      queueLifecycle.registerWorker(worker);
       await makeQueue(mockTracer).add('queue-correlation', payload);
 
-      const shuttingDown = queueResources.close();
+      const shuttingDown = queueLifecycle.shutdown();
+      expect(queueLifecycle.shutdown()).toBe(shuttingDown);
       await Promise.resolve();
       expect(closeWorker).toHaveBeenCalledTimes(1);
       expect(mockQueueClose).not.toHaveBeenCalled();
@@ -192,17 +197,17 @@ describe('queue resources', () => {
       const makeQueue = (
         await import('@infra/messaging/queues/current-accounting-period.queue')
       ).default;
-      const queueResources = (
-        await import('@infra/messaging/queues/queue-resources')
+      const queueLifecycle = (
+        await import('@infra/runtime/lifecycle/queue.lifecycle')
       ).default;
       const failure = new Error('Worker close failed');
       const closeWorker = jest.fn().mockRejectedValue(failure);
-      queueResources.registerWorker({
+      queueLifecycle.registerWorker({
         close: closeWorker,
       } as unknown as Worker);
       await makeQueue(mockTracer).add('queue-correlation', payload);
 
-      await expect(queueResources.close()).rejects.toMatchObject({
+      await expect(queueLifecycle.shutdown()).rejects.toMatchObject({
         errors: [failure],
       });
       expect(mockQueueClose).toHaveBeenCalledTimes(1);

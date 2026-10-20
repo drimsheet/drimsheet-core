@@ -15,7 +15,7 @@ import reporter from '@infra/integrations/sentry/sentry-reporter';
 import {
   traceQueueProcessing,
   unwrapTraceEnvelope,
-} from '@infra/messaging/trace-context';
+} from '@infra/observability/queue-tracing';
 
 import { getQueueConnection } from './redis.config';
 

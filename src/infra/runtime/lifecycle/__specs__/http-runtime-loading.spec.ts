@@ -44,9 +44,9 @@ jest.mock('@infra/integrations/launchdarkly/launchdarkly.lifecycle', () => ({
   __esModule: true,
   default: { initialize: mockInitializeFlags, shutdown: mockCloseFlags },
 }));
-jest.mock('@infra/messaging/queues/queue-resources', () => ({
+jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
   __esModule: true,
-  default: { close: mockCloseQueues },
+  default: { shutdown: mockCloseQueues },
 }));
 jest.mock('@infra/runtime/lifecycle/observability.lifecycle', () => ({
   __esModule: true,

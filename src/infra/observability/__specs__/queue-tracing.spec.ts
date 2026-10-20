@@ -4,9 +4,9 @@ import {
   makeTraceEnvelope,
   traceQueueProcessing,
   unwrapTraceEnvelope,
-} from '@infra/messaging/trace-context';
+} from '@infra/observability/queue-tracing';
 
-describe('messaging trace context', () => {
+describe('queue tracing', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockTracer.getPropagationCarrier.mockReturnValue({});

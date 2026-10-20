@@ -11,8 +11,8 @@ import { registerBullMQWorker } from '@infra/config/bullmq.config';
 import { setCurrentAccountingPeriodWorker } from '@infra/ioc/workers/accounting';
 import { ledgerAccountBalanceAdjustmentWorker } from '@infra/ioc/workers/ledger';
 import { transactionalEmailWorker } from '@infra/ioc/workers/notification';
-import queueResources from '@infra/messaging/queues/queue-resources';
-import workerRegistrations from '@infra/messaging/workers';
+import workerRegistrations from '@infra/runtime/bootstrap/queue-workers.bootstrap';
+import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 import appContext from '@infra/services/app-context.service';
 
 jest.mock('bullmq', () => ({ Worker: jest.fn() }));
@@ -25,7 +25,7 @@ jest.mock('@infra/ioc/workers/accounting', () => ({
   setCurrentAccountingPeriodWorker: jest.fn(),
 }));
 
-jest.mock('@infra/messaging/queues/queue-resources', () => ({
+jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
   __esModule: true,
   default: { registerWorker: jest.fn() },
 }));
@@ -49,7 +49,7 @@ jest.mock('@infra/observability', () => ({
   },
 }));
 
-describe('worker registrations', () => {
+describe('queue worker bootstrap', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest
@@ -87,7 +87,7 @@ describe('worker registrations', () => {
       mockQueueMetrics,
       mockTracer
     );
-    expect(jest.mocked(queueResources.registerWorker).mock.calls).toEqual(
+    expect(jest.mocked(queueLifecycle.registerWorker).mock.calls).toEqual(
       jest
         .mocked(registerBullMQWorker)
         .mock.results.map((result) => [result.value])

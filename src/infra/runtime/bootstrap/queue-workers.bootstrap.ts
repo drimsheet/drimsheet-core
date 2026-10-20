@@ -9,8 +9,8 @@ import { registerBullMQWorker } from '@infra/config/bullmq.config';
 import { setCurrentAccountingPeriodWorker } from '@infra/ioc/workers/accounting';
 import { ledgerAccountBalanceAdjustmentWorker } from '@infra/ioc/workers/ledger';
 import { transactionalEmailWorker } from '@infra/ioc/workers/notification';
-import queueResources from '@infra/messaging/queues/queue-resources';
 import observability from '@infra/observability';
+import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 import appContext from '@infra/services/app-context.service';
 
 function registerTransactionalEmailWorker(): void {
@@ -22,7 +22,7 @@ function registerTransactionalEmailWorker(): void {
     observability.tracer
   );
 
-  queueResources.registerWorker(worker);
+  queueLifecycle.registerWorker(worker);
 }
 
 function registerLedgerAccountBalanceAdjustmentWorker(): void {
@@ -34,7 +34,7 @@ function registerLedgerAccountBalanceAdjustmentWorker(): void {
     observability.tracer
   );
 
-  queueResources.registerWorker(worker);
+  queueLifecycle.registerWorker(worker);
 }
 
 function registerCurrentAccountingPeriodWorker(): void {
@@ -46,7 +46,7 @@ function registerCurrentAccountingPeriodWorker(): void {
     observability.tracer
   );
 
-  queueResources.registerWorker(worker);
+  queueLifecycle.registerWorker(worker);
 }
 
 export default Object.freeze([

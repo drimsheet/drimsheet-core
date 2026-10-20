@@ -28,11 +28,13 @@ runtime/
     currencies.bootstrap.ts
     events.bootstrap.ts
     observability.bootstrap.ts
+    queue-workers.bootstrap.ts
     __specs__/
   lifecycle/
     background-runtime.lifecycle.ts
     http-runtime.lifecycle.ts
     observability.lifecycle.ts
+    queue.lifecycle.ts
     __specs__/
   __docs__/
     README.md
@@ -73,7 +75,7 @@ flowchart TD
 
     subgraph BACKGROUND["Background process"]
         I0["process/background.process.ts"] --> I1["Initialize observability"]
-        I1 --> I2["Register all queue workers through messaging"]
+        I1 --> I2["Invoke queue worker bootstrap registrations"]
         I2 --> I3["Initialize schedules and run overdue exchange-rate ingestion"]
         I3 --> I4["Start node-cron tasks"]
         I2 --> I5["Process email, ledger balances, and accounting periods"]
@@ -124,7 +126,7 @@ and their permitted combinations. It does not create an accounting entity's
 working context.
 
 HTTP enqueues work. The background process starts the
-[worker registration array](../../messaging/workers/index.ts), which contains
+[worker bootstrap registrations](../bootstrap/queue-workers.bootstrap.ts), which contain
 transactional-email, ledger-balance, and current-accounting-period workers.
 Bull Board remains available through HTTP for inspecting queued work.
 
@@ -154,8 +156,9 @@ Exchange rates are ingested daily at 6:00 PM Africa/Lagos. On startup, ingestion
 also runs if no successful run was recorded yesterday or today.
 
 On shutdown, the runtime stops schedules and waits up to 60 seconds for active
-scheduled jobs. Messaging then drains all queue workers, closes producers, and
-disconnects Redis before the runtime closes the database and telemetry.
+scheduled jobs. The [queue lifecycle](../lifecycle/queue.lifecycle.ts) then drains
+all initialized workers, closes producers, and delegates Redis cleanup to its
+connection owner before the runtime closes the database and telemetry.
 
 See [operations](../../../../docs/observability-operations.md#cbn-exchange-rate-worker)
 for deployment, recovery, and monitoring details.
@@ -165,6 +168,20 @@ for deployment, recovery, and monitoring details.
 - **Bootstrap and lifecycle:** each runtime owns its initialization, signals,
   cleanup ordering, and protection against repeated shutdown. Concrete SDK
   initialization and cleanup stay with their integrations.
+- **Queue resources:** producer implementations and worker bootstrap registrations
+  register created resources with the queue lifecycle. It owns the resource
+  registry and shared shutdown promise, attempts all cleanup before reporting
+  failures, and never creates unused queues, workers, or Redis connections.
+  The background runtime invokes worker registrations individually and stops
+  further registration when shutdown begins.
+- **Queue instrumentation:** [queue tracing](../../observability/queue-tracing.ts)
+  owns message trace envelopes and processing spans alongside queue metrics.
+  The message envelope format is independent of this code's file placement.
+- **Messaging structure:** `infra/messaging` contains its composition barrel and
+  subdirectories for messaging implementations. Queue and worker directories
+  contain their concrete implementations and composition, with colocated tests
+  and documentation. Bootstrap, instrumentation, and lifecycle support live with
+  the owners above.
 - **Services:** execution-context storage lives in
   [`infra/services/app-context.service.ts`](../../services/app-context.service.ts).
   Flag evaluation lives in

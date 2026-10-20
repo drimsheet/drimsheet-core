@@ -6,11 +6,11 @@ import { ELogOutcome } from '@shared/types/observability.types';
 import vars from '@infra/config/vars.config';
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
-import queueResources from '@infra/messaging/queues/queue-resources';
 import logger from '@infra/observability/logger';
 import runtimeHealth from '@infra/runtime/health';
 
 import observabilityLifecycle from './observability.lifecycle';
+import queueLifecycle from './queue.lifecycle';
 
 export default async function runHttp(): Promise<void> {
   let server: Server | undefined;
@@ -75,7 +75,7 @@ export default async function runHttp(): Promise<void> {
     await closeResource('feature-flags', () =>
       launchDarklyLifecycle.shutdown(signal)
     );
-    await closeResource('messaging', () => queueResources.close());
+    await closeResource('messaging', () => queueLifecycle.shutdown());
     await closeResource('postgres', () => postgres?.$client.end());
     await closeResource('observability', () =>
       observabilityLifecycle.shutdown(signal)
