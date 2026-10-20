@@ -1,9 +1,10 @@
-import { IAccountingPeriod } from '@domain/accounting/types/period.types';
-
-import { ISetCurrentAccountingPeriodJobDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
+import {
+  INextCurrentAccountingPeriodDto,
+  ISetCurrentAccountingPeriodJobDto,
+} from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 
 interface IDependencies {
-  usecase: (accountingPeriod: IAccountingPeriod) => Promise<void>;
+  usecase: (accountingPeriod: INextCurrentAccountingPeriodDto) => Promise<void>;
 }
 
 export default function makeSetCurrentAccountingPeriodWorker(

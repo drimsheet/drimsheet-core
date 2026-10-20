@@ -1,19 +1,34 @@
-import { IAccountingPeriod } from '@domain/accounting/types/period.types';
+import cron from 'node-cron';
 
-import ICurrentAccountingPeriodQueue from '@app/accounting/contracts/current-accounting-period-queue.contract';
+import generateUUID from '@shared/utils/uuid-generator';
 
-interface IDependencies {
-  getNextCurrentAccountingPeriodUsecase: () => Promise<IAccountingPeriod[]>;
-  queue: ICurrentAccountingPeriodQueue;
-}
+import reporter from '@infra/integrations/sentry/sentry-reporter';
+import { currentAccountingPeriodSchedulerWorker } from '@infra/ioc/workers/accounting';
+import appContext from '@infra/services/app-context.service';
 
-/**
- * Initializer I/O scaffold only; no schedule is registered yet.
- * Intended for hourly discovery and queueing in the background runtime.
- */
-export default async function currentAccountingPeriodJob(
-  _deps: IDependencies
-): Promise<void> {
-  // TODO: Register a stopped hourly node-cron task that calls discovery and
-  // enqueues each result with a correlation ID.
+export default async function currentAccountingPeriodJob(): Promise<void> {
+  cron.createTask(
+    '0 * * * *',
+    (context) =>
+      appContext.init(
+        {
+          correlationId: context.execution?.id ?? generateUUID(),
+          idempotencyKey: '',
+        },
+        currentAccountingPeriodSchedulerWorker
+      ),
+    {
+      name: 'current-accounting-period',
+      timezone: 'Africa/Lagos',
+      noOverlap: true,
+      logger: {
+        ...console,
+        error: (message, error) =>
+          reporter.report(
+            'scheduling.current_accounting_period.failed',
+            error ?? message
+          ),
+      },
+    }
+  );
 }

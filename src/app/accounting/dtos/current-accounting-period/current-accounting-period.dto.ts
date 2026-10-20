@@ -1,8 +1,6 @@
 import { ICorrelationId } from '@shared/types/correlation-id.types';
 import { TEntityId } from '@shared/types/uuid';
 
-import { IAccountingPeriod } from '@domain/accounting/types/period.types';
-
 export interface INextCurrentAccountingPeriodDto {
   fiscalYearId: TEntityId;
   accountingEntityId: TEntityId;
@@ -12,4 +10,4 @@ export interface INextCurrentAccountingPeriodDto {
 
 /** The discovered accounting period with queue correlation metadata. */
 export interface ISetCurrentAccountingPeriodJobDto
-  extends IAccountingPeriod, ICorrelationId {}
+  extends INextCurrentAccountingPeriodDto, ICorrelationId {}

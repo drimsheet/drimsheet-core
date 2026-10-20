@@ -1,9 +1,14 @@
 import observability from '@infra/observability';
 
+import makeCurrentAccountingPeriodQueue from './current-accounting-period.queue';
 import makeLedgerAccountBalanceAdjustmentQueue from './ledger-account-balance.queue';
 import makeTransactionalEmailQueue from './transactional-email.queue';
 
 const queues = Object.freeze({
+  currentAccountingPeriod: makeCurrentAccountingPeriodQueue(
+    observability.tracer
+  ),
+
   ledgerBalanceAdjustment: makeLedgerAccountBalanceAdjustmentQueue(
     observability.reporter,
     observability.queueMetrics,

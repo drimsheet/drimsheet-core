@@ -8,6 +8,7 @@ import logger from '@infra/observability/logger';
 import scheduledJobs from '@infra/scheduling';
 
 import observabilityLifecycle from './observability.lifecycle';
+import queueLifecycle from './queue.lifecycle';
 
 const CRON_SHUTDOWN_TIMEOUT_MS = 60_000;
 
@@ -22,6 +23,13 @@ export default async function runBackground(): Promise<void> {
     stopping = true;
 
     await cron.shutdown(CRON_SHUTDOWN_TIMEOUT_MS);
+    try {
+      await queueLifecycle.shutdown();
+    } catch (error) {
+      process.exitCode = 1;
+      reporter.report('runtime.background.cleanup_failed', error);
+    }
+
     try {
       await postgres.$client.end();
     } catch (error) {

@@ -15,6 +15,8 @@ import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-acco
 import { getQueueConnection } from '@infra/config/redis.config';
 import { makeTraceEnvelope } from '@infra/messaging/trace-context';
 
+import queueResources from './queue-resources';
+
 let ledgerAccountBalanceAdjustmentQueue:
   | Queue<UTraceEnvelopePayload<ILedgerAccountBalanceAdjustmentDto>>
   | undefined;
@@ -34,6 +36,7 @@ export function getLedgerAccountBalanceAdjustmentQueue(): Queue<
     }
   );
 
+  queueResources.register(ledgerAccountBalanceAdjustmentQueue);
   return ledgerAccountBalanceAdjustmentQueue;
 }
 

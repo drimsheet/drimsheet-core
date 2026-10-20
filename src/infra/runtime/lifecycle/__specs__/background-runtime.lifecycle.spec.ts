@@ -8,7 +8,12 @@ import runBackground from '@infra/runtime/lifecycle/background-runtime.lifecycle
 const mockInitializeFirst = jest.fn();
 const mockInitializeSecond = jest.fn();
 const mockCloseDatabase = jest.fn();
+const mockShutdownQueues = jest.fn();
 const mockShutdownObservability = jest.fn();
+jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
+  __esModule: true,
+  default: { shutdown: () => mockShutdownQueues() },
+}));
 jest.mock('@infra/observability/logger', () => ({
   __esModule: true,
   default: jest.requireActual('@shared/contracts/__mocks__/logger.mock')
@@ -48,6 +53,10 @@ describe('background runtime lifecycle', () => {
       cron.createTask('0 18 * * *', () => undefined); // Daily at 6 PM in the process timezone.
     });
     mockCloseDatabase.mockImplementation(async () => {
+      expect(cron.getTasks().size).toBe(0);
+      expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    });
+    mockShutdownQueues.mockImplementation(async () => {
       expect(cron.getTasks().size).toBe(0);
     });
     mockShutdownObservability.mockImplementation(async () => {
@@ -127,6 +136,7 @@ describe('background runtime lifecycle', () => {
     );
     // This case controls shutdown completion; the real-registry cases verify destruction.
     mockCloseDatabase.mockResolvedValue(undefined);
+    mockShutdownQueues.mockResolvedValue(undefined);
     await runBackground();
 
     process.emit('SIGTERM');
@@ -135,6 +145,7 @@ describe('background runtime lifecycle', () => {
     expect(shutdown).toHaveBeenCalledTimes(1);
     expect(shutdown).toHaveBeenCalledWith(60_000);
     expect(mockCloseDatabase).not.toHaveBeenCalled();
+    expect(mockShutdownQueues).not.toHaveBeenCalled();
     expect(mockShutdownObservability).not.toHaveBeenCalled();
 
     finish();
@@ -142,6 +153,27 @@ describe('background runtime lifecycle', () => {
     expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
     expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
     expect(process.exitCode).toBeUndefined();
+  });
+
+  it('waits for messaging cleanup before closing the database and telemetry', async () => {
+    let finish!: () => void;
+    mockShutdownQueues.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    await runBackground();
+
+    process.emit('SIGTERM');
+    await tick();
+    expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    expect(mockCloseDatabase).not.toHaveBeenCalled();
+    expect(mockShutdownObservability).not.toHaveBeenCalled();
+
+    finish();
+    await tick();
+    expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+    expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
   });
 
   it.each(['initialize', 'start'])(
@@ -179,6 +211,22 @@ describe('background runtime lifecycle', () => {
     await tick();
 
     expect(process.exitCode).toBe(1);
+    expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+    expect(mockReporter.report).toHaveBeenCalledWith(
+      'runtime.background.cleanup_failed',
+      failure
+    );
+  });
+
+  it('continues database and telemetry cleanup after queue shutdown fails', async () => {
+    const failure = new Error('Queue close failed');
+    mockShutdownQueues.mockRejectedValue(failure);
+    await runBackground();
+    process.emit('SIGTERM');
+    await tick();
+
+    expect(process.exitCode).toBe(1);
+    expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
     expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
     expect(mockReporter.report).toHaveBeenCalledWith(
       'runtime.background.cleanup_failed',
