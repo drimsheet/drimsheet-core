@@ -355,10 +355,12 @@ describe('makeDeleteJournalEntryUsecase', () => {
       removal.reversingJournalEntry.id,
       { correlationId, tx: 'delete-tx' }
     );
-    expect(mockLedgerBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-      journalEntryId: removal.reversingJournalEntry.id,
+    expect(mockLedgerBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
-    });
+      {
+        journalEntryId: removal.reversingJournalEntry.id,
+      }
+    );
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
     expect(
       mockJournalEntryPersistenceAppService.rectify.mock.invocationCallOrder[0]

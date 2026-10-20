@@ -5,30 +5,16 @@ import ITracer, {
 import {
   ITraceEnvelope,
   TRACE_ENVELOPE_VERSION,
-  UTraceEnvelopePayload,
 } from '@shared/types/observability.types';
 
-interface ISerializedTraceEnvelope {
-  __observabilityEnvelopeVersion: typeof TRACE_ENVELOPE_VERSION;
-  payload: unknown;
-  trace?: unknown;
-}
-
 interface IUnwrappedTraceEnvelope<T> {
+  correlationId: string;
   payload: T;
   trace: ITraceCarrier;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function isTraceEnvelope(value: unknown): value is ISerializedTraceEnvelope {
-  return (
-    isRecord(value) &&
-    value.__observabilityEnvelopeVersion === TRACE_ENVELOPE_VERSION &&
-    'payload' in value
-  );
 }
 
 function getTraceCarrier(value: unknown): ITraceCarrier {
@@ -50,6 +36,7 @@ function getTraceCarrier(value: unknown): ITraceCarrier {
 }
 
 export function makeTraceEnvelope<T>(
+  correlationId: string,
   payload: T,
   tracer: Pick<ITracer, 'getPropagationCarrier'>
 ): ITraceEnvelope<T> {
@@ -63,6 +50,7 @@ export function makeTraceEnvelope<T>(
 
   return Object.freeze({
     __observabilityEnvelopeVersion: TRACE_ENVELOPE_VERSION,
+    correlationId,
     payload,
     ...(trace.sentryTrace || trace.baggage
       ? { trace: Object.freeze({ ...trace }) }
@@ -71,14 +59,11 @@ export function makeTraceEnvelope<T>(
 }
 
 export function unwrapTraceEnvelope<T>(
-  value: UTraceEnvelopePayload<T>
+  value: ITraceEnvelope<T>
 ): IUnwrappedTraceEnvelope<T> {
-  if (!isTraceEnvelope(value)) {
-    return { payload: value as T, trace: {} };
-  }
-
   return {
-    payload: value.payload as T,
+    correlationId: value.correlationId,
+    payload: value.payload,
     trace: getTraceCarrier(value.trace),
   };
 }

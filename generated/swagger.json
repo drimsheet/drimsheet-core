@@ -3728,6 +3728,14 @@
             "type": "string",
             "description": "Stored working-period selection, maintained independently of this read."
           },
+          "previousAccountingPeriodId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextAccountingPeriodId": {
+            "type": "string",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -3760,6 +3768,8 @@
           "accountingStandardCode",
           "fiscalYearId",
           "currentAccountingPeriodId",
+          "previousAccountingPeriodId",
+          "nextAccountingPeriodId",
           "createdAt",
           "updatedAt",
           "closedAt",
@@ -4372,6 +4382,14 @@
             "type": "string",
             "description": "Stored working-period selection, maintained independently of this read."
           },
+          "previousAccountingPeriodId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextAccountingPeriodId": {
+            "type": "string",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -4395,6 +4413,8 @@
           "accountingStandardCode",
           "fiscalYearId",
           "currentAccountingPeriodId",
+          "previousAccountingPeriodId",
+          "nextAccountingPeriodId",
           "createdAt",
           "updatedAt",
           "closedAt"

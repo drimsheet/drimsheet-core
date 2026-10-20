@@ -1,3 +1,4 @@
+import IAppContextService from '@shared/contracts/app-context.service.contract';
 import {
   IRepoService,
   TRepoTransactionFn,
@@ -8,6 +9,7 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 
+import { IAppContextData } from '@app/context/types/app-context.types';
 import ILedgerBalancePropagationPreparationAppService from '@app/ledger/contracts/ledger-balance-propagation-preparation.service.contract';
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
 import { ledgerAccountBalanceAdjustmentDtoSchema } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto.validation';
@@ -15,6 +17,7 @@ import ledgerAppError from '@app/ledger/errors/ledger.error';
 import IOutboxRepo from '@app/outbox/contracts/outbox.repo.contract';
 
 interface IDependencies {
+  appContext: IAppContextService<IAppContextData>;
   repoService: IRepoService;
   outboxRepo: IOutboxRepo;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
@@ -28,7 +31,8 @@ export default function makeAdjustLedgerAccountBalanceUseCase(
   return async (payload: ILedgerAccountBalanceAdjustmentDto) => {
     zodValidationRunner(ledgerAccountBalanceAdjustmentDtoSchema, payload);
 
-    const { correlationId, journalEntryId } = payload;
+    const { correlationId } = deps.appContext.get();
+    const { journalEntryId } = payload;
     const repoOptions = { correlationId };
 
     const outbox = await deps.outboxRepo.findByIdAndType(

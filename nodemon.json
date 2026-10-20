@@ -1,5 +1,5 @@
 {
-  "exec": "ts-node -r tsconfig-paths/register src/infra/runtime/_http/index.ts",
+  "exec": "ts-node -r tsconfig-paths/register src/infra/runtime/process/http.process.ts",
   "watch": ["src"],
   "ext": "ts",
   "ignore": ["**/__docs__/**", "**/__specs__/**", "**/__tests__/**"]

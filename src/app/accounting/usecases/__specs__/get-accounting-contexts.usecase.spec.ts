@@ -19,6 +19,8 @@ const context: IAccountingContextDetails = {
   accountingStandardCode: 'IFRS',
   fiscalYearId,
   currentAccountingPeriodId: periodId,
+  previousAccountingPeriodId: null,
+  nextAccountingPeriodId: null,
   createdAt: timestamp,
   updatedAt: timestamp,
   closedAt: null,

@@ -7,10 +7,9 @@ function getKey(emailAddress: string, subject: string) {
   return `${emailAddress}-${subject}`.toLowerCase();
 }
 
-async function send(payload: Omit<ITransactionalEmailDto, 'correlationId'>) {
+async function send(payload: ITransactionalEmailDto) {
   sentEmails.set(getKey(payload.emails[0], payload.subject), {
     ...payload,
-    correlationId: Date.now().toString(),
   });
 }
 

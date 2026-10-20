@@ -22,17 +22,22 @@ describe('messaging trace context', () => {
   });
 
   it('envelopes an application payload with active propagation context', () => {
-    const payload = { correlationId: 'application-correlation' };
+    const payload = { id: 'job-id' };
     const carrier = {
       sentryTrace: `${'a'.repeat(32)}-${'b'.repeat(16)}-1`,
       baggage: 'sentry-environment=staging',
     };
     mockTracer.getPropagationCarrier.mockReturnValue(carrier);
 
-    const envelope = makeTraceEnvelope(payload, mockTracer);
+    const envelope = makeTraceEnvelope(
+      'application-correlation',
+      payload,
+      mockTracer
+    );
 
     expect(envelope).toEqual({
       __observabilityEnvelopeVersion: 1,
+      correlationId: 'application-correlation',
       payload,
       trace: carrier,
     });
@@ -41,61 +46,49 @@ describe('messaging trace context', () => {
   });
 
   it('contains propagation failure and preserves enqueue payload', () => {
-    const payload = { correlationId: 'application-correlation' };
+    const payload = { id: 'job-id' };
     mockTracer.getPropagationCarrier.mockImplementationOnce(() => {
       throw new Error('tracer unavailable');
     });
 
-    expect(makeTraceEnvelope(payload, mockTracer)).toEqual({
-      __observabilityEnvelopeVersion: 1,
-      payload,
-    });
-  });
-
-  it('unwraps new envelopes and legacy raw payloads', () => {
-    const payload = { correlationId: 'application-correlation' };
-
     expect(
-      unwrapTraceEnvelope({
-        __observabilityEnvelopeVersion: 1,
-        payload,
-        trace: {
-          sentryTrace: 'trace-header',
-          baggage: 'baggage-header',
-        },
-      })
+      makeTraceEnvelope('application-correlation', payload, mockTracer)
     ).toEqual({
+      __observabilityEnvelopeVersion: 1,
+      correlationId: 'application-correlation',
       payload,
-      trace: {
-        sentryTrace: 'trace-header',
-        baggage: 'baggage-header',
-      },
     });
-    expect(unwrapTraceEnvelope(payload)).toEqual({ payload, trace: {} });
-    expect(
-      unwrapTraceEnvelope({
-        __observabilityEnvelopeVersion: 1,
-        payload,
-      })
-    ).toEqual({ payload, trace: {} });
   });
 
-  it('drops malformed envelope trace fields', () => {
-    const payload = { correlationId: 'application-correlation' };
+  it.each([{}, { sentryTrace: 'trace-header', baggage: 'baggage-header' }])(
+    'unwraps correlation and payload with trace carrier %j',
+    (trace) => {
+      const payload = { id: 'job-id' };
+      mockTracer.getPropagationCarrier.mockReturnValue(trace);
+      const envelope = makeTraceEnvelope(
+        'application-correlation',
+        payload,
+        mockTracer
+      );
+      const serialized = JSON.parse(JSON.stringify(envelope));
+      expect(unwrapTraceEnvelope(serialized)).toEqual({
+        correlationId: 'application-correlation',
+        payload,
+        trace,
+      });
+    }
+  );
 
+  it('drops malformed trace fields without losing correlation or payload', () => {
+    const payload = { id: 'job-id' };
     expect(
       unwrapTraceEnvelope({
         __observabilityEnvelopeVersion: 1,
+        correlationId: 'application-correlation',
         payload,
         trace: { sentryTrace: 42, baggage: {} },
       } as never)
-    ).toEqual({ payload, trace: {} });
-    expect(
-      unwrapTraceEnvelope({ __observabilityEnvelopeVersion: 1 } as never)
-    ).toEqual({
-      payload: { __observabilityEnvelopeVersion: 1 },
-      trace: {},
-    });
+    ).toEqual({ correlationId: 'application-correlation', payload, trace: {} });
   });
 
   it('continues incoming queue traces with controlled root metadata', () => {

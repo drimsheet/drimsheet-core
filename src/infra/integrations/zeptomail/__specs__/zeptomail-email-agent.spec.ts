@@ -19,7 +19,6 @@ jest.mock('@infra/config/vars.config', () => ({
 }));
 
 const payload: ITransactionalEmailDto = {
-  correlationId: 'correlation-id',
   emails: ['ada@example.com', 'grace@example.com'],
   subject: 'Welcome',
   html: '<p>Welcome</p>',

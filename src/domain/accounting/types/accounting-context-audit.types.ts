@@ -7,6 +7,7 @@ import { IAccountingContext } from './context.types';
 
 export const EAccountingContextActions = {
   Created: 'created',
+  Updated: 'updated',
 } as const;
 
 export type UAccountingContextActions =

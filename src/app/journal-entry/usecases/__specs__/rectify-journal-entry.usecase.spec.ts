@@ -340,6 +340,11 @@ describe('makeRectifyJournalEntryUsecase', () => {
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledTimes(
       2
     );
+    expect(
+      mockLedgerAccountBalanceAdjustmentQueue.add.mock.calls.map(
+        (call) => call[0]
+      )
+    ).toEqual([correlationId, correlationId]);
     expect(mockCounterpartyRepo.create).toHaveBeenCalledTimes(1);
     expect(mockCounterpartyRepo.create).toHaveBeenCalledWith(
       expect.any(Object),
@@ -454,6 +459,10 @@ describe('makeRectifyJournalEntryUsecase', () => {
     );
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledTimes(
       1
+    );
+    expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
+      correlationId,
+      { journalEntryId: result.currentJournalEntry.id }
     );
   });
 

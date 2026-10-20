@@ -196,9 +196,8 @@ export default function makeUpdateBankAccountUsecase(
       );
 
       for (const journalEntry of entriesForBalancePropagation) {
-        await deps.ledgerBalanceAdjustmentQueue.add({
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
           journalEntryId: journalEntry.id,
-          correlationId,
         });
       }
 

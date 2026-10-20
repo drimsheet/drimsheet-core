@@ -274,8 +274,8 @@ export default [
       'src/infra/ioc/middlewares/http.ts',
       'src/infra/runtime/servers/express/index.ts',
       'src/infra/runtime/bootstrap/**/*.ts',
-      'src/infra/runtime/_http/index.ts',
-      'src/infra/runtime/_background/ingestion/exchange-rate/index.ts',
+      'src/infra/runtime/process/http.process.ts',
+      'src/infra/runtime/process/background.process.ts',
     ],
     languageOptions: {
       parser: tsParser,

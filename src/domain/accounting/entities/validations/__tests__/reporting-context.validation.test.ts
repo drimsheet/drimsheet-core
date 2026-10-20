@@ -22,6 +22,8 @@ describe('reportingContextValidation', () => {
     accountingEntityId: entityId,
     fiscalYearId: year.id,
     currentAccountingPeriodId: generateUUID(),
+    previousAccountingPeriodId: null,
+    nextAccountingPeriodId: null,
     accountingStandardCode: 'IFRS',
     name: 'Accounting context',
     description: null,

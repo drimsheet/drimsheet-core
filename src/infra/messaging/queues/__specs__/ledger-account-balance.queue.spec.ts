@@ -19,7 +19,6 @@ jest.mock('../../../config/redis.config', () => ({
 
 describe('makeLedgerAccountBalanceAdjustmentQueue', () => {
   const payload: ILedgerAccountBalanceAdjustmentDto = {
-    correlationId: generateUUID(),
     journalEntryId: generateUUID(),
   };
 
@@ -39,7 +38,7 @@ describe('makeLedgerAccountBalanceAdjustmentQueue', () => {
       mockTracer
     );
 
-    await queue.add(payload);
+    await queue.add('producer-correlation', payload);
 
     expect(mockQueueMetrics.recordEnqueueSucceeded).toHaveBeenCalledWith({
       queueName: 'ledger-account-balance-adjustment-queue',
@@ -50,6 +49,7 @@ describe('makeLedgerAccountBalanceAdjustmentQueue', () => {
       'ledger-account-balance-adjustment-queue',
       {
         __observabilityEnvelopeVersion: 1,
+        correlationId: 'producer-correlation',
         payload,
         trace: {
           sentryTrace: `${'a'.repeat(32)}-${'b'.repeat(16)}-1`,
@@ -72,7 +72,9 @@ describe('makeLedgerAccountBalanceAdjustmentQueue', () => {
       mockTracer
     );
 
-    await expect(queue.add(payload)).resolves.toBeUndefined();
+    await expect(
+      queue.add('producer-correlation', payload)
+    ).resolves.toBeUndefined();
 
     expect(mockReporter.report).toHaveBeenCalledWith(
       'queue.job.enqueue_failed',

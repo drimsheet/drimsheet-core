@@ -344,10 +344,12 @@ describe('activate cash account use case', () => {
           })
         )
       );
-      expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-        journalEntryId: originalEntry.id,
-        correlationId: 'activate',
-      });
+      expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
+        repoOptions.correlationId,
+        {
+          journalEntryId: originalEntry.id,
+        }
+      );
       expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
       expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
     });
@@ -467,9 +469,8 @@ describe('activate cash account use case', () => {
         );
         expect(
           mockLedgerAccountBalanceAdjustmentQueue.add
-        ).toHaveBeenCalledWith({
+        ).toHaveBeenCalledWith(repoOptions.correlationId, {
           journalEntryId: originalEntry.id,
-          correlationId: 'activate',
         });
         expect(mockEventBus.publish).toHaveBeenCalledWith(
           expect.arrayContaining([

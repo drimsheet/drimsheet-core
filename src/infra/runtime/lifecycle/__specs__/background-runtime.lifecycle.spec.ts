@@ -8,7 +8,23 @@ import runBackground from '@infra/runtime/lifecycle/background-runtime.lifecycle
 const mockInitializeFirst = jest.fn();
 const mockInitializeSecond = jest.fn();
 const mockCloseDatabase = jest.fn();
+const mockShutdownQueues = jest.fn();
 const mockShutdownObservability = jest.fn();
+const mockRegisterAccountingWorker = jest.fn();
+const mockRegisterEmailWorker = jest.fn();
+const mockRegisterLedgerWorker = jest.fn();
+jest.mock('@infra/messaging/workers', () => ({
+  __esModule: true,
+  default: [
+    () => mockRegisterEmailWorker(),
+    () => mockRegisterLedgerWorker(),
+    () => mockRegisterAccountingWorker(),
+  ],
+}));
+jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
+  __esModule: true,
+  default: { shutdown: () => mockShutdownQueues() },
+}));
 jest.mock('@infra/observability/logger', () => ({
   __esModule: true,
   default: jest.requireActual('@shared/contracts/__mocks__/logger.mock')
@@ -49,6 +65,10 @@ describe('background runtime lifecycle', () => {
     });
     mockCloseDatabase.mockImplementation(async () => {
       expect(cron.getTasks().size).toBe(0);
+      expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    });
+    mockShutdownQueues.mockImplementation(async () => {
+      expect(cron.getTasks().size).toBe(0);
     });
     mockShutdownObservability.mockImplementation(async () => {
       expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
@@ -73,6 +93,9 @@ describe('background runtime lifecycle', () => {
     'starts every schedule and closes tasks before clients on %s',
     async (signal) => {
       await runBackground();
+      expect(mockRegisterAccountingWorker).toHaveBeenCalledTimes(1);
+      expect(mockRegisterEmailWorker).toHaveBeenCalledTimes(1);
+      expect(mockRegisterLedgerWorker).toHaveBeenCalledTimes(1);
       const tasks = [...cron.getTasks().values()];
       expect(tasks.map((task) => task.getStatus())).toEqual(['idle', 'idle']);
       expect(mockLogger.info).toHaveBeenCalledWith(
@@ -95,9 +118,13 @@ describe('background runtime lifecycle', () => {
     }
   );
 
-  it('waits for all initializers before starting tasks and registering shutdown handlers', async () => {
+  it('registers shutdown handlers before workers and waits for initializers before starting tasks', async () => {
     const interruptListeners = process.listenerCount('SIGINT');
     const terminateListeners = process.listenerCount('SIGTERM');
+    mockRegisterEmailWorker.mockImplementation(() => {
+      expect(process.listenerCount('SIGINT')).toBe(interruptListeners + 1);
+      expect(process.listenerCount('SIGTERM')).toBe(terminateListeners + 1);
+    });
     let finish!: () => void;
     mockInitializeSecond.mockReturnValue(
       new Promise<void>((resolve) => {
@@ -108,14 +135,120 @@ describe('background runtime lifecycle', () => {
     const starting = runBackground();
     await tick();
     expect([...cron.getTasks().values()][0].getStatus()).toBe('stopped');
-    expect(process.listenerCount('SIGINT')).toBe(interruptListeners);
-    expect(process.listenerCount('SIGTERM')).toBe(terminateListeners);
+    expect(process.listenerCount('SIGINT')).toBe(interruptListeners + 1);
+    expect(process.listenerCount('SIGTERM')).toBe(terminateListeners + 1);
 
     finish();
     await starting;
     expect([...cron.getTasks().values()][0].getStatus()).toBe('idle');
     expect(process.listenerCount('SIGINT')).toBe(interruptListeners + 1);
     expect(process.listenerCount('SIGTERM')).toBe(terminateListeners + 1);
+  });
+
+  it.each(['SIGINT', 'SIGTERM'] as const)(
+    'finishes the active initializer and cleans up its tasks without continuing startup on %s',
+    async (signal) => {
+      let finish!: () => void;
+      mockInitializeFirst.mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          finish = resolve;
+        });
+        cron.createTask('0 17 * * *', () => undefined);
+      });
+      const starting = runBackground();
+      await tick();
+
+      process.emit(signal);
+      process.emit(signal);
+      await tick();
+      expect(mockShutdownQueues).not.toHaveBeenCalled();
+      expect(mockCloseDatabase).not.toHaveBeenCalled();
+      expect(mockInitializeSecond).not.toHaveBeenCalled();
+
+      finish();
+      await starting;
+
+      expect(mockInitializeSecond).not.toHaveBeenCalled();
+      expect(cron.getTasks().size).toBe(0);
+      expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+      expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+      expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+      expect(mockLogger.info).not.toHaveBeenCalled();
+      expect(process.exitCode).toBeUndefined();
+    }
+  );
+
+  it('stops registering workers if shutdown is requested during registration', async () => {
+    mockRegisterEmailWorker.mockImplementation(() => {
+      process.emit('SIGTERM');
+    });
+
+    await runBackground();
+
+    expect(mockRegisterLedgerWorker).not.toHaveBeenCalled();
+    expect(mockRegisterAccountingWorker).not.toHaveBeenCalled();
+    expect(mockInitializeFirst).not.toHaveBeenCalled();
+    expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+    expect(mockLogger.info).not.toHaveBeenCalled();
+  });
+
+  it('does not start another task when shutdown interrupts task startup', async () => {
+    let finish!: () => void;
+    const startFirst = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const startSecond = jest.fn();
+    mockInitializeFirst.mockImplementation(() => {
+      const task = cron.createTask('0 17 * * *', () => undefined);
+      jest.spyOn(task, 'start').mockImplementation(startFirst);
+    });
+    mockInitializeSecond.mockImplementation(() => {
+      const task = cron.createTask('0 18 * * *', () => undefined);
+      jest.spyOn(task, 'start').mockImplementation(startSecond);
+    });
+    const starting = runBackground();
+    await tick();
+    expect(startFirst).toHaveBeenCalledTimes(1);
+
+    process.emit('SIGTERM');
+    finish();
+    await starting;
+
+    expect(startSecond).not.toHaveBeenCalled();
+    expect(cron.getTasks().size).toBe(0);
+    expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    expect(mockLogger.info).not.toHaveBeenCalled();
+  });
+
+  it('reports initialization failure during shutdown and cleans up only once', async () => {
+    let fail!: (error: Error) => void;
+    mockInitializeFirst.mockReturnValue(
+      new Promise<void>((_resolve, reject) => {
+        fail = reject;
+      })
+    );
+    const starting = runBackground();
+    await tick();
+    process.emit('SIGTERM');
+    const failure = new Error('Initialization failed');
+    fail(failure);
+
+    await starting;
+
+    expect(mockReporter.report).toHaveBeenCalledWith(
+      'runtime.background.failed',
+      failure
+    );
+    expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+    expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+    expect(mockInitializeSecond).not.toHaveBeenCalled();
+    expect(mockLogger.info).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
   });
 
   it('awaits shutdown before closing clients and ignores repeated signals', async () => {
@@ -127,6 +260,7 @@ describe('background runtime lifecycle', () => {
     );
     // This case controls shutdown completion; the real-registry cases verify destruction.
     mockCloseDatabase.mockResolvedValue(undefined);
+    mockShutdownQueues.mockResolvedValue(undefined);
     await runBackground();
 
     process.emit('SIGTERM');
@@ -135,6 +269,7 @@ describe('background runtime lifecycle', () => {
     expect(shutdown).toHaveBeenCalledTimes(1);
     expect(shutdown).toHaveBeenCalledWith(60_000);
     expect(mockCloseDatabase).not.toHaveBeenCalled();
+    expect(mockShutdownQueues).not.toHaveBeenCalled();
     expect(mockShutdownObservability).not.toHaveBeenCalled();
 
     finish();
@@ -144,11 +279,36 @@ describe('background runtime lifecycle', () => {
     expect(process.exitCode).toBeUndefined();
   });
 
-  it.each(['initialize', 'start'])(
+  it('waits for messaging cleanup before closing the database and telemetry', async () => {
+    let finish!: () => void;
+    mockShutdownQueues.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    await runBackground();
+
+    process.emit('SIGTERM');
+    await tick();
+    expect(mockShutdownQueues).toHaveBeenCalledTimes(1);
+    expect(mockCloseDatabase).not.toHaveBeenCalled();
+    expect(mockShutdownObservability).not.toHaveBeenCalled();
+
+    finish();
+    await tick();
+    expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+    expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['worker', 'initialize', 'start'])(
     'cleans up registered tasks when startup fails during %s',
     async (phase) => {
       const failure = new Error('Startup failed');
-      if (phase === 'initialize') {
+      if (phase === 'worker') {
+        mockRegisterAccountingWorker.mockImplementation(() => {
+          throw failure;
+        });
+      } else if (phase === 'initialize') {
         mockInitializeSecond.mockRejectedValue(failure);
       } else {
         mockInitializeSecond.mockImplementation(() => {
@@ -179,6 +339,22 @@ describe('background runtime lifecycle', () => {
     await tick();
 
     expect(process.exitCode).toBe(1);
+    expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+    expect(mockReporter.report).toHaveBeenCalledWith(
+      'runtime.background.cleanup_failed',
+      failure
+    );
+  });
+
+  it('continues database and telemetry cleanup after queue shutdown fails', async () => {
+    const failure = new Error('Queue close failed');
+    mockShutdownQueues.mockRejectedValue(failure);
+    await runBackground();
+    process.emit('SIGTERM');
+    await tick();
+
+    expect(process.exitCode).toBe(1);
+    expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
     expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
     expect(mockReporter.report).toHaveBeenCalledWith(
       'runtime.background.cleanup_failed',

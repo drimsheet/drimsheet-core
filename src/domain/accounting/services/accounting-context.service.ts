@@ -1,11 +1,24 @@
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
+import getAccountingPeriodNeighborsHelper from '@domain/accounting/entities/helpers/get-accounting-period-neighbors.helper';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
+import accountingError from '@domain/accounting/errors/accounting.error';
+import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import IAccountingContextService from '@domain/accounting/types/accounting-context.service.types';
 import { EAccountingEntityStatus } from '@domain/accounting/types/accounting-entity.types';
 
-/** Rejects archived entities and enforces ACC-AC-001 through ACC-AC-004; selection never changes period status or posting eligibility. */
-function makeCreate(): IAccountingContextService['create'] {
-  return (input) => {
+interface IDependencies {
+  accountingContextRepo: IAccountingContextRepo;
+  accountingPeriodRepo: IAccountingPeriodRepo;
+  fiscalYearRepo: IFiscalYearRepo;
+}
+
+/**
+ * Enforces context eligibility and resolves neighboring periods from storage before preparing the context, event, and audit.
+ * */
+function makeCreate(deps: IDependencies): IAccountingContextService['create'] {
+  return async (input, repoOptions) => {
     if (input.accountingEntity.status === EAccountingEntityStatus.Archived) {
       throw new accountingEntityError.Archived();
     }
@@ -24,18 +37,118 @@ function makeCreate(): IAccountingContextService['create'] {
       input.accountingEntity.type
     );
 
+    const periods = await deps.accountingPeriodRepo.findByRange(
+      input.accountingEntity.id,
+      {
+        startDate: input.fiscalYear.startDate,
+        endDate: input.fiscalYear.endDate,
+      },
+      repoOptions
+    );
+    const neighbors = getAccountingPeriodNeighborsHelper(
+      periods,
+      input.accountingPeriod.id
+    );
+
     return accountingContextEntity.make({
       accountingEntityId: input.accountingEntity.id,
       fiscalYearId: input.fiscalYear.id,
-      currentAccountingPeriodId: input.accountingPeriod.id,
       accountingStandardCode: input.accountingStandardCode,
       name: input.name,
       description: input.description,
+      currentAccountingPeriodId: input.accountingPeriod.id,
+      previousAccountingPeriodId: neighbors.previousAccountingPeriodId,
+      nextAccountingPeriodId: neighbors.nextAccountingPeriodId,
       createdBy: input.createdBy,
     });
   };
 }
 
-export default function makeAccountingContextService(): IAccountingContextService {
-  return Object.freeze({ create: makeCreate() });
+/** Loads the context and its fiscal-year periods to prepare the next selection. */
+function makeUpdateCurrentAccountingPeriod(
+  deps: IDependencies
+): IAccountingContextService['updateCurrentAccountingPeriod'] {
+  return async (input, repoOptions) => {
+    const context = await deps.accountingContextRepo.findById(
+      input.accountingContextId,
+      repoOptions
+    );
+    if (!context) {
+      throw new accountingError.AccountingContextNotFound();
+    }
+
+    const fiscalYear = await deps.fiscalYearRepo.findById(
+      context.fiscalYearId,
+      repoOptions
+    );
+    if (!fiscalYear) {
+      throw new accountingError.FiscalYearNotFound();
+    }
+
+    const periods = await deps.accountingPeriodRepo.findByRange(
+      context.accountingEntityId,
+      { startDate: fiscalYear.startDate, endDate: fiscalYear.endDate },
+      repoOptions
+    );
+    const fiscalYearPeriods = periods.filter(
+      (period) => period.fiscalYearId === context.fiscalYearId
+    );
+    const nextPeriod = fiscalYearPeriods.find(
+      (period) => period.id === input.previousState.nextAccountingPeriod
+    );
+    if (!nextPeriod) {
+      throw new accountingError.InvalidNextAccountingPeriodId();
+    }
+    accountingContextEntity.validatePeriodSelection(
+      context.accountingEntityId,
+      fiscalYear,
+      nextPeriod
+    );
+    const neighbors = getAccountingPeriodNeighborsHelper(
+      fiscalYearPeriods,
+      nextPeriod.id
+    );
+    if (
+      neighbors.previousAccountingPeriodId !==
+      input.previousState.currentAccountPeriod
+    ) {
+      throw new accountingError.InvalidPreviousAccountingPeriodId();
+    }
+
+    const isAlreadyApplied =
+      context.previousAccountingPeriodId ===
+        input.previousState.currentAccountPeriod &&
+      context.currentAccountingPeriodId ===
+        input.previousState.nextAccountingPeriod &&
+      context.nextAccountingPeriodId === neighbors.nextAccountingPeriodId;
+    if (!isAlreadyApplied) {
+      if (
+        context.currentAccountingPeriodId !==
+        input.previousState.currentAccountPeriod
+      ) {
+        throw new accountingError.InvalidCurrentAccountingPeriodId();
+      }
+      if (
+        context.nextAccountingPeriodId !==
+        input.previousState.nextAccountingPeriod
+      ) {
+        throw new accountingError.InvalidNextAccountingPeriodId();
+      }
+    }
+
+    return accountingContextEntity.update(context, {
+      previousAccountingPeriodId: input.previousState.currentAccountPeriod,
+      currentAccountingPeriodId: input.previousState.nextAccountingPeriod,
+      nextAccountingPeriodId: neighbors.nextAccountingPeriodId,
+    });
+  };
+}
+
+export default function makeAccountingContextService(
+  deps: IDependencies
+): IAccountingContextService {
+  return Object.freeze({
+    create: makeCreate(deps),
+    updateCurrentAccountingPeriod: makeUpdateCurrentAccountingPeriod(deps),
+  });
 }

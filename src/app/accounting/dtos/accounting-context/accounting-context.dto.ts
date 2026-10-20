@@ -22,6 +22,8 @@ export interface IAccountingContextRecordDto {
   fiscalYearId: string;
   /** Stored working-period selection, maintained independently of this read. */
   currentAccountingPeriodId: string;
+  previousAccountingPeriodId: string | null;
+  nextAccountingPeriodId: string | null;
   createdAt: Date;
   updatedAt: Date;
   closedAt: Date | null;

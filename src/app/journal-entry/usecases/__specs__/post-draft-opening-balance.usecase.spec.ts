@@ -270,10 +270,12 @@ describe('post draft opening balance use case', () => {
       expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
         mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
       );
-      expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith({
-        journalEntryId: originalEntry.id,
-        ...repoOptions,
-      });
+      expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
+        repoOptions.correlationId,
+        {
+          journalEntryId: originalEntry.id,
+        }
+      );
       expect(mockEventBus.publish).toHaveBeenCalledWith([
         expect.objectContaining({
           type: 'domain:journal-entry:updated',

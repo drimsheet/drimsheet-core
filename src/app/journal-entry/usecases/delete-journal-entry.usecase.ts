@@ -115,9 +115,8 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
 
     await deps.repoService.runInTransaction(transactionFn);
 
-    await deps.ledgerBalanceAdjustmentQueue.add({
+    await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
       journalEntryId: reversingJournalEntry.id,
-      correlationId,
     });
 
     const events: IEvent<unknown>[] = [

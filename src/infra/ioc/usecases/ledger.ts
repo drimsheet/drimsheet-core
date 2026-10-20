@@ -228,6 +228,7 @@ export const getLedgerSubAccountsUseCase = makeTracedUseCase(
 export const adjustLedgerAccountBalanceUseCase = makeTracedUseCase(
   'ledger.adjustLedgerAccountBalanceUseCase',
   makeAdjustLedgerAccountBalanceUseCase({
+    appContext,
     repoService,
     outboxRepo,
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,

@@ -3,7 +3,6 @@ import { transactionalEmailDtoSchema } from '@app/notification/dtos/transactiona
 describe('Transactional Email DTO Validation', () => {
   it('should validate a correct transactional email DTO payload', () => {
     const payload = {
-      correlationId: 'corr-123',
       emails: ['user1@example.com', 'user2@example.com'],
       subject: 'Welcome to Drimsheet',
       html: '<h1>Welcome!</h1>',
@@ -19,7 +18,6 @@ describe('Transactional Email DTO Validation', () => {
 
   it('should validate with optional fields omitted', () => {
     const payload = {
-      correlationId: 'corr-123',
       emails: ['user@example.com'],
       subject: 'Alert',
       html: '<p>Alert info</p>',
@@ -29,21 +27,8 @@ describe('Transactional Email DTO Validation', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should fail validation if correlationId is empty', () => {
-    const payload = {
-      correlationId: '',
-      emails: ['user@example.com'],
-      subject: 'Alert',
-      html: '<p>Alert info</p>',
-    };
-
-    const result = transactionalEmailDtoSchema.safeParse(payload);
-    expect(result.success).toBe(false);
-  });
-
   it('should fail validation if emails is invalid format', () => {
     const payload = {
-      correlationId: 'corr-123',
       emails: ['invalid-email'],
       subject: 'Alert',
       html: '<p>Alert info</p>',
@@ -55,7 +40,6 @@ describe('Transactional Email DTO Validation', () => {
 
   it('should fail validation if subject is too short', () => {
     const payload = {
-      correlationId: 'corr-123',
       emails: ['user@example.com'],
       subject: 'Hi', // less than 3 chars
       html: '<p>Alert info</p>',
@@ -67,7 +51,6 @@ describe('Transactional Email DTO Validation', () => {
 
   it('should fail validation if subject is too long', () => {
     const payload = {
-      correlationId: 'corr-123',
       emails: ['user@example.com'],
       subject: 'a'.repeat(201),
       html: '<p>Alert info</p>',

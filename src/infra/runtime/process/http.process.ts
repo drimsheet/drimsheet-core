@@ -10,19 +10,17 @@ async function startApplication(): Promise<void> {
    * installing its automatic instrumentation for those libraries.
    *
    * startApplication() is invoked only after bootstrapObservability() below.
-   * This dynamic-import boundary preserves _http/index.ts as the established
+   * This dynamic-import boundary preserves http.process.ts as the
    * process entrypoint while guaranteeing that observability initializes before
    * the rest of the application dependency graph is loaded.
    */
   const [
-    { default: registerWorkers },
     { default: setupServer },
     { bootstrapAccountingContext },
     { default: eventsRegistry },
     { default: bootstrapFeatureFlags },
     { default: bootstrapCurrencies },
   ] = await Promise.all([
-    import('@infra/messaging/workers'),
     import('@infra/runtime/servers/express'),
     import('@infra/runtime/bootstrap/accounting-context.bootstrap'),
     import('@infra/runtime/bootstrap/events.bootstrap'),
@@ -34,7 +32,6 @@ async function startApplication(): Promise<void> {
     await bootstrapFeatureFlags();
     await bootstrapCurrencies();
     await bootstrapAccountingContext();
-    registerWorkers();
     eventsRegistry();
   }
 

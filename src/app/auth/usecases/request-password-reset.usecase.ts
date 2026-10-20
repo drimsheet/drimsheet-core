@@ -54,7 +54,6 @@ export default function makeRequestPasswordResetUseCase(deps: IDependencies) {
     await deps.transactionEmailAppService.sendPasswordResetLink({
       user,
       resetLink,
-      correlationId,
     });
 
     const event = userEvents.requestedPasswordReset(user);

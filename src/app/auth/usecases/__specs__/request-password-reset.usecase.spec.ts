@@ -175,7 +175,6 @@ describe('makeRequestPasswordResetUseCase', () => {
     ).toHaveBeenCalledWith({
       user: mockUser,
       resetLink,
-      correlationId,
     });
     expect(mockEventBus.publish).toHaveBeenCalledWith(
       eventValue.enrich(userEvents.requestedPasswordReset(mockUser), {
@@ -238,7 +237,6 @@ describe('makeRequestPasswordResetUseCase', () => {
       user: mockUser,
       resetLink:
         'https://test-app.com/auth/reset-password?token=google-user-reset-token',
-      correlationId,
     });
     expect(mockEventBus.publish).toHaveBeenCalled();
   });

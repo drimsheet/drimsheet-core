@@ -5,6 +5,11 @@ import { IAccountingContextHistory } from '@domain/accounting/types/accounting-c
 import { IAccountingContext } from '@domain/accounting/types/context.types';
 
 export default interface IAccountingContextRepo {
+  update(
+    context: IAccountingContext,
+    options: IWriteRepoOptions<IAccountingContextHistory>
+  ): Promise<void>;
+
   findById(
     id: TEntityId,
     options: IReadRepoOptions

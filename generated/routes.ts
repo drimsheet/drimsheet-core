@@ -2760,6 +2760,22 @@ const models: TsoaRoute.Models = {
       },
       fiscalYearId: { dataType: 'string', required: true },
       currentAccountingPeriodId: { dataType: 'string', required: true },
+      previousAccountingPeriodId: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      nextAccountingPeriodId: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
       closedAt: {
@@ -3174,6 +3190,22 @@ const models: TsoaRoute.Models = {
       },
       fiscalYearId: { dataType: 'string', required: true },
       currentAccountingPeriodId: { dataType: 'string', required: true },
+      previousAccountingPeriodId: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      nextAccountingPeriodId: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
       closedAt: {

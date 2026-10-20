@@ -18,7 +18,6 @@ jest.mock('../../../config/redis.config', () => ({
 
 describe('makeTransactionalEmailQueue', () => {
   const payload: ITransactionalEmailDto = {
-    correlationId: 'queue-correlation',
     emails: ['recipient@example.com'],
     subject: 'Test email',
     html: '<p>Test</p>',
@@ -40,7 +39,7 @@ describe('makeTransactionalEmailQueue', () => {
       mockTracer
     );
 
-    await queue.add(payload);
+    await queue.add('producer-correlation', payload);
 
     expect(mockQueueMetrics.recordEnqueueSucceeded).toHaveBeenCalledWith({
       queueName: 'transactional-email-queue',
@@ -51,10 +50,14 @@ describe('makeTransactionalEmailQueue', () => {
       'transactional-email-queue',
       {
         __observabilityEnvelopeVersion: 1,
+        correlationId: 'producer-correlation',
         payload,
         trace: { baggage: 'sentry-environment=test' },
       },
-      expect.objectContaining({ attempts: 3 })
+      expect.objectContaining({
+        attempts: 3,
+        jobId: 'transactional-email-queue_producer-correlation',
+      })
     );
   });
 
@@ -67,7 +70,9 @@ describe('makeTransactionalEmailQueue', () => {
       mockTracer
     );
 
-    await expect(queue.add(payload)).rejects.toBe(failure);
+    await expect(queue.add('producer-correlation', payload)).rejects.toBe(
+      failure
+    );
 
     expect(mockReporter.report).toHaveBeenCalledWith(
       'queue.job.enqueue_failed',

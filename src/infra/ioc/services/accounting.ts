@@ -11,7 +11,11 @@ import ledgerRepos from '@infra/persistence/repos/ledger';
 
 export const reportingContextService = makeReportingContextService();
 
-export const accountingContextService = makeAccountingContextService();
+export const accountingContextService = makeAccountingContextService({
+  accountingContextRepo: accountingRepos.accountingContext,
+  accountingPeriodRepo: accountingRepos.accountingPeriod,
+  fiscalYearRepo: accountingRepos.fiscalYear,
+});
 
 export const reportingPeriodService = makeReportingPeriodService({
   reportingPeriodRepo: accountingRepos.reportingPeriod,

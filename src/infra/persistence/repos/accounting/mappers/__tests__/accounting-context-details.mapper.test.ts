@@ -11,6 +11,8 @@ describe('accountingContextDetailsMapper', () => {
     accountingStandardCode: 'IFRS',
     fiscalYearId: 'year',
     currentOperatingPeriodId: 'period',
+    previousAccountingPeriodId: null,
+    nextAccountingPeriodId: null,
     createdAt: timestamp,
     updatedAt: timestamp,
     closedAt: null,
@@ -55,6 +57,8 @@ describe('accountingContextDetailsMapper', () => {
       accountingStandardCode: 'IFRS',
       fiscalYearId: 'year',
       currentAccountingPeriodId: 'period',
+      previousAccountingPeriodId: null,
+      nextAccountingPeriodId: null,
       createdAt: new Date(timestamp),
       updatedAt: new Date(timestamp),
       closedAt: null,
@@ -92,6 +96,8 @@ describe('accountingContextDetailsMapper', () => {
     const details = accountingContextDetailsMapper.toDetails({
       ...row,
       description: 'Description',
+      previousAccountingPeriodId: 'previous-period',
+      nextAccountingPeriodId: 'next-period',
       closedAt: timestamp,
       fiscalYearsInCore: {
         ...row.fiscalYearsInCore,
@@ -100,6 +106,8 @@ describe('accountingContextDetailsMapper', () => {
       },
     });
     expect(details.description).toBe('Description');
+    expect(details.previousAccountingPeriodId).toBe('previous-period');
+    expect(details.nextAccountingPeriodId).toBe('next-period');
     expect(details.closedAt).toEqual(new Date(timestamp));
     expect(details.fiscalYear.closedAt).toEqual(new Date(timestamp));
     expect(details.accountingPeriods).toEqual([]);

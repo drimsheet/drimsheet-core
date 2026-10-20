@@ -35,6 +35,26 @@
   existing dependency type. Do not narrow dependencies solely to document which
   properties the helper currently reads.
 
+## Comments
+
+- Keep comments concise and focused on information the code does not convey.
+- Limit comment lines to 80 characters, including indentation and comment
+  delimiters. Wrap longer prose across multiple `//` lines or a multiline
+  `/** ... */` block; do not leave long JSDoc comments on one line.
+- In multiline block comments, put the opening and closing delimiters on their
+  own lines and prefix each content line with ` *`.
+- Indivisible URLs, identifiers, and literal examples may exceed the limit when
+  wrapping would change their meaning. Wrap the surrounding prose normally.
+- `.prettierrc` sets `printWidth` to 80, but Prettier does not reflow JavaScript
+  or TypeScript comments. Wrap comment text explicitly before formatting.
+
+```ts
+/**
+ * Resolves previous/next periods from storage after enforcing ownership
+ * and eligibility. Rejects lookup or validation failures; never persists.
+ */
+```
+
 ## Exports
 
 - Keep declarations file-private by default.

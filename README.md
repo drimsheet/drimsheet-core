@@ -62,6 +62,7 @@ Install and run PostgreSQL and Redis on your machine and configure the connectio
 
 - Ensure PostgreSQL and Redis are running (see above)
 - Run `yarn dev` (starts HTTP and route generation)
+- Run `yarn dev:background` in another terminal for queue workers and scheduled jobs
 - The app should now be running on `http://localhost:${PORT}`
 
 ### Ingesting CBN exchange rates

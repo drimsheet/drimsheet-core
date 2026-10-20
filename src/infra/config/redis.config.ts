@@ -28,3 +28,8 @@ export function getQueueConnection(): IORedis {
   });
   return queueConnection;
 }
+
+export function closeQueueConnection(): void {
+  queueConnection?.disconnect();
+  queueConnection = undefined;
+}

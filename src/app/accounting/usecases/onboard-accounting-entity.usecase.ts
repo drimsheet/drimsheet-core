@@ -11,6 +11,7 @@ import historyValue from '@shared/values/history/history.vo';
 
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import getAccountingPeriodNeighborsHelper from '@domain/accounting/entities/helpers/get-accounting-period-neighbors.helper';
 import getPeriodContainingCurrentDate from '@domain/accounting/entities/helpers/get-current-period.helper';
 import getAccountingJurisdiction from '@domain/accounting/entities/helpers/get-jurisdiction.helper';
 import reportingContextEntity from '@domain/accounting/entities/reporting-context.entity';
@@ -116,10 +117,13 @@ export default function makeOnboardAccountingEntityUsecase(
       },
       repoOptions
     );
+    const accountingPeriods = accountingPeriodData.map(([period]) => period);
     const currentAccountingPeriod =
-      getPeriodContainingCurrentDate(
-        accountingPeriodData.map(([period]) => period)
-      ) ?? accountingPeriodData[0][0];
+      getPeriodContainingCurrentDate(accountingPeriods) ?? accountingPeriods[0];
+    const neighbors = getAccountingPeriodNeighborsHelper(
+      accountingPeriods,
+      currentAccountingPeriod.id
+    );
 
     const accountingContextCreation = accountingContextEntity.make({
       createdBy: actor.id,
@@ -129,6 +133,8 @@ export default function makeOnboardAccountingEntityUsecase(
       accountingStandardCode: payload.accountingStandardCode,
       fiscalYearId: fiscalYear.id,
       currentAccountingPeriodId: currentAccountingPeriod.id,
+      previousAccountingPeriodId: neighbors.previousAccountingPeriodId,
+      nextAccountingPeriodId: neighbors.nextAccountingPeriodId,
     });
     const [accountingContext, accountingContextEvents, accountingContextAudit] =
       accountingContextCreation;
@@ -158,7 +164,6 @@ export default function makeOnboardAccountingEntityUsecase(
     const [reportingContext, reportingContextEvents, reportingContextAudit] =
       reportingContextCreation;
 
-    const accountingPeriods = accountingPeriodData.map(([entity]) => entity);
     const reportingPeriods = reportingPeriodData.map(([entity]) => entity);
 
     const accountingEntityHistory = historyValue.make(

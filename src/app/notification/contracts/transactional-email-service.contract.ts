@@ -1,18 +1,18 @@
-import { ICorrelationId } from '@shared/types/correlation-id.types';
-
 import { IUser } from '@domain/user/types/user.types';
 
-interface IEmailVerificationPayload extends ICorrelationId {
+interface IEmailVerificationPayload {
   user: IUser;
   verificationLink: string;
 }
 
-interface IPasswordResetPayload extends ICorrelationId {
+interface IPasswordResetPayload {
   user: IUser;
   resetLink: string;
 }
 
 export default interface ITransactionalEmailAppService {
+  /** Uses app-context correlation; renderer and enqueue failures reject. */
   sendEmailVerification(payload: IEmailVerificationPayload): Promise<void>;
+  /** Uses app-context correlation; renderer and enqueue failures reject. */
   sendPasswordResetLink(payload: IPasswordResetPayload): Promise<void>;
 }

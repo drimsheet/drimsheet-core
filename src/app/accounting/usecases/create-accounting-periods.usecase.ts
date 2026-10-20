@@ -79,9 +79,6 @@ export default function makeCreateAccountingPeriodsUsecase(
       });
     });
 
-    // TODO (ENG-218): Schedule background transitions of the current accounting period.
-    // https://drimsheet-app.atlassian.net/browse/ENG-218
-
     await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
     return periods.map(accountingPeriodDtoMapper.toDto);

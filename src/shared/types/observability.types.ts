@@ -23,12 +23,11 @@ export type ULogOutcome = (typeof ELogOutcome)[keyof typeof ELogOutcome];
 export const TRACE_ENVELOPE_VERSION = 1;
 
 export interface ITraceEnvelope<T> {
+  correlationId: string;
   __observabilityEnvelopeVersion: typeof TRACE_ENVELOPE_VERSION;
   payload: T;
   trace?: ITraceCarrier;
 }
-
-export type UTraceEnvelopePayload<T> = ITraceEnvelope<T> | T;
 
 export interface ILogFields {
   message?: string;

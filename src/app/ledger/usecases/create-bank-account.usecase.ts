@@ -222,9 +222,8 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
       await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
       if (postedJournal) {
-        await deps.ledgerBalanceAdjustmentQueue.add({
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
           journalEntryId: postedJournal.id,
-          correlationId,
         });
       }
 
