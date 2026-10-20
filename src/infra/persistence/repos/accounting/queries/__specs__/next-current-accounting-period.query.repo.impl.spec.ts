@@ -38,6 +38,7 @@ describe('nextCurrentAccountingPeriodQueryRepo', () => {
 
     expect(getDbQuery).toHaveBeenCalledWith(options);
     expect(query.select).toHaveBeenCalledWith({
+      accountingContextId: accountingContextsInCore.id,
       fiscalYearId: accountingContextsInCore.fiscalYearId,
       accountingEntityId: accountingContextsInCore.accountingEntityId,
       currentPeriodId: accountingContextsInCore.currentOperatingPeriodId,
@@ -86,6 +87,7 @@ describe('nextCurrentAccountingPeriodQueryRepo', () => {
     'returns all %s query results without pagination',
     async (count) => {
       const rows = Array.from({ length: count }, (_, index) => ({
+        accountingContextId: `context-${index}`,
         fiscalYearId: `year-${index}`,
         accountingEntityId: `entity-${index}`,
         currentPeriodId: `current-${index}`,

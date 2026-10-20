@@ -26,12 +26,14 @@ describe('getNextCurrentAccountingPeriodUsecase', () => {
   it('returns due period references across entities using the current date and correlation ID', async () => {
     const periods = [
       {
+        accountingContextId: 'context-1' as TEntityId,
         fiscalYearId: 'year-1' as TEntityId,
         accountingEntityId: 'entity-1' as TEntityId,
         currentPeriodId: 'current-1' as TEntityId,
         nextPeriodId: 'next-1' as TEntityId,
       },
       {
+        accountingContextId: 'context-2' as TEntityId,
         fiscalYearId: 'year-2' as TEntityId,
         accountingEntityId: 'entity-2' as TEntityId,
         currentPeriodId: 'current-2' as TEntityId,

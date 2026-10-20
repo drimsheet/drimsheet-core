@@ -6,7 +6,7 @@ import { UTraceEnvelopePayload } from '@shared/types/observability.types';
 import ICurrentAccountingPeriodQueue, {
   CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME,
 } from '@app/accounting/contracts/current-accounting-period-queue.contract';
-import { ISetCurrentAccountingPeriodJobDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
+import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
 import { makeTraceEnvelope } from '@infra/messaging/trace-context';
@@ -14,11 +14,11 @@ import { makeTraceEnvelope } from '@infra/messaging/trace-context';
 import queueResources from './queue-resources';
 
 let currentAccountingPeriodQueue:
-  | Queue<UTraceEnvelopePayload<ISetCurrentAccountingPeriodJobDto>>
+  | Queue<UTraceEnvelopePayload<INextCurrentAccountingPeriodDto>>
   | undefined;
 
 function getCurrentAccountingPeriodQueue(): Queue<
-  UTraceEnvelopePayload<ISetCurrentAccountingPeriodJobDto>
+  UTraceEnvelopePayload<INextCurrentAccountingPeriodDto>
 > {
   currentAccountingPeriodQueue ??= new Queue(
     CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME,
@@ -29,9 +29,9 @@ function getCurrentAccountingPeriodQueue(): Queue<
   return currentAccountingPeriodQueue;
 }
 
-function getConfig(payload: ISetCurrentAccountingPeriodJobDto) {
+function getConfig(payload: INextCurrentAccountingPeriodDto) {
   return Object.freeze({
-    jobId: `${CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME}_${payload.accountingEntityId}_${payload.fiscalYearId}_${payload.currentPeriodId}_${payload.nextPeriodId}`,
+    jobId: `${CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME}_${payload.accountingContextId}_${payload.accountingEntityId}_${payload.fiscalYearId}_${payload.currentPeriodId}_${payload.nextPeriodId}`,
     removeOnComplete: true,
     removeOnFail: true,
     attempts: 3,

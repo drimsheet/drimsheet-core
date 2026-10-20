@@ -18,6 +18,7 @@ export const mockReportingPeriodService: jest.Mocked<IReportingPeriodService> =
 export const mockAccountingContextService: jest.Mocked<IAccountingContextService> =
   {
     create: jest.fn(),
+    updateCurrentAccountingPeriod: jest.fn(),
   };
 
 export const mockFiscalYearService: jest.Mocked<IFiscalYearService> = {

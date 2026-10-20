@@ -15,6 +15,7 @@ const nextCurrentAccountingPeriodQueryRepo: INextCurrentAccountingPeriodQueryRep
     async findDue(date, options) {
       const periods = await getDbQuery(options)
         .select({
+          accountingContextId: accountingContextsInCore.id,
           fiscalYearId: accountingContextsInCore.fiscalYearId,
           accountingEntityId: accountingContextsInCore.accountingEntityId,
           currentPeriodId: accountingContextsInCore.currentOperatingPeriodId,

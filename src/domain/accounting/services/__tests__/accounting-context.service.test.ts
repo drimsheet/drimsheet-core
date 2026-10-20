@@ -1,13 +1,16 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
 import { UAccountingStandardCode } from '@domain/accounting/config/accounting-standards.config';
+import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import accountingStandardError from '@domain/accounting/errors/accounting-standard.error';
 import accountingError from '@domain/accounting/errors/accounting.error';
+import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
 import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import makeAccountingContextService from '@domain/accounting/services/accounting-context.service';
 import { EPeriodStatus } from '@domain/accounting/types/period.types';
 
@@ -29,7 +32,22 @@ describe('accountingContextService.create', () => {
     findByRange: jest.fn(),
     create: jest.fn(),
   };
-  const service = makeAccountingContextService({ accountingPeriodRepo: repo });
+  const contextRepo: jest.Mocked<IAccountingContextRepo> = {
+    findById: jest.fn(),
+    create: jest.fn(),
+    deleteByAccountingEntityId: jest.fn(),
+    update: jest.fn(),
+  };
+  const fiscalYearRepo: jest.Mocked<IFiscalYearRepo> = {
+    findById: jest.fn(),
+    existsByRange: jest.fn(),
+    create: jest.fn(),
+  };
+  const service = makeAccountingContextService({
+    accountingPeriodRepo: repo,
+    accountingContextRepo: contextRepo,
+    fiscalYearRepo,
+  });
 
   function makeFixture(yearNumber = 2026, selectedIndex = 3, count = 12) {
     jest.setSystemTime(new Date(`${yearNumber}-01-01`));
@@ -230,5 +248,148 @@ describe('accountingContextService.create', () => {
     await expect(
       service.create({ ...makeFixture().input, name: '' }, repoOptions)
     ).rejects.toThrow(accountingError.InvalidName);
+  });
+  describe('updateCurrentAccountingPeriod', () => {
+    async function updateFixture(selectedIndex = 3) {
+      const { input, periods } = makeFixture(2026, selectedIndex);
+      const [context] = await service.create(input, repoOptions);
+      contextRepo.findById.mockResolvedValue(context);
+      fiscalYearRepo.findById.mockResolvedValue(input.fiscalYear);
+      jest.setSystemTime(new Date('2026-10-18'));
+      return {
+        context,
+        periods,
+        fiscalYear: input.fiscalYear,
+        update: {
+          accountingContextId: context.id,
+          previousState: {
+            currentAccountPeriod: periods[selectedIndex].id,
+            nextAccountingPeriod: periods[selectedIndex + 1].id,
+          },
+        },
+      };
+    }
+
+    it.each([3, 10])(
+      'prepares all three references from storage at index %s without persisting',
+      async (selectedIndex) => {
+        const { context, periods, update, fiscalYear } =
+          await updateFixture(selectedIndex);
+        const [updated, events, audit] =
+          await service.updateCurrentAccountingPeriod(update, repoOptions);
+        expect(contextRepo.findById).toHaveBeenCalledWith(
+          context.id,
+          repoOptions
+        );
+        expect(fiscalYearRepo.findById).toHaveBeenCalledWith(
+          context.fiscalYearId,
+          repoOptions
+        );
+        expect(repo.findByRange).toHaveBeenLastCalledWith(
+          context.accountingEntityId,
+          {
+            startDate: fiscalYear.startDate,
+            endDate: fiscalYear.endDate,
+          },
+          repoOptions
+        );
+        expect(updated).toEqual({
+          ...context,
+          previousAccountingPeriodId: periods[selectedIndex].id,
+          currentAccountingPeriodId: periods[selectedIndex + 1].id,
+          nextAccountingPeriodId: periods[selectedIndex + 2]?.id ?? null,
+          updatedAt: new Date('2026-10-18'),
+        });
+        expect(Object.isFrozen(updated)).toBe(true);
+        expect(events).toHaveLength(1);
+        expect(events[0].data).toBe(updated);
+        expect(audit?.action).toBe('updated');
+        expect(context.currentAccountingPeriodId).toBe(
+          periods[selectedIndex].id
+        );
+        expect(contextRepo.update).not.toHaveBeenCalled();
+        expect(contextRepo.create).not.toHaveBeenCalled();
+      }
+    );
+
+    it('returns the existing context unchanged for an already applied transition', async () => {
+      const { update } = await updateFixture();
+      const [updated] = await service.updateCurrentAccountingPeriod(
+        update,
+        repoOptions
+      );
+      contextRepo.findById.mockResolvedValue(updated);
+      jest.setSystemTime(new Date('2026-10-19'));
+      const [repeated, events, audit] =
+        await service.updateCurrentAccountingPeriod(update, repoOptions);
+      expect(repeated).toBe(updated);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it.each([
+      [
+        'currentAccountingPeriodId',
+        accountingError.InvalidCurrentAccountingPeriodId,
+      ],
+      ['nextAccountingPeriodId', accountingError.InvalidNextAccountingPeriodId],
+    ] as const)(
+      'rejects stale %s from the discovered transition',
+      async (field, error) => {
+        const { context, update } = await updateFixture();
+        const [changed] = accountingContextEntity.update(context, {
+          [field]: generateUUID(),
+        });
+        contextRepo.findById.mockResolvedValue(changed);
+        await expect(
+          service.updateCurrentAccountingPeriod(update, repoOptions)
+        ).rejects.toThrow(error);
+      }
+    );
+
+    it('rejects missing contexts', async () => {
+      const { update } = await updateFixture();
+      contextRepo.findById.mockResolvedValue(null);
+      await expect(
+        service.updateCurrentAccountingPeriod(update, repoOptions)
+      ).rejects.toThrow(accountingError.AccountingContextNotFound);
+      expect(fiscalYearRepo.findById).not.toHaveBeenCalled();
+    });
+
+    it('rejects missing fiscal years', async () => {
+      const { update } = await updateFixture();
+      fiscalYearRepo.findById.mockResolvedValue(null);
+      await expect(
+        service.updateCurrentAccountingPeriod(update, repoOptions)
+      ).rejects.toThrow(accountingError.FiscalYearNotFound);
+    });
+
+    it('excludes periods belonging to another fiscal year', async () => {
+      const { update, periods } = await updateFixture();
+      repo.findByRange.mockResolvedValue(
+        periods.map((period) => ({ ...period, fiscalYearId: generateUUID() }))
+      );
+      await expect(
+        service.updateCurrentAccountingPeriod(update, repoOptions)
+      ).rejects.toThrow(accountingError.InvalidNextAccountingPeriodId);
+    });
+
+    it('rejects a transition that skips the next chronological period', async () => {
+      const { update, periods } = await updateFixture();
+      update.previousState.nextAccountingPeriod = periods[6].id;
+      await expect(
+        service.updateCurrentAccountingPeriod(update, repoOptions)
+      ).rejects.toThrow(accountingError.InvalidPreviousAccountingPeriodId);
+    });
+
+    it('propagates repository failures without writing', async () => {
+      const { update } = await updateFixture();
+      const failure = new Error('Context read failed');
+      contextRepo.findById.mockRejectedValue(failure);
+      await expect(
+        service.updateCurrentAccountingPeriod(update, repoOptions)
+      ).rejects.toBe(failure);
+      expect(contextRepo.update).not.toHaveBeenCalled();
+    });
   });
 });

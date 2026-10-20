@@ -1,5 +1,6 @@
 [
   "accounting_error_accounting_context_id_invalid",
+  "accounting_error_accounting_context_not_found",
   "accounting_error_accounting_entity_access_forbidden",
   "accounting_error_accounting_entity_archived_conflict",
   "accounting_error_accounting_entity_created_by_invalid",
@@ -23,6 +24,7 @@
   "accounting_error_date_invalid",
   "accounting_error_description_invalid",
   "accounting_error_fiscal_year_id_invalid",
+  "accounting_error_fiscal_year_not_found",
   "accounting_error_id_invalid",
   "accounting_error_invalid_accounting_entity_type_invalid",
   "accounting_error_jurisdiction_code_invalid",

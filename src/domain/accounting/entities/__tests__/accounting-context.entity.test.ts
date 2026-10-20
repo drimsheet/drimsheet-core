@@ -1,4 +1,5 @@
 import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
 import getAccountingContextDescription from '@domain/accounting/entities/helpers/get-description.helper';
@@ -329,5 +330,219 @@ describe('accountingContextEntity', () => {
 
       expect(entity.description).toBeNull();
     });
+  });
+});
+
+describe('accountingContextEntity.update', () => {
+  const currentId = generateUUID();
+  const nextId = generateUUID();
+  const followingId = generateUUID();
+  const [context] = accountingContextEntity.make({
+    createdBy: generateUUID(),
+    accountingEntityId: generateUUID(),
+    fiscalYearId: generateUUID(),
+    currentAccountingPeriodId: currentId,
+    previousAccountingPeriodId: null,
+    nextAccountingPeriodId: nextId,
+    accountingStandardCode: 'IFRS',
+    name: 'Working context',
+    description: null,
+  });
+
+  it.each([followingId, null])(
+    'returns the updated entity, event and audit, next=%s',
+    (following) => {
+      const [updated, events, audit] = accountingContextEntity.update(context, {
+        previousAccountingPeriodId: currentId,
+        currentAccountingPeriodId: nextId,
+        nextAccountingPeriodId: following,
+      });
+      expect(updated).toEqual({
+        ...context,
+        currentAccountingPeriodId: nextId,
+        previousAccountingPeriodId: currentId,
+        nextAccountingPeriodId: following,
+        updatedAt: expect.any(Date),
+      });
+      expect(context.currentAccountingPeriodId).toBe(currentId);
+      expect(Object.isFrozen(updated)).toBe(true);
+      expect(events).toHaveLength(1);
+      expect(events[0].type).toBe(EAccountingContextEvents.Updated);
+      expect(events[0].data).toBe(updated);
+      expect(audit).toMatchObject({
+        entityId: context.id,
+        action: EAccountingContextActions.Updated,
+        occurredAt: updated.updatedAt,
+        diff: {
+          before: {
+            currentAccountingPeriodId: currentId,
+            previousAccountingPeriodId: null,
+            nextAccountingPeriodId: nextId,
+          },
+          after: {
+            currentAccountingPeriodId: nextId,
+            previousAccountingPeriodId: currentId,
+            nextAccountingPeriodId: following,
+          },
+        },
+      });
+      expect(Object.isFrozen(audit)).toBe(true);
+    }
+  );
+
+  it.each([
+    {},
+    {
+      currentAccountingPeriodId: currentId,
+      previousAccountingPeriodId: null,
+      nextAccountingPeriodId: nextId,
+    },
+  ])(
+    'returns the original entity without events or audit for unchanged input',
+    (changes) => {
+      const [updated, events, audit] = accountingContextEntity.update(
+        context,
+        changes
+      );
+      expect(updated).toBe(context);
+      expect(updated.updatedAt).toBe(context.updatedAt);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    }
+  );
+
+  it('returns no effects when the same update is repeated', () => {
+    const changes = {
+      previousAccountingPeriodId: currentId,
+      currentAccountingPeriodId: nextId,
+      nextAccountingPeriodId: null,
+    };
+    const [updated] = accountingContextEntity.update(context, changes);
+    const [repeated, events, audit] = accountingContextEntity.update(
+      updated,
+      changes
+    );
+    expect(repeated).toBe(updated);
+    expect(events).toEqual([]);
+    expect(audit).toBeNull();
+  });
+
+  it('supports partial updates and explicit null for nullable period references', () => {
+    const [updated] = accountingContextEntity.update(context, {
+      previousAccountingPeriodId: currentId,
+    });
+    expect(updated.currentAccountingPeriodId).toBe(currentId);
+    expect(updated.nextAccountingPeriodId).toBe(nextId);
+    const [cleared, events, audit] = accountingContextEntity.update(updated, {
+      previousAccountingPeriodId: null,
+      nextAccountingPeriodId: null,
+    });
+    expect(cleared.previousAccountingPeriodId).toBeNull();
+    expect(cleared.nextAccountingPeriodId).toBeNull();
+    expect(events).toHaveLength(1);
+    expect(audit?.action).toBe(EAccountingContextActions.Updated);
+  });
+
+  it.each([
+    {
+      changes: { name: '  Renamed context  ' },
+      after: { name: 'Renamed context' },
+    },
+    {
+      changes: { description: '  Updated description  ' },
+      after: { description: 'Updated description' },
+    },
+  ])('updates and audits $after independently', ({ changes, after }) => {
+    const [updated, events, audit] = accountingContextEntity.update(
+      context,
+      changes
+    );
+
+    expect(updated).toEqual({
+      ...context,
+      ...after,
+      updatedAt: expect.any(Date),
+    });
+    expect(Object.isFrozen(updated)).toBe(true);
+    expect(events).toHaveLength(1);
+    expect(events[0].type).toBe(EAccountingContextEvents.Updated);
+    expect(events[0].data).toBe(updated);
+    expect(audit).toMatchObject({
+      action: EAccountingContextActions.Updated,
+      diff: { after },
+    });
+    expect(context.name).toBe('Working context');
+    expect(context.description).toBeNull();
+  });
+
+  it('clears an existing description and audits the change', () => {
+    const [described] = accountingContextEntity.update(context, {
+      description: 'Existing description',
+    });
+    const [cleared, events, audit] = accountingContextEntity.update(described, {
+      description: null,
+    });
+
+    expect(cleared.description).toBeNull();
+    expect(cleared.name).toBe(described.name);
+    expect(described.description).toBe('Existing description');
+    expect(events).toHaveLength(1);
+    expect(events[0].data).toBe(cleared);
+    expect(audit?.diff).toMatchObject({
+      before: { description: 'Existing description' },
+      after: { description: null },
+    });
+  });
+
+  it.each([
+    {},
+    { name: 'Renamed context', description: 'Updated description' },
+    { name: '  Renamed context  ', description: '  Updated description  ' },
+    { name: undefined, description: undefined },
+  ])('returns no effects for unchanged name and description: %j', (changes) => {
+    const [updated] = accountingContextEntity.update(context, {
+      name: 'Renamed context',
+      description: 'Updated description',
+    });
+    const [unchanged, events, audit] = accountingContextEntity.update(
+      updated,
+      changes
+    );
+
+    expect(unchanged).toBe(updated);
+    expect(unchanged.updatedAt).toBe(updated.updatedAt);
+    expect(events).toEqual([]);
+    expect(audit).toBeNull();
+  });
+
+  it.each([
+    ['name', '', accountingError.InvalidName],
+    ['name', '   ', accountingError.InvalidName],
+    ['name', 'a'.repeat(151), accountingError.InvalidName],
+    ['description', '', accountingError.InvalidDescription],
+    ['description', '   ', accountingError.InvalidDescription],
+    ['description', 'a'.repeat(256), accountingError.InvalidDescription],
+  ] as const)('rejects invalid %s value %j', (field, value, error) => {
+    expect(() =>
+      accountingContextEntity.update(context, { [field]: value })
+    ).toThrow(error);
+  });
+
+  it.each([
+    [
+      'currentAccountingPeriodId',
+      accountingError.InvalidCurrentAccountingPeriodId,
+    ],
+    [
+      'previousAccountingPeriodId',
+      accountingError.InvalidPreviousAccountingPeriodId,
+    ],
+    ['nextAccountingPeriodId', accountingError.InvalidNextAccountingPeriodId],
+  ] as const)('rejects invalid %s', (field, error) => {
+    expect(() =>
+      accountingContextEntity.update(context, {
+        [field]: 'invalid' as TEntityId,
+      })
+    ).toThrow(error);
   });
 });

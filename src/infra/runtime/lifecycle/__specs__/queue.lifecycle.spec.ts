@@ -2,7 +2,7 @@ import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import { CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-accounting-period-queue.contract';
-import { ISetCurrentAccountingPeriodJobDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
+import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 import { LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME } from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { TRANSACTIONAL_EMAIL_QUEUE_NAME } from '@app/notification/contracts/transactional-email-queue.contract';
 
@@ -19,12 +19,12 @@ jest.mock('@infra/config/redis.config', () => ({
 }));
 
 describe('queue lifecycle', () => {
-  const payload: ISetCurrentAccountingPeriodJobDto = {
+  const payload: INextCurrentAccountingPeriodDto = {
+    accountingContextId: generateUUID(),
     fiscalYearId: generateUUID(),
     accountingEntityId: generateUUID(),
     currentPeriodId: generateUUID(),
     nextPeriodId: generateUUID(),
-    correlationId: generateUUID(),
   };
 
   beforeEach(() => {

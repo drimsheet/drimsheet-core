@@ -3,6 +3,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 
 interface INextCurrentAccountingPeriodModel {
+  accountingContextId: string;
   fiscalYearId: string;
   accountingEntityId: string;
   currentPeriodId: string;
@@ -14,6 +15,7 @@ const nextCurrentAccountingPeriodMapper = {
     period: INextCurrentAccountingPeriodModel
   ): INextCurrentAccountingPeriodDto {
     return {
+      accountingContextId: period.accountingContextId as TEntityId,
       fiscalYearId: period.fiscalYearId as TEntityId,
       accountingEntityId: period.accountingEntityId as TEntityId,
       currentPeriodId: period.currentPeriodId as TEntityId,

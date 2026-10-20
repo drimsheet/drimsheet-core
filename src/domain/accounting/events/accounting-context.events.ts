@@ -4,6 +4,7 @@ import { IAccountingContext } from '@domain/accounting/types/context.types';
 
 export const EAccountingContextEvents = {
   Created: 'domain:accounting:context:created',
+  Updated: 'domain:accounting:context:updated',
 } as const;
 
 function makeCreatedEvent(params: IAccountingContext) {
@@ -15,6 +16,11 @@ function makeCreatedEvent(params: IAccountingContext) {
 
 const accountingContextEvents = Object.freeze({
   created: makeCreatedEvent,
+  updated: (context: IAccountingContext) =>
+    eventValue.make<IAccountingContext>({
+      type: EAccountingContextEvents.Updated,
+      data: context,
+    }),
 });
 
 export default accountingContextEvents;
