@@ -17,10 +17,10 @@ const mockGetConnection = jest.fn();
 jest.mock('bullmq', () => ({ Queue: mockQueueConstructor }));
 jest.mock('@infra/config/redis.config', () => ({
   getQueueConnection: mockGetConnection,
-  closeQueueConnection: mockDisconnect,
+  closeRedisConnections: mockDisconnect,
 }));
 
-describe('queue lifecycle', () => {
+describe('queue resources', () => {
   const payload: INextCurrentAccountingPeriodDto = {
     accountingContextId: generateUUID(),
     fiscalYearId: generateUUID(),
@@ -46,11 +46,11 @@ describe('queue lifecycle', () => {
       await import('@infra/messaging/queues/current-accounting-period.queue');
       await import('@infra/messaging/queues/ledger-account-balance.queue');
       await import('@infra/messaging/queues/transactional-email.queue');
-      const lifecycle = (
-        await import('@infra/runtime/lifecycle/queue.lifecycle')
+      const queueResources = (
+        await import('@infra/messaging/queues/queue-resources')
       ).default;
 
-      await lifecycle.shutdown();
+      await queueResources.close();
 
       expect(mockQueueConstructor).not.toHaveBeenCalled();
       expect(mockGetConnection).not.toHaveBeenCalled();
@@ -68,8 +68,8 @@ describe('queue lifecycle', () => {
         await import('@infra/messaging/queues/ledger-account-balance.queue');
       const { getTransactionalEmailQueue } =
         await import('@infra/messaging/queues/transactional-email.queue');
-      const lifecycle = (
-        await import('@infra/runtime/lifecycle/queue.lifecycle')
+      const queueResources = (
+        await import('@infra/messaging/queues/queue-resources')
       ).default;
       const queue = makeAccountingQueue(mockTracer);
       await queue.add('queue-correlation', payload);
@@ -82,10 +82,7 @@ describe('queue lifecycle', () => {
         expect(mockDisconnect).not.toHaveBeenCalled();
       });
 
-      const shuttingDown = lifecycle.shutdown();
-      expect(lifecycle.shutdown()).toBe(shuttingDown);
-      await shuttingDown;
-      await lifecycle.shutdown();
+      await queueResources.close();
 
       expect(mockQueueConstructor).toHaveBeenCalledTimes(3);
       expect(mockQueueClose.mock.calls).toEqual([
@@ -106,8 +103,8 @@ describe('queue lifecycle', () => {
         await import('@infra/messaging/queues/ledger-account-balance.queue');
       const { getTransactionalEmailQueue } =
         await import('@infra/messaging/queues/transactional-email.queue');
-      const lifecycle = (
-        await import('@infra/runtime/lifecycle/queue.lifecycle')
+      const queueResources = (
+        await import('@infra/messaging/queues/queue-resources')
       ).default;
       await makeAccountingQueue(mockTracer).add('queue-correlation', payload);
       getLedgerAccountBalanceAdjustmentQueue();
@@ -126,7 +123,7 @@ describe('queue lifecycle', () => {
           })
         );
 
-      const shuttingDown = lifecycle.shutdown();
+      const shuttingDown = queueResources.close();
       const rejection = expect(shuttingDown).rejects.toMatchObject({
         message: 'Queue shutdown failed',
         errors: [firstFailure, secondFailure],
@@ -138,21 +135,20 @@ describe('queue lifecycle', () => {
       await rejection;
 
       expect(mockDisconnect).toHaveBeenCalledTimes(1);
-      expect(lifecycle.shutdown()).toBe(shuttingDown);
     });
   });
 
   it('propagates shared connection cleanup failures to the runtime', async () => {
     await jest.isolateModulesAsync(async () => {
-      const lifecycle = (
-        await import('@infra/runtime/lifecycle/queue.lifecycle')
+      const queueResources = (
+        await import('@infra/messaging/queues/queue-resources')
       ).default;
       const failure = new Error('Redis disconnect failed');
       mockDisconnect.mockImplementation(() => {
         throw failure;
       });
 
-      await expect(lifecycle.shutdown()).rejects.toMatchObject({
+      await expect(queueResources.close()).rejects.toMatchObject({
         errors: [failure],
       });
     });
@@ -160,14 +156,11 @@ describe('queue lifecycle', () => {
 
   it('drains workers before closing producers and the shared connection', async () => {
     await jest.isolateModulesAsync(async () => {
-      const resources = (
-        await import('@infra/messaging/queues/queue-resources')
-      ).default;
       const makeQueue = (
         await import('@infra/messaging/queues/current-accounting-period.queue')
       ).default;
-      const lifecycle = (
-        await import('@infra/runtime/lifecycle/queue.lifecycle')
+      const queueResources = (
+        await import('@infra/messaging/queues/queue-resources')
       ).default;
       let finish!: () => void;
       const closeWorker = jest.fn(
@@ -177,11 +170,11 @@ describe('queue lifecycle', () => {
           })
       );
       const worker = { close: closeWorker } as unknown as Worker;
-      resources.registerWorker(worker);
-      resources.registerWorker(worker);
+      queueResources.registerWorker(worker);
+      queueResources.registerWorker(worker);
       await makeQueue(mockTracer).add('queue-correlation', payload);
 
-      const shuttingDown = lifecycle.shutdown();
+      const shuttingDown = queueResources.close();
       await Promise.resolve();
       expect(closeWorker).toHaveBeenCalledTimes(1);
       expect(mockQueueClose).not.toHaveBeenCalled();
@@ -196,21 +189,20 @@ describe('queue lifecycle', () => {
 
   it('attempts all cleanup when a worker cannot close', async () => {
     await jest.isolateModulesAsync(async () => {
-      const resources = (
-        await import('@infra/messaging/queues/queue-resources')
-      ).default;
       const makeQueue = (
         await import('@infra/messaging/queues/current-accounting-period.queue')
       ).default;
-      const lifecycle = (
-        await import('@infra/runtime/lifecycle/queue.lifecycle')
+      const queueResources = (
+        await import('@infra/messaging/queues/queue-resources')
       ).default;
       const failure = new Error('Worker close failed');
       const closeWorker = jest.fn().mockRejectedValue(failure);
-      resources.registerWorker({ close: closeWorker } as unknown as Worker);
+      queueResources.registerWorker({
+        close: closeWorker,
+      } as unknown as Worker);
       await makeQueue(mockTracer).add('queue-correlation', payload);
 
-      await expect(lifecycle.shutdown()).rejects.toMatchObject({
+      await expect(queueResources.close()).rejects.toMatchObject({
         errors: [failure],
       });
       expect(mockQueueClose).toHaveBeenCalledTimes(1);

@@ -2,12 +2,16 @@ import launchDarklyClient from '@infra/integrations/launchdarkly/launchdarkly.cl
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
 
+const mockClient = {
+  waitForInitialization: jest.fn(),
+  flush: jest.fn(),
+  close: jest.fn(),
+};
 jest.mock('@infra/integrations/launchdarkly/launchdarkly.client', () => ({
   __esModule: true,
   default: {
-    waitForInitialization: jest.fn(),
-    flush: jest.fn(),
-    close: jest.fn(),
+    get: jest.fn(() => mockClient),
+    getInitialized: jest.fn(() => mockClient),
   },
 }));
 
@@ -20,7 +24,7 @@ jest.mock('@infra/integrations/sentry/sentry-reporter', () => ({
 }));
 
 describe('LaunchDarkly lifecycle', () => {
-  const client = jest.mocked(launchDarklyClient);
+  const client = mockClient;
   const mockReporter = jest.mocked(reporter);
 
   beforeEach(() => {
@@ -28,6 +32,16 @@ describe('LaunchDarkly lifecycle', () => {
     client.waitForInitialization.mockResolvedValue(client);
     client.flush.mockResolvedValue(undefined);
     client.close.mockReturnValue(undefined);
+  });
+
+  it('does not create a client when shutdown precedes initialization', async () => {
+    jest
+      .mocked(launchDarklyClient.getInitialized)
+      .mockReturnValueOnce(undefined);
+    await launchDarklyLifecycle.shutdown();
+    expect(launchDarklyClient.get).not.toHaveBeenCalled();
+    expect(client.flush).not.toHaveBeenCalled();
+    expect(client.close).not.toHaveBeenCalled();
   });
 
   it('waits for bounded initialization', async () => {
@@ -49,7 +63,7 @@ describe('LaunchDarkly lifecycle', () => {
     );
   });
 
-  it.each(['SIGINT', 'SIGTERM'] as const)(
+  it.each(['SIGINT', 'SIGTERM', undefined] as const)(
     'flushes before closing on %s',
     async (signal) => {
       await launchDarklyLifecycle.shutdown(signal);

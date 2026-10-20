@@ -5,7 +5,7 @@ const INITIALIZATION_TIMEOUT_SECONDS = 5;
 
 async function initialize() {
   try {
-    await launchDarklyClient.waitForInitialization({
+    await launchDarklyClient.get().waitForInitialization({
       timeout: INITIALIZATION_TIMEOUT_SECONDS,
     });
   } catch (error) {
@@ -15,9 +15,14 @@ async function initialize() {
   }
 }
 
-async function shutdown(signal: 'SIGINT' | 'SIGTERM') {
+async function shutdown(signal?: 'SIGINT' | 'SIGTERM') {
+  const client = launchDarklyClient.getInitialized();
+  if (client === undefined) {
+    return;
+  }
+
   try {
-    await launchDarklyClient.flush();
+    await client.flush();
   } catch (error) {
     reporter.report('integration.feature_flag.flush_failed', error, {
       operation: 'flush',
@@ -27,7 +32,7 @@ async function shutdown(signal: 'SIGINT' | 'SIGTERM') {
   }
 
   try {
-    launchDarklyClient.close();
+    client.close();
   } catch (error) {
     reporter.report('integration.feature_flag.close_failed', error, {
       operation: 'close',

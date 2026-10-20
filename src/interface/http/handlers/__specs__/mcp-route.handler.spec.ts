@@ -1,11 +1,16 @@
-import { once } from 'node:events';
 import { AddressInfo } from 'node:net';
 
 import { McpServer } from '@modelcontextprotocol/server';
 import express from 'express';
 import request from 'supertest';
+import { z } from 'zod';
 
 import makeMcpRouteHandler from '@interface/http/handlers/mcp-route.handler';
+
+import {
+  closeTestServer,
+  startTestServer,
+} from '../../../../../test/setup/http-listener';
 
 describe('MCP route handler', () => {
   it('rejects every host when no application host is configured outside local development', async () => {
@@ -17,9 +22,79 @@ describe('MCP route handler', () => {
       '/mcp',
       makeMcpRouteHandler({ createServer, appUrl: '', isLocal: false })
     );
-    const response = await request(app).post('/mcp').set('Host', 'localhost');
-    expect(response.status).toBe(403);
-    expect(createServer).not.toHaveBeenCalled();
+    const listener = await startTestServer(app);
+    try {
+      const response = await request(listener)
+        .post('/mcp')
+        .set('Host', 'localhost');
+      expect(response.status).toBe(403);
+      expect(createServer).not.toHaveBeenCalled();
+    } finally {
+      await closeTestServer(listener);
+    }
+  });
+
+  it('serves overlapping requests with independent MCP servers', async () => {
+    let releaseCalls: () => void = () => {};
+    const bothStarted = new Promise<void>((resolve) => {
+      releaseCalls = resolve;
+    });
+    let startedCalls = 0;
+    const createServer = jest.fn(() => {
+      const server = new McpServer({ name: 'test', version: '1' });
+      server.registerTool(
+        'echo',
+        { inputSchema: z.object({ message: z.string() }) },
+        async ({ message }) => {
+          startedCalls += 1;
+          if (startedCalls === 2) {
+            releaseCalls();
+          }
+          await bothStarted;
+          return { content: [{ type: 'text', text: message }] };
+        }
+      );
+      return server;
+    });
+    const app = express();
+    app.use(express.json());
+    app.all(
+      '/mcp',
+      makeMcpRouteHandler({ createServer, appUrl: '', isLocal: true })
+    );
+    const listener = await startTestServer(app);
+
+    try {
+      const responses = await Promise.all(
+        ['first', 'second'].map((message) =>
+          request(listener)
+            .post('/mcp')
+            .set('Host', 'localhost')
+            .set('Accept', 'application/json, text/event-stream')
+            .set('MCP-Protocol-Version', '2025-06-18')
+            .send({
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'tools/call',
+              params: { name: 'echo', arguments: { message } },
+            })
+        )
+      );
+
+      expect(responses.map((response) => response.status)).toEqual([200, 200]);
+      expect(responses[0].text).toContain(
+        JSON.stringify({ type: 'text', text: 'first' })
+      );
+      expect(responses[1].text).toContain(
+        JSON.stringify({ type: 'text', text: 'second' })
+      );
+      expect(createServer).toHaveBeenCalledTimes(2);
+      expect(startedCalls).toBe(2);
+    } finally {
+      releaseCalls();
+      listener.closeAllConnections();
+      await closeTestServer(listener);
+    }
   });
 
   it('closes a request server when its client disconnects', async () => {
@@ -52,8 +127,7 @@ describe('MCP route handler', () => {
         createServer: () => server,
       })
     );
-    const listener = app.listen(0, '127.0.0.1');
-    await once(listener, 'listening');
+    const listener = await startTestServer(app);
     const controller = new AbortController();
 
     try {
@@ -81,9 +155,7 @@ describe('MCP route handler', () => {
     } finally {
       finishTool();
       listener.closeAllConnections();
-      await new Promise<void>((resolve, reject) => {
-        listener.close((error) => (error ? reject(error) : resolve()));
-      });
+      await closeTestServer(listener);
     }
   });
 });

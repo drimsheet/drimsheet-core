@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -8,6 +10,8 @@ import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-
 import * as moneyUseCases from '@infra/ioc/usecases/money';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -46,13 +50,19 @@ const exchangeRate = {
 
 describe('GET /currencies/exchange-rates', () => {
   let app: Express;
+  let server: Server;
   const mockGetExchangeRates =
     moneyUseCases.getExchangeRateUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockGetExchangeRates.mockResolvedValue([exchangeRate]);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterEach(() => {
@@ -61,7 +71,7 @@ describe('GET /currencies/exchange-rates', () => {
 
   describe('200 Response', () => {
     it('returns exchange rates and forwards coerced query values', async () => {
-      const response = await request(app).get(
+      const response = await request(server).get(
         `${ENDPOINT}?currencyPair=USD%2FNGN&type=official&asOf=${encodeURIComponent(
           asOf.toISOString()
         )}&page=2&limit=5`
@@ -88,7 +98,7 @@ describe('GET /currencies/exchange-rates', () => {
 
   describe('422 Response', () => {
     it('rejects a request without a currency pair before orchestration', async () => {
-      const response = await request(app).get(ENDPOINT);
+      const response = await request(server).get(ENDPOINT);
 
       expect(response.status).toBe(422);
       expect(mockGetExchangeRates).not.toHaveBeenCalled();

@@ -15,6 +15,8 @@ import * as authUseCase from '@infra/ioc/usecases/auth';
 
 import createApplication from '@interface/http/application';
 
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
+
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
   actorService: jest.requireActual(
@@ -53,26 +55,24 @@ describe('POST /auth/reset-password', () => {
       confirmPassword: 'AnalyticalEngine1!',
     };
     await middlewares.authRateLimiters.resetPasswordByIp.resetKey(
-      makeIpRateLimitKey('::ffff:127.0.0.1')
+      makeIpRateLimitKey('127.0.0.1')
     );
     resetPasswordSpy = jest
       .spyOn(authUseCase, 'resetPasswordUseCase')
       .mockResolvedValue({ accessToken: 'mock-access-token' });
     app = createApplication();
-    server = app.listen();
+    server = await startTestServer(app);
     client = request(server);
   });
 
   afterEach(async () => {
     resetPasswordSpy.mockRestore();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns only an uncached access token and forwards the payload', async () => {
-      const response = await request(app).post(ENDPOINT).send(validPayload);
+      const response = await request(server).post(ENDPOINT).send(validPayload);
 
       expect(response.status).toBe(200);
       expect(response.headers['cache-control']).toContain('no-store');
@@ -92,7 +92,7 @@ describe('POST /auth/reset-password', () => {
     ])('sanitizes reset-token failures', async (error) => {
       resetPasswordSpy.mockRejectedValueOnce(error);
 
-      const response = await request(app).post(ENDPOINT).send(validPayload);
+      const response = await request(server).post(ENDPOINT).send(validPayload);
 
       expect(response.status).toBe(401);
       expect(JSON.stringify(response.body)).not.toContain(validPayload.token);
@@ -104,7 +104,7 @@ describe('POST /auth/reset-password', () => {
 
   describe('422 Response', () => {
     it('rejects missing fields before invoking the use case', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .send({ token: validPayload.token });
 
@@ -119,7 +119,7 @@ describe('POST /auth/reset-password', () => {
         ])
       );
 
-      const response = await request(app).post(ENDPOINT).send(validPayload);
+      const response = await request(server).post(ENDPOINT).send(validPayload);
 
       expect(response.status).toBe(422);
       expect(JSON.stringify(response.body)).not.toContain(validPayload.token);
@@ -170,7 +170,7 @@ describe('POST /auth/reset-password', () => {
         )
       );
 
-      const response = await request(app).post(ENDPOINT).send(validPayload);
+      const response = await request(server).post(ENDPOINT).send(validPayload);
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({

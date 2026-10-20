@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -18,6 +20,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -93,7 +97,8 @@ const entity = {
 
 describe('GET /reporting/accounts/{accountId}/cash-flow', () => {
   let app: Express;
-  beforeEach(() => {
+  let server: Server;
+  beforeEach(async () => {
     jest.resetAllMocks();
     jest.mocked(tokenAppService.getAuthUser).mockResolvedValue({ id: userId });
     jest
@@ -106,9 +111,14 @@ describe('GET /reporting/accounts/{accountId}/cash-flow', () => {
     mockLedgerAccountRepo.findById.mockResolvedValue(account);
     mockAccountCashFlowQueryRepo.aggregateByAccount.mockResolvedValue([]);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
   const getReport = (params = query, path = endpoint) =>
-    request(app)
+    request(server)
       .get(path)
       .query(params)
       .set('Authorization', 'Bearer test-token')
@@ -224,7 +234,7 @@ describe('GET /reporting/accounts/{accountId}/cash-flow', () => {
 
   describe('401 Response', () => {
     it('requires authentication', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(endpoint)
         .query(query)
         .set('x-accounting-entity-id', entityId);
@@ -271,7 +281,7 @@ describe('GET /reporting/accounts/{accountId}/cash-flow', () => {
       }
     );
     it('requires the complete query', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(endpoint)
         .set('Authorization', 'Bearer test-token')
         .set('x-accounting-entity-id', entityId);

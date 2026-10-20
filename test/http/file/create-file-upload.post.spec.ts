@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -16,6 +18,8 @@ import * as fileUseCases from '@infra/ioc/usecases/file';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -96,16 +100,22 @@ const uploads: IFileUploadDto[] = [
 
 describe('POST /files/upload', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockPreSignUploads = fileUseCases.preSignUploadsUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockGetAuthUser.mockResolvedValue({ id: userId });
     mockFindUser.mockResolvedValue(mockUser);
     mockPreSignUploads.mockResolvedValue(uploads);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterEach(() => {
@@ -113,7 +123,7 @@ describe('POST /files/upload', () => {
   });
 
   it('returns direct upload instructions for an authenticated request', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .send(payload);
@@ -125,14 +135,14 @@ describe('POST /files/upload', () => {
   });
 
   it('rejects an unauthenticated request', async () => {
-    const response = await request(app).post(ENDPOINT).send(payload);
+    const response = await request(server).post(ENDPOINT).send(payload);
 
     expect(response.status).toBe(401);
     expect(mockPreSignUploads).not.toHaveBeenCalled();
   });
 
   it('rejects malformed JSON metadata before orchestration', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .send({ name: 'receipt.png', size: 1024 });
@@ -148,7 +158,7 @@ describe('POST /files/upload', () => {
       ])
     );
 
-    const response = await request(app)
+    const response = await request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .send([{ ...payload[0], size: 0 }]);
@@ -163,7 +173,7 @@ describe('POST /files/upload', () => {
   it('returns the stable error when Blackblaze cannot create the instruction', async () => {
     mockPreSignUploads.mockRejectedValue(new fileAppError.UploadUnexpected());
 
-    const response = await request(app)
+    const response = await request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .send(payload);
@@ -178,7 +188,7 @@ describe('POST /files/upload', () => {
   it('returns a client error when the purpose policy rejects metadata', async () => {
     mockPreSignUploads.mockRejectedValue(new fileAppError.InvalidUploadType());
 
-    const response = await request(app)
+    const response = await request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .send([{ ...payload[0], type: 'image/svg+xml' }]);
@@ -191,7 +201,7 @@ describe('POST /files/upload', () => {
   });
 
   it('does not accept multipart file uploads', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .field('name', payload[0].name)

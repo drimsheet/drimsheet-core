@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -29,6 +31,8 @@ import * as counterpartyUseCases from '@infra/ioc/usecases/counterparty';
 import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -105,11 +109,13 @@ const [referencedLine] = journalLineEntity.make(
   }
 );
 const endpoint = `/api/v1/counterparties/${counterparty.id}`;
+
 describe('DELETE /counterparties/{id}', () => {
   let app: Express;
+  let server: Server;
   const remove = jest.spyOn(counterpartyUseCases, 'deleteCounterpartyUseCase');
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -139,10 +145,15 @@ describe('DELETE /counterparties/{id}', () => {
       })
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const deleteRequest = (url = endpoint) =>
-    request(app)
+    request(server)
       .delete(url)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -207,7 +218,7 @@ describe('DELETE /counterparties/{id}', () => {
 
   describe('401 Response', () => {
     it('rejects unauthenticated callers before feature/access checks or orchestration', async () => {
-      const response = await request(app).delete(endpoint);
+      const response = await request(server).delete(endpoint);
       expect(response.status).toBe(401);
       expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
       expect(remove).not.toHaveBeenCalled();

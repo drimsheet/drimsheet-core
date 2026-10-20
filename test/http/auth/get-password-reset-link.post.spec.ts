@@ -14,6 +14,8 @@ import * as authUseCase from '@infra/ioc/usecases/auth';
 
 import createApplication from '@interface/http/application';
 
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
+
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
   actorService: jest.requireActual(
@@ -47,18 +49,16 @@ describe('POST /auth/get-password-reset-link', () => {
       .spyOn(authUseCase, 'getPasswordResetLinkUseCase')
       .mockResolvedValue(undefined);
     await middlewares.authRateLimiters.getPasswordResetLinkByIp.resetKey(
-      makeIpRateLimitKey('::ffff:127.0.0.1')
+      makeIpRateLimitKey('127.0.0.1')
     );
     app = createApplication();
-    server = app.listen();
+    server = await startTestServer(app);
     client = request(server);
   });
 
   afterEach(async () => {
     getPasswordResetLinkSpy.mockRestore();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
@@ -66,7 +66,7 @@ describe('POST /auth/get-password-reset-link', () => {
       const payload: IRequestPasswordResetReq = {
         email: 'success@example.com',
       };
-      const response = await request(app).post(ENDPOINT).send(payload);
+      const response = await request(server).post(ENDPOINT).send(payload);
 
       expect(response.status).toBe(200);
       expect(response.headers['cache-control']).toContain('no-store');
@@ -79,7 +79,7 @@ describe('POST /auth/get-password-reset-link', () => {
 
   describe('422 Response', () => {
     it('rejects missing email field before invoking use case', async () => {
-      const response = await request(app).post(ENDPOINT).send({});
+      const response = await request(server).post(ENDPOINT).send({});
 
       expect(response.status).toBe(422);
       expect(response.body).toEqual({
@@ -102,7 +102,7 @@ describe('POST /auth/get-password-reset-link', () => {
         ])
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .send({ email: 'validation-error@example.com' });
 
@@ -172,7 +172,7 @@ describe('POST /auth/get-password-reset-link', () => {
         new Error(`Database lookup failed for email ${payload.email}`)
       );
 
-      const response = await request(app).post(ENDPOINT).send(payload);
+      const response = await request(server).post(ENDPOINT).send(payload);
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({

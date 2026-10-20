@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -22,6 +24,8 @@ import * as counterpartyUseCases from '@infra/ioc/usecases/counterparty';
 import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -87,12 +91,13 @@ const endpoint = `/api/v1/counterparties/${counterparty.id}/archive`;
 
 describe('POST /counterparties/{id}/archive', () => {
   let app: Express;
+  let server: Server;
   const archive = jest.spyOn(
     counterpartyUseCases,
     'archiveCounterpartyUseCase'
   );
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -116,10 +121,15 @@ describe('POST /counterparties/{id}/archive', () => {
       })
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const post = (url = endpoint) =>
-    request(app)
+    request(server)
       .post(url)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -198,7 +208,7 @@ describe('POST /counterparties/{id}/archive', () => {
           ...counterparty,
           status,
         });
-        const response = await request(app).post(endpoint);
+        const response = await request(server).post(endpoint);
         expect(response.status).toBe(401);
         expect(archive).not.toHaveBeenCalled();
       }

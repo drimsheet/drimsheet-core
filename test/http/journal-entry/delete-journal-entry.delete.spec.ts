@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -16,6 +18,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -58,15 +62,17 @@ jest.mock('../../../src/infra/persistence/repos/user', () => ({
 const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
 const accountingEntityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
 const journalEntryId = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
+
 describe('DELETE /journal-entries/{id}', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
     .findByIdAndUserId as jest.Mock;
   const mockDeleteJournalEntryUseCase = deleteJournalEntryUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -84,10 +90,15 @@ describe('DELETE /journal-entries/{id}', () => {
     } as IAccountingEntity);
     mockDeleteJournalEntryUseCase.mockResolvedValue(undefined);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const makeRequest = () =>
-    request(app)
+    request(server)
       .delete(`/api/v1/journal-entries/${journalEntryId}`)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -116,7 +127,7 @@ describe('DELETE /journal-entries/{id}', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request before orchestration', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .delete(`/api/v1/journal-entries/${journalEntryId}`)
         .set('x-accounting-entity-id', accountingEntityId);
 

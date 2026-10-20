@@ -29,7 +29,23 @@ export function getQueueConnection(): IORedis {
   return queueConnection;
 }
 
-export function closeQueueConnection(): void {
-  queueConnection?.disconnect();
+/** Attempt every initialized client disconnect before reporting failures. */
+export function closeRedisConnections(): void {
+  const connections = [redis, redisPub, redisSub, queueConnection];
+  redis = undefined;
+  redisPub = undefined;
+  redisSub = undefined;
   queueConnection = undefined;
+
+  const failures: unknown[] = [];
+  for (const connection of connections) {
+    try {
+      connection?.disconnect();
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  if (failures.length > 0) {
+    throw new AggregateError(failures, 'Redis shutdown failed');
+  }
 }

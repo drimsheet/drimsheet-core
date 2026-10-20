@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import passport from 'passport';
 import request from 'supertest';
@@ -5,6 +7,8 @@ import request from 'supertest';
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -41,13 +45,19 @@ describe('GET /api/v1/auth/google', () => {
   });
 
   let app: Express;
+  let server: Server;
 
   beforeAll(() => {
     passport.use('google', new RedirectGoogleStrategy());
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterAll(() => {
@@ -56,7 +66,7 @@ describe('GET /api/v1/auth/google', () => {
 
   describe('302 Response', () => {
     it('binds a high-entropy state cookie to the provider redirect', async () => {
-      const response = await request(app).get('/api/v1/auth/google');
+      const response = await request(server).get('/api/v1/auth/google');
       const stateCookie = (response.get('Set-Cookie') || []).find((cookie) =>
         cookie.startsWith('oauth_state=')
       );

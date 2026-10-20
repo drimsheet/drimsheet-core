@@ -11,6 +11,8 @@ import * as authUseCase from '@infra/ioc/usecases/auth';
 
 import createApplication from '@interface/http/application';
 
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
+
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
   actorService: jest.requireActual(
@@ -53,20 +55,18 @@ describe('POST /auth/signup/complete', () => {
       .spyOn(authUseCase, 'verifyEmailUseCase')
       .mockResolvedValue({ accessToken: 'mock-access-token' });
     app = createApplication();
-    server = app.listen();
+    server = await startTestServer(app);
     client = request(server);
   });
 
   afterEach(async () => {
     verifyEmailSpy.mockRestore();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns an access token with Cache-Control no-store for valid verification', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .send({ token: 'valid.jwt.token' });
 
@@ -83,7 +83,7 @@ describe('POST /auth/signup/complete', () => {
       const authErrorModule = require('@app/auth/errors/auth.error').default;
       verifyEmailSpy.mockRejectedValueOnce(new authErrorModule.InvalidToken());
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .send({ token: 'expired.or.invalid.token' });
 
@@ -100,7 +100,7 @@ describe('POST /auth/signup/complete', () => {
 
   describe('422 Response', () => {
     it('rejects an invalid request payload before invoking the use case', async () => {
-      const response = await request(app).post(ENDPOINT).send({});
+      const response = await request(server).post(ENDPOINT).send({});
 
       expect(response.status).toBe(422);
       expect(response.body).toEqual({
@@ -117,7 +117,9 @@ describe('POST /auth/signup/complete', () => {
     });
 
     it('rejects a non-string token payload', async () => {
-      const response = await request(app).post(ENDPOINT).send({ token: 12345 });
+      const response = await request(server)
+        .post(ENDPOINT)
+        .send({ token: 12345 });
 
       expect(response.status).toBe(422);
       expect(verifyEmailSpy).not.toHaveBeenCalled();
@@ -157,7 +159,7 @@ describe('POST /auth/signup/complete', () => {
         )
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .send({ token: 'secret-value-123' });
 

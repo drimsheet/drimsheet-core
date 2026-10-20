@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -31,6 +33,8 @@ import userRepos from '@infra/persistence/repos/user';
 import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -109,8 +113,10 @@ const [referencedLine] = journalLineEntity.make(
     functionalCurrency: SYSTEM_CURRENCIES.NGN,
   }
 );
+
 describe('PATCH /counterparties/{id}', () => {
   let app: Express;
+  let server: Server;
   const update = counterpartyUseCases.updateCounterpartyUseCase as jest.Mock;
   const service = makeCounterpartyService({
     journalLineRepo: mockJournalLineRepo,
@@ -124,7 +130,7 @@ describe('PATCH /counterparties/{id}', () => {
     meta: { vendor: {} },
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
@@ -153,10 +159,15 @@ describe('PATCH /counterparties/{id}', () => {
       })
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const patch = (body: object, id = draft.id) =>
-    request(app)
+    request(server)
       .patch(`${ENDPOINT}/${id}`)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId)
@@ -248,7 +259,7 @@ describe('PATCH /counterparties/{id}', () => {
     it('rejects unauthenticated callers', async () => {
       expect(
         (
-          await request(app)
+          await request(server)
             .patch(`${ENDPOINT}/${draft.id}`)
             .send({ status: 'active' })
         ).status

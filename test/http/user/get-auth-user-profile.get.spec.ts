@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -12,6 +14,8 @@ import { tokenAppService } from '@infra/ioc/services/auth';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -55,6 +59,7 @@ describe('GET /users/profile', () => {
   });
 
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
 
@@ -72,9 +77,14 @@ describe('GET /users/profile', () => {
     updatedAt: new Date('2026-03-13T00:00:00.000Z'),
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
@@ -82,7 +92,7 @@ describe('GET /users/profile', () => {
       mockGetAuthUser.mockResolvedValue({ id: mockUser.id });
       mockFindUser.mockResolvedValue(mockUser);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
 
@@ -113,7 +123,7 @@ describe('GET /users/profile', () => {
 
       const hackerUserId = '999e4567-e89b-12d3-a456-426614174999';
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?userId=${hackerUserId}`)
         .send({ userId: hackerUserId })
         .set('Authorization', 'Bearer valid-token')
@@ -134,7 +144,7 @@ describe('GET /users/profile', () => {
 
   describe('401 Response', () => {
     it('rejects if Authorization header is missing', async () => {
-      const response = await request(app).get(ENDPOINT);
+      const response = await request(server).get(ENDPOINT);
 
       expect(response.status).toBe(401);
       expect(response.body).toEqual({
@@ -145,7 +155,7 @@ describe('GET /users/profile', () => {
     });
 
     it('rejects if Authorization header has a wrong scheme', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Basic token');
 
@@ -158,7 +168,7 @@ describe('GET /users/profile', () => {
     });
 
     it('rejects if Authorization header has extra segments', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer token extra');
 
@@ -173,7 +183,7 @@ describe('GET /users/profile', () => {
     it('rejects if the token is invalid or expired', async () => {
       mockGetAuthUser.mockRejectedValue(new authError.ExpiredToken());
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer invalid-token');
 
@@ -189,7 +199,7 @@ describe('GET /users/profile', () => {
       mockGetAuthUser.mockResolvedValue({ id: mockUser.id });
       mockFindUser.mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer token');
 
@@ -206,7 +216,7 @@ describe('GET /users/profile', () => {
       mockGetAuthUser.mockResolvedValue({ id: mockUser.id });
       mockFindUser.mockRejectedValue(new Error('Database breakdown'));
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer token');
 

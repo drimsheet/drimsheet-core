@@ -1,9 +1,16 @@
+import { Server } from 'node:http';
+
 import { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 
 import httpMiddlewares from '@infra/ioc/middlewares/http';
 
 import createApplication from '@interface/http/application';
+
+import {
+  closeTestServer,
+  startTestServer,
+} from '../../../../test/setup/http-listener';
 
 jest.mock('../../../infra/ioc/middlewares/http', () => ({
   __esModule: true,
@@ -71,14 +78,19 @@ jest.mock('../../../../generated/routes', () => ({
 }));
 
 describe('HTTP application', () => {
-  beforeEach(() => {
+  let server: Server;
+
+  beforeEach(async () => {
     jest.clearAllMocks();
+    server = await startTestServer(createApplication());
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   it('mounts health probes before normal HTTP middleware', async () => {
-    const app = createApplication();
-
-    const response = await request(app).get('/health/live');
+    const response = await request(server).get('/health/live');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: 'ok' });
@@ -89,8 +101,7 @@ describe('HTTP application', () => {
   });
 
   it('mounts the imported routes after normal HTTP middleware', async () => {
-    const response =
-      await request(createApplication()).get('/registered-route');
+    const response = await request(server).get('/registered-route');
 
     expect(response.status).toBe(204);
     expect(httpMiddlewares.appContextInit).toHaveBeenCalledTimes(1);
@@ -100,9 +111,7 @@ describe('HTTP application', () => {
   });
 
   it('keeps normal middleware active outside the health router', async () => {
-    const app = createApplication();
-
-    await request(app).get('/unmatched-route');
+    await request(server).get('/unmatched-route');
 
     expect(httpMiddlewares.appContextInit).toHaveBeenCalledTimes(1);
     expect(httpMiddlewares.requestLogger).toHaveBeenCalledTimes(1);

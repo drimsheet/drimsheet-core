@@ -1,15 +1,17 @@
-import launchDarklyClient from '@infra/integrations/launchdarkly/launchdarkly.client';
 import featureFlagService from '@infra/services/feature-flag.service';
 
+const mockClient = {
+  boolVariation: jest.fn(),
+};
 jest.mock('@infra/integrations/launchdarkly/launchdarkly.client', () => ({
   __esModule: true,
   default: {
-    boolVariation: jest.fn(),
+    get: jest.fn(() => mockClient),
   },
 }));
 
 describe('feature flag service', () => {
-  const client = jest.mocked(launchDarklyClient);
+  const client = mockClient;
 
   beforeEach(() => {
     client.boolVariation.mockReset();

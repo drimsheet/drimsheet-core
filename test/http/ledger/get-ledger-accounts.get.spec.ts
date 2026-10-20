@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -21,6 +23,8 @@ import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -105,12 +109,13 @@ const account = {
 
 describe('GET /ledger', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockGetLedgerAccounts =
     ledgerUseCases.getLedgerAccountsUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -120,11 +125,16 @@ describe('GET /ledger', () => {
       meta: { page: 2, limit: 5, total: 1, totalPages: 1 },
     } satisfies IPaginatedResponse<ILedgerAccountDto>);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns ledger accounts and forwards coerced query values', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?type=asset&page=2&limit=5&isControlAccount=false`)
         .set('Authorization', 'Bearer valid-token');
 
@@ -152,7 +162,7 @@ describe('GET /ledger', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request', async () => {
-      const response = await request(app).get(ENDPOINT);
+      const response = await request(server).get(ENDPOINT);
 
       expect(response.status).toBe(401);
       expect(mockGetLedgerAccounts).not.toHaveBeenCalled();
@@ -163,7 +173,7 @@ describe('GET /ledger', () => {
     it('rejects a user without Alpha 1 access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
 

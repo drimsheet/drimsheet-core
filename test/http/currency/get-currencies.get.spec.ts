@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -7,6 +9,8 @@ import { ICurrencyDto } from '@app/money/dtos/currency/currency.dto';
 import * as moneyUseCases from '@infra/ioc/usecases/money';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -37,13 +41,19 @@ const currencies = [
 
 describe('GET /currencies', () => {
   let app: Express;
+  let server: Server;
   const mockGetAllCurrencies =
     moneyUseCases.getAllCurrenciesUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockGetAllCurrencies.mockResolvedValue(currencies);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterEach(() => {
@@ -52,7 +62,7 @@ describe('GET /currencies', () => {
 
   describe('200 Response', () => {
     it('returns system currencies without Alpha 1 access evaluation', async () => {
-      const response = await request(app).get(ENDPOINT);
+      const response = await request(server).get(ENDPOINT);
 
       expect(response.status).toBe(200);
       expect(response.type).toBe('application/json');

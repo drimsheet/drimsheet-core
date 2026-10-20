@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -18,6 +20,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/handlers/http', () => {
   const makeHttpErrorHandler = jest.requireActual<
@@ -108,9 +112,10 @@ const endpoint = `/api/v1/ledger/${accountId}/archive`;
 
 describe('POST /ledger/{accountId}/archive', () => {
   let app: Express;
+  let server: Server;
   const archive = jest.mocked(ledgerUseCases.archiveLedgerAccountUseCase);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -125,10 +130,15 @@ describe('POST /ledger/{accountId}/archive', () => {
     );
     archive.mockResolvedValue(undefined);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const post = () =>
-    request(app)
+    request(server)
       .post(endpoint)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -155,7 +165,7 @@ describe('POST /ledger/{accountId}/archive', () => {
   });
 
   it('rejects unauthenticated callers before the use case', async () => {
-    const response = await request(app).post(endpoint);
+    const response = await request(server).post(endpoint);
 
     expect(response.status).toBe(401);
     expect(archive).not.toHaveBeenCalled();

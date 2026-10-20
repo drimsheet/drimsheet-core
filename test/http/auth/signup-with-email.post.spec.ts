@@ -12,6 +12,8 @@ import * as authUseCase from '@infra/ioc/usecases/auth';
 
 import createApplication from '@interface/http/application';
 
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
+
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
   actorService: jest.requireActual(
@@ -48,7 +50,7 @@ describe('POST /auth/signup-with-email', () => {
   let server: Server;
 
   beforeEach(async () => {
-    const ipRateLimitKey = makeIpRateLimitKey('::ffff:127.0.0.1');
+    const ipRateLimitKey = makeIpRateLimitKey('127.0.0.1');
     await Promise.all(
       middlewares.signupRateLimiters.map((limiter) =>
         limiter.resetKey(ipRateLimitKey)
@@ -59,20 +61,18 @@ describe('POST /auth/signup-with-email', () => {
       .spyOn(authUseCase, 'signupWithEmailUseCase')
       .mockResolvedValue(undefined);
     app = createApplication();
-    server = app.listen();
+    server = await startTestServer(app);
     client = request(server);
   });
 
   afterEach(async () => {
     signupWithEmailSpy.mockRestore();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
+    await closeTestServer(server);
   });
 
   describe('201', () => {
     it('returns the documented non-sensitive response for a new signup', async () => {
-      const response = await request(app).post(ENDPOINT).send(validPayload);
+      const response = await request(server).post(ENDPOINT).send(validPayload);
 
       expect(response.status).toBe(201);
       expect(response.text).toBe('');
@@ -84,8 +84,8 @@ describe('POST /auth/signup-with-email', () => {
     });
 
     it('does not reveal whether the normalized email already exists', async () => {
-      const newSignup = await request(app).post(ENDPOINT).send(validPayload);
-      const duplicateSignup = await request(app)
+      const newSignup = await request(server).post(ENDPOINT).send(validPayload);
+      const duplicateSignup = await request(server)
         .post(ENDPOINT)
         .send({ ...validPayload, email: 'ADA@EXAMPLE.COM' });
 
@@ -98,7 +98,9 @@ describe('POST /auth/signup-with-email', () => {
     it('rejects an invalid request shape before invoking the use case', async () => {
       const { password: _password, ...missingPassword } = validPayload;
 
-      const response = await request(app).post(ENDPOINT).send(missingPassword);
+      const response = await request(server)
+        .post(ENDPOINT)
+        .send(missingPassword);
 
       expect(response.status).toBe(422);
       expect(response.body).toEqual({
@@ -189,7 +191,7 @@ describe('POST /auth/signup-with-email', () => {
         new Error(`persistence failed for ${validPayload.password}`)
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .send({
           ...validPayload,

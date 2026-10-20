@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -17,6 +19,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -86,6 +90,7 @@ const counterparty: ICounterpartyDto = {
 
 describe('GET /counterparties/{id}', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -93,7 +98,7 @@ describe('GET /counterparties/{id}', () => {
   const mockGetCounterparty =
     counterpartyUseCases.getCounterpartyUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -105,10 +110,15 @@ describe('GET /counterparties/{id}', () => {
     mockFindAccountingEntity.mockResolvedValue(accountingEntity);
     mockGetCounterparty.mockResolvedValue(counterparty);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const makeRequest = (endpoint = ENDPOINT) =>
-    request(app)
+    request(server)
       .get(endpoint)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -151,7 +161,7 @@ describe('GET /counterparties/{id}', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('x-accounting-entity-id', accountingEntityId);
 

@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -23,6 +25,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -128,6 +132,7 @@ const account = {
 
 describe('GET /ledger/posting-accounts', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -135,7 +140,7 @@ describe('GET /ledger/posting-accounts', () => {
   const mockGetPermittedPostingAccounts =
     ledgerUseCases.getPermittedPostingAccountsUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -146,11 +151,16 @@ describe('GET /ledger/posting-accounts', () => {
       meta: { page: 2, limit: 5, total: 6, totalPages: 2 },
     } satisfies IPaginatedResponse<ILedgerAccountDto>);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns the permitted posting-account page and forwards coerced query values', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(
           `${ENDPOINT}?sourceType=receipt&side=destination&filterSuspense=true&currencyCode=usd&page=2&limit=5`
         )
@@ -191,7 +201,7 @@ describe('GET /ledger/posting-accounts', () => {
         meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?sourceType=expense&side=source`)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -210,7 +220,7 @@ describe('GET /ledger/posting-accounts', () => {
 
   describe('500 Response', () => {
     it('rejects a request without an active accounting entity', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?sourceType=receipt&side=source`)
         .set('Authorization', 'Bearer valid-token');
 
@@ -225,7 +235,7 @@ describe('GET /ledger/posting-accounts', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?sourceType=receipt&side=source`)
         .set('x-accounting-entity-id', accountingEntityId);
 
@@ -238,7 +248,7 @@ describe('GET /ledger/posting-accounts', () => {
     it('rejects a user without Alpha 1 access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?sourceType=receipt&side=source`)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -263,7 +273,7 @@ describe('GET /ledger/posting-accounts', () => {
         'filterSuspense',
       ],
     ])('rejects malformed query %s', async (endpoint, _field) => {
-      const response = await request(app)
+      const response = await request(server)
         .get(endpoint)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);

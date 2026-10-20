@@ -4,12 +4,12 @@ import { ELogOutcome } from '@shared/types/observability.types';
 
 import { postgres } from '@infra/config/postgres.config';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
+import queueResources from '@infra/messaging/queues/queue-resources';
 import workerRegistrations from '@infra/messaging/workers';
 import logger from '@infra/observability/logger';
 import scheduledJobs from '@infra/scheduling';
 
 import observabilityLifecycle from './observability.lifecycle';
-import queueLifecycle from './queue.lifecycle';
 
 const CRON_SHUTDOWN_TIMEOUT_MS = 60_000;
 
@@ -32,7 +32,7 @@ export default async function runBackground(): Promise<void> {
     await startupSettled;
     await cron.shutdown(CRON_SHUTDOWN_TIMEOUT_MS);
     try {
-      await queueLifecycle.shutdown();
+      await queueResources.close();
     } catch (error) {
       process.exitCode = 1;
       reporter.report('runtime.background.cleanup_failed', error);

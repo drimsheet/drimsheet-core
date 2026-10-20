@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -28,6 +30,8 @@ import { setupHeaderAccountsUseCase } from '@infra/ioc/usecases/ledger';
 import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -99,10 +103,11 @@ const setup = makeSetupHeaderAccountsUsecase({
 
 describe('POST /ledger/header-accounts/setup', () => {
   let app: Express;
+  let server: Server;
   let accounts: ILedgerAccount[];
   const mockSetup = jest.mocked(setupHeaderAccountsUseCase);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -152,10 +157,15 @@ describe('POST /ledger/header-accounts/setup', () => {
     mockEventBus.publish.mockResolvedValue();
     mockSetup.mockImplementation(setup);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const makeRequest = () =>
-    request(app)
+    request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -260,7 +270,7 @@ describe('POST /ledger/header-accounts/setup', () => {
 
   describe('401 Response', () => {
     it('requires authentication before setup', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('x-accounting-entity-id', accountingEntityId)
         .send({});
@@ -354,7 +364,7 @@ describe('POST /ledger/header-accounts/setup', () => {
 
   describe('500 Response', () => {
     it('preserves the existing missing active entity error path', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({});

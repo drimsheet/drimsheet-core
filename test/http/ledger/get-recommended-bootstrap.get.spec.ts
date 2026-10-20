@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -16,6 +18,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import { getRecommendedBootstrapUseCase } from '@infra/ioc/usecases/ledger';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -54,9 +58,10 @@ const actor = actorEntity.makeUser({
 
 describe('GET /ledger/recommended-bootstrap', () => {
   let app: Express;
+  let server: Server;
   const mockGetRecommendations = jest.mocked(getRecommendedBootstrapUseCase);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
     mockUserRepo.findById.mockResolvedValue({
@@ -70,11 +75,16 @@ describe('GET /ledger/recommended-bootstrap', () => {
       makeGetRecommendedBootstrapUsecase()
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns the complete grouped catalog without selecting an accounting entity', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
 
@@ -117,7 +127,7 @@ describe('GET /ledger/recommended-bootstrap', () => {
 
   describe('401 Response', () => {
     it('rejects requests without authentication', async () => {
-      const response = await request(app).get(ENDPOINT);
+      const response = await request(server).get(ENDPOINT);
       expect(response.status).toBe(401);
       expect(mockGetRecommendations).not.toHaveBeenCalled();
       expect(mockFeatureFlagAppService.canAccessAlpha1).not.toHaveBeenCalled();
@@ -125,7 +135,7 @@ describe('GET /ledger/recommended-bootstrap', () => {
 
     it('rejects a token that does not resolve an authenticated user', async () => {
       mockUserRepo.findById.mockResolvedValue(null);
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer invalid-token');
       expect(response.status).toBe(401);
@@ -136,7 +146,7 @@ describe('GET /ledger/recommended-bootstrap', () => {
   describe('403 Response', () => {
     it('requires Alpha 1 access before reading recommendations', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
       expect(response.status).toBe(403);
@@ -149,7 +159,7 @@ describe('GET /ledger/recommended-bootstrap', () => {
       mockGetRecommendations.mockImplementationOnce(() => {
         throw new Error('private catalog details');
       });
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
       expect(response.status).toBe(500);

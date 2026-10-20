@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -19,6 +21,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/handlers/http', () => {
   const makeHttpErrorHandler = jest.requireActual<
@@ -109,9 +113,10 @@ const endpoint = `/api/v1/ledger/${accountId}`;
 
 describe('DELETE /ledger/{accountId}', () => {
   let app: Express;
+  let server: Server;
   const remove = jest.mocked(ledgerUseCases.deleteLedgerAccountUseCase);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -126,10 +131,15 @@ describe('DELETE /ledger/{accountId}', () => {
     );
     remove.mockResolvedValue(undefined);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const deleteAccount = () =>
-    request(app)
+    request(server)
       .delete(endpoint)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -162,7 +172,7 @@ describe('DELETE /ledger/{accountId}', () => {
   });
   describe('401 Response', () => {
     it('requires authentication before orchestration', async () => {
-      expect((await request(app).delete(endpoint)).status).toBe(401);
+      expect((await request(server).delete(endpoint)).status).toBe(401);
       expect(remove).not.toHaveBeenCalled();
     });
   });

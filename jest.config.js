@@ -1,6 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
-  maxWorkers: 2,
+  maxWorkers: 4,
   setupFilesAfterEnv: ['<rootDir>/test/setup/rate-limit-stores.ts'],
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testPathIgnorePatterns: ['/node_modules/'],

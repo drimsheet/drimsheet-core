@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import express from 'express';
 import request from 'supertest';
 
@@ -5,6 +7,11 @@ import { getLedgerAccountBalanceAdjustmentQueue } from '@infra/messaging/queues/
 import { getTransactionalEmailQueue } from '@infra/messaging/queues/transactional-email.queue';
 
 import routes from '@interface/http/routes';
+
+import {
+  closeTestServer,
+  startTestServer,
+} from '../../../../../test/setup/http-listener';
 
 jest.mock('@infra/ioc/handlers/http', () => ({
   mcpRouteHandler: jest.fn(),
@@ -24,15 +31,26 @@ jest.mock('@infra/messaging/queues/ledger-account-balance.queue', () => ({
 }));
 
 describe('BullMQ dashboard route', () => {
+  let app: express.Express;
+  let server: Server;
+
+  beforeEach(async () => {
+    app = express().use(...routes);
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
+  });
+
   it('does not initialize queues while assembling HTTP routes', () => {
     expect(getTransactionalEmailQueue).not.toHaveBeenCalled();
     expect(getLedgerAccountBalanceAdjustmentQueue).not.toHaveBeenCalled();
   });
 
   it('serves repeated dashboard requests without reinitializing the queues', async () => {
-    const app = express().use(...routes);
-    const response = await request(app).get('/bullmq-board-admin/');
-    const repeatedResponse = await request(app).get('/bullmq-board-admin/');
+    const response = await request(server).get('/bullmq-board-admin/');
+    const repeatedResponse = await request(server).get('/bullmq-board-admin/');
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
@@ -45,7 +63,7 @@ describe('BullMQ dashboard route', () => {
   });
 
   it('leaves other paths to the remaining routes', async () => {
-    const response = await request(express().use(...routes)).get('/other');
+    const response = await request(server).get('/other');
 
     expect(response.status).toBe(404);
   });

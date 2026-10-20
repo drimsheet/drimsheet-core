@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -16,6 +18,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -94,6 +98,7 @@ const accountingEntity = {
 
 describe('GET /ledger/:accountId/transactions', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -101,7 +106,7 @@ describe('GET /ledger/:accountId/transactions', () => {
   const mockGetAccountTransactions =
     ledgerUseCases.getAccountTransactionsUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -112,11 +117,16 @@ describe('GET /ledger/:accountId/transactions', () => {
       meta: { page: 2, limit: 5, total: 0, totalPages: 0 },
     } satisfies IPaginatedResponse<IAccountTransactionRes>);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns account transactions and forwards coerced pagination', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?page=2&limit=5`)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);
@@ -141,7 +151,7 @@ describe('GET /ledger/:accountId/transactions', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('x-accounting-entity-id', accountingEntityId);
 
@@ -154,7 +164,7 @@ describe('GET /ledger/:accountId/transactions', () => {
     it('rejects a user without Alpha 1 access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);

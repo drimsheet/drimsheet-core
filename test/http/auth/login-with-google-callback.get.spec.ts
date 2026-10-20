@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import passport from 'passport';
 import request from 'supertest';
@@ -7,6 +9,8 @@ import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-
 import * as authUseCase from '@infra/ioc/usecases/auth';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -58,6 +62,7 @@ describe('GET /api/v1/auth/google/callback', () => {
   });
 
   let app: Express;
+  let server: Server;
   const mockHandleGoogleCallback = authUseCase.oAuthUseCase
     .handleGoogleCallback as jest.Mock;
 
@@ -65,13 +70,21 @@ describe('GET /api/v1/auth/google/callback', () => {
     passport.use('google', new CallbackGoogleStrategy());
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     CallbackGoogleStrategy.outcome = 'success';
     mockHandleGoogleCallback.mockResolvedValue(
       'http://localhost:3000/auth/oauth-confirmation'
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    if (!server.listening) {
+      return;
+    }
+    await closeTestServer(server);
   });
 
   afterAll(() => {
@@ -85,7 +98,9 @@ describe('GET /api/v1/auth/google/callback', () => {
       ['mismatched state', '?state=other', 'oauth_state=expected'],
       ['array state', '?state=expected&state=other', 'oauth_state=expected'],
     ])('rejects %s and clears state', async (_case, query, cookie) => {
-      const pending = request(app).get(`/api/v1/auth/google/callback${query}`);
+      const pending = request(server).get(
+        `/api/v1/auth/google/callback${query}`
+      );
       if (cookie) {
         pending.set('Cookie', [cookie]);
       }
@@ -99,7 +114,7 @@ describe('GET /api/v1/auth/google/callback', () => {
 
     it('reserves Unauthorized for a Passport no-user result', async () => {
       CallbackGoogleStrategy.outcome = 'failure';
-      const response = await request(app)
+      const response = await request(server)
         .get('/api/v1/auth/google/callback?state=matching')
         .set('Cookie', ['oauth_state=matching']);
 
@@ -110,7 +125,7 @@ describe('GET /api/v1/auth/google/callback', () => {
 
   describe('302 Response', () => {
     it('redirects cleanly after passing the exact authenticated user', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get('/api/v1/auth/google/callback?state=matching&code=provider-code')
         .set('Cookie', ['oauth_state=matching']);
 
@@ -132,7 +147,7 @@ describe('GET /api/v1/auth/google/callback', () => {
   describe('500 Response', () => {
     it('sanitizes Passport operational errors and bypasses the use case', async () => {
       CallbackGoogleStrategy.outcome = 'error';
-      const response = await request(app)
+      const response = await request(server)
         .get('/api/v1/auth/google/callback?state=matching')
         .set('Cookie', ['oauth_state=matching']);
 
@@ -146,7 +161,7 @@ describe('GET /api/v1/auth/google/callback', () => {
 
     it('sanitizes callback use-case failures', async () => {
       mockHandleGoogleCallback.mockRejectedValue(new Error('database details'));
-      const response = await request(app)
+      const response = await request(server)
         .get('/api/v1/auth/google/callback?state=matching')
         .set('Cookie', ['oauth_state=matching']);
 

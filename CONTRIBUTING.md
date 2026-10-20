@@ -158,11 +158,41 @@ We enforce a specific commit message format to generate clean changelogs and tra
 
 ## Testing
 
-`npm test` type-checks source and tests once, then runs Jest with at most two
-workers. Jest uses `tsconfig.jest.json` for per-file transpilation; semantic type
-checking uses `tsconfig.test.json` through `npm run test:types`. When invoking
-Jest directly, run the type check separately, as CI does before its coverage
-jobs.
+Use the Node version declared in `package.json`; `.nvmrc` selects the local
+major version with nvm:
+
+```sh
+nvm install
+nvm use
+npm test
+```
+
+Other development commands:
+
+| Command                                  | Purpose                                     |
+| ---------------------------------------- | ------------------------------------------- |
+| `npm run dev`                            | Watch HTTP and generate routes.             |
+| `npm run dev:background`                 | Watch the background runtime independently. |
+| `npm start`                              | Apply migrations and run compiled HTTP.     |
+| `npm run start:http`                     | Run compiled HTTP without migrations.       |
+| `npm run start:background`               | Run the compiled background process.        |
+| `npx jest src/infra/runtime --runInBand` | Run the runtime specs.                      |
+
+Production scripts require built output. Use the
+[deployment guide](docs/07_deployment_view.md#72-deployment-mapping-and-artifacts)
+for Coolify start commands and runtime configuration.
+
+HTTP specs use `startTestServer(app)` and `closeTestServer(server)` from
+[test/setup/http-listener.ts](test/setup/http-listener.ts). The helper binds to
+`127.0.0.1` and waits for the listener, keeping the server on the same address
+family as Supertest's client. Pass the returned server to `request(server)`;
+keep application setup and cleanup explicit in each suite's hooks or `finally`.
+
+`npm test` type-checks source and tests once, then runs Jest with at most four
+workers locally. CI explicitly limits each coverage command to two workers.
+Jest uses `tsconfig.jest.json` for per-file transpilation; semantic type checking
+uses `tsconfig.test.json` through `npm run test:types`. When invoking Jest
+directly, run the type check separately, as CI does before its coverage jobs.
 
 The Jest setup shuts down real rate-limit memory stores after each suite so
 their recurring timers cannot retain completed test environments. Tests still

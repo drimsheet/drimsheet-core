@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -19,6 +21,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/handlers/http', () => {
   const makeHttpErrorHandler = jest.requireActual<
@@ -109,9 +113,10 @@ const endpoint = `/api/v1/ledger/asset/cash/${accountId}/activate`;
 
 describe('POST /ledger/asset/cash/{accountId}/activate', () => {
   let app: Express;
+  let server: Server;
   const activation = jest.mocked(ledgerUseCases.activateCashAccountUseCase);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -126,10 +131,15 @@ describe('POST /ledger/asset/cash/{accountId}/activate', () => {
     );
     activation.mockResolvedValue(undefined);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const post = (payload = { activateOpeningBalance: true }) =>
-    request(app)
+    request(server)
       .post(endpoint)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId)
@@ -164,7 +174,7 @@ describe('POST /ledger/asset/cash/{accountId}/activate', () => {
 
   describe('401 Response', () => {
     it('rejects unauthenticated callers before the use case', async () => {
-      const response = await request(app).post(endpoint);
+      const response = await request(server).post(endpoint);
 
       expect(response.status).toBe(401);
       expect(activation).not.toHaveBeenCalled();
@@ -227,7 +237,7 @@ describe('POST /ledger/asset/cash/{accountId}/activate', () => {
       { activateOpeningBalance: 1 },
       { activateOpeningBalance: true, expectedVersion: 1 },
     ])('rejects invalid input %j before the use case', async (payload) => {
-      const pending = request(app)
+      const pending = request(server)
         .post(endpoint)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', accountingEntityId);

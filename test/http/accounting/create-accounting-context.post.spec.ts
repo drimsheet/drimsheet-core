@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -18,6 +20,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -98,8 +102,9 @@ const context = {
 
 describe('POST /accounting/accounting-context', () => {
   let app: Express;
+  let server: Server;
   const create = jest.mocked(accountingUsecases.createAccountingContextUseCase);
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     (tokenAppService.getAuthUser as jest.Mock).mockResolvedValue({
@@ -115,11 +120,16 @@ describe('POST /accounting/accounting-context', () => {
     ).mockResolvedValue(entity);
     create.mockResolvedValue(context);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('201 Response', () => {
     it('uses the entity header and returns only the created context', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
@@ -145,7 +155,7 @@ describe('POST /accounting/accounting-context', () => {
     ])('maps invalid references and standards', async (ErrorType) => {
       const error = new ErrorType();
       create.mockRejectedValue(error);
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
@@ -156,7 +166,7 @@ describe('POST /accounting/accounting-context', () => {
   });
   describe('401 Response', () => {
     it('requires authentication', async () => {
-      const response = await request(app).post(ENDPOINT).send(payload);
+      const response = await request(server).post(ENDPOINT).send(payload);
       expect(response.status).toBe(401);
       expect(create).not.toHaveBeenCalled();
     });
@@ -169,7 +179,7 @@ describe('POST /accounting/accounting-context', () => {
           ...entity,
           ownerId: '123e4567-e89b-12d3-a456-426614174099' as TEntityId,
         });
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
@@ -179,7 +189,7 @@ describe('POST /accounting/accounting-context', () => {
     });
     it('checks feature access before orchestration', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
@@ -195,7 +205,7 @@ describe('POST /accounting/accounting-context', () => {
     ])('maps missing prerequisites', async (ErrorType) => {
       const error = new ErrorType();
       create.mockRejectedValue(error);
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
@@ -208,7 +218,7 @@ describe('POST /accounting/accounting-context', () => {
     it('maps archived accounting entity rejection', async () => {
       const error = new accountingEntityError.Archived();
       create.mockRejectedValue(error);
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
@@ -226,7 +236,7 @@ describe('POST /accounting/accounting-context', () => {
       { accountingEntityId },
       { createdBy: userId },
     ])('rejects malformed payload before orchestration: %j', async (change) => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
@@ -237,7 +247,7 @@ describe('POST /accounting/accounting-context', () => {
   });
   describe('500 Response', () => {
     it('requires an entity header before orchestration', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .send(payload);
@@ -248,7 +258,7 @@ describe('POST /accounting/accounting-context', () => {
       jest
         .mocked(accountingRepos.accountingEntity.findByIdAndUserId)
         .mockResolvedValue(null);
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
@@ -258,7 +268,7 @@ describe('POST /accounting/accounting-context', () => {
     });
     it('sanitizes unexpected failures', async () => {
       create.mockRejectedValue(new Error('private database detail'));
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)

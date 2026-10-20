@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -17,6 +19,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -79,6 +83,7 @@ const archivedEntry = {
 
 describe('POST /journal-entries/{id}/archive', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -86,7 +91,7 @@ describe('POST /journal-entries/{id}/archive', () => {
   const mockArchiveJournalEntryUseCase =
     archiveJournalEntryUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -104,10 +109,15 @@ describe('POST /journal-entries/{id}/archive', () => {
     } as IAccountingEntity);
     mockArchiveJournalEntryUseCase.mockResolvedValue(archivedEntry);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const makeRequest = () =>
-    request(app)
+    request(server)
       .post(`/api/v1/journal-entries/${journalEntryId}/archive`)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -130,7 +140,7 @@ describe('POST /journal-entries/{id}/archive', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request before orchestration', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(`/api/v1/journal-entries/${journalEntryId}/archive`)
         .set('x-accounting-entity-id', accountingEntityId);
 

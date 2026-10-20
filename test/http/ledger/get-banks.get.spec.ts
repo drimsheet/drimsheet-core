@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -14,6 +16,8 @@ import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -83,21 +87,27 @@ describe('GET /banks', () => {
   });
 
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockGetBanks = ledgerUseCases.getBanksUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockGetAuthUser.mockResolvedValue({ id: userId });
     mockFindUser.mockResolvedValue(mockUser);
     mockGetBanks.mockResolvedValue(dummyBanks);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns bank directory entries for an authorized request with valid countryCode', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?countryCode=NG`)
         .set('Authorization', 'Bearer valid-token');
 
@@ -112,7 +122,7 @@ describe('GET /banks', () => {
     it('returns empty array when valid country has no dummy banks', async () => {
       mockGetBanks.mockResolvedValue([]);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?countryCode=US`)
         .set('Authorization', 'Bearer valid-token');
 
@@ -124,7 +134,7 @@ describe('GET /banks', () => {
 
   describe('401 Response', () => {
     it('rejects unauthenticated request', async () => {
-      const response = await request(app).get(`${ENDPOINT}?countryCode=NG`);
+      const response = await request(server).get(`${ENDPOINT}?countryCode=NG`);
 
       expect(response.status).toBe(401);
       expect(mockGetBanks).not.toHaveBeenCalled();
@@ -142,7 +152,7 @@ describe('GET /banks', () => {
         ])
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`${ENDPOINT}?countryCode=XX`)
         .set('Authorization', 'Bearer valid-token');
 
@@ -155,7 +165,7 @@ describe('GET /banks', () => {
     });
 
     it('rejects request with missing countryCode parameter before orchestration', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer valid-token');
 

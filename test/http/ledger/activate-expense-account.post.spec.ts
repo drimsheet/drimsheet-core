@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -24,6 +26,8 @@ import * as ledgerUseCases from '@infra/ioc/usecases/ledger';
 import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -91,10 +95,12 @@ const [account] = ledgerAccountEntity.make<ILedgerAccount>({
   adjunctAccountRule: 'adjunct_not_permitted',
   meta: null,
 });
+
 describe('POST /ledger/expense/{accountId}/activate', () => {
   let app: Express;
+  let server: Server;
   const activate = jest.mocked(ledgerUseCases.activateExpenseAccountUseCase);
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     jest.mocked(tokenAppService.getAuthUser).mockResolvedValue({ id: userId });
@@ -129,9 +135,14 @@ describe('POST /ledger/expense/{accountId}/activate', () => {
       })
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
   const post = (id: string = account.id) =>
-    request(app)
+    request(server)
       .post(`${ENDPOINT}/${id}/activate`)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntity.id);
@@ -188,7 +199,8 @@ describe('POST /ledger/expense/{accountId}/activate', () => {
   describe('401 Response', () => {
     it('rejects unauthenticated callers before orchestration', async () => {
       expect(
-        (await request(app).post(`${ENDPOINT}/${account.id}/activate`)).status
+        (await request(server).post(`${ENDPOINT}/${account.id}/activate`))
+          .status
       ).toBe(401);
       expect(activate).not.toHaveBeenCalled();
     });

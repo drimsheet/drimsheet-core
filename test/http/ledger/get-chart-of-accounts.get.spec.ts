@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -22,6 +24,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -127,6 +131,7 @@ const account = {
 
 describe('GET /ledger/chart-of-accounts', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -134,7 +139,7 @@ describe('GET /ledger/chart-of-accounts', () => {
   const mockGetChartOfAccounts =
     ledgerUseCases.getChartOfAccountsUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -142,6 +147,11 @@ describe('GET /ledger/chart-of-accounts', () => {
     mockFindAccountingEntity.mockResolvedValue(accountingEntity);
     mockGetChartOfAccounts.mockResolvedValue([{ ...account, children: [] }]);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
@@ -149,7 +159,7 @@ describe('GET /ledger/chart-of-accounts', () => {
       'forwards search %j together with class and header omission',
       async (search) => {
         const query = { class: 'asset', search, omitHeaderAccounts: true };
-        const response = await request(app)
+        const response = await request(server)
           .get(ENDPOINT)
           .query(query)
           .set('Authorization', 'Bearer valid-token')
@@ -161,7 +171,7 @@ describe('GET /ledger/chart-of-accounts', () => {
     );
 
     it('returns a tree of account DTOs and forwards the required class', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .query({ class: 'asset' })
         .set('Authorization', 'Bearer valid-token')
@@ -189,7 +199,7 @@ describe('GET /ledger/chart-of-accounts', () => {
     it.each([true, false])(
       'parses omitHeaderAccounts=%s as a boolean',
       async (omitHeaderAccounts) => {
-        const response = await request(app)
+        const response = await request(server)
           .get(ENDPOINT)
           .query({ class: 'expense', omitHeaderAccounts })
           .set('Authorization', 'Bearer valid-token')
@@ -204,7 +214,7 @@ describe('GET /ledger/chart-of-accounts', () => {
 
     it('returns an empty array when the class has no accounts', async () => {
       mockGetChartOfAccounts.mockResolvedValue([]);
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .query({ class: 'asset' })
         .set('Authorization', 'Bearer valid-token')
@@ -225,7 +235,7 @@ describe('GET /ledger/chart-of-accounts', () => {
     ])(
       'rejects invalid query %j before invoking the use case',
       async (query) => {
-        const response = await request(app)
+        const response = await request(server)
           .get(ENDPOINT)
           .query(query)
           .set('Authorization', 'Bearer valid-token')
@@ -238,7 +248,7 @@ describe('GET /ledger/chart-of-accounts', () => {
 
   describe('500 Response', () => {
     it('rejects a request without an active accounting entity', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .query({ class: 'asset' })
         .set('Authorization', 'Bearer valid-token');
@@ -254,7 +264,7 @@ describe('GET /ledger/chart-of-accounts', () => {
 
   describe('401 Response', () => {
     it('rejects an unauthenticated request', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .query({ class: 'asset' })
         .set('x-accounting-entity-id', accountingEntityId);
@@ -270,7 +280,7 @@ describe('GET /ledger/chart-of-accounts', () => {
         ...accountingEntity,
         ownerId: '123e4567-e89b-12d3-a456-426614174099' as TEntityId,
       });
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .query({ class: 'asset' })
         .set('Authorization', 'Bearer valid-token')
@@ -282,7 +292,7 @@ describe('GET /ledger/chart-of-accounts', () => {
     it('rejects a user without Alpha 1 access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .query({ class: 'asset' })
         .set('Authorization', 'Bearer valid-token')

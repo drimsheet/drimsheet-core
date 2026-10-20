@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -7,6 +9,8 @@ import * as authUseCase from '@infra/ioc/usecases/auth';
 import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -28,11 +32,17 @@ describe('POST /api/v1/auth/logout', () => {
   });
 
   let app: Express;
+  let server: Server;
   let logoutSpy: jest.SpiedFunction<typeof authUseCase.logoutUseCase>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     logoutSpy = jest.spyOn(authUseCase, 'logoutUseCase').mockResolvedValue();
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterEach(() => {
@@ -48,7 +58,7 @@ describe('POST /api/v1/auth/logout', () => {
         appContext.get(['clientSession']).clientSession.clearRefreshToken();
       });
 
-      const requestBuilder = request(app).post('/api/v1/auth/logout');
+      const requestBuilder = request(server).post('/api/v1/auth/logout');
       if (cookie) {
         requestBuilder.set('Cookie', [cookie]);
       }
@@ -76,7 +86,7 @@ describe('POST /api/v1/auth/logout', () => {
         new Error('database failed with private-refresh-token')
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/logout')
         .set('Cookie', ['refresh_token=private-refresh-token']);
 

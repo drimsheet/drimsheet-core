@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -15,6 +17,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -96,7 +100,8 @@ const header = {
 
 describe('GET /reporting/revenue-expense-accounts', () => {
   let app: Express;
-  beforeEach(() => {
+  let server: Server;
+  beforeEach(async () => {
     jest.resetAllMocks();
     jest.mocked(tokenAppService.getAuthUser).mockResolvedValue({ id: userId });
     jest
@@ -108,9 +113,14 @@ describe('GET /reporting/revenue-expense-accounts', () => {
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockRevenueExpenseAccountsQueryRepo.findAll.mockResolvedValue([]);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
   const getReport = (query: Record<string, string | number | undefined> = {}) =>
-    request(app)
+    request(server)
       .get(endpoint)
       .query(query)
       .set('Authorization', 'Bearer test-token')
@@ -241,7 +251,7 @@ describe('GET /reporting/revenue-expense-accounts', () => {
     it('requires authentication before querying storage', async () => {
       expect(
         (
-          await request(app)
+          await request(server)
             .get(endpoint)
             .set('x-accounting-entity-id', entityId)
         ).status

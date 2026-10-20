@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -16,6 +18,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -121,6 +125,7 @@ const context: IReportingContextDto = {
 
 describe('GET /accounting/reporting-contexts', () => {
   let app: Express;
+  let server: Server;
   const getContexts = jest.mocked(
     accountingUsecases.getReportingContextsUseCase
   );
@@ -129,7 +134,7 @@ describe('GET /accounting/reporting-contexts', () => {
   );
   const getUser = jest.mocked(tokenAppService.getAuthUser);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     getUser.mockResolvedValue({ id: userId });
@@ -141,10 +146,15 @@ describe('GET /accounting/reporting-contexts', () => {
     findEntity.mockResolvedValue(entity);
     getContexts.mockResolvedValue([context]);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   function get() {
-    return request(app)
+    return request(server)
       .get(ENDPOINT)
       .set('Authorization', 'Bearer token')
       .set('x-accounting-entity-id', entity.id);
@@ -204,7 +214,7 @@ describe('GET /accounting/reporting-contexts', () => {
 
   describe('401 Response', () => {
     it('rejects requests without authentication', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('x-accounting-entity-id', entity.id);
       expect(response.status).toBe(401);
@@ -247,7 +257,7 @@ describe('GET /accounting/reporting-contexts', () => {
     });
 
     it('does not read contexts when the entity header is missing', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .get(ENDPOINT)
         .set('Authorization', 'Bearer token');
       expect(response.status).toBe(500);

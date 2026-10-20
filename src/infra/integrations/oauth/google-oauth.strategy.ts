@@ -1,9 +1,5 @@
 import passport from 'passport';
-import {
-  Strategy as GoogleStrategy,
-  Profile,
-  VerifyCallback,
-} from 'passport-google-oauth20';
+import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
 
 import { IOAuthProfile } from '@app/auth/dtos/auth/auth.dto';
 
@@ -28,7 +24,7 @@ export default function setupOAuth() {
   }
 
   passport.use(
-    new GoogleStrategy(
+    new Strategy(
       {
         clientID: vars.GOOGLE_AUTH_CLIENT_ID,
         clientSecret: vars.GOOGLE_AUTH_SECRET,

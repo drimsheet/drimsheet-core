@@ -1,3 +1,4 @@
+import { Server } from 'node:http';
 import { setImmediate } from 'node:timers/promises';
 
 import { Express, Router } from 'express';
@@ -33,6 +34,8 @@ import makeAppContextInitMiddleware from '@interface/http/middlewares/app-contex
 import makeErrorHandlerMiddleware from '@interface/http/middlewares/error-handler.middleware';
 import makeRequestLoggerMiddleware from '@interface/http/middlewares/request-logger.middleware';
 import createMcpServer from '@interface/mcp/server';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/usecases/money', () => ({
   getExchangeRateUseCase: jest.fn(),
@@ -140,10 +143,11 @@ const meta = { page: 1, limit: 10, total: 0, totalPages: 0 };
 
 describe('POST /mcp', () => {
   let app: Express;
+  let server: Server;
   let servers: ReturnType<typeof createMcpServer>[];
   let createServer: jest.Mock<ReturnType<typeof createMcpServer>, []>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockLedgerAccountRepo.findAll.mockResolvedValue({ data: [], meta });
     mockJournalEntryQueryRepo.findAll.mockResolvedValue({ data: [], meta });
@@ -206,6 +210,11 @@ describe('POST /mcp', () => {
       })
     );
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   afterEach(async () => {
@@ -217,7 +226,7 @@ describe('POST /mcp', () => {
   });
 
   function post(method: string, params?: object) {
-    return request(app)
+    return request(server)
       .post('/mcp')
       .set('Host', 'core.test')
       .set('Accept', 'application/json, text/event-stream')
@@ -365,10 +374,10 @@ describe('POST /mcp', () => {
     });
 
     it('preserves health ordering and existing REST routes', async () => {
-      const health = await request(app).get('/health/live');
+      const health = await request(server).get('/health/live');
       expect(health.status).toBe(200);
       expect(health.headers['x-correlation-id']).toBeUndefined();
-      const existing = await request(app).get('/existing');
+      const existing = await request(server).get('/existing');
       expect(existing.status).toBe(200);
       expect(existing.body).toEqual({ ok: true });
       expect(existing.headers['x-correlation-id']).toBeDefined();
@@ -404,7 +413,9 @@ describe('POST /mcp', () => {
 
   describe('405 Response', () => {
     it('lets the SDK reject unsupported HTTP methods', async () => {
-      const response = await request(app).put('/mcp').set('Host', 'core.test');
+      const response = await request(server)
+        .put('/mcp')
+        .set('Host', 'core.test');
       expect(response.status).toBe(405);
     });
   });

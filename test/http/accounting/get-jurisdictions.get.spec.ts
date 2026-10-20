@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -8,6 +10,8 @@ import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-
 import * as accountingUsecases from '@infra/ioc/usecases/accounting';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -48,18 +52,24 @@ describe('GET /accounting/jurisdictions', () => {
   });
 
   let app: Express;
+  let server: Server;
   const mockGetJurisdictions =
     accountingUsecases.getJurisdictionsUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockGetJurisdictions.mockResolvedValue(jurisdictions);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
     it('returns the public jurisdiction contract with security headers', async () => {
-      const response = await request(app).get(ENDPOINT);
+      const response = await request(server).get(ENDPOINT);
 
       expect(response.status).toBe(200);
       expect(response.type).toBe('application/json');
@@ -77,7 +87,7 @@ describe('GET /accounting/jurisdictions', () => {
         new Error('internal configuration secret')
       );
 
-      const response = await request(app).get(ENDPOINT);
+      const response = await request(server).get(ENDPOINT);
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({

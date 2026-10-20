@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -16,6 +18,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -75,6 +79,7 @@ const entity: IAccountingEntity = {
 
 describe('POST /accounting/accounting-entity/archive', () => {
   let app: Express;
+  let server: Server;
   const archive = jest.mocked(
     accountingUsecases.archiveAccountingEntityUseCase
   );
@@ -82,7 +87,7 @@ describe('POST /accounting/accounting-entity/archive', () => {
     accountingRepos.accountingEntity.findByIdAndUserId
   );
   const getUser = jest.mocked(tokenAppService.getAuthUser);
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     getUser.mockResolvedValue({ id: userId } as never);
@@ -94,10 +99,15 @@ describe('POST /accounting/accounting-entity/archive', () => {
     findEntity.mockResolvedValue(entity);
     archive.mockResolvedValue(undefined);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   function archiveEntity(id = entity.id) {
-    return request(app)
+    return request(server)
       .post(ENDPOINT)
       .set('Authorization', 'Bearer token')
       .set('x-accounting-entity-id', id);

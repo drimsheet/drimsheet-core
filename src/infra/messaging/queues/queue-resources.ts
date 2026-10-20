@@ -1,6 +1,6 @@
 import type { Queue, Worker } from 'bullmq';
 
-import { closeQueueConnection } from '@infra/config/redis.config';
+import { closeRedisConnections } from '@infra/config/redis.config';
 
 const initializedQueues = new Set<Queue>();
 const initializedWorkers = new Set<Worker>();
@@ -14,7 +14,8 @@ function registerWorker(worker: Worker): void {
 }
 
 /**
- * Drains workers, then closes producers before releasing the shared connection.
+ * Drains workers, then closes producers before releasing initialized Redis
+ * connections.
  * Reports failures to the runtime after all cleanup has been attempted.
  */
 async function closeQueues(): Promise<void> {
@@ -40,7 +41,7 @@ async function closeQueues(): Promise<void> {
   }
 
   try {
-    closeQueueConnection();
+    closeRedisConnections();
   } catch (error) {
     failures.push(error);
   }

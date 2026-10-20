@@ -21,11 +21,9 @@ async function isEnabled(
   context: IFeatureFlagContext,
   defaultValue: boolean
 ) {
-  return await launchDarklyClient.boolVariation(
-    flagKey,
-    buildUserKind(context.email),
-    defaultValue
-  );
+  return await launchDarklyClient
+    .get()
+    .boolVariation(flagKey, buildUserKind(context.email), defaultValue);
 }
 
 const featureFlagService: IFeatureFlagService = Object.freeze({

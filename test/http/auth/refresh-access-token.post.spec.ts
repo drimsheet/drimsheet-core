@@ -12,6 +12,8 @@ import appContext from '@infra/services/app-context.service';
 
 import createApplication from '@interface/http/application';
 
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
+
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
   actorService: jest.requireActual(
@@ -38,20 +40,18 @@ describe('POST /api/v1/auth/refresh-access-token', () => {
   >;
   let server: Server;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     refreshSpy = jest
       .spyOn(authUseCase, 'refreshAccessTokenUseCase')
       .mockResolvedValue({ accessToken: 'new-refreshed-access-token' });
     app = createApplication();
-    server = app.listen();
+    server = await startTestServer(app);
     client = request(server);
   });
 
   afterEach(async () => {
     refreshSpy.mockRestore();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
+    await closeTestServer(server);
   });
 
   describe('200 Response', () => {
@@ -63,7 +63,7 @@ describe('POST /api/v1/auth/refresh-access-token', () => {
         return { accessToken: 'new-refreshed-access-token' };
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/refresh-access-token')
         .set('Cookie', ['refresh_token=valid-refresh-token']);
 
@@ -92,7 +92,7 @@ describe('POST /api/v1/auth/refresh-access-token', () => {
         throw new appError.Unauthorized();
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/refresh-access-token')
         .set('Cookie', ['refresh_token=revoked-private-token']);
 
@@ -137,7 +137,7 @@ describe('POST /api/v1/auth/refresh-access-token', () => {
         new Error('database failed with private-refresh-token')
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/refresh-access-token')
         .set('Cookie', ['refresh_token=private-refresh-token']);
 

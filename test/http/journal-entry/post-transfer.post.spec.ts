@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -19,6 +21,8 @@ import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 import * as journalEntryUseCases from '@infra/ioc/usecases/journal-entry';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/handlers/http', () => {
   const makeHttpErrorHandler = jest.requireActual<
@@ -111,9 +115,10 @@ const endpoint = `/api/v1/journal-entries/transfer/${entryId}/post`;
 
 describe('POST /journal-entries/transfer/{id}/post', () => {
   let app: Express;
+  let server: Server;
   const posting = jest.mocked(journalEntryUseCases.postDraftTransferUseCase);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     mockActorService.resolveUser.mockResolvedValue(actor);
     mockTokenAppService.getAuthUser.mockResolvedValue({ id: userId });
@@ -128,10 +133,15 @@ describe('POST /journal-entries/transfer/{id}/post', () => {
     );
     posting.mockResolvedValue(undefined);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   const post = () =>
-    request(app)
+    request(server)
       .post(endpoint)
       .set('Authorization', 'Bearer valid-token')
       .set('x-accounting-entity-id', accountingEntityId);
@@ -161,7 +171,7 @@ describe('POST /journal-entries/transfer/{id}/post', () => {
 
   describe('401 Response', () => {
     it('requires authentication', async () => {
-      expect((await request(app).post(endpoint)).status).toBe(401);
+      expect((await request(server).post(endpoint)).status).toBe(401);
       expect(posting).not.toHaveBeenCalled();
     });
   });

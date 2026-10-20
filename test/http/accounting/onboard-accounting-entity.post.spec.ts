@@ -1,3 +1,5 @@
+import { Server } from 'node:http';
+
 import { Express } from 'express';
 import request from 'supertest';
 
@@ -18,6 +20,8 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
+
+import { closeTestServer, startTestServer } from '../../setup/http-listener';
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -103,6 +107,7 @@ const createdEntity: IAccountingEntity = {
 
 describe('POST /accounting/accounting-entity/onboarding', () => {
   let app: Express;
+  let server: Server;
   const mockGetAuthUser = tokenAppService.getAuthUser as jest.Mock;
   const mockFindUser = userRepos.user.findById as jest.Mock;
   const mockFindAccountingEntity = accountingRepos.accountingEntity
@@ -110,7 +115,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
   const mockCreateAccountingEntity =
     accountingUsecases.onboardAccountingEntityUseCase as jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
     mockGetAuthUser.mockResolvedValue({ id: userId });
@@ -122,11 +127,16 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
     mockFindAccountingEntity.mockResolvedValue(null);
     mockCreateAccountingEntity.mockResolvedValue(createdEntity);
     app = createApplication();
+    server = await startTestServer(app);
+  });
+
+  afterEach(async () => {
+    await closeTestServer(server);
   });
 
   describe('201 Response', () => {
     it('returns the explicit entity contract with security headers', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(validPayload);
@@ -156,7 +166,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
       };
       mockCreateAccountingEntity.mockResolvedValue(soleTraderEntity);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(soleTraderPayload);
@@ -179,7 +189,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
       };
       mockCreateAccountingEntity.mockResolvedValue(privateCompanyEntity);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(privateCompanyPayload);
@@ -212,7 +222,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
         })
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(overLimitPayload);
@@ -242,7 +252,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
         })
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(validPayload);
@@ -263,7 +273,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
       ['wrong authorization scheme', 'Basic token'],
       ['authorization with extra segments', 'Bearer token extra'],
     ])('rejects %s', async (_label, authorization) => {
-      const requestBuilder = request(app).post(ENDPOINT).send(validPayload);
+      const requestBuilder = request(server).post(ENDPOINT).send(validPayload);
       if (authorization) {
         requestBuilder.set('Authorization', authorization);
       }
@@ -281,7 +291,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
     it('rejects a nonexistent user', async () => {
       mockFindUser.mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(validPayload);
@@ -293,7 +303,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
     it('rejects an expired bearer token', async () => {
       mockGetAuthUser.mockRejectedValue(new authError.ExpiredToken());
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer expired-token')
         .send(validPayload);
@@ -311,7 +321,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
     it('rejects a user without Alpha 1 access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(validPayload);
@@ -330,7 +340,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
         ownerId: '999e4567-e89b-12d3-a456-426614174999',
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .set('x-accounting-entity-id', createdEntity.id)
@@ -387,7 +397,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
         },
       ],
     ])('rejects %s before orchestration', async (_label, override) => {
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send({ ...validPayload, ...override });
@@ -407,7 +417,7 @@ describe('POST /accounting/accounting-entity/onboarding', () => {
         new Error('database credentials leaked')
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer valid-token')
         .send(validPayload);
