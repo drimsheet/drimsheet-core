@@ -17,7 +17,10 @@ import {
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
-import { IAccountingContext } from '@domain/accounting/types/context.types';
+import {
+  IAccountingContext,
+  IReportingContext,
+} from '@domain/accounting/types/context.types';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import {
   IAccountingPeriod,
@@ -52,7 +55,7 @@ import {
   getFiscalYearsUseCase,
   getFiscalYearUseCase,
   getJurisdictionsUseCase,
-  getReportingContextsUseCase,
+  getReportingContextUseCase,
   getUserAccountingEntitiesUseCase,
   switchAccountingEntityUseCase,
   updateAccountingEntityUseCase,
@@ -198,6 +201,28 @@ export class AccountingController extends Controller {
     return await getAccountingPeriodsUseCase(fiscalYearId);
   }
 
+  /** Returns the fiscal year's context, including closed contexts, or null. */
+  @Get('/fiscal-years/{id}/reporting-context')
+  @OperationId('getReportingContext')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getReportingContext(
+    @Path() id: string
+  ): Promise<IReportingContext | null> {
+    this.setHeader('Content-Type', 'application/json');
+    return await getReportingContextUseCase(id);
+  }
+
   /**
    * Get jurisdictions
    */
@@ -207,23 +232,6 @@ export class AccountingController extends Controller {
   @Response<IHttpErrorDto>('500')
   public async getJurisdictions() {
     return await getJurisdictionsUseCase();
-  }
-
-  /** Returns all unclosed reporting contexts for x-accounting-entity-id, with each fiscal year and its reporting periods. */
-  @Get('/reporting-contexts')
-  @OperationId('getReportingContexts')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async getReportingContexts() {
-    return await getReportingContextsUseCase();
   }
 
   /**

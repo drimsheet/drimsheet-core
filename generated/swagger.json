@@ -6662,53 +6662,21 @@
         ]
       }
     },
-    "/accounting/jurisdictions": {
+    "/accounting/fiscal-years/{id}/reporting-context": {
       "get": {
-        "operationId": "getJurisdictions",
+        "operationId": "getReportingContext",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IJurisdictionDto"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Get jurisdictions",
-        "tags": ["Accounting"],
-        "security": [],
-        "parameters": []
-      }
-    },
-    "/accounting/reporting-contexts": {
-      "get": {
-        "operationId": "getReportingContexts",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IReportingContextDto"
-                  },
-                  "type": "array"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/IReportingContext"
+                    }
+                  ],
+                  "nullable": true
                 }
               }
             }
@@ -6743,6 +6711,26 @@
               }
             }
           },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
           "500": {
             "description": "",
             "content": {
@@ -6754,7 +6742,50 @@
             }
           }
         },
-        "description": "Returns all unclosed reporting contexts for x-accounting-entity-id, with each fiscal year and its reporting periods.",
+        "description": "Returns the fiscal year's context, including closed contexts, or null.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/accounting/jurisdictions": {
+      "get": {
+        "operationId": "getJurisdictions",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IJurisdictionDto"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get jurisdictions",
         "tags": ["Accounting"],
         "security": [],
         "parameters": []
@@ -11386,6 +11417,68 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IReportingContext": {
+        "properties": {
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "reportingCurrencyCode": {
+            "$ref": "#/components/schemas/UCurrencyCode"
+          },
+          "accountingContextId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "currentReportingPeriodId": {
+            "$ref": "#/components/schemas/TEntityId",
+            "description": "Stored working-period selection, maintained independently of reads."
+          },
+          "accountingStandardCode": {
+            "$ref": "#/components/schemas/UAccountingStandardCode"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "createdBy",
+          "id",
+          "name",
+          "description",
+          "accountingEntityId",
+          "reportingCurrencyCode",
+          "accountingContextId",
+          "currentReportingPeriodId",
+          "accountingStandardCode",
+          "createdAt",
+          "updatedAt",
+          "closedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IAccountingStandardDto": {
         "properties": {
           "individual": {
@@ -11436,132 +11529,6 @@
           "currencyCode",
           "maxFiscalMonths",
           "accountingStandards"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IReportingPeriod": {
-        "description": "startDate is the first included UTC calendar date; endDate is the last.\nThe interval is due for reporting from the following UTC day. Current-period\nselection, scheduling, and report execution are handled separately.",
-        "properties": {
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "name": {
-            "type": "string"
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "unit": {
-            "$ref": "#/components/schemas/UPeriodUnit"
-          },
-          "count": {
-            "type": "number",
-            "format": "double"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "fiscalYearId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "createdBy",
-          "id",
-          "name",
-          "accountingEntityId",
-          "unit",
-          "count",
-          "startDate",
-          "endDate",
-          "fiscalYearId",
-          "updatedAt"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IReportingContextDto": {
-        "properties": {
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "reportingCurrencyCode": {
-            "$ref": "#/components/schemas/UCurrencyCode"
-          },
-          "accountingContextId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "currentReportingPeriodId": {
-            "$ref": "#/components/schemas/TEntityId",
-            "description": "Stored working-period selection, maintained independently of reads."
-          },
-          "accountingStandardCode": {
-            "$ref": "#/components/schemas/UAccountingStandardCode"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "closedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "fiscalYear": {
-            "$ref": "#/components/schemas/IFiscalYear"
-          },
-          "reportingPeriods": {
-            "items": {
-              "$ref": "#/components/schemas/IReportingPeriod"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "createdBy",
-          "id",
-          "name",
-          "description",
-          "accountingEntityId",
-          "reportingCurrencyCode",
-          "accountingContextId",
-          "currentReportingPeriodId",
-          "accountingStandardCode",
-          "createdAt",
-          "updatedAt",
-          "closedAt",
-          "fiscalYear",
-          "reportingPeriods"
         ],
         "type": "object",
         "additionalProperties": false
@@ -11663,6 +11630,59 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IReportingPeriod": {
+        "description": "startDate is the first included UTC calendar date; endDate is the last.\nThe interval is due for reporting from the following UTC day. Current-period\nselection, scheduling, and report execution are handled separately.",
+        "properties": {
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UPeriodUnit"
+          },
+          "count": {
+            "type": "number",
+            "format": "double"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fiscalYearId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "createdBy",
+          "id",
+          "name",
+          "accountingEntityId",
+          "unit",
+          "count",
+          "startDate",
+          "endDate",
+          "fiscalYearId",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IReportingPeriodsCreationReq": {
         "properties": {
           "fiscalYearId": {
@@ -11678,68 +11698,6 @@
           }
         },
         "required": ["fiscalYearId", "unit", "count"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IReportingContext": {
-        "properties": {
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "reportingCurrencyCode": {
-            "$ref": "#/components/schemas/UCurrencyCode"
-          },
-          "accountingContextId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "currentReportingPeriodId": {
-            "$ref": "#/components/schemas/TEntityId",
-            "description": "Stored working-period selection, maintained independently of reads."
-          },
-          "accountingStandardCode": {
-            "$ref": "#/components/schemas/UAccountingStandardCode"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "closedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        "required": [
-          "createdBy",
-          "id",
-          "name",
-          "description",
-          "accountingEntityId",
-          "reportingCurrencyCode",
-          "accountingContextId",
-          "currentReportingPeriodId",
-          "accountingStandardCode",
-          "createdAt",
-          "updatedAt",
-          "closedAt"
-        ],
         "type": "object",
         "additionalProperties": false
       },

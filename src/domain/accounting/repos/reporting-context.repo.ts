@@ -5,6 +5,19 @@ import { IReportingContext } from '@domain/accounting/types/context.types';
 import { IReportingContextHistory } from '@domain/accounting/types/reporting-context-audit.types';
 
 export default interface IReportingContextRepo {
+  /** Includes closed contexts (ACC-RC-006). */
+  existsByAccountingContext(
+    accountingContextId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<boolean>;
+
+  /** Returns the fiscal year's context, including closed contexts. */
+  findByFiscalYear(
+    accountingEntityId: TEntityId,
+    fiscalYearId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IReportingContext | null>;
+
   update(
     context: IReportingContext,
     options: IWriteRepoOptions<IReportingContextHistory>

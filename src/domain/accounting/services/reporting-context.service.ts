@@ -15,9 +15,12 @@ interface IDependencies {
   reportingPeriodRepo: IReportingPeriodRepo;
 }
 
-/** Enforces eligibility and ownership before preparing the reporting context. */
-function makeCreate(): IReportingContextService['create'] {
-  return (input) => {
+/**
+ * Enforces ownership and one reporting context per accounting context
+ * (ACC-RC-006). Storage uniqueness protects concurrent creation.
+ */
+function makeCreate(deps: IDependencies): IReportingContextService['create'] {
+  return async (input, repoOptions) => {
     if (input.accountingEntity.status === EAccountingEntityStatus.Archived) {
       throw new accountingEntityError.Archived();
     }
@@ -27,6 +30,15 @@ function makeCreate(): IReportingContextService['create'] {
       input.accountingContext,
       input.reportingPeriod
     );
+
+    const contextExists =
+      await deps.reportingContextRepo.existsByAccountingContext(
+        input.accountingContext.id,
+        repoOptions
+      );
+    if (contextExists) {
+      throw new accountingError.ReportingContextAlreadyExists();
+    }
 
     return reportingContextEntity.make({
       accountingEntityId: input.accountingEntity.id,
@@ -114,7 +126,7 @@ export default function makeReportingContextService(
   deps: IDependencies
 ): IReportingContextService {
   return Object.freeze({
-    create: makeCreate(),
+    create: makeCreate(deps),
     updateCurrentReportingPeriod: makeUpdateCurrentReportingPeriod(deps),
   });
 }

@@ -18,12 +18,11 @@ import {
   mockReportingContextRepo,
   mockReportingPeriodRepo,
 } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockReportingContextQueryRepo from '@app/accounting/contracts/__mocks__/reporting-context.query.repo.mock';
 import { IAccountingEntityCreationDto } from '@app/accounting/dtos/accounting/accounting.dto';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeCreateAccountingEntityUsecase from '@app/accounting/usecases/create-accounting-entity.usecase';
 import makeGetAccountingContextUsecase from '@app/accounting/usecases/get-accounting-context.usecase';
-import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
+import makeGetReportingContextUsecase from '@app/accounting/usecases/get-reporting-context.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
@@ -124,9 +123,7 @@ describe('makeCreateAccountingEntityUsecase', () => {
     mockAccountingEntityRepo.findByUserId.mockResolvedValue([entity]);
     mockFiscalYearRepo.findById.mockResolvedValue(null);
     mockAccountingContextRepo.findByFiscalYear.mockResolvedValue(null);
-    mockReportingContextQueryRepo.findActiveByAccountingEntityId.mockResolvedValue(
-      []
-    );
+    mockReportingContextRepo.findByFiscalYear.mockResolvedValue(null);
     mockAccountingPeriodRepo.findAllByDate.mockResolvedValue([]);
 
     const readEntities = makeGetUserAccountingEntitiesUseCase({
@@ -138,9 +135,10 @@ describe('makeCreateAccountingEntityUsecase', () => {
       fiscalYearRepo: mockFiscalYearRepo,
       accountingContextRepo: mockAccountingContextRepo,
     });
-    const readReportingContexts = makeGetReportingContextsUsecase({
+    const readReportingContext = makeGetReportingContextUsecase({
       appContext: mockAppContext,
-      reportingContextQueryRepo: mockReportingContextQueryRepo,
+      reportingContextRepo: mockReportingContextRepo,
+      fiscalYearRepo: mockFiscalYearRepo,
     });
     const postingPeriods = makeAccountingPeriodService({
       accountingPeriodRepo: mockAccountingPeriodRepo,
@@ -150,7 +148,9 @@ describe('makeCreateAccountingEntityUsecase', () => {
     await expect(
       readAccountingContext('123e4567-e89b-12d3-a456-426614174099')
     ).rejects.toBeInstanceOf(accountingAppError.FiscalYearNotFound);
-    await expect(readReportingContexts()).resolves.toEqual([]);
+    await expect(
+      readReportingContext('123e4567-e89b-12d3-a456-426614174099')
+    ).rejects.toBeInstanceOf(accountingAppError.FiscalYearNotFound);
     await expect(
       postingPeriods.validatePostingPeriod(entity.id, new Date('2026-10-17'), {
         correlationId,

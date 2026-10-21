@@ -52,6 +52,7 @@
   "accounting_error_period_status_invalid",
   "accounting_error_period_unit_invalid",
   "accounting_error_previous_accounting_period_id_invalid",
+  "accounting_error_reporting_context_already_exists_conflict",
   "accounting_error_reporting_context_id_invalid",
   "accounting_error_reporting_context_not_found",
   "accounting_error_standard_invalid",

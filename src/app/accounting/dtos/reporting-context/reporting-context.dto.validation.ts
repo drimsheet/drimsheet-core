@@ -21,3 +21,7 @@ export const reportingContextCreationDtoSchema = z
       .nullable(),
   })
   .strict();
+
+export const getReportingContextParamsValidationSchema = z.object({
+  fiscalYearId: z.uuid(new accountingError.InvalidFiscalYearId().errorKey),
+});

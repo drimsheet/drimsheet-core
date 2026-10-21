@@ -1,13 +1,18 @@
-import { eq } from 'drizzle-orm';
+import { eq, getTableColumns } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 
 import { TEntityId } from '@shared/types/uuid';
 import historyValue from '@shared/values/history/history.vo';
 
 import reportingContextEntity from '@domain/accounting/entities/reporting-context.entity';
+import accountingError from '@domain/accounting/errors/accounting.error';
 
 import { mockReportingContextHistoryRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 
-import { reportingContextsInCore } from '@infra/config/drizzle/schema';
+import {
+  accountingContextsInCore,
+  reportingContextsInCore,
+} from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import reportingContextMapper from '@infra/persistence/repos/accounting/mappers/reporting-context.mapper';
 import repo from '@infra/persistence/repos/accounting/reporting-context.repo.impl';
@@ -95,6 +100,24 @@ describe('reporting-context atomic creation', () => {
     expect(getDbQuery).toHaveBeenCalledWith(options);
   });
 
+  it.each([false, true])(
+    'maps a concurrent duplicate insert to a conflict, wrapped=%s',
+    async (wrapped) => {
+      const fake = fakeTransaction();
+      const duplicate = {
+        code: '23505',
+        constraint: 'reporting_contexts_accounting_context_id_key',
+      };
+      fake.values.mockRejectedValue(wrapped ? { cause: duplicate } : duplicate);
+      await expect(repo.create(context, options)).rejects.toBeInstanceOf(
+        accountingError.ReportingContextAlreadyExists
+      );
+      expect(mockReportingContextHistoryRepo.save).not.toHaveBeenCalled();
+      expect(fake.committed).toEqual([]);
+      expect(fake.staged).toEqual([]);
+    }
+  );
+
   it('rolls back the context insertion when history fails', async () => {
     const fake = fakeTransaction();
     const failure = new Error('history failed');
@@ -104,6 +127,37 @@ describe('reporting-context atomic creation', () => {
     expect(fake.committed).toEqual([]);
     expect(fake.staged).toEqual([]);
   });
+});
+
+describe('reporting-context accounting-context uniqueness lookup', () => {
+  it.each([false, true])(
+    'checks all contexts without filtering closed records, exists=%s',
+    async (exists) => {
+      const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+      const options = { correlationId: 'uniqueness-check' };
+      const limit = jest.fn().mockResolvedValue(exists ? [{ id }] : []);
+      const where = jest.fn().mockReturnValue({ limit });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+      await expect(repo.existsByAccountingContext(id, options)).resolves.toBe(
+        exists
+      );
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(select).toHaveBeenCalledWith({ id: reportingContextsInCore.id });
+      expect(from).toHaveBeenCalledWith(reportingContextsInCore);
+      const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+      expect(predicate.sql).toBe(
+        '"core"."reporting_contexts"."accounting_context_id" = $1'
+      );
+      expect(predicate.params).toEqual([id]);
+      expect(limit).toHaveBeenCalledWith(1);
+    }
+  );
 });
 
 describe('reporting-context lookup', () => {
@@ -122,6 +176,54 @@ describe('reporting-context lookup', () => {
     updatedAt: '2026-01-01T00:00:00.000Z',
     closedAt: null,
   };
+  it.each(['missing', 'open', 'closed'] as const)(
+    'loads only the fiscal year and entity reporting context: %s',
+    async (state) => {
+      const entityId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
+      const fiscalYearId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
+      const options = { correlationId: 'reporting-context-read' };
+      const stored = {
+        ...row,
+        accountingEntityId: entityId,
+        closedAt: state === 'closed' ? '2026-12-31T00:00:00.000Z' : null,
+      };
+      const limit = jest
+        .fn()
+        .mockResolvedValue(state === 'missing' ? [] : [stored]);
+      const where = jest.fn().mockReturnValue({ limit });
+      const innerJoin = jest.fn().mockReturnValue({ where });
+      const from = jest.fn().mockReturnValue({ innerJoin });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+      await expect(
+        repo.findByFiscalYear(entityId, fiscalYearId, options)
+      ).resolves.toEqual(
+        state === 'missing' ? null : reportingContextMapper.toDomain(stored)
+      );
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(select).toHaveBeenCalledWith(
+        getTableColumns(reportingContextsInCore)
+      );
+      expect(from).toHaveBeenCalledWith(reportingContextsInCore);
+      expect(innerJoin.mock.calls[0][0]).toBe(accountingContextsInCore);
+      const join = new PgDialect().sqlToQuery(innerJoin.mock.calls[0][1]);
+      expect(join.sql).toBe(
+        '("core"."accounting_contexts"."id" = "core"."reporting_contexts"."accounting_context_id" and "core"."accounting_contexts"."accounting_entity_id" = $1)'
+      );
+      expect(join.params).toEqual([entityId]);
+      const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+      expect(predicate.sql).toBe(
+        '("core"."reporting_contexts"."accounting_entity_id" = $1 and "core"."accounting_contexts"."fiscal_year_id" = $2)'
+      );
+      expect(predicate.params).toEqual([entityId, fiscalYearId]);
+      expect(limit).toHaveBeenCalledWith(1);
+    }
+  );
+
   it.each([false, true])(
     'loads and maps a context by ID, found=%j',
     async (found) => {

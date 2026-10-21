@@ -15,7 +15,7 @@ import makeGetFiscalYearsUsecase from '@app/accounting/usecases/get-fiscal-years
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
 import makeGetNextCurrentAccountingPeriodUsecase from '@app/accounting/usecases/get-next-current-accounting-period.usecase';
 import makeGetNextCurrentReportingPeriodUsecase from '@app/accounting/usecases/get-next-current-reporting-period.usecase';
-import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
+import makeGetReportingContextUsecase from '@app/accounting/usecases/get-reporting-context.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import makeSetCurrentAccountingPeriodUsecase from '@app/accounting/usecases/set-current-accounting-period.usecase';
 import makeSetCurrentReportingPeriodUsecase from '@app/accounting/usecases/set-current-reporting-period.usecase';
@@ -158,11 +158,12 @@ export const getAccountingContextUseCase = makeTracedUseCase(
   })
 );
 
-export const getReportingContextsUseCase = makeTracedUseCase(
-  'accounting.getReportingContextsUseCase',
-  makeGetReportingContextsUsecase({
+export const getReportingContextUseCase = makeTracedUseCase(
+  'accounting.getReportingContextUseCase',
+  makeGetReportingContextUsecase({
     appContext,
-    reportingContextQueryRepo: accountingRepos.reportingContextQuery,
+    reportingContextRepo: accountingRepos.reportingContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
   })
 );
 

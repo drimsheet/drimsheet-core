@@ -8,6 +8,8 @@ const EErrorKeys = {
   AccountingContextAlreadyExists:
     'accounting_error_accounting_context_already_exists_conflict',
   AccountingContextNotFound: 'accounting_error_accounting_context_not_found',
+  ReportingContextAlreadyExists:
+    'accounting_error_reporting_context_already_exists_conflict',
   ReportingContextNotFound: 'accounting_error_reporting_context_not_found',
   FiscalYearNotFound: 'accounting_error_fiscal_year_not_found',
   InvalidCreatedBy: 'accounting_error_created_by_invalid',

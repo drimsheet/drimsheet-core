@@ -1085,6 +1085,9 @@ export const reportingContextsInCore = core.table(
       foreignColumns: [accountingStandardsInCore.code],
       name: 'reporting_contexts_accounting_standard_code_fkey',
     }).onDelete('restrict'),
+    unique('reporting_contexts_accounting_context_id_key').on(
+      table.accountingContextId
+    ),
   ]
 );
 
