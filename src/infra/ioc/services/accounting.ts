@@ -9,7 +9,11 @@ import accountingRepos from '@infra/persistence/repos/accounting';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 
-export const reportingContextService = makeReportingContextService();
+export const reportingContextService = makeReportingContextService({
+  reportingContextRepo: accountingRepos.reportingContext,
+  accountingContextRepo: accountingRepos.accountingContext,
+  reportingPeriodRepo: accountingRepos.reportingPeriod,
+});
 
 export const accountingContextService = makeAccountingContextService({
   accountingContextRepo: accountingRepos.accountingContext,

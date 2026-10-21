@@ -23,6 +23,19 @@ Use the folder that owns the behavior.
 - Import concrete integrations directly. Do not add a provider registry, base
   adapter, or compatibility re-export without a current requirement.
 
+## Messaging
+
+- `src/infra/messaging/` contains subdirectories and its `index.ts`
+  composition/barrel file.
+- `messaging/queues/` contains concrete queue implementations and their
+  composition; `messaging/workers/`, when needed, contains concrete worker
+  implementations and their composition.
+- Queue instrumentation belongs in `infra/observability`, resource tracking
+  and cleanup in `infra/runtime/lifecycle`, and startup registration in
+  `infra/runtime/bootstrap`.
+- Colocated test and documentation directories are permitted. Do not retain
+  empty directories or add support directories to house misplaced behavior.
+
 ## Rules
 
 - Never import or use third-party libraries directly inside `src/domain`,

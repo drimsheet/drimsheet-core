@@ -5,13 +5,13 @@ import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 
 import { postgres } from '@infra/config/postgres.config';
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
-import queueResources from '@infra/messaging/queues/queue-resources';
 import { bootstrapAccountingContext } from '@infra/runtime/bootstrap/accounting-context.bootstrap';
 import bootstrapCurrencies from '@infra/runtime/bootstrap/currencies.bootstrap';
 import eventsRegistry from '@infra/runtime/bootstrap/events.bootstrap';
 import runtimeHealth from '@infra/runtime/health';
 import runHttp from '@infra/runtime/lifecycle/http-runtime.lifecycle';
 import observabilityLifecycle from '@infra/runtime/lifecycle/observability.lifecycle';
+import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 import setupServer from '@infra/runtime/servers/express';
 
 jest.mock('@infra/config/postgres.config', () => ({
@@ -58,9 +58,9 @@ jest.mock('@infra/runtime/lifecycle/observability.lifecycle', () => ({
   __esModule: true,
   default: { shutdown: jest.fn() },
 }));
-jest.mock('@infra/messaging/queues/queue-resources', () => ({
+jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
   __esModule: true,
-  default: { close: jest.fn() },
+  default: { shutdown: jest.fn() },
 }));
 jest.mock('@infra/runtime/servers/express', () => ({
   __esModule: true,
@@ -93,7 +93,7 @@ describe('HTTP runtime lifecycle', () => {
   ];
   const cleanup = [
     launchDarklyLifecycle.shutdown,
-    queueResources.close,
+    queueLifecycle.shutdown,
     postgres.$client.end,
     observabilityLifecycle.shutdown,
   ];
@@ -339,7 +339,7 @@ describe('HTTP runtime lifecycle', () => {
       await tick();
       expect(close).toHaveBeenCalledTimes(1);
       if (phase === 'initializing') {
-        expect(queueResources.close).not.toHaveBeenCalled();
+        expect(queueLifecycle.shutdown).not.toHaveBeenCalled();
         pending.resolve();
       }
       await starting;

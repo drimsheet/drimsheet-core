@@ -9,9 +9,8 @@ import ICurrentAccountingPeriodQueue, {
 import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
-import { makeTraceEnvelope } from '@infra/messaging/trace-context';
-
-import queueResources from './queue-resources';
+import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
+import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let currentAccountingPeriodQueue:
   | Queue<ITraceEnvelope<INextCurrentAccountingPeriodDto>>
@@ -25,7 +24,7 @@ function getCurrentAccountingPeriodQueue(): Queue<
     { connection: getQueueConnection() }
   );
 
-  queueResources.register(currentAccountingPeriodQueue);
+  queueLifecycle.register(currentAccountingPeriodQueue);
   return currentAccountingPeriodQueue;
 }
 

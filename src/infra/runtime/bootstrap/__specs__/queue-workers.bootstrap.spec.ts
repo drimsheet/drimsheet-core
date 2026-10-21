@@ -4,15 +4,19 @@ import mockQueueMetrics from '@shared/contracts/__mocks__/queue-metrics.mock';
 import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
 
 import { CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-accounting-period-queue.contract';
+import { CURRENT_REPORTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-reporting-period-queue.contract';
 import { LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME } from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { TRANSACTIONAL_EMAIL_QUEUE_NAME } from '@app/notification/contracts/transactional-email-queue.contract';
 
 import { registerBullMQWorker } from '@infra/config/bullmq.config';
-import { setCurrentAccountingPeriodWorker } from '@infra/ioc/workers/accounting';
+import {
+  setCurrentAccountingPeriodWorker,
+  setCurrentReportingPeriodWorker,
+} from '@infra/ioc/workers/accounting';
 import { ledgerAccountBalanceAdjustmentWorker } from '@infra/ioc/workers/ledger';
 import { transactionalEmailWorker } from '@infra/ioc/workers/notification';
-import queueResources from '@infra/messaging/queues/queue-resources';
-import workerRegistrations from '@infra/messaging/workers';
+import workerRegistrations from '@infra/runtime/bootstrap/queue-workers.bootstrap';
+import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 import appContext from '@infra/services/app-context.service';
 
 jest.mock('bullmq', () => ({ Worker: jest.fn() }));
@@ -23,9 +27,10 @@ jest.mock('@infra/config/bullmq.config', () => ({
 
 jest.mock('@infra/ioc/workers/accounting', () => ({
   setCurrentAccountingPeriodWorker: jest.fn(),
+  setCurrentReportingPeriodWorker: jest.fn(),
 }));
 
-jest.mock('@infra/messaging/queues/queue-resources', () => ({
+jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
   __esModule: true,
   default: { registerWorker: jest.fn() },
 }));
@@ -49,7 +54,7 @@ jest.mock('@infra/observability', () => ({
   },
 }));
 
-describe('worker registrations', () => {
+describe('queue worker bootstrap', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest
@@ -62,7 +67,7 @@ describe('worker registrations', () => {
       registerWorker();
     }
 
-    expect(registerBullMQWorker).toHaveBeenCalledTimes(3);
+    expect(registerBullMQWorker).toHaveBeenCalledTimes(4);
     expect(registerBullMQWorker).toHaveBeenNthCalledWith(
       1,
       TRANSACTIONAL_EMAIL_QUEUE_NAME,
@@ -87,7 +92,15 @@ describe('worker registrations', () => {
       mockQueueMetrics,
       mockTracer
     );
-    expect(jest.mocked(queueResources.registerWorker).mock.calls).toEqual(
+    expect(registerBullMQWorker).toHaveBeenNthCalledWith(
+      4,
+      CURRENT_REPORTING_PERIOD_QUEUE_NAME,
+      setCurrentReportingPeriodWorker,
+      appContext,
+      mockQueueMetrics,
+      mockTracer
+    );
+    expect(jest.mocked(queueLifecycle.registerWorker).mock.calls).toEqual(
       jest
         .mocked(registerBullMQWorker)
         .mock.results.map((result) => [result.value])
@@ -95,7 +108,7 @@ describe('worker registrations', () => {
   });
 
   it('does not start workers until their registrations are invoked', () => {
-    expect(workerRegistrations).toHaveLength(3);
+    expect(workerRegistrations).toHaveLength(4);
     expect(Object.isFrozen(workerRegistrations)).toBe(true);
     expect(registerBullMQWorker).not.toHaveBeenCalled();
   });

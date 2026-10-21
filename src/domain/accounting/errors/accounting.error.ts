@@ -6,6 +6,7 @@ type TErrorPrefix = TErrorKey<'accounting_error'>;
 
 const EErrorKeys = {
   AccountingContextNotFound: 'accounting_error_accounting_context_not_found',
+  ReportingContextNotFound: 'accounting_error_reporting_context_not_found',
   FiscalYearNotFound: 'accounting_error_fiscal_year_not_found',
   InvalidCreatedBy: 'accounting_error_created_by_invalid',
   InvalidAction: 'accounting_error_action_invalid',
@@ -22,6 +23,9 @@ const EErrorKeys = {
   InvalidAccountingContextId: 'accounting_error_accounting_context_id_invalid',
   InvalidCurrentReportingPeriodId:
     'accounting_error_current_reporting_period_id_invalid',
+  InvalidReportingContextId: 'accounting_error_reporting_context_id_invalid',
+  InvalidNextReportingPeriodId:
+    'accounting_error_next_reporting_period_id_invalid',
   InvalidName: 'accounting_error_name_invalid',
   InvalidDescription: 'accounting_error_description_invalid',
   InvalidJurisdictionCode: 'accounting_error_jurisdiction_code_invalid',

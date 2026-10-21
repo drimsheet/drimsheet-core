@@ -13,7 +13,7 @@ const mockShutdownObservability = jest.fn();
 const mockRegisterAccountingWorker = jest.fn();
 const mockRegisterEmailWorker = jest.fn();
 const mockRegisterLedgerWorker = jest.fn();
-jest.mock('@infra/messaging/workers', () => ({
+jest.mock('@infra/runtime/bootstrap/queue-workers.bootstrap', () => ({
   __esModule: true,
   default: [
     () => mockRegisterEmailWorker(),
@@ -21,9 +21,9 @@ jest.mock('@infra/messaging/workers', () => ({
     () => mockRegisterAccountingWorker(),
   ],
 }));
-jest.mock('@infra/messaging/queues/queue-resources', () => ({
+jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
   __esModule: true,
-  default: { close: () => mockShutdownQueues() },
+  default: { shutdown: () => mockShutdownQueues() },
 }));
 jest.mock('@infra/observability/logger', () => ({
   __esModule: true,

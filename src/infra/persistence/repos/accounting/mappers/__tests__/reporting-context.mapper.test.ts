@@ -61,4 +61,33 @@ describe('reportingContextMapper', () => {
     expect(result.accountingStandardCode).toBe('GAAP');
     expect(result.closedAt).toBe('2026-12-31T00:00:00.000Z');
   });
+  it.each([null, '2026-12-31T00:00:00.000Z'])(
+    'maps persisted context dates and identity, closedAt=%s',
+    (closedAt) => {
+      const row = {
+        id: 'context',
+        createdBy: 'actor',
+        name: 'Reporting',
+        description: null,
+        accountingEntityId: 'entity',
+        reportingCurrencyCode: 'USD',
+        accountingContextId: 'accounting-context',
+        currentReportingPeriodId: 'period',
+        accountingStandardCode: 'IFRS',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-04-01T00:00:00.000Z',
+        closedAt,
+      };
+      const context = reportingContextMapper.toDomain(row);
+      expect(context).toEqual({
+        ...row,
+        createdAt: new Date(row.createdAt),
+        updatedAt: new Date(row.updatedAt),
+        closedAt: closedAt ? new Date(closedAt) : null,
+      });
+      expect(Object.isFrozen(context)).toBe(true);
+      expect(Object.isFrozen(context.updatedAt)).toBe(true);
+      expect(reportingContextMapper.toRepo(context)).toEqual(row);
+    }
+  );
 });

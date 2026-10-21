@@ -13,9 +13,8 @@ import ILedgerBalanceAdjustmentQueue, {
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
-import { makeTraceEnvelope } from '@infra/messaging/trace-context';
-
-import queueResources from './queue-resources';
+import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
+import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let ledgerAccountBalanceAdjustmentQueue:
   | Queue<ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>>
@@ -36,7 +35,7 @@ export function getLedgerAccountBalanceAdjustmentQueue(): Queue<
     }
   );
 
-  queueResources.register(ledgerAccountBalanceAdjustmentQueue);
+  queueLifecycle.register(ledgerAccountBalanceAdjustmentQueue);
   return ledgerAccountBalanceAdjustmentQueue;
 }
 

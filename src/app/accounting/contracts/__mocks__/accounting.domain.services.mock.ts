@@ -7,6 +7,7 @@ import IReportingPeriodService from '@domain/accounting/types/reporting-period.s
 
 export const mockReportingContextService: jest.Mocked<IReportingContextService> =
   {
+    updateCurrentReportingPeriod: jest.fn(),
     create: jest.fn(),
   };
 

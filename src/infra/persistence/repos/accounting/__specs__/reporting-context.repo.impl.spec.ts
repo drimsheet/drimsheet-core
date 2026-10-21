@@ -105,3 +105,147 @@ describe('reporting-context atomic creation', () => {
     expect(fake.staged).toEqual([]);
   });
 });
+
+describe('reporting-context lookup', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+  const row = {
+    id,
+    createdBy: id,
+    accountingEntityId: id,
+    name: 'Accounting context',
+    description: null,
+    accountingStandardCode: 'IFRS',
+    accountingContextId: id,
+    reportingCurrencyCode: 'USD',
+    currentReportingPeriodId: id,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    closedAt: null,
+  };
+  it.each([false, true])(
+    'loads and maps a context by ID, found=%j',
+    async (found) => {
+      const options = { correlationId: 'context-read' };
+      const limit = jest.fn().mockResolvedValue(found ? [row] : []);
+      const where = jest.fn().mockReturnValue({ limit });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+      const result = await repo.findById(id, options);
+      expect(result).toEqual(
+        found ? reportingContextMapper.toDomain(row) : null
+      );
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(from).toHaveBeenCalledWith(reportingContextsInCore);
+      expect(where).toHaveBeenCalledWith(eq(reportingContextsInCore.id, id));
+      expect(limit).toHaveBeenCalledWith(1);
+    }
+  );
+});
+
+describe('reporting-context atomic update', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+  const oldId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
+  const currentId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
+  const [previousContext] = reportingContextEntity.make({
+    createdBy: id,
+    accountingEntityId: id,
+    accountingContextId: id,
+    reportingCurrencyCode: 'USD',
+    currentReportingPeriodId: oldId,
+    accountingStandardCode: 'IFRS',
+    name: 'Working context',
+    description: null,
+  });
+  const [context, , audit] = reportingContextEntity.update(previousContext, {
+    currentReportingPeriodId: currentId,
+  });
+  const history = historyValue.make(audit!, id, 'period-update');
+  const options = { correlationId: 'period-update', tx: {}, history };
+
+  beforeEach(() => jest.resetAllMocks());
+
+  function fakeTransaction() {
+    const committed: unknown[] = [];
+    const staged: unknown[] = [];
+    let pendingRow: unknown;
+    const where = jest.fn(async () => {
+      staged.push(pendingRow);
+    });
+    const set = jest.fn((row: unknown) => {
+      pendingRow = row;
+      return { where };
+    });
+    const update = jest.fn().mockReturnValue({ set });
+    const innerTx = { update };
+    const transaction = jest.fn(
+      async (write: (db: typeof innerTx) => Promise<void>) => {
+        try {
+          await write(innerTx);
+          committed.push(...staged);
+        } finally {
+          staged.length = 0;
+        }
+      }
+    );
+    mockReportingContextHistoryRepo.save.mockImplementation(
+      async (_context, entry) => {
+        staged.push(entry);
+      }
+    );
+    jest
+      .mocked(getDbQuery)
+      .mockReturnValue({ transaction } as unknown as ReturnType<
+        typeof getDbQuery
+      >);
+    return { committed, staged, where, set, update, innerTx };
+  }
+
+  it('saves the mapped context and audit history in one transaction', async () => {
+    const fake = fakeTransaction();
+    await repo.update(context, options);
+    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(fake.update).toHaveBeenCalledWith(reportingContextsInCore);
+    expect(fake.set).toHaveBeenCalledWith(
+      reportingContextMapper.toRepo(context)
+    );
+    expect(fake.where).toHaveBeenCalledWith(
+      eq(reportingContextsInCore.id, context.id)
+    );
+    expect(mockReportingContextHistoryRepo.save).toHaveBeenCalledWith(
+      context,
+      history,
+      {
+        ...options,
+        tx: fake.innerTx,
+      }
+    );
+    expect(fake.committed).toEqual([
+      reportingContextMapper.toRepo(context),
+      history,
+    ]);
+  });
+
+  it('rolls back the context update when history storage fails', async () => {
+    const fake = fakeTransaction();
+    const failure = new Error('History failed');
+    mockReportingContextHistoryRepo.save.mockRejectedValue(failure);
+    await expect(repo.update(context, options)).rejects.toBe(failure);
+    expect(fake.where).toHaveBeenCalled();
+    expect(fake.committed).toEqual([]);
+    expect(fake.staged).toEqual([]);
+  });
+
+  it('propagates update failures without saving history', async () => {
+    const fake = fakeTransaction();
+    const failure = new Error('Write failed');
+    fake.where.mockRejectedValue(failure);
+    await expect(repo.update(context, options)).rejects.toBe(failure);
+    expect(mockReportingContextHistoryRepo.save).not.toHaveBeenCalled();
+    expect(fake.committed).toEqual([]);
+  });
+});

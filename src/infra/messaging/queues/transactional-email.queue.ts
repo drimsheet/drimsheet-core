@@ -13,9 +13,8 @@ import ITransactionalEmailQueue, {
 import { ITransactionalEmailDto } from '@app/notification/dtos/transactional-email/transactional-email.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
-import { makeTraceEnvelope } from '@infra/messaging/trace-context';
-
-import queueResources from './queue-resources';
+import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
+import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let transactionalEmailQueue:
   | Queue<ITraceEnvelope<ITransactionalEmailDto>>
@@ -33,7 +32,7 @@ export function getTransactionalEmailQueue(): Queue<
     },
   });
 
-  queueResources.register(transactionalEmailQueue);
+  queueLifecycle.register(transactionalEmailQueue);
   return transactionalEmailQueue;
 }
 

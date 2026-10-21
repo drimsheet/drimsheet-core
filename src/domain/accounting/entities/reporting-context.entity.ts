@@ -2,7 +2,10 @@ import { TCreationOmits } from '@shared/types/creation-omits.types';
 import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
-import { TAuditedEntity } from '@shared/values/events/types/event.types';
+import {
+  IEvent,
+  TAuditedEntity,
+} from '@shared/values/events/types/event.types';
 
 import getAccountingContextDescription from '@domain/accounting/entities/helpers/get-description.helper';
 import accountingContextValidation from '@domain/accounting/entities/validations/accounting-context.validation';
@@ -10,7 +13,10 @@ import reportingContextValidation from '@domain/accounting/entities/validations/
 import accountingError from '@domain/accounting/errors/accounting.error';
 import reportingContextEvents from '@domain/accounting/events/reporting-context.events';
 import { IReportingContext } from '@domain/accounting/types/context.types';
-import { EReportingContextActions } from '@domain/accounting/types/reporting-context-audit.types';
+import {
+  EReportingContextActions,
+  IReportingContextAudit,
+} from '@domain/accounting/types/reporting-context-audit.types';
 import reportingContextAudit from '@domain/accounting/values/reporting-context-audit.vo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
@@ -74,8 +80,50 @@ function make(
   return [entity, [events], audit];
 }
 
+function update(
+  context: IReportingContext,
+  changes: Pick<IReportingContext, 'currentReportingPeriodId'>
+): [
+  IReportingContext,
+  IEvent<IReportingContext>[],
+  IReportingContextAudit | null,
+] {
+  stringUtils.validateUUID(
+    changes.currentReportingPeriodId,
+    accountingError.InvalidCurrentReportingPeriodId
+  );
+
+  if (context.currentReportingPeriodId === changes.currentReportingPeriodId) {
+    return [context, [], null];
+  }
+
+  const entity: IReportingContext = deepFreeze({
+    id: context.id,
+    createdBy: context.createdBy,
+    name: context.name,
+    description: context.description,
+    accountingEntityId: context.accountingEntityId,
+    reportingCurrencyCode: context.reportingCurrencyCode,
+    accountingContextId: context.accountingContextId,
+    currentReportingPeriodId: changes.currentReportingPeriodId,
+    accountingStandardCode: context.accountingStandardCode,
+    createdAt: context.createdAt,
+    updatedAt: new Date(),
+    closedAt: context.closedAt,
+  });
+
+  const audit = reportingContextAudit.make({
+    before: context,
+    after: entity,
+    action: EReportingContextActions.Updated,
+  });
+
+  return [entity, [reportingContextEvents.updated(entity)], audit];
+}
+
 const reportingContextEntity = Object.freeze({
   make,
+  update,
   ...reportingContextValidation,
 });
 

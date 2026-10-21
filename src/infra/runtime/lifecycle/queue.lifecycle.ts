@@ -4,6 +4,7 @@ import { closeRedisConnections } from '@infra/config/redis.config';
 
 const initializedQueues = new Set<Queue>();
 const initializedWorkers = new Set<Worker>();
+let shutdownPromise: Promise<void> | undefined;
 
 function register(queue: Queue): void {
   initializedQueues.add(queue);
@@ -51,10 +52,15 @@ async function closeQueues(): Promise<void> {
   }
 }
 
-const queueResources = Object.freeze({
+function shutdown(): Promise<void> {
+  shutdownPromise ??= closeQueues();
+  return shutdownPromise;
+}
+
+const queueLifecycle = Object.freeze({
   register,
   registerWorker,
-  close: closeQueues,
+  shutdown,
 });
 
-export default queueResources;
+export default queueLifecycle;
