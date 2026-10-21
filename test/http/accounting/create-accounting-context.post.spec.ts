@@ -47,7 +47,6 @@ jest.mock('@infra/ioc/services/auth', () => ({
 jest.mock('@infra/ioc/usecases/accounting', () => ({
   __esModule: true,
   createAccountingContextUseCase: jest.fn(),
-  onboardAccountingEntityUseCase: jest.fn(),
   getJurisdictionsUseCase: jest.fn(),
   getUserAccountingEntitiesUseCase: jest.fn(),
   getActiveAccountingEntityUseCase: jest.fn(),

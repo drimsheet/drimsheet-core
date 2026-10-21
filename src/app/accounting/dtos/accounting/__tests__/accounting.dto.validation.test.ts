@@ -1,21 +1,15 @@
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
-import { EPeriodUnit } from '@domain/accounting/types/period.types';
 
 import {
   accountingEntityCreationDtoSchema,
-  accountingEntityOnboardingDtoSchema,
   accountingEntitySwitchReqSchema,
   accountingEntityTypeValidation,
   accountingEntityUpdateReqSchema,
   accountingStandardCodeValidation,
-  fiscalYearCreationDtoSchema,
   jurisdictionCodeValidation,
-  periodCreationDtoSchema,
   periodDayValidation,
   periodMonthValidation,
-  periodUnitValidation,
 } from '@app/accounting/dtos/accounting/accounting.dto.validation';
-import { EAppUsageModePreference } from '@app/user/types/user-preferences.types';
 
 describe('Accounting DTO Validation', () => {
   describe('jurisdictionCodeValidation', () => {
@@ -93,205 +87,6 @@ describe('Accounting DTO Validation', () => {
       expect(periodMonthValidation.safeParse(0).success).toBe(false);
       expect(periodMonthValidation.safeParse(13).success).toBe(false);
       expect(periodMonthValidation.safeParse(-1).success).toBe(false);
-    });
-  });
-
-  describe('periodUnitValidation', () => {
-    it('should validate correct period units', () => {
-      expect(periodUnitValidation.safeParse(EPeriodUnit.Day).success).toBe(
-        true
-      );
-      expect(periodUnitValidation.safeParse(EPeriodUnit.Month).success).toBe(
-        true
-      );
-      expect(periodUnitValidation.safeParse(EPeriodUnit.Year).success).toBe(
-        true
-      );
-    });
-
-    it('should fail on invalid period units', () => {
-      expect(periodUnitValidation.safeParse('InvalidUnit').success).toBe(false);
-    });
-  });
-
-  describe('fiscalYearCreationDtoSchema', () => {
-    it('should validate correct fiscal year dates', () => {
-      const payload = {
-        startDate: new Date('2026-01-01'),
-        endDate: new Date('2026-12-31'),
-      };
-      expect(fiscalYearCreationDtoSchema.safeParse(payload).success).toBe(true);
-    });
-
-    it('should fail if dates are missing or invalid types', () => {
-      expect(
-        fiscalYearCreationDtoSchema.safeParse({ startDate: '2026-01-01' })
-          .success
-      ).toBe(false);
-    });
-
-    it.each([
-      ['equal dates', '2026-01-01', '2026-01-01'],
-      ['reversed dates', '2026-02-01', '2026-01-01'],
-    ])('should reject %s', (_label, startDate, endDate) => {
-      expect(
-        fiscalYearCreationDtoSchema.safeParse({
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
-        }).success
-      ).toBe(false);
-    });
-
-    it('should leave fiscal-year maximum policy to the domain', () => {
-      expect(
-        fiscalYearCreationDtoSchema.safeParse({
-          startDate: new Date('2026-01-01'),
-          endDate: new Date('2028-07-01'),
-        }).success
-      ).toBe(true);
-    });
-
-    it('should accept long ranges from a month-end start date', () => {
-      expect(
-        fiscalYearCreationDtoSchema.safeParse({
-          startDate: new Date('2026-08-31'),
-          endDate: new Date('2028-03-01'),
-        }).success
-      ).toBe(true);
-      expect(
-        fiscalYearCreationDtoSchema.safeParse({
-          startDate: new Date('2026-08-31'),
-          endDate: new Date('2028-02-29'),
-        }).success
-      ).toBe(true);
-    });
-  });
-
-  describe('periodCreationDtoSchema', () => {
-    it('should validate correct period details', () => {
-      const payload = {
-        unit: EPeriodUnit.Month,
-        count: 12,
-      };
-      expect(periodCreationDtoSchema.safeParse(payload).success).toBe(true);
-    });
-
-    it('should fail if count is invalid', () => {
-      const payload = {
-        unit: EPeriodUnit.Month,
-        count: 'twelve',
-      };
-      expect(periodCreationDtoSchema.safeParse(payload).success).toBe(false);
-    });
-
-    it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 551])(
-      'should reject unsafe count %s',
-      (count) => {
-        expect(
-          periodCreationDtoSchema.safeParse({
-            unit: EPeriodUnit.Day,
-            count,
-          }).success
-        ).toBe(false);
-      }
-    );
-
-    it.each([1, 550])('should accept boundary count %s', (count) => {
-      expect(
-        periodCreationDtoSchema.safeParse({
-          unit: EPeriodUnit.Day,
-          count,
-        }).success
-      ).toBe(true);
-    });
-  });
-
-  describe('accountingEntityOnboardingDtoSchema', () => {
-    it('should validate a correct onboarding payload', () => {
-      const payload = {
-        name: 'Test Company',
-        entityType: EAccountingEntityType.PrivateCompany,
-        jurisdictionCode: 'GB',
-        accountingStandardCode: 'UK_GAAP',
-        functionalCurrencyCode: 'GBP',
-        reportingCurrencyCode: 'GBP',
-        fiscalYear: {
-          startDate: new Date('2026-01-01'),
-          endDate: new Date('2026-12-31'),
-        },
-        accountingPeriod: {
-          unit: EPeriodUnit.Month,
-          count: 1,
-        },
-        reportingPeriod: {
-          unit: EPeriodUnit.Month,
-          count: 3,
-        },
-        appPreferences: {
-          theme: 'system',
-          appUsageMode: EAppUsageModePreference.NonPowerUser,
-        },
-      };
-      expect(
-        accountingEntityOnboardingDtoSchema.safeParse(payload).success
-      ).toBe(true);
-    });
-
-    it.each([
-      ['missing usage mode', { theme: 'dark' }],
-      ['unsupported theme', { theme: 'sepia', appUsageMode: 'non_power_user' }],
-      ['unknown preference', { appUsageMode: 'non_power_user', compact: true }],
-    ])('should reject %s', (_label, appPreferences) => {
-      const result = accountingEntityOnboardingDtoSchema.safeParse({
-        name: 'Test Company',
-        entityType: EAccountingEntityType.PrivateCompany,
-        jurisdictionCode: 'GB',
-        accountingStandardCode: 'UK_GAAP',
-        functionalCurrencyCode: 'GBP',
-        reportingCurrencyCode: 'GBP',
-        fiscalYear: {
-          startDate: new Date('2026-01-01'),
-          endDate: new Date('2026-12-31'),
-        },
-        accountingPeriod: { unit: EPeriodUnit.Month, count: 1 },
-        reportingPeriod: { unit: EPeriodUnit.Month, count: 3 },
-        appPreferences,
-      });
-
-      expect(result.success).toBe(false);
-    });
-
-    it('should accept power-user app preferences', () => {
-      const result = accountingEntityOnboardingDtoSchema.safeParse({
-        name: 'Test Company',
-        entityType: EAccountingEntityType.PrivateCompany,
-        jurisdictionCode: 'GB',
-        accountingStandardCode: 'UK_GAAP',
-        functionalCurrencyCode: 'GBP',
-        reportingCurrencyCode: 'GBP',
-        fiscalYear: {
-          startDate: new Date('2026-01-01'),
-          endDate: new Date('2026-12-31'),
-        },
-        accountingPeriod: { unit: EPeriodUnit.Month, count: 1 },
-        reportingPeriod: { unit: EPeriodUnit.Month, count: 3 },
-        appPreferences: {
-          theme: 'dark',
-          appUsageMode: EAppUsageModePreference.PowerUser,
-        },
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should fail if onboarding payload is invalid', () => {
-      const payload = {
-        name: 'Test Company',
-        entityType: 'InvalidType',
-      };
-      expect(
-        accountingEntityOnboardingDtoSchema.safeParse(payload).success
-      ).toBe(false);
     });
   });
 

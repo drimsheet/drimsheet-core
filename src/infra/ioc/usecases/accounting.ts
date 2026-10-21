@@ -13,7 +13,6 @@ import makeGetNextCurrentAccountingPeriodUsecase from '@app/accounting/usecases/
 import makeGetNextCurrentReportingPeriodUsecase from '@app/accounting/usecases/get-next-current-reporting-period.usecase';
 import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
-import makeOnboardAccountingEntityUsecase from '@app/accounting/usecases/onboard-accounting-entity.usecase';
 import makeSetCurrentAccountingPeriodUsecase from '@app/accounting/usecases/set-current-accounting-period.usecase';
 import makeSetCurrentReportingPeriodUsecase from '@app/accounting/usecases/set-current-reporting-period.usecase';
 import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-accounting-entity.usecase';
@@ -137,25 +136,6 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
     appContext,
     accountingEntityRepo: accountingRepos.accountingEntity,
     accountingEntityService,
-    eventBus: messaging.eventBus,
-  })
-);
-
-/** @deprecated Legacy combined onboarding; scheduled for removal. */
-export const onboardAccountingEntityUseCase = makeTracedUseCase(
-  'accounting.onboardAccountingEntityUseCase',
-  makeOnboardAccountingEntityUsecase({
-    appContext,
-    accountingEntityRepo: accountingRepos.accountingEntity,
-    userPreferencesAppService,
-    fiscalYearRepo: accountingRepos.fiscalYear,
-    accountingPeriodRepo: accountingRepos.accountingPeriod,
-    accountingContextRepo: accountingRepos.accountingContext,
-    reportingPeriodRepo: accountingRepos.reportingPeriod,
-    reportingContextRepo: accountingRepos.reportingContext,
-    repoService,
-    accountingEntityService,
-    accountingPeriodService,
     eventBus: messaging.eventBus,
   })
 );
