@@ -44,9 +44,13 @@ export default interface IReportingContextService {
 
   /**
    * Rejects archived entities and invalid reference ownership, framework,
-   * or currency before preparing the context, event, and audit. Never persists.
+   * or currency. Rejects existing reporting contexts, including closed ones
+   * (ACC-RC-006), before preparing the context, event, and audit. Never persists.
    */
   create(
-    input: ICreateReportingContextInput
-  ): TAuditedEntity<IReportingContext, IReportingContext, IReportingContext>;
+    input: ICreateReportingContextInput,
+    repoOptions: IReadRepoOptions
+  ): Promise<
+    TAuditedEntity<IReportingContext, IReportingContext, IReportingContext>
+  >;
 }

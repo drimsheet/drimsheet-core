@@ -99,7 +99,7 @@ describe('makeCreateReportingContextUsecase', () => {
     } as ReturnType<typeof mockAppContext.get>);
     mockAccountingContextRepo.findById.mockResolvedValue(sourceContext);
     mockReportingPeriodRepo.findById.mockResolvedValue(period);
-    mockReportingContextService.create.mockReturnValue(creation);
+    mockReportingContextService.create.mockResolvedValue(creation);
     mockReportingContextRepo.create.mockResolvedValue(undefined);
   });
 
@@ -119,16 +119,19 @@ describe('makeCreateReportingContextUsecase', () => {
     expect(mockReportingPeriodRepo.findById).toHaveBeenCalledWith(period.id, {
       correlationId,
     });
-    expect(mockReportingContextService.create).toHaveBeenCalledWith({
-      accountingEntity: entity,
-      accountingContext: sourceContext,
-      reportingPeriod: period,
-      accountingStandardCode: payload.accountingStandardCode,
-      reportingCurrencyCode: payload.reportingCurrencyCode,
-      name: payload.name,
-      description: payload.description,
-      createdBy: actor.id,
-    });
+    expect(mockReportingContextService.create).toHaveBeenCalledWith(
+      {
+        accountingEntity: entity,
+        accountingContext: sourceContext,
+        reportingPeriod: period,
+        accountingStandardCode: payload.accountingStandardCode,
+        reportingCurrencyCode: payload.reportingCurrencyCode,
+        name: payload.name,
+        description: payload.description,
+        createdBy: actor.id,
+      },
+      { correlationId }
+    );
     expect(result).toEqual({
       ...payload,
       accountingEntityId: entity.id,
@@ -186,6 +189,7 @@ describe('makeCreateReportingContextUsecase', () => {
 
   it.each([
     accountingEntityError.Archived,
+    accountingError.ReportingContextAlreadyExists,
     accountingError.InvalidAccountingContextId,
     accountingError.InvalidCurrentReportingPeriodId,
     accountingStandardError.Invalid,
@@ -193,9 +197,7 @@ describe('makeCreateReportingContextUsecase', () => {
     'propagates domain creation rejection without persisting or publishing',
     async (ErrorType) => {
       const error = new ErrorType();
-      mockReportingContextService.create.mockImplementation(() => {
-        throw error;
-      });
+      mockReportingContextService.create.mockRejectedValue(error);
       await expect(execute(payload)).rejects.toBe(error);
       expect(mockReportingContextService.create).toHaveBeenCalledTimes(1);
       expect(mockReportingContextRepo.create).not.toHaveBeenCalled();
@@ -234,6 +236,29 @@ describe('makeCreateReportingContextUsecase', () => {
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
+
+  it('propagates a concurrent uniqueness conflict without publishing', async () => {
+    const failure = new accountingError.ReportingContextAlreadyExists();
+    mockReportingContextRepo.create.mockRejectedValue(failure);
+    await expect(execute(payload)).rejects.toBe(failure);
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('awaits domain preparation before persisting', async () => {
+    let finish!: () => void;
+    mockReportingContextService.create.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve(creation);
+        })
+    );
+    const pending = execute(payload);
+    await new Promise(process.nextTick);
+    expect(mockReportingContextRepo.create).not.toHaveBeenCalled();
+    finish();
+    await pending;
+    expect(mockReportingContextRepo.create).toHaveBeenCalledTimes(1);
+  });
 
   it('waits for repository creation to resolve before publishing', async () => {
     let commit!: () => void;

@@ -2972,58 +2972,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingStandardDto: {
-    dataType: 'refObject',
-    properties: {
-      individual: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-        required: true,
-      },
-      sole_trader: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-        required: true,
-      },
-      private_company: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-        required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJurisdictionDto: {
-    dataType: 'refObject',
-    properties: {
-      code: { dataType: 'string', required: true },
-      name: { dataType: 'string', required: true },
-      currencyCode: { dataType: 'string', required: true },
-      maxFiscalMonths: { dataType: 'double', required: true },
-      accountingStandards: { ref: 'IAccountingStandardDto', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IReportingPeriod: {
-    dataType: 'refObject',
-    properties: {
-      createdBy: { ref: 'TEntityId', required: true },
-      id: { ref: 'TEntityId', required: true },
-      name: { dataType: 'string', required: true },
-      accountingEntityId: { ref: 'TEntityId', required: true },
-      unit: { ref: 'UPeriodUnit', required: true },
-      count: { dataType: 'double', required: true },
-      startDate: { dataType: 'datetime', required: true },
-      endDate: { dataType: 'datetime', required: true },
-      fiscalYearId: { ref: 'TEntityId', required: true },
-      updatedAt: { dataType: 'datetime', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IReportingContextDto: {
+  IReportingContext: {
     dataType: 'refObject',
     properties: {
       createdBy: { ref: 'TEntityId', required: true },
@@ -3055,12 +3004,40 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      fiscalYear: { ref: 'IFiscalYear', required: true },
-      reportingPeriods: {
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingStandardDto: {
+    dataType: 'refObject',
+    properties: {
+      individual: {
         dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IReportingPeriod' },
+        array: { dataType: 'string' },
         required: true,
       },
+      sole_trader: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+        required: true,
+      },
+      private_company: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJurisdictionDto: {
+    dataType: 'refObject',
+    properties: {
+      code: { dataType: 'string', required: true },
+      name: { dataType: 'string', required: true },
+      currencyCode: { dataType: 'string', required: true },
+      maxFiscalMonths: { dataType: 'double', required: true },
+      accountingStandards: { ref: 'IAccountingStandardDto', required: true },
     },
     additionalProperties: false,
   },
@@ -3120,48 +3097,29 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IReportingPeriod: {
+    dataType: 'refObject',
+    properties: {
+      createdBy: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
+      name: { dataType: 'string', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
+      unit: { ref: 'UPeriodUnit', required: true },
+      count: { dataType: 'double', required: true },
+      startDate: { dataType: 'datetime', required: true },
+      endDate: { dataType: 'datetime', required: true },
+      fiscalYearId: { ref: 'TEntityId', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IReportingPeriodsCreationReq: {
     dataType: 'refObject',
     properties: {
       fiscalYearId: { dataType: 'string', required: true },
       unit: { ref: 'UPeriodUnit', required: true },
       count: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IReportingContext: {
-    dataType: 'refObject',
-    properties: {
-      createdBy: { ref: 'TEntityId', required: true },
-      id: { ref: 'TEntityId', required: true },
-      name: { dataType: 'string', required: true },
-      description: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      accountingEntityId: { ref: 'TEntityId', required: true },
-      reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
-      accountingContextId: { ref: 'TEntityId', required: true },
-      currentReportingPeriodId: { ref: 'TEntityId', required: true },
-      accountingStandardCode: {
-        ref: 'UAccountingStandardCode',
-        required: true,
-      },
-      createdAt: { dataType: 'datetime', required: true },
-      updatedAt: { dataType: 'datetime', required: true },
-      closedAt: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'datetime' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
     },
     additionalProperties: false,
   },
@@ -6865,6 +6823,50 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_getReportingContext: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+  };
+  app.get(
+    '/api/v1/accounting/fiscal-years/:id/reporting-context',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.getReportingContext
+    ),
+
+    async function AccountingController_getReportingContext(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_getReportingContext,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'getReportingContext',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsAccountingController_getJurisdictions: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -6895,48 +6897,6 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getJurisdictions',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_getReportingContexts: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {};
-  app.get(
-    '/api/v1/accounting/reporting-contexts',
-    ...fetchMiddlewares<RequestHandler>(AccountingController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.getReportingContexts
-    ),
-
-    async function AccountingController_getReportingContexts(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_getReportingContexts,
-          request,
-          response,
-        });
-
-        const controller = new AccountingController();
-
-        await templateService.apiHandler({
-          methodName: 'getReportingContexts',
           controller,
           response,
           next,

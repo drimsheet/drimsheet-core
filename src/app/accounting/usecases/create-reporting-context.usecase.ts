@@ -53,16 +53,19 @@ export default function makeCreateReportingContextUsecase(deps: IDependencies) {
       throw new accountingAppError.ReportingPeriodNotFound();
     }
 
-    const [context, events, audit] = deps.reportingContextService.create({
-      accountingEntity,
-      accountingContext,
-      reportingPeriod,
-      accountingStandardCode: payload.accountingStandardCode,
-      reportingCurrencyCode: payload.reportingCurrencyCode,
-      name: payload.name,
-      description: payload.description,
-      createdBy: actor.id,
-    });
+    const [context, events, audit] = await deps.reportingContextService.create(
+      {
+        accountingEntity,
+        accountingContext,
+        reportingPeriod,
+        accountingStandardCode: payload.accountingStandardCode,
+        reportingCurrencyCode: payload.reportingCurrencyCode,
+        name: payload.name,
+        description: payload.description,
+        createdBy: actor.id,
+      },
+      repoOptions
+    );
 
     const history = historyValue.make(audit, actor.id, correlationId);
 

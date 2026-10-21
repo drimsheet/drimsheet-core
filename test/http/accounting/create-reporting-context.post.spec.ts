@@ -213,8 +213,11 @@ describe('POST /accounting/reporting-context', () => {
     });
   });
   describe('409 Response', () => {
-    it('maps archived accounting entity rejection', async () => {
-      const error = new accountingEntityError.Archived();
+    it.each([
+      accountingEntityError.Archived,
+      accountingError.ReportingContextAlreadyExists,
+    ])('maps domain conflicts to 409', async (ErrorType) => {
+      const error = new ErrorType();
       create.mockRejectedValue(error);
       const response = await request(server)
         .post(ENDPOINT)

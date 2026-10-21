@@ -53,6 +53,8 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       type: 'uuid',
       notNull: true,
       references: accountingContextsTable,
+      // ACC-RC-006 includes closed contexts.
+      unique: true,
       onDelete: 'RESTRICT',
     },
 
