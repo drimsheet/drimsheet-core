@@ -13,6 +13,36 @@ import accountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/
 import accountingPeriodHistoryRepo from './accounting-period-history.repo.impl';
 
 const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
+  findAllByFiscalYear: async (accountingEntityId, fiscalYearId, options) => {
+    const periods = await getDbQuery(options)
+      .select()
+      .from(accountingPeriodsInCore)
+      .where(
+        and(
+          eq(accountingPeriodsInCore.accountingEntityId, accountingEntityId),
+          eq(accountingPeriodsInCore.fiscalYearId, fiscalYearId)
+        )
+      )
+      .orderBy(accountingPeriodsInCore.startDate, accountingPeriodsInCore.id);
+
+    return periods.map(accountingPeriodMapper.toDomain);
+  },
+
+  findByIdAndAccountingEntityId: async (id, accountingEntityId, options) => {
+    const [period] = await getDbQuery(options)
+      .select()
+      .from(accountingPeriodsInCore)
+      .where(
+        and(
+          eq(accountingPeriodsInCore.id, id),
+          eq(accountingPeriodsInCore.accountingEntityId, accountingEntityId)
+        )
+      )
+      .limit(1);
+
+    return period ? accountingPeriodMapper.toDomain(period) : null;
+  },
+
   findById: async (id, options) => {
     const [period] = await getDbQuery(options)
       .select()

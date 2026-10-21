@@ -2,7 +2,11 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import { EPeriodUnit } from '@domain/accounting/types/period.types';
 
-import { accountingPeriodsCreationDtoSchema } from '@app/accounting/dtos/accounting-period/accounting-period.dto.validation';
+import {
+  accountingPeriodsCreationDtoSchema,
+  getAccountingPeriodParamsValidationSchema,
+  getAccountingPeriodsParamsValidationSchema,
+} from '@app/accounting/dtos/accounting-period/accounting-period.dto.validation';
 
 describe('accounting-period DTO', () => {
   const input = {
@@ -34,4 +38,38 @@ describe('accounting-period DTO', () => {
         .success
     ).toBe(false);
   });
+});
+
+describe('accounting-period read parameters', () => {
+  it('accepts UUIDs for detail and fiscal-year collection reads', () => {
+    const id = generateUUID();
+    expect(getAccountingPeriodParamsValidationSchema.parse({ id })).toEqual({
+      id,
+    });
+    expect(
+      getAccountingPeriodsParamsValidationSchema.parse({ fiscalYearId: id })
+    ).toEqual({ fiscalYearId: id });
+  });
+
+  it.each(['', 'invalid', undefined, 123])(
+    'rejects invalid read IDs: %j',
+    (id) => {
+      const detail = getAccountingPeriodParamsValidationSchema.safeParse({
+        id,
+      });
+      const collection = getAccountingPeriodsParamsValidationSchema.safeParse({
+        fiscalYearId: id,
+      });
+      expect(detail.success).toBe(false);
+      expect(collection.success).toBe(false);
+      expect(detail.error?.issues[0]).toMatchObject({
+        path: ['id'],
+        message: 'accounting_error_id_invalid',
+      });
+      expect(collection.error?.issues[0]).toMatchObject({
+        path: ['fiscalYearId'],
+        message: 'accounting_error_period_fiscal_year_id_invalid',
+      });
+    }
+  );
 });

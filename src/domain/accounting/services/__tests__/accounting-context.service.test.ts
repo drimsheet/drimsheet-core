@@ -26,6 +26,8 @@ describe('accountingContextService.create', () => {
   })[0];
   const repoOptions = { correlationId: 'accounting-context-test' };
   const repo: jest.Mocked<IAccountingPeriodRepo> = {
+    findAllByFiscalYear: jest.fn(),
+    findByIdAndAccountingEntityId: jest.fn(),
     findById: jest.fn(),
     findByDate: jest.fn(),
     findAllByDate: jest.fn(),
