@@ -15,8 +15,10 @@ interface IDependencies {
 }
 
 /**
- * Enforces context eligibility and resolves neighboring periods from storage before preparing the context, event, and audit.
- * */
+ * Enforces eligibility and one context per fiscal year (ACC-AC-005), then
+ * resolves neighboring periods and prepares the context, event, and audit.
+ * Storage uniqueness protects against concurrent creation.
+ */
 function makeCreate(deps: IDependencies): IAccountingContextService['create'] {
   return async (input, repoOptions) => {
     if (input.accountingEntity.status === EAccountingEntityStatus.Archived) {
@@ -36,6 +38,14 @@ function makeCreate(deps: IDependencies): IAccountingContextService['create'] {
       input.accountingEntity.jurisdictionCode,
       input.accountingEntity.type
     );
+
+    const contextExists = await deps.accountingContextRepo.existsByFiscalYear(
+      input.fiscalYear.id,
+      repoOptions
+    );
+    if (contextExists) {
+      throw new accountingError.AccountingContextAlreadyExists();
+    }
 
     const periods = await deps.accountingPeriodRepo.findByRange(
       input.accountingEntity.id,

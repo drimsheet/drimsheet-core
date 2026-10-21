@@ -17,6 +17,7 @@ import {
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import { IAccountingContext } from '@domain/accounting/types/context.types';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import {
   IAccountingPeriod,
@@ -44,7 +45,7 @@ import {
   createReportingContextUseCase,
   createReportingPeriodsUseCase,
   deleteAccountingEntityUseCase,
-  getAccountingContextsUseCase,
+  getAccountingContextUseCase,
   getAccountingPeriodsUseCase,
   getAccountingPeriodUseCase,
   getActiveAccountingEntityUseCase,
@@ -60,23 +61,6 @@ import {
 @Route('accounting')
 @Tags('Accounting')
 export class AccountingController extends Controller {
-  /** Returns all unclosed contexts for x-accounting-entity-id, with each fiscal year and its periods. */
-  @Get('/accounting-contexts')
-  @OperationId('getAccountingContexts')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async getAccountingContexts() {
-    return await getAccountingContextsUseCase();
-  }
-
   /**
    * Get user accounting entities
    */
@@ -169,6 +153,28 @@ export class AccountingController extends Controller {
   )
   public async getFiscalYear(@Path() id: string): Promise<IFiscalYear> {
     return await getFiscalYearUseCase(id);
+  }
+
+  /** Returns the fiscal year's context, including closed contexts, or null. */
+  @Get('/fiscal-years/{id}/accounting-context')
+  @OperationId('getAccountingContext')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAccountingContext(
+    @Path() id: string
+  ): Promise<IAccountingContext | null> {
+    this.setHeader('Content-Type', 'application/json');
+    return await getAccountingContextUseCase(id);
   }
 
   /** Returns all periods of a fiscal year belonging to x-accounting-entity-id. */

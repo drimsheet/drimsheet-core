@@ -20,6 +20,8 @@ export const mockAccountingContextHistoryRepo: jest.Mocked<IAccountingContextHis
   };
 
 export const mockAccountingContextRepo: jest.Mocked<IAccountingContextRepo> = {
+  existsByFiscalYear: jest.fn(),
+  findByFiscalYear: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),
   deleteByAccountingEntityId: jest.fn(),

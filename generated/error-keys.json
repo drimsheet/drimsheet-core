@@ -1,4 +1,5 @@
 [
+  "accounting_error_accounting_context_already_exists_conflict",
   "accounting_error_accounting_context_id_invalid",
   "accounting_error_accounting_context_not_found",
   "accounting_error_accounting_entity_access_forbidden",

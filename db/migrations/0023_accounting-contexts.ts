@@ -52,6 +52,8 @@ export function up(pgm: MigrationBuilder) {
       type: 'uuid',
       notNull: true,
       references: fiscalYearsTable,
+      // ACC-AC-005 applies to both open and closed contexts.
+      unique: true,
       onDelete: 'CASCADE',
     },
 

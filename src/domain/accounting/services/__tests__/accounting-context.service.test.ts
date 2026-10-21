@@ -34,6 +34,8 @@ describe('accountingContextService.create', () => {
     create: jest.fn(),
   };
   const contextRepo: jest.Mocked<IAccountingContextRepo> = {
+    existsByFiscalYear: jest.fn(),
+    findByFiscalYear: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
     deleteByAccountingEntityId: jest.fn(),
@@ -86,8 +88,57 @@ describe('accountingContextService.create', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest.useFakeTimers();
+    contextRepo.existsByFiscalYear.mockResolvedValue(false);
   });
   afterEach(() => jest.useRealTimers());
+
+  it.each([null, new Date('2026-12-31')])(
+    'rejects a duplicate fiscal-year context with closedAt=%s (ACC-AC-005)',
+    async (closedAt) => {
+      const { input } = makeFixture();
+      const [existing] = await service.create(input, repoOptions);
+      const stored = { ...existing, closedAt };
+      contextRepo.existsByFiscalYear.mockImplementation(
+        async (fiscalYearId) => stored.fiscalYearId === fiscalYearId
+      );
+      repo.findByRange.mockClear();
+
+      await expect(service.create(input, repoOptions)).rejects.toThrow(
+        accountingError.AccountingContextAlreadyExists
+      );
+      expect(contextRepo.existsByFiscalYear).toHaveBeenLastCalledWith(
+        input.fiscalYear.id,
+        repoOptions
+      );
+      expect(repo.findByRange).not.toHaveBeenCalled();
+      expect(contextRepo.create).not.toHaveBeenCalled();
+    }
+  );
+
+  it('allows a context for a different fiscal year', async () => {
+    const [existing] = await service.create(
+      makeFixture(2025).input,
+      repoOptions
+    );
+    contextRepo.existsByFiscalYear.mockImplementation(
+      async (fiscalYearId) => existing.fiscalYearId === fiscalYearId
+    );
+    const { input } = makeFixture(2026);
+    await expect(service.create(input, repoOptions)).resolves.toEqual([
+      expect.objectContaining({ fiscalYearId: input.fiscalYear.id }),
+      expect.any(Array),
+      expect.any(Object),
+    ]);
+  });
+
+  it('propagates uniqueness lookup failures without preparing or persisting', async () => {
+    const { input } = makeFixture();
+    const failure = new Error('Context lookup failed');
+    contextRepo.existsByFiscalYear.mockRejectedValue(failure);
+    await expect(service.create(input, repoOptions)).rejects.toBe(failure);
+    expect(repo.findByRange).not.toHaveBeenCalled();
+    expect(contextRepo.create).not.toHaveBeenCalled();
+  });
 
   it('rejects context creation for an archived accounting entity', async () => {
     const { input } = makeFixture();

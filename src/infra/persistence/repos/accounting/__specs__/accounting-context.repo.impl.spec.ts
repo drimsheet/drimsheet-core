@@ -1,9 +1,11 @@
 import { eq } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 
 import { TEntityId } from '@shared/types/uuid';
 import historyValue from '@shared/values/history/history.vo';
 
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
+import accountingError from '@domain/accounting/errors/accounting.error';
 
 import { mockAccountingContextHistoryRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 
@@ -96,6 +98,24 @@ describe('accounting-context atomic creation', () => {
     expect(getDbQuery).toHaveBeenCalledWith(options);
   });
 
+  it.each([false, true])(
+    'maps a concurrent duplicate insert to a conflict, wrapped=%s',
+    async (wrapped) => {
+      const fake = fakeTransaction();
+      const duplicate = {
+        code: '23505',
+        constraint: 'accounting_contexts_fiscal_year_id_key',
+      };
+      fake.values.mockRejectedValue(wrapped ? { cause: duplicate } : duplicate);
+      await expect(repo.create(context, options)).rejects.toBeInstanceOf(
+        accountingError.AccountingContextAlreadyExists
+      );
+      expect(mockAccountingContextHistoryRepo.save).not.toHaveBeenCalled();
+      expect(fake.committed).toEqual([]);
+      expect(fake.staged).toEqual([]);
+    }
+  );
+
   it('rolls back the context insertion when history fails', async () => {
     const fake = fakeTransaction();
     const failure = new Error('history failed');
@@ -105,6 +125,35 @@ describe('accounting-context atomic creation', () => {
     expect(fake.committed).toEqual([]);
     expect(fake.staged).toEqual([]);
   });
+});
+
+describe('accounting-context fiscal-year uniqueness lookup', () => {
+  it.each([false, true])(
+    'checks all contexts without filtering closed records, exists=%s',
+    async (exists) => {
+      const id = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
+      const options = { correlationId: 'uniqueness-check' };
+      const limit = jest.fn().mockResolvedValue(exists ? [{ id }] : []);
+      const where = jest.fn().mockReturnValue({ limit });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+      await expect(repo.existsByFiscalYear(id, options)).resolves.toBe(exists);
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(select).toHaveBeenCalledWith({ id: accountingContextsInCore.id });
+      expect(from).toHaveBeenCalledWith(accountingContextsInCore);
+      const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+      expect(predicate.sql).toBe(
+        '"core"."accounting_contexts"."fiscal_year_id" = $1'
+      );
+      expect(predicate.params).toEqual([id]);
+      expect(limit).toHaveBeenCalledWith(1);
+    }
+  );
 });
 
 describe('accounting-context lookup', () => {
@@ -124,6 +173,66 @@ describe('accounting-context lookup', () => {
     updatedAt: '2026-01-01T00:00:00.000Z',
     closedAt: null,
   };
+  it.each(['missing', 'open', 'closed'] as const)(
+    'loads the fiscal year context within its accounting entity: %s',
+    async (state) => {
+      const entityId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
+      const fiscalYearId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
+      const options = { correlationId: 'fiscal-year-context-read' };
+      const storedContext = {
+        ...row,
+        accountingEntityId: entityId,
+        fiscalYearId,
+        closedAt: state === 'closed' ? '2026-12-31T00:00:00.000Z' : null,
+      };
+      const limit = jest
+        .fn()
+        .mockResolvedValue(state === 'missing' ? [] : [storedContext]);
+      const where = jest.fn().mockReturnValue({ limit });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+
+      const context = await repo.findByFiscalYear(
+        entityId,
+        fiscalYearId,
+        options
+      );
+
+      expect(context).toEqual(
+        state === 'missing'
+          ? null
+          : accountingContextMapper.toDomain(storedContext)
+      );
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(from).toHaveBeenCalledWith(accountingContextsInCore);
+      const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+      expect(predicate.sql).toBe(
+        '("core"."accounting_contexts"."accounting_entity_id" = $1 and "core"."accounting_contexts"."fiscal_year_id" = $2)'
+      );
+      expect(predicate.params).toEqual([entityId, fiscalYearId]);
+      expect(limit).toHaveBeenCalledWith(1);
+    }
+  );
+
+  it('propagates failures when reading by fiscal year', async () => {
+    const failure = new Error('context read failed');
+    const limit = jest.fn().mockRejectedValue(failure);
+    const where = jest.fn().mockReturnValue({ limit });
+    const from = jest.fn().mockReturnValue({ where });
+    const select = jest.fn().mockReturnValue({ from });
+    jest
+      .mocked(getDbQuery)
+      .mockReturnValue({ select } as unknown as ReturnType<typeof getDbQuery>);
+    await expect(
+      repo.findByFiscalYear(id, id, { correlationId: 'read-failure' })
+    ).rejects.toBe(failure);
+  });
+
   it.each([false, true])(
     'loads and maps a context by ID, found=%j',
     async (found) => {

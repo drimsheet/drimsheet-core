@@ -4,11 +4,13 @@ import { Express } from 'express';
 import request from 'supertest';
 
 import { TEntityId } from '@shared/types/uuid';
+import appError from '@shared/values/errors/app.error';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import { IAccountingContext } from '@domain/accounting/types/context.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import { IAccountingContextDto } from '@app/accounting/dtos/accounting-context/accounting-context.dto';
+import accountingAppError from '@app/accounting/errors/accounting.error';
 import authError from '@app/auth/errors/auth.error';
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 
@@ -48,7 +50,7 @@ jest.mock('@infra/ioc/usecases/accounting', () => ({
   getJurisdictionsUseCase: jest.fn(),
   getUserAccountingEntitiesUseCase: jest.fn(),
   getActiveAccountingEntityUseCase: jest.fn(),
-  getAccountingContextsUseCase: jest.fn(),
+  getAccountingContextUseCase: jest.fn(),
 }));
 
 jest.mock('@infra/persistence/repos/accounting', () => ({
@@ -68,7 +70,8 @@ jest.mock('@infra/persistence/repos/user', () => ({
   },
 }));
 
-const ENDPOINT = '/api/v1/accounting/accounting-contexts';
+const fiscalYearId = '123e4567-e89b-12d3-a456-426614174003';
+const ENDPOINT = `/api/v1/accounting/fiscal-years/${fiscalYearId}/accounting-context`;
 const userId = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
 const entity: IAccountingEntity = {
   createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
@@ -83,7 +86,7 @@ const entity: IAccountingEntity = {
   updatedAt: new Date('2026-07-26T10:00:00.000Z'),
 };
 
-const context: IAccountingContextDto = {
+const context: IAccountingContext = {
   id: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
   createdBy: entity.createdBy,
   name: 'Default',
@@ -98,40 +101,13 @@ const context: IAccountingContextDto = {
   createdAt: entity.createdAt,
   updatedAt: entity.updatedAt,
   closedAt: null,
-  fiscalYear: {
-    id: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
-    createdBy: entity.createdBy,
-    name: '2026',
-    accountingEntityId: entity.id,
-    startDate: new Date('2026-01-01'),
-    endDate: new Date('2026-12-31'),
-    status: 'open',
-    closedAt: null,
-    updatedAt: entity.updatedAt,
-  },
-  accountingPeriods: [
-    {
-      id: '123e4567-e89b-12d3-a456-426614174004' as TEntityId,
-      createdBy: entity.createdBy,
-      name: 'January',
-      accountingEntityId: entity.id,
-      fiscalYearId: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
-      unit: 'month',
-      count: 12,
-      startDate: new Date('2026-01-01'),
-      endDate: new Date('2026-01-31'),
-      status: 'closed',
-      closedAt: new Date('2026-02-01'),
-      updatedAt: entity.updatedAt,
-    },
-  ],
 };
 
-describe('GET /accounting/accounting-contexts', () => {
+describe('GET /accounting/fiscal-years/{id}/accounting-context', () => {
   let app: Express;
   let server: Server;
-  const getContexts = jest.mocked(
-    accountingUsecases.getAccountingContextsUseCase
+  const getContext = jest.mocked(
+    accountingUsecases.getAccountingContextUseCase
   );
   const findEntity = jest.mocked(
     accountingRepos.accountingEntity.findByIdAndUserId
@@ -148,7 +124,7 @@ describe('GET /accounting/accounting-contexts', () => {
       createdBy: entity.createdBy,
     } as IUser);
     findEntity.mockResolvedValue(entity);
-    getContexts.mockResolvedValue([context]);
+    getContext.mockResolvedValue(context);
     app = createApplication();
     server = await startTestServer(app);
   });
@@ -165,21 +141,13 @@ describe('GET /accounting/accounting-contexts', () => {
   }
 
   describe('200 Response', () => {
-    it('returns all contexts with nested fiscal years and periods as JSON', async () => {
-      const second = {
-        ...context,
-        id: '123e4567-e89b-12d3-a456-426614174005' as TEntityId,
-        name: 'Second context',
-      };
-      getContexts.mockResolvedValue([context, second]);
+    it('returns the domain context as JSON', async () => {
       const response = await get();
       expect(response.status).toBe(200);
       expect(response.type).toBe('application/json');
       expect(response.headers['x-content-type-options']).toBe('nosniff');
-      expect(response.body).toEqual(
-        JSON.parse(JSON.stringify([context, second]))
-      );
-      expect(getContexts).toHaveBeenCalledWith();
+      expect(response.body).toEqual(JSON.parse(JSON.stringify(context)));
+      expect(getContext).toHaveBeenCalledWith(fiscalYearId);
       expect(findEntity).toHaveBeenCalledWith(
         entity.id,
         userId,
@@ -187,11 +155,22 @@ describe('GET /accounting/accounting-contexts', () => {
       );
     });
 
-    it('returns an empty array when there are no active contexts', async () => {
-      getContexts.mockResolvedValue([]);
+    it('returns closed contexts', async () => {
+      const closedContext = { ...context, closedAt: new Date('2026-12-31') };
+      getContext.mockResolvedValue(closedContext);
       const response = await get();
       expect(response.status).toBe(200);
-      expect(response.body).toEqual([]);
+      expect(response.body).toEqual(JSON.parse(JSON.stringify(closedContext)));
+    });
+
+    it('returns JSON null when the fiscal year has no context', async () => {
+      getContext.mockResolvedValue(null);
+      const response = await get();
+      expect(response.status).toBe(200);
+      expect(response.type).toBe('application/json');
+      expect(response.text).toBe('null');
+      expect(response.body).toBeNull();
+      expect(getContext).toHaveBeenCalledWith(fiscalYearId);
     });
 
     it('uses the entity header even when the query supplies a different entity ID', async () => {
@@ -204,7 +183,7 @@ describe('GET /accounting/accounting-contexts', () => {
         userId,
         expect.any(Object)
       );
-      expect(getContexts).toHaveBeenCalledWith();
+      expect(getContext).toHaveBeenCalledWith(fiscalYearId);
     });
   });
 
@@ -212,7 +191,7 @@ describe('GET /accounting/accounting-contexts', () => {
     it('rejects malformed entity headers before orchestration', async () => {
       const response = await get().set('x-accounting-entity-id', 'bad-id');
       expect(response.status).toBe(400);
-      expect(getContexts).not.toHaveBeenCalled();
+      expect(getContext).not.toHaveBeenCalled();
     });
   });
 
@@ -222,13 +201,13 @@ describe('GET /accounting/accounting-contexts', () => {
         .get(ENDPOINT)
         .set('x-accounting-entity-id', entity.id);
       expect(response.status).toBe(401);
-      expect(getContexts).not.toHaveBeenCalled();
+      expect(getContext).not.toHaveBeenCalled();
     });
 
     it('rejects expired tokens', async () => {
       getUser.mockRejectedValue(new authError.ExpiredToken());
       expect((await get()).status).toBe(401);
-      expect(getContexts).not.toHaveBeenCalled();
+      expect(getContext).not.toHaveBeenCalled();
     });
   });
 
@@ -239,19 +218,58 @@ describe('GET /accounting/accounting-contexts', () => {
         ownerId: 'b2222222-2222-4222-8222-222222222222' as TEntityId,
       });
       expect((await get()).status).toBe(403);
-      expect(getContexts).not.toHaveBeenCalled();
+      expect(getContext).not.toHaveBeenCalled();
     });
 
     it('enforces alpha access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
       expect((await get()).status).toBe(403);
-      expect(getContexts).not.toHaveBeenCalled();
+      expect(getContext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('404 Response', () => {
+    it('maps missing or out-of-scope fiscal years to not found', async () => {
+      getContext.mockRejectedValue(new accountingAppError.FiscalYearNotFound());
+      const response = await get();
+      expect(response.status).toBe(404);
+      expect(response.body.errorKey).toBe(
+        'app_error_accounting_fiscal_year_not_found'
+      );
+    });
+
+    it('removes the old collection endpoint', async () => {
+      const response = await request(server).get(
+        '/api/v1/accounting/accounting-contexts'
+      );
+      expect(response.status).toBe(404);
+      expect(getContext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('422 Response', () => {
+    it('maps invalid fiscal year IDs to the validation envelope', async () => {
+      getContext.mockRejectedValue(
+        new appError.UnprocessableEntity([
+          {
+            field: 'fiscalYearId',
+            message: 'accounting_error_fiscal_year_id_invalid',
+          },
+        ])
+      );
+      const response = await request(server)
+        .get('/api/v1/accounting/fiscal-years/invalid/accounting-context')
+        .set('Authorization', 'Bearer token')
+        .set('x-accounting-entity-id', entity.id);
+      expect(response.status).toBe(422);
+      expect(response.body.errorKey).toBe('app_error_validation_error');
+      expect(getContext).toHaveBeenCalledWith('invalid');
     });
   });
 
   describe('500 Response', () => {
     it('sanitizes read failures', async () => {
-      getContexts.mockRejectedValue(new Error('database credentials'));
+      getContext.mockRejectedValue(new Error('database credentials'));
       const response = await get();
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
@@ -265,13 +283,13 @@ describe('GET /accounting/accounting-contexts', () => {
         .get(ENDPOINT)
         .set('Authorization', 'Bearer token');
       expect(response.status).toBe(500);
-      expect(getContexts).not.toHaveBeenCalled();
+      expect(getContext).not.toHaveBeenCalled();
     });
 
     it('does not read contexts when the entity header cannot be resolved for the user', async () => {
       findEntity.mockResolvedValue(null);
       expect((await get()).status).toBe(500);
-      expect(getContexts).not.toHaveBeenCalled();
+      expect(getContext).not.toHaveBeenCalled();
     });
   });
 });
