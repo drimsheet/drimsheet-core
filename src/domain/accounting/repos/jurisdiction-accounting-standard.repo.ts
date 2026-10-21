@@ -5,8 +5,7 @@ import { IJurisdictionAccountingStandard } from '@domain/accounting/types/jurisd
 export default interface IJurisdictionAccountingStandardRepo {
   create(
     jurisdictionStandards:
-      | IJurisdictionAccountingStandard
-      | IJurisdictionAccountingStandard[],
+      IJurisdictionAccountingStandard | IJurisdictionAccountingStandard[],
     repoOptions: IWriteRepoOptions
   ): Promise<void>;
 }

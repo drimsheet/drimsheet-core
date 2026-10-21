@@ -17,8 +17,7 @@ import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let ledgerAccountBalanceAdjustmentQueue:
-  | Queue<ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>>
-  | undefined;
+  Queue<ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>> | undefined;
 
 export function getLedgerAccountBalanceAdjustmentQueue(): Queue<
   ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>

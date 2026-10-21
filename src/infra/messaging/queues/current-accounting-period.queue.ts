@@ -13,8 +13,7 @@ import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let currentAccountingPeriodQueue:
-  | Queue<ITraceEnvelope<INextCurrentAccountingPeriodDto>>
-  | undefined;
+  Queue<ITraceEnvelope<INextCurrentAccountingPeriodDto>> | undefined;
 
 function getCurrentAccountingPeriodQueue(): Queue<
   ITraceEnvelope<INextCurrentAccountingPeriodDto>

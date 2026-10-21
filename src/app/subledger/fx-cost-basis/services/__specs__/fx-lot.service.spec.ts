@@ -84,8 +84,7 @@ describe('fxLotAppService', () => {
 
   function makeJournal(
     status:
-      | typeof EJournalEntryStatus.Draft
-      | typeof EJournalEntryStatus.Posted,
+      typeof EJournalEntryStatus.Draft | typeof EJournalEntryStatus.Posted,
     side: typeof EJournalSide.Debit | typeof EJournalSide.Credit,
     exchangeRate: IExchangeRate | null = transactionRate
   ): IJournalEntry {

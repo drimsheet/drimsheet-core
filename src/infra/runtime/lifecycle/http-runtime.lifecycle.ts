@@ -15,8 +15,7 @@ import queueLifecycle from './queue.lifecycle';
 export default async function runHttp(): Promise<void> {
   let server: Server | undefined;
   let postgres:
-    | typeof import('@infra/config/postgres.config').postgres
-    | undefined;
+    typeof import('@infra/config/postgres.config').postgres | undefined;
 
   let stopping = false;
   let shutdownPromise: Promise<void> | undefined;
