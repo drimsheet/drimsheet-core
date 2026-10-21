@@ -6,12 +6,15 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IAccountingPeriod } from '@domain/accounting/types/period.types';
 
+import { accountingPeriodsInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import accountingPeriodRepo from '@infra/persistence/repos/accounting/accounting-period.repo.impl';
 import accountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/accounting-period.mapper';
 
-jest.mock('../../../helpers/get-db-query');
-jest.mock('../mappers/accounting-period.mapper');
+jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock(
+  '@infra/persistence/repos/accounting/mappers/accounting-period.mapper'
+);
 
 describe('accountingPeriodRepoImpl', () => {
   const accountingEntityId =
@@ -25,6 +28,7 @@ describe('accountingPeriodRepoImpl', () => {
 
   function mockRead(results: unknown[]) {
     const baseQuery = {
+      orderBy: jest.fn().mockResolvedValue(results),
       limit: jest.fn().mockResolvedValue(results),
       then: (resolve: (value: unknown[]) => void) => resolve(results),
     };
@@ -32,13 +36,81 @@ describe('accountingPeriodRepoImpl', () => {
     const from = jest.fn().mockReturnValue({ where });
     const select = jest.fn().mockReturnValue({ from });
     (getDbQuery as jest.Mock).mockReturnValue({ select });
-    return { select, from, where };
+    return { select, from, where, baseQuery };
   }
 
   beforeEach(() => {
     jest.clearAllMocks();
     (accountingPeriodMapper.toDomain as jest.Mock).mockReturnValue(period);
   });
+
+  it.each([true, false])(
+    'scopes an accounting-period lookup to its entity: %s',
+    async (exists) => {
+      const query = mockRead(exists ? [row] : []);
+      const options = { correlationId: 'period-read' };
+      const id = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
+      await expect(
+        accountingPeriodRepo.findByIdAndAccountingEntityId(
+          id,
+          accountingEntityId,
+          options
+        )
+      ).resolves.toEqual(exists ? period : null);
+      const predicate = new PgDialect().sqlToQuery(
+        query.where.mock.calls[0][0]
+      );
+      expect(predicate.sql).toBe(
+        '("core"."accounting_periods"."id" = $1 and "core"."accounting_periods"."accounting_entity_id" = $2)'
+      );
+      expect(predicate.params).toEqual([id, accountingEntityId]);
+      expect(query.from).toHaveBeenCalledWith(accountingPeriodsInCore);
+      expect(query.baseQuery.limit).toHaveBeenCalledWith(1);
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(accountingPeriodMapper.toDomain).toHaveBeenCalledTimes(
+        exists ? 1 : 0
+      );
+    }
+  );
+
+  it.each([true, false])(
+    'reads all fiscal-year periods within the entity, ordered by start date: %s',
+    async (exists) => {
+      const rows = exists
+        ? ['pending', 'open', 'closing', 'closed'].map((status) => ({
+            ...row,
+            status,
+          }))
+        : [];
+      const query = mockRead(rows);
+      const options = { correlationId: 'period-read' };
+      const fiscalYearId = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
+      await expect(
+        accountingPeriodRepo.findAllByFiscalYear(
+          accountingEntityId,
+          fiscalYearId,
+          options
+        )
+      ).resolves.toEqual(rows.map(() => period));
+      const predicate = new PgDialect().sqlToQuery(
+        query.where.mock.calls[0][0]
+      );
+      expect(predicate.sql).toBe(
+        '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."fiscal_year_id" = $2)'
+      );
+      expect(predicate.params).toEqual([accountingEntityId, fiscalYearId]);
+      expect(query.from).toHaveBeenCalledWith(accountingPeriodsInCore);
+      expect(query.baseQuery.orderBy).toHaveBeenCalledWith(
+        accountingPeriodsInCore.startDate,
+        accountingPeriodsInCore.id
+      );
+      expect(query.baseQuery.limit).not.toHaveBeenCalled();
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(accountingPeriodMapper.toDomain).toHaveBeenCalledTimes(
+        rows.length
+      );
+    }
+  );
 
   it.each([true, false])(
     'findById maps an existing period or returns null: %s',

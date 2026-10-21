@@ -45,6 +45,8 @@ import {
   createReportingPeriodsUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextsUseCase,
+  getAccountingPeriodsUseCase,
+  getAccountingPeriodUseCase,
   getActiveAccountingEntityUseCase,
   getFiscalYearsUseCase,
   getFiscalYearUseCase,
@@ -112,6 +114,27 @@ export class AccountingController extends Controller {
     return await getActiveAccountingEntityUseCase();
   }
 
+  /** Returns one accounting period belonging to x-accounting-entity-id. */
+  @Get('/accounting-periods/{id}')
+  @OperationId('getAccountingPeriod')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAccountingPeriod(
+    @Path() id: string
+  ): Promise<IAccountingPeriod> {
+    return await getAccountingPeriodUseCase(id);
+  }
+
   /** Returns all fiscal years for x-accounting-entity-id. */
   @Get('/fiscal-years')
   @OperationId('getFiscalYears')
@@ -146,6 +169,27 @@ export class AccountingController extends Controller {
   )
   public async getFiscalYear(@Path() id: string): Promise<IFiscalYear> {
     return await getFiscalYearUseCase(id);
+  }
+
+  /** Returns all periods of a fiscal year belonging to x-accounting-entity-id. */
+  @Get('/fiscal-years/{fiscalYearId}/accounting-periods')
+  @OperationId('getAccountingPeriods')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAccountingPeriods(
+    @Path() fiscalYearId: string
+  ): Promise<IAccountingPeriod[]> {
+    return await getAccountingPeriodsUseCase(fiscalYearId);
   }
 
   /**
