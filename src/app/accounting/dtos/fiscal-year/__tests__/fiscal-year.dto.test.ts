@@ -1,6 +1,9 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
-import { fiscalYearCreationDtoSchema } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto.validation';
+import {
+  fiscalYearCreationDtoSchema,
+  getFiscalYearParamsValidationSchema,
+} from '@app/accounting/dtos/fiscal-year/fiscal-year.dto.validation';
 
 describe('fiscal-year DTO', () => {
   const input = {
@@ -35,4 +38,25 @@ describe('fiscal-year DTO', () => {
       }).success
     ).toBe(true);
   });
+});
+
+describe('get fiscal-year params DTO', () => {
+  it('accepts a fiscal-year UUID', () => {
+    const params = { id: generateUUID() };
+    expect(getFiscalYearParamsValidationSchema.parse(params)).toEqual(params);
+  });
+
+  it.each([undefined, null, '', 'invalid', 42])(
+    'rejects invalid IDs with the fiscal-year error key: %j',
+    (id) => {
+      const validation = getFiscalYearParamsValidationSchema.safeParse({ id });
+      expect(validation.success).toBe(false);
+      expect(validation.error?.issues).toEqual([
+        expect.objectContaining({
+          path: ['id'],
+          message: 'accounting_error_period_fiscal_year_id_invalid',
+        }),
+      ]);
+    }
+  );
 });

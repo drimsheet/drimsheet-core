@@ -3,6 +3,10 @@ import z from 'zod';
 import periodError from '@domain/accounting/errors/period.error';
 import { EPeriodStatus } from '@domain/accounting/types/period.types';
 
+export const getFiscalYearParamsValidationSchema = z.object({
+  id: z.uuid(new periodError.InvalidFiscalYearId().errorKey),
+});
+
 export const fiscalYearCreationDtoSchema = z
   .object({
     accountingEntityId: z.uuid(
