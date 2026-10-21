@@ -1,6 +1,4 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
@@ -21,7 +19,6 @@ import {
   mockReportingPeriodRepo,
 } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import { IAccountingPeriodsCreationReq } from '@app/accounting/dtos/accounting-period/accounting-period.dto';
-import accountingPeriodDtoMapper from '@app/accounting/dtos/accounting-period/accounting-period.dto.mapper';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeCreateAccountingPeriodsUsecase from '@app/accounting/usecases/create-accounting-periods.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
@@ -52,7 +49,7 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
     unit: 'month',
     count: 12,
   };
-  const tx: ITransactionContext = {};
+
   const correlationId = 'create-accounting-periods';
   const accountingPeriodService = makeAccountingPeriodService({
     accountingPeriodRepo: mockAccountingPeriodRepo,
@@ -62,7 +59,6 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
     fiscalYearRepo: mockFiscalYearRepo,
     accountingPeriodService,
     accountingPeriodRepo: mockAccountingPeriodRepo,
-    repoService: mockRepoService,
     eventBus: mockEventBus,
   });
 
@@ -76,9 +72,6 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
     } as ReturnType<typeof mockAppContext.get>);
     mockFiscalYearRepo.findById.mockResolvedValue(year);
     mockAccountingPeriodRepo.findByRange.mockResolvedValue([]);
-    mockRepoService.runInTransaction.mockImplementation(async (write) =>
-      write(tx)
-    );
   });
 
   it('uses the required context entity and persists only its complete period set with histories', async () => {
@@ -104,12 +97,12 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
     const histories = Array.isArray(options.history)
       ? options.history
       : [options.history];
-    expect(result).toEqual(periods.map(accountingPeriodDtoMapper.toDto));
+    expect(result).toBe(periods);
     expect(result).toHaveLength(12);
     expect(result[0].startDate).toEqual(year.startDate);
     expect(result[11].endDate).toEqual(year.endDate);
     expect(result[1].endDate).toEqual(new Date('2092-02-29'));
-    expect(options).toEqual({ correlationId, tx, history: histories });
+    expect(options).toEqual({ correlationId, history: histories });
     expect(histories).toHaveLength(periods.length);
     periods.forEach((period, index) => {
       expect(histories[index]).toMatchObject({
@@ -149,7 +142,7 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
       accountingAppError.FiscalYearNotFound
     );
     expect(mockAccountingPeriodRepo.findByRange).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();
   });
 
   it('rejects a fiscal year belonging to another entity before period lookup', async () => {
@@ -161,7 +154,7 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
       periodError.InvalidAccountingEntityId
     );
     expect(mockAccountingPeriodRepo.findByRange).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();
   });
 
   it('rejects existing overlapping periods without writing or publishing', async () => {
@@ -176,7 +169,7 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
     await expect(execute(payload)).rejects.toBeInstanceOf(
       periodError.OverlappingPeriods
     );
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -184,7 +177,7 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
     await expect(execute({ ...payload, count: 13 })).rejects.toBeInstanceOf(
       periodError.InvalidInterval
     );
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -202,38 +195,29 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
     expect(mockAccountingEntityRepo.findById).not.toHaveBeenCalled();
   });
 
-  it.each([new Error('history failed'), new periodError.OverlappingPeriods()])(
-    'propagates persistence failure without publication',
-    async (failure) => {
-      mockAccountingPeriodRepo.create.mockRejectedValue(failure);
-      await expect(execute(payload)).rejects.toBe(failure);
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-    }
-  );
-
-  it('does not publish if the outer commit fails', async () => {
-    const failure = new Error('commit failed');
-    mockRepoService.runInTransaction.mockImplementation(async (write) => {
-      await write(tx);
-      throw failure;
-    });
+  it.each([
+    new Error('history failed'),
+    new Error('commit failed'),
+    new periodError.OverlappingPeriods(),
+  ])('propagates persistence failure without publication', async (failure) => {
+    mockAccountingPeriodRepo.create.mockRejectedValue(failure);
     await expect(execute(payload)).rejects.toBe(failure);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('waits until the outer transaction commits before publishing', async () => {
-    let commit!: () => void;
-    mockRepoService.runInTransaction.mockImplementation(async (write) => {
-      await write(tx);
-      await new Promise<void>((resolve) => {
-        commit = resolve;
-      });
-    });
+  it('waits for persistence to complete before publishing', async () => {
+    let finishPersistence!: () => void;
+    mockAccountingPeriodRepo.create.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishPersistence = resolve;
+        })
+    );
     const pending = execute(payload);
     await new Promise(process.nextTick);
-    expect(mockAccountingPeriodRepo.create).toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.create).toHaveBeenCalledTimes(1);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-    commit();
+    finishPersistence();
     await pending;
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
   });

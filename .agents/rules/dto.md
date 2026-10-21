@@ -27,13 +27,20 @@ DTO validation is for transport shape and primitive constraints. Business validi
 
 ## HTTP Outputs
 
-- Before introducing a controller-local response type or returning a domain
-  entity, search the owning application folder for an existing output DTO and
-  mapper.
-- Prefer the application-owned DTO and mapper at delivery boundaries. If the
-  existing DTO is unsuitable, fix or intentionally replace the owning app DTO
-  instead of duplicating its contract in the controller.
+- Before introducing an output type, inspect the existing domain type and
+  application output contracts.
+- Return the domain type directly when its full shape is the intended output,
+  including when nested in an application response. Do not create duplicate
+  output interfaces, aliases, or pass-through mappers for the same shape.
+  Compile-time brands such as UUID brands do not justify a separate output DTO.
+- Create an application-owned output DTO and mapper when the response adds,
+  omits, or transforms fields, or has a current requirement for an independently
+  maintained contract. Hypothetical future divergence is not sufficient.
+- Direct returns expose runtime properties, not just declared TypeScript fields.
+  Keep entity construction and persistence-to-domain mapping aligned with the
+  domain type; remove unintended runtime extras at their owner.
 - Framework metadata limitations, including TSOA type resolution, are not by
   themselves a reason to duplicate a response contract.
 - Keep assembly of balances, money, metadata, and other application output state
-  in the application layer. Controllers should declare and return the DTO.
+  in the application layer. Controllers should declare and return the selected
+  domain type or application DTO without duplicating it locally.

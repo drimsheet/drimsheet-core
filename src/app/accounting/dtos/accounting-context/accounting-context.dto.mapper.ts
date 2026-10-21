@@ -1,31 +1,8 @@
-import { IAccountingContext } from '@domain/accounting/types/context.types';
-
 import { IAccountingContextDetails } from '@app/accounting/contracts/accounting-context.query.repo.contract';
-import accountingPeriodDtoMapper from '@app/accounting/dtos/accounting-period/accounting-period.dto.mapper';
 
-import {
-  IAccountingContextDto,
-  IAccountingContextRecordDto,
-} from './accounting-context.dto';
+import { IAccountingContextDto } from './accounting-context.dto';
 
 const accountingContextDtoMapper = {
-  toRecordDto(context: IAccountingContext): IAccountingContextRecordDto {
-    return {
-      id: context.id,
-      createdBy: context.createdBy,
-      name: context.name,
-      description: context.description,
-      accountingEntityId: context.accountingEntityId,
-      accountingStandardCode: context.accountingStandardCode,
-      fiscalYearId: context.fiscalYearId,
-      currentAccountingPeriodId: context.currentAccountingPeriodId,
-      previousAccountingPeriodId: context.previousAccountingPeriodId,
-      nextAccountingPeriodId: context.nextAccountingPeriodId,
-      createdAt: context.createdAt,
-      updatedAt: context.updatedAt,
-      closedAt: context.closedAt,
-    };
-  },
   toDto(context: IAccountingContextDetails): IAccountingContextDto {
     return {
       id: context.id,
@@ -41,20 +18,8 @@ const accountingContextDtoMapper = {
       createdAt: context.createdAt,
       updatedAt: context.updatedAt,
       closedAt: context.closedAt,
-      fiscalYear: {
-        id: context.fiscalYear.id,
-        createdBy: context.fiscalYear.createdBy,
-        name: context.fiscalYear.name,
-        accountingEntityId: context.fiscalYear.accountingEntityId,
-        startDate: context.fiscalYear.startDate,
-        endDate: context.fiscalYear.endDate,
-        status: context.fiscalYear.status,
-        closedAt: context.fiscalYear.closedAt,
-        updatedAt: context.fiscalYear.updatedAt,
-      },
-      accountingPeriods: context.accountingPeriods.map(
-        accountingPeriodDtoMapper.toDto
-      ),
+      fiscalYear: context.fiscalYear,
+      accountingPeriods: context.accountingPeriods,
     };
   },
 };

@@ -48,7 +48,7 @@ function make(
 
   const timestamp = dateUtils.now();
   return intervals.map((interval, index) => {
-    const period = deepFreeze({
+    const period = deepFreeze<IAccountingPeriod>({
       id: stringUtils.generateUUID(),
       createdBy: payload.createdBy,
       name: `Accounting Period ${index + 1}`,
@@ -59,7 +59,6 @@ function make(
       endDate: interval.endDate,
       status: EPeriodStatus.Open,
       fiscalYearId: payload.fiscalYear.id,
-      createdAt: timestamp,
       updatedAt: timestamp,
       closedAt: null,
     });

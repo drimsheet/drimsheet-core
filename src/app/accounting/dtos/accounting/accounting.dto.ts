@@ -2,7 +2,6 @@ import { UAccountingStandardCode } from '@domain/accounting/config/accounting-st
 import { UJurisdictionCode } from '@domain/accounting/config/jurisdictions.config';
 import {
   EAccountingEntityType,
-  UAccountingEntityStatus,
   UAccountingEntityType,
 } from '@domain/accounting/types/accounting-entity.types';
 import { UPeriodUnit } from '@domain/accounting/types/period.types';
@@ -52,19 +51,6 @@ export interface IAccountingEntityUpdateReq {
   name?: string;
   entityType?: UAccountingEntityType;
   functionalCurrencyCode?: UCurrencyCode;
-}
-
-export interface IAccountingEntityDto {
-  status: UAccountingEntityStatus;
-  id: string;
-  createdBy: string;
-  ownerId: string;
-  name: string;
-  type: UAccountingEntityType;
-  functionalCurrencyCode: UCurrencyCode;
-  jurisdictionCode: UJurisdictionCode;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface IAccountingEntitySwitchReq {

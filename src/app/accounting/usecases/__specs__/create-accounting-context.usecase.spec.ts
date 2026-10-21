@@ -132,8 +132,7 @@ describe('makeCreateAccountingContextUsecase', () => {
       closedAt: null,
     });
     const [saved, options] = mockAccountingContextRepo.create.mock.calls[0];
-    expect(result).toEqual(saved);
-    expect(result).not.toBe(saved);
+    expect(result).toBe(saved);
     expect(options).toEqual({
       correlationId,
       history: expect.objectContaining({

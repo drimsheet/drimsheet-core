@@ -143,7 +143,7 @@ describe('updateAccountingEntityUsecase', () => {
       name: ' Business ',
       functionalCurrencyCode: 'NGN',
     });
-    expect(response).toEqual(current);
+    expect(response).toBe(current);
     expect(mockAccountingEntityRepo.update).not.toHaveBeenCalled();
     expect(
       mockLedgerAccountBalanceRepo.findAllByAccountingEntityId

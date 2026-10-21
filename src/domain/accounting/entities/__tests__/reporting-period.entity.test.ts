@@ -56,9 +56,9 @@ describe('reportingPeriodEntity', () => {
         count: 4,
         startDate: new Date('2026-01-01T00:00:00.000Z'),
         fiscalYearId: expect.any(String),
-        createdAt: MOCK_DATE,
         updatedAt: MOCK_DATE,
       });
+      expect(entity).not.toHaveProperty('createdAt');
       expect(Object.isFrozen(entity)).toBe(true);
 
       expect(events).toHaveLength(1);

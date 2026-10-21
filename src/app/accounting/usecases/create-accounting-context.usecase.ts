@@ -9,12 +9,9 @@ import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.
 import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import IAccountingContextService from '@domain/accounting/types/accounting-context.service.types';
+import { IAccountingContext } from '@domain/accounting/types/context.types';
 
-import {
-  IAccountingContextCreationReq,
-  IAccountingContextRecordDto,
-} from '@app/accounting/dtos/accounting-context/accounting-context.dto';
-import accountingContextDtoMapper from '@app/accounting/dtos/accounting-context/accounting-context.dto.mapper';
+import { IAccountingContextCreationReq } from '@app/accounting/dtos/accounting-context/accounting-context.dto';
 import { accountingContextCreationDtoSchema } from '@app/accounting/dtos/accounting-context/accounting-context.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -33,7 +30,7 @@ export default function makeCreateAccountingContextUsecase(
 ) {
   return async (
     payload: IAccountingContextCreationReq
-  ): Promise<IAccountingContextRecordDto> => {
+  ): Promise<IAccountingContext> => {
     zodValidationRunner(accountingContextCreationDtoSchema, payload);
 
     const { accountingEntity, actor, correlationId } = deps.appContext.get([
@@ -49,27 +46,30 @@ export default function makeCreateAccountingContextUsecase(
     if (!fiscalYear) {
       throw new accountingAppError.FiscalYearNotFound();
     }
+
     const accountingPeriod = await deps.accountingPeriodRepo.findById(
       payload.currentAccountingPeriodId as TEntityId,
       repoOptions
     );
+
     if (!accountingPeriod) {
       throw new accountingAppError.AccountingPeriodNotFound();
     }
 
-    const creation = await deps.accountingContextService.create(
-      {
-        accountingEntity,
-        fiscalYear,
-        accountingPeriod,
-        accountingStandardCode: payload.accountingStandardCode,
-        name: payload.name,
-        description: payload.description,
-        createdBy: actor.id,
-      },
+    const creationInput = {
+      accountingEntity,
+      fiscalYear,
+      accountingPeriod,
+      accountingStandardCode: payload.accountingStandardCode,
+      name: payload.name,
+      description: payload.description,
+      createdBy: actor.id,
+    };
+
+    const [context, events, audit] = await deps.accountingContextService.create(
+      creationInput,
       repoOptions
     );
-    const [context, events, audit] = creation;
 
     const history = historyValue.make(audit, actor.id, correlationId);
 
@@ -77,8 +77,9 @@ export default function makeCreateAccountingContextUsecase(
       ...repoOptions,
       history,
     });
+
     await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
-    return accountingContextDtoMapper.toRecordDto(context);
+    return context;
   };
 }

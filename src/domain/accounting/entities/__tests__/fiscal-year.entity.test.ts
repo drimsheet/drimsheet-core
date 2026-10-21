@@ -39,6 +39,8 @@ describe('fiscalYearEntity', () => {
       expect(entity.closedAt).toBeNull();
       expect(entity.updatedAt).toEqual(new Date('2026-04-01T00:00:00.000Z'));
       expect(entity.id).toBeDefined();
+      expect(entity).not.toHaveProperty('unit');
+      expect(entity).not.toHaveProperty('count');
 
       expect(Object.isFrozen(entity)).toBe(true);
 

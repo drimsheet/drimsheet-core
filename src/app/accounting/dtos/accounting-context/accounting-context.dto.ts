@@ -1,7 +1,7 @@
 import { UAccountingStandardCode } from '@domain/accounting/config/accounting-standards.config';
-
-import { IAccountingPeriodDto } from '@app/accounting/dtos/accounting-period/accounting-period.dto';
-import { IFiscalYearDto } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
+import { IAccountingContext } from '@domain/accounting/types/context.types';
+import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
+import { IAccountingPeriod } from '@domain/accounting/types/period.types';
 
 export interface IAccountingContextCreationReq {
   fiscalYearId: string;
@@ -12,24 +12,7 @@ export interface IAccountingContextCreationReq {
   description: string | null;
 }
 
-export interface IAccountingContextRecordDto {
-  id: string;
-  createdBy: string;
-  name: string;
-  description: string | null;
-  accountingEntityId: string;
-  accountingStandardCode: UAccountingStandardCode;
-  fiscalYearId: string;
-  /** Stored working-period selection, maintained independently of this read. */
-  currentAccountingPeriodId: string;
-  previousAccountingPeriodId: string | null;
-  nextAccountingPeriodId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  closedAt: Date | null;
-}
-
-export interface IAccountingContextDto extends IAccountingContextRecordDto {
-  fiscalYear: IFiscalYearDto;
-  accountingPeriods: IAccountingPeriodDto[];
+export interface IAccountingContextDto extends IAccountingContext {
+  fiscalYear: IFiscalYear;
+  accountingPeriods: IAccountingPeriod[];
 }

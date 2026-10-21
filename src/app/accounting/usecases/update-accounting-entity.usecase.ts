@@ -8,13 +8,10 @@ import historyValue from '@shared/values/history/history.vo';
 
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
+import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 
-import {
-  IAccountingEntityDto,
-  IAccountingEntityUpdateReq,
-} from '@app/accounting/dtos/accounting/accounting.dto';
-import accountingEntityDtoMapper from '@app/accounting/dtos/accounting/accounting.dto.mapper';
+import { IAccountingEntityUpdateReq } from '@app/accounting/dtos/accounting/accounting.dto';
 import { accountingEntityUpdateReqSchema } from '@app/accounting/dtos/accounting/accounting.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -31,7 +28,7 @@ interface IDependencies {
 export default function makeUpdateAccountingEntityUsecase(deps: IDependencies) {
   return async (
     payload: IAccountingEntityUpdateReq
-  ): Promise<IAccountingEntityDto> => {
+  ): Promise<IAccountingEntity> => {
     zodValidationRunner(accountingEntityUpdateReqSchema, payload);
 
     const { actor, accountingEntity, correlationId } = deps.appContext.get([
@@ -75,7 +72,7 @@ export default function makeUpdateAccountingEntityUsecase(deps: IDependencies) {
         await transaction.commit();
         deps.appContext.set({ accountingEntity: entity });
 
-        return accountingEntityDtoMapper.toDto(entity);
+        return entity;
       }
 
       const history = historyValue.make(audit, actor.id, correlationId);
@@ -100,7 +97,7 @@ export default function makeUpdateAccountingEntityUsecase(deps: IDependencies) {
         eventValue.enrichAll(events, { correlationId })
       );
 
-      return accountingEntityDtoMapper.toDto(entity);
+      return entity;
     } catch (error) {
       return await transaction.handleError(error);
     }

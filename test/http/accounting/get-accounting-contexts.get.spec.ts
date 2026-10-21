@@ -84,21 +84,22 @@ const entity: IAccountingEntity = {
 };
 
 const context: IAccountingContextDto = {
-  id: '123e4567-e89b-12d3-a456-426614174002',
+  id: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
   createdBy: entity.createdBy,
   name: 'Default',
   description: null,
   accountingEntityId: entity.id,
   accountingStandardCode: 'IFRS',
-  fiscalYearId: '123e4567-e89b-12d3-a456-426614174003',
-  currentAccountingPeriodId: '123e4567-e89b-12d3-a456-426614174004',
+  fiscalYearId: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
+  currentAccountingPeriodId:
+    '123e4567-e89b-12d3-a456-426614174004' as TEntityId,
   previousAccountingPeriodId: null,
   nextAccountingPeriodId: null,
   createdAt: entity.createdAt,
   updatedAt: entity.updatedAt,
   closedAt: null,
   fiscalYear: {
-    id: '123e4567-e89b-12d3-a456-426614174003',
+    id: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
     createdBy: entity.createdBy,
     name: '2026',
     accountingEntityId: entity.id,
@@ -110,11 +111,11 @@ const context: IAccountingContextDto = {
   },
   accountingPeriods: [
     {
-      id: '123e4567-e89b-12d3-a456-426614174004',
+      id: '123e4567-e89b-12d3-a456-426614174004' as TEntityId,
       createdBy: entity.createdBy,
       name: 'January',
       accountingEntityId: entity.id,
-      fiscalYearId: '123e4567-e89b-12d3-a456-426614174003',
+      fiscalYearId: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
       unit: 'month',
       count: 12,
       startDate: new Date('2026-01-01'),
@@ -167,7 +168,7 @@ describe('GET /accounting/accounting-contexts', () => {
     it('returns all contexts with nested fiscal years and periods as JSON', async () => {
       const second = {
         ...context,
-        id: '123e4567-e89b-12d3-a456-426614174005',
+        id: '123e4567-e89b-12d3-a456-426614174005' as TEntityId,
         name: 'Second context',
       };
       getContexts.mockResolvedValue([context, second]);
@@ -195,7 +196,7 @@ describe('GET /accounting/accounting-contexts', () => {
 
     it('uses the entity header even when the query supplies a different entity ID', async () => {
       const response = await get().query({
-        accountingEntityId: '123e4567-e89b-12d3-a456-426614174099',
+        accountingEntityId: '123e4567-e89b-12d3-a456-426614174099' as TEntityId,
       });
       expect(response.status).toBe(200);
       expect(findEntity).toHaveBeenCalledWith(

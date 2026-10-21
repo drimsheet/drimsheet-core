@@ -52,7 +52,7 @@ const context: IAccountingContextDetails = {
 };
 
 describe('accountingContextDtoMapper', () => {
-  it('preserves populated period references in record and detail DTOs', () => {
+  it('preserves populated period references in detail DTOs', () => {
     const previousAccountingPeriodId =
       '123e4567-e89b-12d3-a456-426614174005' as TEntityId;
     const nextAccountingPeriodId =
@@ -63,53 +63,23 @@ describe('accountingContextDtoMapper', () => {
       nextAccountingPeriodId,
     };
 
-    for (const dto of [
-      accountingContextDtoMapper.toRecordDto(input),
-      accountingContextDtoMapper.toDto(input),
-    ]) {
-      expect(dto.previousAccountingPeriodId).toBe(previousAccountingPeriodId);
-      expect(dto.nextAccountingPeriodId).toBe(nextAccountingPeriodId);
-    }
+    const dto = accountingContextDtoMapper.toDto(input);
+    expect(dto.previousAccountingPeriodId).toBe(previousAccountingPeriodId);
+    expect(dto.nextAccountingPeriodId).toBe(nextAccountingPeriodId);
   });
 
-  it('returns explicit context, fiscal-year and period fields without persistence extras', () => {
+  it('maps context fields while reusing its fiscal year and periods', () => {
     const input = {
       ...context,
       internal: 'private',
-      fiscalYear: { ...context.fiscalYear, unit: 'month', count: 12 },
-      accountingPeriods: context.accountingPeriods.map((period) => ({
-        ...period,
-        internal: 'private',
-      })),
     };
     const dto = accountingContextDtoMapper.toDto(input);
     expect(dto).toEqual(context);
     expect(dto).not.toBe(input);
-    expect(dto.fiscalYear).not.toBe(input.fiscalYear);
-    expect(dto.accountingPeriods[0]).not.toBe(input.accountingPeriods[0]);
+    expect(dto.fiscalYear).toBe(input.fiscalYear);
+    expect(dto.accountingPeriods).toBe(input.accountingPeriods);
     expect(dto.currentAccountingPeriodId).toBe(periodId);
     expect(dto.accountingPeriods[0].status).toBe('closed');
-  });
-
-  it('maps a created context without leaking prerequisite collections or private fields', () => {
-    const record = {
-      id: context.id,
-      createdBy: context.createdBy,
-      name: context.name,
-      description: context.description,
-      accountingEntityId: context.accountingEntityId,
-      accountingStandardCode: context.accountingStandardCode,
-      fiscalYearId: context.fiscalYearId,
-      currentAccountingPeriodId: context.currentAccountingPeriodId,
-      previousAccountingPeriodId: null,
-      nextAccountingPeriodId: null,
-      createdAt: context.createdAt,
-      updatedAt: context.updatedAt,
-      closedAt: context.closedAt,
-    };
-    const input = { ...context, privateField: 'secret' };
-    expect(accountingContextDtoMapper.toRecordDto(input)).toEqual(record);
-    expect(accountingContextDtoMapper.toRecordDto(input)).not.toBe(input);
   });
 
   it('preserves an empty period collection', () => {

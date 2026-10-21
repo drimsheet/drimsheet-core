@@ -8,7 +8,6 @@ import periodError from '@domain/accounting/errors/period.error';
 import periodEvents from '@domain/accounting/events/period.events';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import { EPeriodActions } from '@domain/accounting/types/period-audit.types';
-import { EPeriodUnit } from '@domain/accounting/types/period.types';
 import fiscalYearAudit from '@domain/accounting/values/fiscal-year-audit.vo';
 
 interface IMakePayload extends Pick<
@@ -38,13 +37,11 @@ function make(
 
   const timestamp = new Date();
 
-  const entity = Object.freeze({
+  const entity = Object.freeze<IFiscalYear>({
     id: generateUUID(),
     createdBy: payload.createdBy,
     name,
     accountingEntityId: payload.accountingEntityId,
-    unit: EPeriodUnit.Month,
-    count: 12,
     startDate: payload.startDate,
     endDate: payload.endDate,
     status: payload.status,

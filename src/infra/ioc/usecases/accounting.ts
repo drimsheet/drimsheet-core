@@ -117,7 +117,6 @@ export const createAccountingPeriodsUseCase = makeTracedUseCase(
     fiscalYearRepo: accountingRepos.fiscalYear,
     accountingPeriodService,
     accountingPeriodRepo: accountingRepos.accountingPeriod,
-    repoService,
     eventBus: messaging.eventBus,
   })
 );
@@ -126,11 +125,8 @@ export const createFiscalYearUseCase = makeTracedUseCase(
   'accounting.createFiscalYearUseCase',
   makeCreateFiscalYearUsecase({
     appContext,
-    accountingEntityRepo: accountingRepos.accountingEntity,
-    accountingEntityService,
     fiscalYearRepo: accountingRepos.fiscalYear,
     fiscalYearService,
-    repoService,
     eventBus: messaging.eventBus,
   })
 );
@@ -140,7 +136,6 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
   makeCreateAccountingEntityUseCase({
     appContext,
     accountingEntityRepo: accountingRepos.accountingEntity,
-    repoService,
     accountingEntityService,
     eventBus: messaging.eventBus,
   })

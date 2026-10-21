@@ -11,6 +11,7 @@ export interface IAccountingContext {
   accountingEntityId: TEntityId;
   accountingStandardCode: UAccountingStandardCode;
   fiscalYearId: TEntityId;
+  /** Stored working-period selection, maintained independently of reads. */
   currentAccountingPeriodId: TEntityId;
   previousAccountingPeriodId: TEntityId | null;
   nextAccountingPeriodId: TEntityId | null;
@@ -27,6 +28,7 @@ export interface IReportingContext {
   accountingEntityId: TEntityId;
   reportingCurrencyCode: UCurrencyCode;
   accountingContextId: TEntityId;
+  /** Stored working-period selection, maintained independently of reads. */
   currentReportingPeriodId: TEntityId;
   accountingStandardCode: UAccountingStandardCode;
   createdAt: Date;

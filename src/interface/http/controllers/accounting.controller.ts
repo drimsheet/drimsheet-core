@@ -15,27 +15,24 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
-import { IAccountingContextCreationReq } from '@app/accounting/dtos/accounting-context/accounting-context.dto';
+import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import {
-  IAccountingPeriodDto,
-  IAccountingPeriodsCreationReq,
-} from '@app/accounting/dtos/accounting-period/accounting-period.dto';
+  IAccountingPeriod,
+  IReportingPeriod,
+} from '@domain/accounting/types/period.types';
+
+import { IAccountingContextCreationReq } from '@app/accounting/dtos/accounting-context/accounting-context.dto';
+import { IAccountingPeriodsCreationReq } from '@app/accounting/dtos/accounting-period/accounting-period.dto';
 import {
   IAccountingEntityCreationDto,
-  IAccountingEntityDto,
   IAccountingEntityOnboardingDto,
   IAccountingEntitySwitchReq,
   IAccountingEntityUpdateReq,
 } from '@app/accounting/dtos/accounting/accounting.dto';
-import {
-  IFiscalYearCreationReq,
-  IFiscalYearDto,
-} from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
+import { IFiscalYearCreationReq } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
 import { IReportingContextCreationReq } from '@app/accounting/dtos/reporting-context/reporting-context.dto';
-import {
-  IReportingPeriodDto,
-  IReportingPeriodsCreationReq,
-} from '@app/accounting/dtos/reporting-period/reporting-period.dto';
+import { IReportingPeriodsCreationReq } from '@app/accounting/dtos/reporting-period/reporting-period.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
@@ -159,7 +156,7 @@ export class AccountingController extends Controller {
   )
   public async createAccountingEntity(
     @Body() body: IAccountingEntityCreationDto
-  ): Promise<IAccountingEntityDto> {
+  ): Promise<IAccountingEntity> {
     return await createAccountingEntityUseCase(body);
   }
 
@@ -178,7 +175,7 @@ export class AccountingController extends Controller {
   )
   public async onboardAccountingEntity(
     @Body() body: IAccountingEntityOnboardingDto
-  ): Promise<IAccountingEntityDto> {
+  ): Promise<IAccountingEntity> {
     return await onboardAccountingEntityUseCase(body);
   }
 
@@ -199,7 +196,7 @@ export class AccountingController extends Controller {
   )
   public async createFiscalYear(
     @Body() body: IFiscalYearCreationReq
-  ): Promise<IFiscalYearDto> {
+  ): Promise<IFiscalYear> {
     return await createFiscalYearUseCase(body);
   }
 
@@ -221,7 +218,7 @@ export class AccountingController extends Controller {
   )
   public async createAccountingPeriods(
     @Body() body: IAccountingPeriodsCreationReq
-  ): Promise<IAccountingPeriodDto[]> {
+  ): Promise<IAccountingPeriod[]> {
     return await createAccountingPeriodsUseCase(body);
   }
 
@@ -265,7 +262,7 @@ export class AccountingController extends Controller {
   )
   public async createReportingPeriods(
     @Body() body: IReportingPeriodsCreationReq
-  ): Promise<IReportingPeriodDto[]> {
+  ): Promise<IReportingPeriod[]> {
     return await createReportingPeriodsUseCase(body);
   }
 
@@ -307,7 +304,7 @@ export class AccountingController extends Controller {
   )
   public async updateAccountingEntity(
     @Body() body: IAccountingEntityUpdateReq
-  ): Promise<IAccountingEntityDto> {
+  ): Promise<IAccountingEntity> {
     return await updateAccountingEntityUseCase(body);
   }
 

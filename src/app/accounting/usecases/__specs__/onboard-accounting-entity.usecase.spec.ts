@@ -117,8 +117,7 @@ describe('makeOnboardAccountingEntityUsecase (deprecated)', () => {
         throw new Error('Expected reporting period batch');
       }
 
-      expect(result).toEqual(entity);
-      expect(result).not.toBe(entity);
+      expect(result).toBe(entity);
       expect(entity).toMatchObject({
         ownerId: userId,
         createdBy: actor.id,

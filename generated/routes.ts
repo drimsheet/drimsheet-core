@@ -2631,16 +2631,16 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IFiscalYearDto: {
+  IFiscalYear: {
     dataType: 'refObject',
     properties: {
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
+      id: { ref: 'TEntityId', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
-      accountingEntityId: { dataType: 'string', required: true },
+      status: { ref: 'UPeriodStatus', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
-      status: { ref: 'UPeriodStatus', required: true },
       closedAt: {
         dataType: 'union',
         subSchemas: [
@@ -2669,19 +2669,19 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingPeriodDto: {
+  IAccountingPeriod: {
     dataType: 'refObject',
     properties: {
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
-      accountingEntityId: { dataType: 'string', required: true },
-      fiscalYearId: { dataType: 'string', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
       unit: { ref: 'UPeriodUnit', required: true },
       count: { dataType: 'double', required: true },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
       status: { ref: 'UPeriodStatus', required: true },
+      fiscalYearId: { ref: 'TEntityId', required: true },
       closedAt: {
         dataType: 'union',
         subSchemas: [
@@ -2742,8 +2742,8 @@ const models: TsoaRoute.Models = {
   IAccountingContextDto: {
     dataType: 'refObject',
     properties: {
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
       description: {
         dataType: 'union',
@@ -2753,27 +2753,21 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      accountingEntityId: { dataType: 'string', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
       accountingStandardCode: {
         ref: 'UAccountingStandardCode',
         required: true,
       },
-      fiscalYearId: { dataType: 'string', required: true },
-      currentAccountingPeriodId: { dataType: 'string', required: true },
+      fiscalYearId: { ref: 'TEntityId', required: true },
+      currentAccountingPeriodId: { ref: 'TEntityId', required: true },
       previousAccountingPeriodId: {
         dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
+        subSchemas: [{ ref: 'TEntityId' }, { dataType: 'enum', enums: [null] }],
         required: true,
       },
       nextAccountingPeriodId: {
         dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
+        subSchemas: [{ ref: 'TEntityId' }, { dataType: 'enum', enums: [null] }],
         required: true,
       },
       createdAt: { dataType: 'datetime', required: true },
@@ -2786,10 +2780,10 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      fiscalYear: { ref: 'IFiscalYearDto', required: true },
+      fiscalYear: { ref: 'IFiscalYear', required: true },
       accountingPeriods: {
         dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IAccountingPeriodDto' },
+        array: { dataType: 'refObject', ref: 'IAccountingPeriod' },
         required: true,
       },
     },
@@ -3018,18 +3012,18 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IReportingPeriodDto: {
+  IReportingPeriod: {
     dataType: 'refObject',
     properties: {
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
-      accountingEntityId: { dataType: 'string', required: true },
-      fiscalYearId: { dataType: 'string', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
       unit: { ref: 'UPeriodUnit', required: true },
       count: { dataType: 'double', required: true },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
+      fiscalYearId: { ref: 'TEntityId', required: true },
       updatedAt: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
@@ -3038,8 +3032,8 @@ const models: TsoaRoute.Models = {
   IReportingContextDto: {
     dataType: 'refObject',
     properties: {
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
       description: {
         dataType: 'union',
@@ -3049,14 +3043,14 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      accountingEntityId: { dataType: 'string', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
+      reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
+      accountingContextId: { ref: 'TEntityId', required: true },
+      currentReportingPeriodId: { ref: 'TEntityId', required: true },
       accountingStandardCode: {
         ref: 'UAccountingStandardCode',
         required: true,
       },
-      accountingContextId: { dataType: 'string', required: true },
-      reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
-      currentReportingPeriodId: { dataType: 'string', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
       closedAt: {
@@ -3067,29 +3061,12 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      fiscalYear: { ref: 'IFiscalYearDto', required: true },
+      fiscalYear: { ref: 'IFiscalYear', required: true },
       reportingPeriods: {
         dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IReportingPeriodDto' },
+        array: { dataType: 'refObject', ref: 'IReportingPeriod' },
         required: true,
       },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingEntityDto: {
-    dataType: 'refObject',
-    properties: {
-      status: { ref: 'UAccountingEntityStatus', required: true },
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
-      ownerId: { dataType: 'string', required: true },
-      name: { dataType: 'string', required: true },
-      type: { ref: 'UAccountingEntityType', required: true },
-      functionalCurrencyCode: { ref: 'UCurrencyCode', required: true },
-      jurisdictionCode: { ref: 'UJurisdictionCode', required: true },
-      createdAt: { dataType: 'datetime', required: true },
-      updatedAt: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
   },
@@ -3169,11 +3146,11 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingContextRecordDto: {
+  IAccountingContext: {
     dataType: 'refObject',
     properties: {
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
       description: {
         dataType: 'union',
@@ -3183,27 +3160,21 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      accountingEntityId: { dataType: 'string', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
       accountingStandardCode: {
         ref: 'UAccountingStandardCode',
         required: true,
       },
-      fiscalYearId: { dataType: 'string', required: true },
-      currentAccountingPeriodId: { dataType: 'string', required: true },
+      fiscalYearId: { ref: 'TEntityId', required: true },
+      currentAccountingPeriodId: { ref: 'TEntityId', required: true },
       previousAccountingPeriodId: {
         dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
+        subSchemas: [{ ref: 'TEntityId' }, { dataType: 'enum', enums: [null] }],
         required: true,
       },
       nextAccountingPeriodId: {
         dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
+        subSchemas: [{ ref: 'TEntityId' }, { dataType: 'enum', enums: [null] }],
         required: true,
       },
       createdAt: { dataType: 'datetime', required: true },
@@ -3252,11 +3223,11 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IReportingContextRecordDto: {
+  IReportingContext: {
     dataType: 'refObject',
     properties: {
-      id: { dataType: 'string', required: true },
-      createdBy: { dataType: 'string', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
       description: {
         dataType: 'union',
@@ -3266,14 +3237,14 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-      accountingEntityId: { dataType: 'string', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
+      reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
+      accountingContextId: { ref: 'TEntityId', required: true },
+      currentReportingPeriodId: { ref: 'TEntityId', required: true },
       accountingStandardCode: {
         ref: 'UAccountingStandardCode',
         required: true,
       },
-      accountingContextId: { dataType: 'string', required: true },
-      reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
-      currentReportingPeriodId: { dataType: 'string', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
       closedAt: {
