@@ -17,8 +17,7 @@ import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let transactionalEmailQueue:
-  | Queue<ITraceEnvelope<ITransactionalEmailDto>>
-  | undefined;
+  Queue<ITraceEnvelope<ITransactionalEmailDto>> | undefined;
 
 export function getTransactionalEmailQueue(): Queue<
   ITraceEnvelope<ITransactionalEmailDto>

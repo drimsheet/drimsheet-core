@@ -21,8 +21,7 @@ export interface IJournalEntryReversalPreparation extends IJournalEntryReversalR
 }
 
 export type TJournalEntryRemovalPreparation =
-  | IJournalEntryDeletionPreparation
-  | IJournalEntryReversalPreparation;
+  IJournalEntryDeletionPreparation | IJournalEntryReversalPreparation;
 
 export interface IJournalEntryRemovalService {
   prepare(

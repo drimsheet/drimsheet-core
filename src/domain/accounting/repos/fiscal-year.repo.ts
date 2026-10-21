@@ -5,6 +5,17 @@ import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import { IFiscalYearHistory } from '@domain/accounting/types/period-audit.types';
 
 export default interface IFiscalYearRepo {
+  findByAccountingEntityId(
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IFiscalYear[]>;
+
+  findByIdAndAccountingEntityId(
+    id: TEntityId,
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IFiscalYear | null>;
+
   findById(
     id: TEntityId,
     options: IReadRepoOptions

@@ -6,6 +6,7 @@ import {
   Middlewares,
   OperationId,
   Patch,
+  Path,
   Post,
   Response,
   Route,
@@ -45,6 +46,8 @@ import {
   deleteAccountingEntityUseCase,
   getAccountingContextsUseCase,
   getActiveAccountingEntityUseCase,
+  getFiscalYearsUseCase,
+  getFiscalYearUseCase,
   getJurisdictionsUseCase,
   getReportingContextsUseCase,
   getUserAccountingEntitiesUseCase,
@@ -107,6 +110,42 @@ export class AccountingController extends Controller {
   )
   public async getActiveAccountingEntity() {
     return await getActiveAccountingEntityUseCase();
+  }
+
+  /** Returns all fiscal years for x-accounting-entity-id. */
+  @Get('/fiscal-years')
+  @OperationId('getFiscalYears')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getFiscalYears(): Promise<IFiscalYear[]> {
+    return await getFiscalYearsUseCase();
+  }
+
+  /** Returns one fiscal year belonging to x-accounting-entity-id. */
+  @Get('/fiscal-years/{id}')
+  @OperationId('getFiscalYear')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getFiscalYear(@Path() id: string): Promise<IFiscalYear> {
+    return await getFiscalYearUseCase(id);
   }
 
   /**

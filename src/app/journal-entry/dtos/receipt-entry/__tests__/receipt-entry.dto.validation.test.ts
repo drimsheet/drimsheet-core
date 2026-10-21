@@ -136,7 +136,7 @@ describe('Receipt Entry DTO Validation', () => {
     }
   );
 
-  it('retains duplicate attachment-reference validation', () => {
+  it('counts duplicate attachment references toward the upload limit', () => {
     const reference = '4b4c1064-a09e-4e4f-b6a3-23945cc87f77';
     const result =
       receiptEntryReqValidation.shape.attachmentReferences.safeParse([
@@ -147,7 +147,7 @@ describe('Receipt Entry DTO Validation', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues.map((issue) => issue.message)).toContain(
-        new fileAppError.InvalidUploadReference().errorKey
+        new fileAppError.InvalidUploadCount().errorKey
       );
     }
   });

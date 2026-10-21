@@ -158,8 +158,8 @@ function makeRectify(
           await deps.journalLineRepo.create(update.linesToCreate, {
             ...writeOptions,
             accountingEntityId: update.entry.accountingEntityId,
-            history: update.linesToCreate.map(
-              (line) => lineHistoryById.get(line.id)!
+            history: update.linesToCreate.map((line) =>
+              lineHistoryById.get(line.id)!
             ),
           });
         }

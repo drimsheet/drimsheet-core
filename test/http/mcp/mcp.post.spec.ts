@@ -94,9 +94,9 @@ jest.mock('@infra/ioc/handlers/http', () => ({
   default: {},
   mcpRouteHandler: jest.fn(),
   healthHandlers: jest
-    .requireActual<
-      typeof import('@interface/http/handlers/health.handler')
-    >('@interface/http/handlers/health.handler')
+    .requireActual<typeof import('@interface/http/handlers/health.handler')>(
+      '@interface/http/handlers/health.handler'
+    )
     .default({
       isReady: async () => false,
     }),

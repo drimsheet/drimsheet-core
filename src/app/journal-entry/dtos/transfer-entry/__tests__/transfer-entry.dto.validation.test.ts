@@ -84,7 +84,7 @@ describe('Transfer Entry DTO Validation', () => {
     }
   );
 
-  it('rejects duplicate attachment references', () => {
+  it('counts duplicate attachment references toward the upload limit', () => {
     const reference = '4b4c1064-a09e-4e4f-b6a3-23945cc87f77';
     const result = transferEntryReqValidation.safeParse({
       ...makePayload(),
@@ -94,7 +94,7 @@ describe('Transfer Entry DTO Validation', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues.map((issue) => issue.message)).toContain(
-        new fileAppError.InvalidUploadReference().errorKey
+        new fileAppError.InvalidUploadCount().errorKey
       );
     }
   });

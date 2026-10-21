@@ -115,6 +115,74 @@ describe('fiscalYearRepo', () => {
     }
   );
 
+  it.each([false, true])(
+    'reads all fiscal years for one entity without a status filter: %j',
+    async (found) => {
+      const years = ['pending', 'open', 'closing', 'closed'].map((status) => ({
+        ...year,
+        status: status as typeof year.status,
+      }));
+      const rows = found ? years.map(fiscalYearMapper.toRepo) : [];
+      const where = jest
+        .fn<Promise<typeof rows>, [SQL]>()
+        .mockResolvedValue(rows);
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+
+      await expect(
+        fiscalYearRepo.findByAccountingEntityId(accountingEntityId, {
+          correlationId: 'read',
+        })
+      ).resolves.toEqual(found ? years : []);
+      expect(from).toHaveBeenCalledWith(fiscalYearsInCore);
+      const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+      expect(query.params).toEqual([accountingEntityId]);
+      expect(query.sql).toBe(
+        '"core"."fiscal_years"."accounting_entity_id" = $1'
+      );
+      expect(getDbQuery).toHaveBeenCalledWith({ correlationId: 'read' });
+    }
+  );
+
+  it.each([false, true])(
+    'scopes a fiscal-year ID lookup to the accounting entity: %j',
+    async (found) => {
+      const row = fiscalYearMapper.toRepo(year);
+      const limit = jest.fn().mockResolvedValue(found ? [row] : []);
+      const where = jest
+        .fn<{ limit: typeof limit }, [SQL]>()
+        .mockReturnValue({ limit });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+
+      await expect(
+        fiscalYearRepo.findByIdAndAccountingEntityId(
+          year.id,
+          accountingEntityId,
+          { correlationId: 'read' }
+        )
+      ).resolves.toEqual(found ? year : null);
+      expect(from).toHaveBeenCalledWith(fiscalYearsInCore);
+      expect(limit).toHaveBeenCalledWith(1);
+      const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+      expect(query.params).toEqual([year.id, accountingEntityId]);
+      expect(query.sql).toBe(
+        '("core"."fiscal_years"."id" = $1 and "core"."fiscal_years"."accounting_entity_id" = $2)'
+      );
+      expect(getDbQuery).toHaveBeenCalledWith({ correlationId: 'read' });
+    }
+  );
+
   function fakeTransaction() {
     const committed: unknown[] = [];
     const staged: unknown[] = [];

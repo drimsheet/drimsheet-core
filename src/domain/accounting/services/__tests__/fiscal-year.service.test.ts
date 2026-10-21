@@ -30,6 +30,8 @@ describe('fiscalYearService.create', () => {
     status: EPeriodStatus.Open,
   };
   const repo: jest.Mocked<IFiscalYearRepo> = {
+    findByAccountingEntityId: jest.fn(),
+    findByIdAndAccountingEntityId: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
     existsByRange: jest.fn(),
