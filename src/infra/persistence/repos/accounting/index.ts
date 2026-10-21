@@ -1,4 +1,3 @@
-import accountingContextQueryRepo from '@infra/persistence/repos/accounting/queries/accounting-context.query.repo.impl';
 import nextCurrentAccountingPeriodQueryRepo from '@infra/persistence/repos/accounting/queries/next-current-accounting-period.query.repo.impl';
 import nextCurrentReportingPeriodQueryRepo from '@infra/persistence/repos/accounting/queries/next-current-reporting-period.query.repo.impl';
 import reportingContextQueryRepo from '@infra/persistence/repos/accounting/queries/reporting-context.query.repo.impl';
@@ -22,7 +21,6 @@ import reportingPeriodRepo from './reporting-period.repo.impl';
 const accountingRepos = {
   nextCurrentAccountingPeriodQuery: nextCurrentAccountingPeriodQueryRepo,
   nextCurrentReportingPeriodQuery: nextCurrentReportingPeriodQueryRepo,
-  accountingContextQuery: accountingContextQueryRepo,
   accountingContext: accountingContextRepo,
   accountingContextHistory: accountingContextHistoryRepo,
   accountingEntity: accountingEntityRepo,

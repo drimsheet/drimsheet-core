@@ -10,13 +10,8 @@ export default interface IFiscalYearRepo {
     options: IReadRepoOptions
   ): Promise<IFiscalYear[]>;
 
-  findByIdAndAccountingEntityId(
-    id: TEntityId,
-    accountingEntityId: TEntityId,
-    options: IReadRepoOptions
-  ): Promise<IFiscalYear | null>;
-
   findById(
+    accountingEntityId: TEntityId,
     id: TEntityId,
     options: IReadRepoOptions
   ): Promise<IFiscalYear | null>;

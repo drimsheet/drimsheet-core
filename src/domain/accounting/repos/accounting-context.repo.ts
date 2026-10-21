@@ -5,10 +5,23 @@ import { IAccountingContextHistory } from '@domain/accounting/types/accounting-c
 import { IAccountingContext } from '@domain/accounting/types/context.types';
 
 export default interface IAccountingContextRepo {
+  /** Includes both open and closed contexts (ACC-AC-005). */
+  existsByFiscalYear(
+    fiscalYearId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<boolean>;
+
   update(
     context: IAccountingContext,
     options: IWriteRepoOptions<IAccountingContextHistory>
   ): Promise<void>;
+
+  /** Returns the fiscal year's context, including closed contexts. */
+  findByFiscalYear(
+    accountingEntityId: TEntityId,
+    fiscalYearId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IAccountingContext | null>;
 
   findById(
     id: TEntityId,

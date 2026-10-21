@@ -38,34 +38,31 @@ describe('getAccountingPeriodUsecase', () => {
   });
 
   it('looks up the accounting period within the entity from request context', async () => {
-    mockAccountingPeriodRepo.findByIdAndAccountingEntityId.mockResolvedValue(
-      period
-    );
+    mockAccountingPeriodRepo.findById.mockResolvedValue(period);
     await expect(execute(period.id)).resolves.toEqual(period);
     expect(mockAppContext.get).toHaveBeenCalledWith(['accountingEntity']);
-    expect(
-      mockAccountingPeriodRepo.findByIdAndAccountingEntityId
-    ).toHaveBeenCalledWith(period.id, entityId, {
-      correlationId: 'accounting-period-read',
-    });
-    expect(mockAccountingPeriodRepo.findById).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.findById).toHaveBeenCalledWith(
+      entityId,
+      period.id,
+      {
+        correlationId: 'accounting-period-read',
+      }
+    );
     expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();
     expect(mockAppContext.set).not.toHaveBeenCalled();
   });
 
   it('rejects a missing accounting period', async () => {
-    mockAccountingPeriodRepo.findByIdAndAccountingEntityId.mockResolvedValue(
-      null
-    );
+    mockAccountingPeriodRepo.findById.mockResolvedValue(null);
     await expect(execute(period.id)).rejects.toBeInstanceOf(
       accountingAppError.AccountingPeriodNotFound
     );
   });
 
-  it('does not expose a accounting period belonging to another entity', async () => {
+  it('does not expose an accounting period belonging to another entity', async () => {
     const otherEntityId = '123e4567-e89b-12d3-a456-426614174099' as TEntityId;
-    mockAccountingPeriodRepo.findByIdAndAccountingEntityId.mockImplementation(
-      async (id, accountingEntityId) =>
+    mockAccountingPeriodRepo.findById.mockImplementation(
+      async (accountingEntityId, id) =>
         id === period.id && accountingEntityId === period.accountingEntityId
           ? period
           : null
@@ -77,11 +74,13 @@ describe('getAccountingPeriodUsecase', () => {
     await expect(execute(period.id)).rejects.toBeInstanceOf(
       accountingAppError.AccountingPeriodNotFound
     );
-    expect(
-      mockAccountingPeriodRepo.findByIdAndAccountingEntityId
-    ).toHaveBeenCalledWith(period.id, otherEntityId, {
-      correlationId: 'accounting-period-read',
-    });
+    expect(mockAccountingPeriodRepo.findById).toHaveBeenCalledWith(
+      otherEntityId,
+      period.id,
+      {
+        correlationId: 'accounting-period-read',
+      }
+    );
   });
 
   it.each(['', 'not-a-uuid'])(
@@ -91,17 +90,13 @@ describe('getAccountingPeriodUsecase', () => {
         errorKey: 'app_error_validation_error',
       });
       expect(mockAppContext.get).not.toHaveBeenCalled();
-      expect(
-        mockAccountingPeriodRepo.findByIdAndAccountingEntityId
-      ).not.toHaveBeenCalled();
+      expect(mockAccountingPeriodRepo.findById).not.toHaveBeenCalled();
     }
   );
 
   it('propagates repository failures', async () => {
     const failure = new Error('read failed');
-    mockAccountingPeriodRepo.findByIdAndAccountingEntityId.mockRejectedValue(
-      failure
-    );
+    mockAccountingPeriodRepo.findById.mockRejectedValue(failure);
     await expect(execute(period.id)).rejects.toBe(failure);
   });
 
@@ -111,8 +106,6 @@ describe('getAccountingPeriodUsecase', () => {
       throw failure;
     });
     await expect(execute(period.id)).rejects.toBe(failure);
-    expect(
-      mockAccountingPeriodRepo.findByIdAndAccountingEntityId
-    ).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.findById).not.toHaveBeenCalled();
   });
 });

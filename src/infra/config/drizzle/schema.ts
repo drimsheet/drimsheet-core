@@ -879,6 +879,7 @@ export const accountingContextsInCore = core.table(
       foreignColumns: [accountingPeriodsInCore.id],
       name: 'accounting_contexts_next_accounting_period_id_fkey',
     }).onDelete('restrict'),
+    unique('accounting_contexts_fiscal_year_id_key').on(table.fiscalYearId),
   ]
 );
 

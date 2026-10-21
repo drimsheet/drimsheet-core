@@ -5,6 +5,8 @@ import DomainError from '@shared/values/errors/domain.error';
 type TErrorPrefix = TErrorKey<'accounting_error'>;
 
 const EErrorKeys = {
+  AccountingContextAlreadyExists:
+    'accounting_error_accounting_context_already_exists_conflict',
   AccountingContextNotFound: 'accounting_error_accounting_context_not_found',
   ReportingContextNotFound: 'accounting_error_reporting_context_not_found',
   FiscalYearNotFound: 'accounting_error_fiscal_year_not_found',

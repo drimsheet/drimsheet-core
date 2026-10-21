@@ -11,13 +11,8 @@ export default interface IAccountingPeriodRepo {
     options: IReadRepoOptions
   ): Promise<IAccountingPeriod[]>;
 
-  findByIdAndAccountingEntityId(
-    id: TEntityId,
-    accountingEntityId: TEntityId,
-    options: IReadRepoOptions
-  ): Promise<IAccountingPeriod | null>;
-
   findById(
+    accountingEntityId: TEntityId,
     id: TEntityId,
     options: IReadRepoOptions
   ): Promise<IAccountingPeriod | null>;

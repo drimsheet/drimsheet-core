@@ -43,7 +43,8 @@ export default interface IAccountingContextService {
 
   /**
    * Resolves previous/next periods from storage after enforcing ownership
-   * and eligibility. Rejects lookup or validation failures; never persists.
+   * and eligibility. Rejects an existing context for the fiscal year, including
+   * a closed context (ACC-AC-005), or lookup/validation failures; never persists.
    */
   create(
     input: ICreateAccountingContextInput,

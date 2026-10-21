@@ -22,7 +22,7 @@ const fiscalYearRepoImpl: IFiscalYearRepo = {
     return years.map(fiscalYearMapper.toDomain);
   },
 
-  findByIdAndAccountingEntityId: async (id, accountingEntityId, options) => {
+  findById: async (accountingEntityId, id, options) => {
     const [year] = await getDbQuery(options)
       .select()
       .from(fiscalYearsInCore)
@@ -34,15 +34,6 @@ const fiscalYearRepoImpl: IFiscalYearRepo = {
       )
       .limit(1);
 
-    return year ? fiscalYearMapper.toDomain(year) : null;
-  },
-
-  findById: async (id, options) => {
-    const [year] = await getDbQuery(options)
-      .select()
-      .from(fiscalYearsInCore)
-      .where(eq(fiscalYearsInCore.id, id))
-      .limit(1);
     return year ? fiscalYearMapper.toDomain(year) : null;
   },
 

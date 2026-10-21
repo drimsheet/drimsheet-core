@@ -28,7 +28,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
     return periods.map(accountingPeriodMapper.toDomain);
   },
 
-  findByIdAndAccountingEntityId: async (id, accountingEntityId, options) => {
+  findById: async (accountingEntityId, id, options) => {
     const [period] = await getDbQuery(options)
       .select()
       .from(accountingPeriodsInCore)
@@ -40,15 +40,6 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
       )
       .limit(1);
 
-    return period ? accountingPeriodMapper.toDomain(period) : null;
-  },
-
-  findById: async (id, options) => {
-    const [period] = await getDbQuery(options)
-      .select()
-      .from(accountingPeriodsInCore)
-      .where(eq(accountingPeriodsInCore.id, id))
-      .limit(1);
     return period ? accountingPeriodMapper.toDomain(period) : null;
   },
 

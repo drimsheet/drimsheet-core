@@ -20,3 +20,6 @@ export const accountingContextCreationDtoSchema = z
       .nullable(),
   })
   .strict();
+
+export const getAccountingContextParamsValidationSchema =
+  accountingContextCreationDtoSchema.pick({ fiscalYearId: true });

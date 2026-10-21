@@ -31,7 +31,6 @@ describe('fiscalYearService.create', () => {
   };
   const repo: jest.Mocked<IFiscalYearRepo> = {
     findByAccountingEntityId: jest.fn(),
-    findByIdAndAccountingEntityId: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
     existsByRange: jest.fn(),

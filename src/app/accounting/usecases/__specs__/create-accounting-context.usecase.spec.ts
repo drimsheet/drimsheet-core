@@ -102,12 +102,20 @@ describe('makeCreateAccountingContextUsecase', () => {
       'actor',
     ]);
     expect(mockAccountingEntityRepo.findById).not.toHaveBeenCalled();
-    expect(mockFiscalYearRepo.findById).toHaveBeenCalledWith(year.id, {
-      correlationId,
-    });
-    expect(mockAccountingPeriodRepo.findById).toHaveBeenCalledWith(period.id, {
-      correlationId,
-    });
+    expect(mockFiscalYearRepo.findById).toHaveBeenCalledWith(
+      entity.id,
+      year.id,
+      {
+        correlationId,
+      }
+    );
+    expect(mockAccountingPeriodRepo.findById).toHaveBeenCalledWith(
+      entity.id,
+      period.id,
+      {
+        correlationId,
+      }
+    );
     expect(mockAccountingContextService.create).toHaveBeenCalledWith(
       {
         accountingEntity: entity,
@@ -168,6 +176,29 @@ describe('makeCreateAccountingContextUsecase', () => {
     expect(mockAccountingContextRepo.create).not.toHaveBeenCalled();
   });
 
+  it('rejects a period belonging to another entity before creating the context', async () => {
+    const foreignPeriod = { ...period, accountingEntityId: generateUUID() };
+    mockAccountingPeriodRepo.findById.mockImplementation(
+      async (accountingEntityId, id) =>
+        accountingEntityId === foreignPeriod.accountingEntityId &&
+        id === foreignPeriod.id
+          ? foreignPeriod
+          : null
+    );
+
+    await expect(execute(payload)).rejects.toBeInstanceOf(
+      accountingAppError.AccountingPeriodNotFound
+    );
+    expect(mockAccountingPeriodRepo.findById).toHaveBeenCalledWith(
+      entity.id,
+      period.id,
+      { correlationId }
+    );
+    expect(mockAccountingContextService.create).not.toHaveBeenCalled();
+    expect(mockAccountingContextRepo.create).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
   it('rejects a missing selected period', async () => {
     mockAccountingPeriodRepo.findById.mockResolvedValue(null);
     await expect(execute(payload)).rejects.toBeInstanceOf(
@@ -179,6 +210,7 @@ describe('makeCreateAccountingContextUsecase', () => {
 
   it.each([
     accountingEntityError.Archived,
+    accountingError.AccountingContextAlreadyExists,
     accountingError.InvalidFiscalYearId,
     accountingError.InvalidCurrentAccountingPeriodId,
     accountingStandardError.Invalid,
@@ -221,6 +253,13 @@ describe('makeCreateAccountingContextUsecase', () => {
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
+
+  it('propagates a concurrent uniqueness conflict without publishing', async () => {
+    const conflict = new accountingError.AccountingContextAlreadyExists();
+    mockAccountingContextRepo.create.mockRejectedValue(conflict);
+    await expect(execute(payload)).rejects.toBe(conflict);
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
 
   it('waits for the service to resolve the period references before persisting', async () => {
     let finishCreation!: () => void;

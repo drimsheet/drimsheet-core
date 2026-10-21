@@ -40,6 +40,7 @@ export default function makeCreateAccountingContextUsecase(
     const repoOptions = { correlationId };
 
     const fiscalYear = await deps.fiscalYearRepo.findById(
+      accountingEntity.id,
       payload.fiscalYearId as TEntityId,
       repoOptions
     );
@@ -48,6 +49,7 @@ export default function makeCreateAccountingContextUsecase(
     }
 
     const accountingPeriod = await deps.accountingPeriodRepo.findById(
+      accountingEntity.id,
       payload.currentAccountingPeriodId as TEntityId,
       repoOptions
     );

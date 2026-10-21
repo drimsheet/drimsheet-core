@@ -34,6 +34,8 @@ describe('reportingContextService', () => {
     deleteByAccountingEntityId: jest.fn(),
   };
   const accountingContextRepo: jest.Mocked<IAccountingContextRepo> = {
+    existsByFiscalYear: jest.fn(),
+    findByFiscalYear: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
     create: jest.fn(),

@@ -20,6 +20,8 @@ export const mockAccountingContextHistoryRepo: jest.Mocked<IAccountingContextHis
   };
 
 export const mockAccountingContextRepo: jest.Mocked<IAccountingContextRepo> = {
+  existsByFiscalYear: jest.fn(),
+  findByFiscalYear: jest.fn(),
   update: jest.fn(),
   findById: jest.fn(),
   deleteByAccountingEntityId: jest.fn(),
@@ -47,7 +49,6 @@ export const mockAccountingPeriodHistoryRepo: jest.Mocked<IAccountingPeriodHisto
 
 export const mockAccountingPeriodRepo: jest.Mocked<IAccountingPeriodRepo> = {
   findAllByFiscalYear: jest.fn(),
-  findByIdAndAccountingEntityId: jest.fn(),
   findById: jest.fn(),
   findByDate: jest.fn(),
   findAllByDate: jest.fn(),
@@ -66,7 +67,6 @@ export const mockFiscalYearHistoryRepo: jest.Mocked<IFiscalYearHistoryRepo> = {
 
 export const mockFiscalYearRepo: jest.Mocked<IFiscalYearRepo> = {
   findByAccountingEntityId: jest.fn(),
-  findByIdAndAccountingEntityId: jest.fn(),
   findById: jest.fn(),
   existsByRange: jest.fn(),
   create: jest.fn(),

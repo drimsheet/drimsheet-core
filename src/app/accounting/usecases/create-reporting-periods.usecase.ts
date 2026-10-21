@@ -37,6 +37,7 @@ export default function makeCreateReportingPeriodsUsecase(deps: IDependencies) {
     const repoOptions = { correlationId };
 
     const fiscalYear = await deps.fiscalYearRepo.findById(
+      accountingEntity.id,
       payload.fiscalYearId as TEntityId,
       repoOptions
     );
