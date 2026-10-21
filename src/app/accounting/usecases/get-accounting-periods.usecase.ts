@@ -27,9 +27,9 @@ export default function makeGetAccountingPeriodsUsecase(deps: IDependencies) {
     ]);
     const repoOptions = { correlationId };
 
-    const fiscalYear = await deps.fiscalYearRepo.findByIdAndAccountingEntityId(
-      fiscalYearId as TEntityId,
+    const fiscalYear = await deps.fiscalYearRepo.findById(
       accountingEntity.id,
+      fiscalYearId as TEntityId,
       repoOptions
     );
     if (!fiscalYear) {

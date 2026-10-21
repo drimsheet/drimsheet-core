@@ -51,11 +51,7 @@ describe('accountingPeriodRepoImpl', () => {
       const options = { correlationId: 'period-read' };
       const id = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
       await expect(
-        accountingPeriodRepo.findByIdAndAccountingEntityId(
-          id,
-          accountingEntityId,
-          options
-        )
+        accountingPeriodRepo.findById(accountingEntityId, id, options)
       ).resolves.toEqual(exists ? period : null);
       const predicate = new PgDialect().sqlToQuery(
         query.where.mock.calls[0][0]
@@ -108,28 +104,6 @@ describe('accountingPeriodRepoImpl', () => {
       expect(getDbQuery).toHaveBeenCalledWith(options);
       expect(accountingPeriodMapper.toDomain).toHaveBeenCalledTimes(
         rows.length
-      );
-    }
-  );
-
-  it.each([true, false])(
-    'findById maps an existing period or returns null: %s',
-    async (exists) => {
-      const query = mockRead(exists ? [row] : []);
-      const options = { correlationId: 'context-creation' };
-      const result = await accountingPeriodRepo.findById(
-        accountingEntityId,
-        options
-      );
-      expect(result).toEqual(exists ? period : null);
-      const predicate = new PgDialect().sqlToQuery(
-        query.where.mock.calls[0][0]
-      );
-      expect(predicate.sql).toBe('"core"."accounting_periods"."id" = $1');
-      expect(predicate.params).toEqual([accountingEntityId]);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
-      expect(accountingPeriodMapper.toDomain).toHaveBeenCalledTimes(
-        exists ? 1 : 0
       );
     }
   );

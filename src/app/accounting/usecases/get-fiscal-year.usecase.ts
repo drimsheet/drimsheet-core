@@ -22,9 +22,9 @@ export default function makeGetFiscalYearUsecase(deps: IDependencies) {
       'accountingEntity',
     ]);
 
-    const fiscalYear = await deps.fiscalYearRepo.findByIdAndAccountingEntityId(
-      id as TEntityId,
+    const fiscalYear = await deps.fiscalYearRepo.findById(
       accountingEntity.id,
+      id as TEntityId,
       { correlationId }
     );
 

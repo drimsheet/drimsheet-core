@@ -27,7 +27,6 @@ describe('accountingContextService.create', () => {
   const repoOptions = { correlationId: 'accounting-context-test' };
   const repo: jest.Mocked<IAccountingPeriodRepo> = {
     findAllByFiscalYear: jest.fn(),
-    findByIdAndAccountingEntityId: jest.fn(),
     findById: jest.fn(),
     findByDate: jest.fn(),
     findAllByDate: jest.fn(),
@@ -42,7 +41,6 @@ describe('accountingContextService.create', () => {
   };
   const fiscalYearRepo: jest.Mocked<IFiscalYearRepo> = {
     findByAccountingEntityId: jest.fn(),
-    findByIdAndAccountingEntityId: jest.fn(),
     findById: jest.fn(),
     existsByRange: jest.fn(),
     create: jest.fn(),
@@ -286,6 +284,7 @@ describe('accountingContextService.create', () => {
           repoOptions
         );
         expect(fiscalYearRepo.findById).toHaveBeenCalledWith(
+          context.accountingEntityId,
           context.fiscalYearId,
           repoOptions
         );

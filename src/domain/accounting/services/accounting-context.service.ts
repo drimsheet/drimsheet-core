@@ -78,6 +78,7 @@ function makeUpdateCurrentAccountingPeriod(
     }
 
     const fiscalYear = await deps.fiscalYearRepo.findById(
+      context.accountingEntityId,
       context.fiscalYearId,
       repoOptions
     );

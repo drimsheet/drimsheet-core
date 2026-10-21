@@ -81,9 +81,13 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
       'actor',
     ]);
     expect(mockAccountingEntityRepo.findById).not.toHaveBeenCalled();
-    expect(mockFiscalYearRepo.findById).toHaveBeenCalledWith(year.id, {
-      correlationId,
-    });
+    expect(mockFiscalYearRepo.findById).toHaveBeenCalledWith(
+      entity.id,
+      year.id,
+      {
+        correlationId,
+      }
+    );
     expect(mockAccountingPeriodRepo.findByRange).toHaveBeenCalledWith(
       entity.id,
       {
@@ -146,12 +150,25 @@ describe('makeCreateAccountingPeriodsUsecase', () => {
   });
 
   it('rejects a fiscal year belonging to another entity before period lookup', async () => {
-    mockFiscalYearRepo.findById.mockResolvedValue({
-      ...year,
-      accountingEntityId: generateUUID(),
+    const otherEntityId = generateUUID();
+    mockAppContext.get.mockReturnValue({
+      actor,
+      accountingEntity: { ...entity, id: otherEntityId },
+      correlationId,
     });
+    mockFiscalYearRepo.findById.mockImplementation(
+      async (accountingEntityId, id) =>
+        accountingEntityId === year.accountingEntityId && id === year.id
+          ? year
+          : null
+    );
     await expect(execute(payload)).rejects.toBeInstanceOf(
-      periodError.InvalidAccountingEntityId
+      accountingAppError.FiscalYearNotFound
+    );
+    expect(mockFiscalYearRepo.findById).toHaveBeenCalledWith(
+      otherEntityId,
+      year.id,
+      { correlationId }
     );
     expect(mockAccountingPeriodRepo.findByRange).not.toHaveBeenCalled();
     expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();

@@ -22,12 +22,11 @@ export default function makeGetAccountingPeriodUsecase(deps: IDependencies) {
       'accountingEntity',
     ]);
 
-    const accountingPeriod =
-      await deps.accountingPeriodRepo.findByIdAndAccountingEntityId(
-        id as TEntityId,
-        accountingEntity.id,
-        { correlationId }
-      );
+    const accountingPeriod = await deps.accountingPeriodRepo.findById(
+      accountingEntity.id,
+      id as TEntityId,
+      { correlationId }
+    );
 
     if (!accountingPeriod) {
       throw new accountingAppError.AccountingPeriodNotFound();
