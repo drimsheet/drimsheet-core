@@ -139,8 +139,7 @@ describe('makeCreateReportingContextUsecase', () => {
       closedAt: null,
     });
     const [saved, options] = mockReportingContextRepo.create.mock.calls[0];
-    expect(result).toEqual(saved);
-    expect(result).not.toBe(saved);
+    expect(result).toBe(saved);
     expect(options).toEqual({
       correlationId,
       history: expect.objectContaining({

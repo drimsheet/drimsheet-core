@@ -1,6 +1,5 @@
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
@@ -9,12 +8,9 @@ import historyValue from '@shared/values/history/history.vo';
 import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
+import { IAccountingPeriod } from '@domain/accounting/types/period.types';
 
-import {
-  IAccountingPeriodDto,
-  IAccountingPeriodsCreationReq,
-} from '@app/accounting/dtos/accounting-period/accounting-period.dto';
-import accountingPeriodDtoMapper from '@app/accounting/dtos/accounting-period/accounting-period.dto.mapper';
+import { IAccountingPeriodsCreationReq } from '@app/accounting/dtos/accounting-period/accounting-period.dto';
 import { accountingPeriodsCreationDtoSchema } from '@app/accounting/dtos/accounting-period/accounting-period.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -24,7 +20,6 @@ interface IDependencies {
   fiscalYearRepo: IFiscalYearRepo;
   accountingPeriodService: IAccountingPeriodService;
   accountingPeriodRepo: IAccountingPeriodRepo;
-  repoService: IRepoService;
   eventBus: IEventBus;
 }
 
@@ -33,7 +28,7 @@ export default function makeCreateAccountingPeriodsUsecase(
 ) {
   return async (
     payload: IAccountingPeriodsCreationReq
-  ): Promise<IAccountingPeriodDto[]> => {
+  ): Promise<IAccountingPeriod[]> => {
     zodValidationRunner(accountingPeriodsCreationDtoSchema, payload);
 
     const { accountingEntity, actor, correlationId } = deps.appContext.get([
@@ -69,18 +64,16 @@ export default function makeCreateAccountingPeriodsUsecase(
     const histories = creations.map(([, , audit]) =>
       historyValue.make(audit, actor.id, correlationId)
     );
+
     const events = creations.flatMap(([, periodEvents]) => periodEvents);
 
-    await deps.repoService.runInTransaction(async (tx) => {
-      await deps.accountingPeriodRepo.create(periods, {
-        ...repoOptions,
-        tx,
-        history: histories,
-      });
+    await deps.accountingPeriodRepo.create(periods, {
+      ...repoOptions,
+      history: histories,
     });
 
     await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
-    return periods.map(accountingPeriodDtoMapper.toDto);
+    return periods;
   };
 }

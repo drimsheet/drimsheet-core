@@ -47,7 +47,6 @@ jest.mock('@infra/ioc/services/auth', () => ({
 jest.mock('@infra/ioc/usecases/accounting', () => ({
   __esModule: true,
   createAccountingContextUseCase: jest.fn(),
-  onboardAccountingEntityUseCase: jest.fn(),
   getJurisdictionsUseCase: jest.fn(),
   getUserAccountingEntitiesUseCase: jest.fn(),
   getActiveAccountingEntityUseCase: jest.fn(),
@@ -84,8 +83,9 @@ const accountingEntityId = entity.id;
 const payload = {
   name: 'Working context',
   description: null,
-  fiscalYearId: '123e4567-e89b-12d3-a456-426614174002',
-  currentAccountingPeriodId: '123e4567-e89b-12d3-a456-426614174003',
+  fiscalYearId: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
+  currentAccountingPeriodId:
+    '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
   accountingStandardCode: 'IFRS' as const,
 };
 const context = {
@@ -93,7 +93,7 @@ const context = {
   previousAccountingPeriodId: null,
   nextAccountingPeriodId: null,
   accountingEntityId,
-  id: '123e4567-e89b-12d3-a456-426614174004',
+  id: '123e4567-e89b-12d3-a456-426614174004' as TEntityId,
   createdBy: userId,
   createdAt: new Date('2026-10-17'),
   updatedAt: new Date('2026-10-17'),

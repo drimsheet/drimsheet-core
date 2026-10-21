@@ -49,21 +49,16 @@ const context: IReportingContextDetails = {
 };
 
 describe('reportingContextDtoMapper', () => {
-  it('returns explicit context, fiscal-year and period fields without persistence extras', () => {
+  it('maps context fields while reusing its fiscal year and periods', () => {
     const input = {
       ...context,
       internal: 'private',
-      fiscalYear: { ...context.fiscalYear, unit: 'month', count: 12 },
-      reportingPeriods: context.reportingPeriods.map((period) => ({
-        ...period,
-        internal: 'private',
-      })),
     };
     const dto = reportingContextDtoMapper.toDto(input);
     expect(dto).toEqual(context);
     expect(dto).not.toBe(input);
-    expect(dto.fiscalYear).not.toBe(input.fiscalYear);
-    expect(dto.reportingPeriods[0]).not.toBe(input.reportingPeriods[0]);
+    expect(dto.fiscalYear).toBe(input.fiscalYear);
+    expect(dto.reportingPeriods).toBe(input.reportingPeriods);
     expect(dto.currentReportingPeriodId).toBe(periodId);
     expect(dto.reportingCurrencyCode).toBe('NGN');
     expect(dto.accountingContextId).toBe(context.accountingContextId);
@@ -75,24 +70,4 @@ describe('reportingContextDtoMapper', () => {
         .reportingPeriods
     ).toEqual([]);
   });
-});
-
-it('maps only reporting-context record fields for creation responses', () => {
-  const input = { ...context, internal: 'private' };
-  const result = reportingContextDtoMapper.toRecordDto(input);
-  expect(result).toEqual({
-    id: context.id,
-    createdBy: context.createdBy,
-    name: context.name,
-    description: context.description,
-    accountingEntityId: context.accountingEntityId,
-    accountingStandardCode: context.accountingStandardCode,
-    accountingContextId: context.accountingContextId,
-    reportingCurrencyCode: context.reportingCurrencyCode,
-    currentReportingPeriodId: context.currentReportingPeriodId,
-    createdAt: context.createdAt,
-    updatedAt: context.updatedAt,
-    closedAt: context.closedAt,
-  });
-  expect(result).not.toBe(input);
 });

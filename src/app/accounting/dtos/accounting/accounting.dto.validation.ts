@@ -8,21 +8,14 @@ import {
   SYSTEM_JURISDICTIONS,
   UJurisdictionCode,
 } from '@domain/accounting/config/jurisdictions.config';
-import { MAX_GENERATED_PERIODS } from '@domain/accounting/config/period-limits.config';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import accountingError from '@domain/accounting/errors/accounting.error';
-import periodError from '@domain/accounting/errors/period.error';
 import {
   EAccountingEntityType,
   UAccountingEntityType,
 } from '@domain/accounting/types/accounting-entity.types';
-import {
-  EPeriodUnit,
-  UPeriodUnit,
-} from '@domain/accounting/types/period.types';
 
 import { currencyCodeValidation } from '@app/money/dtos/currency/currency.dto.validation';
-import { userAppPreferencesValidation } from '@app/user/dtos/user/user.dto.validation';
 
 /**
  * Jurisdiction code validation schema
@@ -67,33 +60,6 @@ export const periodDayValidation = z.number().min(1).max(31);
  */
 export const periodMonthValidation = z.number().min(1).max(12);
 
-export const periodUnitValidation = z.enum(
-  Object.values(EPeriodUnit) as [UPeriodUnit, ...UPeriodUnit[]]
-);
-
-/**
- * Fiscal year creation DTO schema
- */
-export const fiscalYearCreationDtoSchema = z
-  .object({
-    startDate: z.date(),
-    endDate: z.date(),
-  })
-  .superRefine(({ startDate, endDate }, context) => {
-    if (endDate <= startDate) {
-      context.addIssue({
-        code: 'custom',
-        path: ['endDate'],
-        message: new periodError.InvalidDateRange().errorKey,
-      });
-    }
-  });
-
-export const periodCreationDtoSchema = z.object({
-  unit: periodUnitValidation,
-  count: z.number().int().positive().max(MAX_GENERATED_PERIODS),
-});
-
 export const accountingEntitySwitchReqSchema = z
   .object({
     accountingEntityId: z.uuid(new accountingError.InvalidId().errorKey),
@@ -108,16 +74,6 @@ export const accountingEntityCreationDtoSchema = z
     functionalCurrencyCode: currencyCodeValidation,
   })
   .strict();
-
-export const accountingEntityOnboardingDtoSchema =
-  accountingEntityCreationDtoSchema.extend({
-    accountingStandardCode: accountingStandardCodeValidation,
-    reportingCurrencyCode: currencyCodeValidation,
-    fiscalYear: fiscalYearCreationDtoSchema,
-    accountingPeriod: periodCreationDtoSchema,
-    reportingPeriod: periodCreationDtoSchema,
-    appPreferences: userAppPreferencesValidation,
-  });
 
 export const accountingEntityUpdateReqSchema = z
   .object({

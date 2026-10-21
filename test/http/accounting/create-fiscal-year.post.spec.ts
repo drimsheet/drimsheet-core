@@ -43,7 +43,6 @@ jest.mock('../../../src/infra/ioc/services/auth', () => ({
 jest.mock('../../../src/infra/ioc/usecases/accounting', () => ({
   __esModule: true,
   createFiscalYearUseCase: jest.fn(),
-  onboardAccountingEntityUseCase: jest.fn(),
   getJurisdictionsUseCase: jest.fn(),
   getUserAccountingEntitiesUseCase: jest.fn(),
   getActiveAccountingEntityUseCase: jest.fn(),
@@ -69,7 +68,7 @@ jest.mock('../../../src/infra/persistence/repos/user', () => ({
 
 const ENDPOINT = '/api/v1/accounting/fiscal-year';
 const userId = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
-const accountingEntityId = '123e4567-e89b-12d3-a456-426614174001';
+const accountingEntityId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
 const payload = {
   accountingEntityId,
   name: 'FY 2090',
@@ -78,7 +77,7 @@ const payload = {
   status: 'open',
 };
 const year = {
-  id: '123e4567-e89b-12d3-a456-426614174002',
+  id: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
   createdBy: userId,
   name: payload.name,
   accountingEntityId,

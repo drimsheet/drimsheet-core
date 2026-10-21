@@ -35,6 +35,11 @@ jobs:
       - name: Type Check Source and Tests
         run: npm run test:types
 
+      - name: Generate and Validate TSOA OpenAPI
+        run: |
+          npm run build:routes
+          npm run test:openapi
+
       - name: Lint and Test ESLint Rules
         run: |
           npm run lint

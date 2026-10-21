@@ -7,13 +7,10 @@ import historyValue from '@shared/values/history/history.vo';
 
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import { IReportingPeriod } from '@domain/accounting/types/period.types';
 import IReportingPeriodService from '@domain/accounting/types/reporting-period.service.types';
 
-import {
-  IReportingPeriodDto,
-  IReportingPeriodsCreationReq,
-} from '@app/accounting/dtos/reporting-period/reporting-period.dto';
-import reportingPeriodDtoMapper from '@app/accounting/dtos/reporting-period/reporting-period.dto.mapper';
+import { IReportingPeriodsCreationReq } from '@app/accounting/dtos/reporting-period/reporting-period.dto';
 import { reportingPeriodsCreationDtoSchema } from '@app/accounting/dtos/reporting-period/reporting-period.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -29,7 +26,7 @@ interface IDependencies {
 export default function makeCreateReportingPeriodsUsecase(deps: IDependencies) {
   return async (
     payload: IReportingPeriodsCreationReq
-  ): Promise<IReportingPeriodDto[]> => {
+  ): Promise<IReportingPeriod[]> => {
     zodValidationRunner(reportingPeriodsCreationDtoSchema, payload);
 
     const { accountingEntity, actor, correlationId } = deps.appContext.get([
@@ -72,12 +69,8 @@ export default function makeCreateReportingPeriodsUsecase(deps: IDependencies) {
       history: histories,
     });
 
-    // TODO (ENG-218): Schedule background transitions of the current reporting period
-    // together with accounting-period transitions. Report execution is separate.
-    // https://drimsheet-app.atlassian.net/browse/ENG-218
-
     await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
-    return periods.map(reportingPeriodDtoMapper.toDto);
+    return periods;
   };
 }

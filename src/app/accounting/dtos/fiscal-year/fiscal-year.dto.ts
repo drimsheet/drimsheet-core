@@ -7,15 +7,3 @@ export interface IFiscalYearCreationReq {
   endDate: Date;
   status: UPeriodStatus;
 }
-
-export interface IFiscalYearDto {
-  id: string;
-  createdBy: string;
-  name: string;
-  accountingEntityId: string;
-  startDate: Date;
-  endDate: Date;
-  status: UPeriodStatus;
-  closedAt: Date | null;
-  updatedAt: Date;
-}

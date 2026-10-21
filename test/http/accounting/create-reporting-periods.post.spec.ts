@@ -79,12 +79,12 @@ const [entity] = accountingEntityEntity.make({
 });
 const accountingEntityId = entity.id;
 const payload = {
-  fiscalYearId: '123e4567-e89b-12d3-a456-426614174002',
+  fiscalYearId: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
   unit: 'month' as const,
   count: 12,
 };
 const period = {
-  id: '123e4567-e89b-12d3-a456-426614174003',
+  id: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
   createdBy: userId,
   name: 'Reporting Period 1',
   accountingEntityId,

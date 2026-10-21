@@ -19,7 +19,6 @@ import {
   mockReportingPeriodRepo,
 } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import { IReportingPeriodsCreationReq } from '@app/accounting/dtos/reporting-period/reporting-period.dto';
-import reportingPeriodDtoMapper from '@app/accounting/dtos/reporting-period/reporting-period.dto.mapper';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeCreateReportingPeriodsUsecase from '@app/accounting/usecases/create-reporting-periods.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
@@ -103,7 +102,7 @@ describe('makeCreateReportingPeriodsUsecase', () => {
     const histories = Array.isArray(options.history)
       ? options.history
       : [options.history];
-    expect(result).toEqual(periods.map(reportingPeriodDtoMapper.toDto));
+    expect(result).toBe(periods);
     expect(result).toHaveLength(12);
     expect(result[0].startDate).toEqual(year.startDate);
     expect(result[11].endDate).toEqual(year.endDate);

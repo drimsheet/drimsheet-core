@@ -8,13 +8,10 @@ import historyValue from '@shared/values/history/history.vo';
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
 import IReportingContextRepo from '@domain/accounting/repos/reporting-context.repo';
 import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import { IReportingContext } from '@domain/accounting/types/context.types';
 import IReportingContextService from '@domain/accounting/types/reporting-context.service.types';
 
-import {
-  IReportingContextCreationReq,
-  IReportingContextRecordDto,
-} from '@app/accounting/dtos/reporting-context/reporting-context.dto';
-import reportingContextDtoMapper from '@app/accounting/dtos/reporting-context/reporting-context.dto.mapper';
+import { IReportingContextCreationReq } from '@app/accounting/dtos/reporting-context/reporting-context.dto';
 import { reportingContextCreationDtoSchema } from '@app/accounting/dtos/reporting-context/reporting-context.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -31,7 +28,7 @@ interface IDependencies {
 export default function makeCreateReportingContextUsecase(deps: IDependencies) {
   return async (
     payload: IReportingContextCreationReq
-  ): Promise<IReportingContextRecordDto> => {
+  ): Promise<IReportingContext> => {
     zodValidationRunner(reportingContextCreationDtoSchema, payload);
 
     const { accountingEntity, actor, correlationId } = deps.appContext.get([
@@ -76,6 +73,6 @@ export default function makeCreateReportingContextUsecase(deps: IDependencies) {
 
     await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
-    return reportingContextDtoMapper.toRecordDto(context);
+    return context;
   };
 }

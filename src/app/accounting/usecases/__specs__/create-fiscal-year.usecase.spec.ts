@@ -1,20 +1,14 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
-import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import periodError from '@domain/accounting/errors/period.error';
 import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
-import {
-  mockAccountingEntityService,
-  mockFiscalYearService,
-} from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
+import { mockFiscalYearService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import {
   mockAccountingContextRepo,
   mockAccountingEntityRepo,
@@ -24,7 +18,6 @@ import {
   mockReportingPeriodRepo,
 } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import { IFiscalYearCreationReq } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
-import fiscalYearDtoMapper from '@app/accounting/dtos/fiscal-year/fiscal-year.dto.mapper';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeCreateFiscalYearUsecase from '@app/accounting/usecases/create-fiscal-year.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
@@ -56,15 +49,12 @@ describe('makeCreateFiscalYearUsecase', () => {
     createdBy: actor.id,
   });
   const [year] = creation;
-  const tx: ITransactionContext = {};
+
   const correlationId = 'create-fiscal-year';
   const execute = makeCreateFiscalYearUsecase({
     appContext: mockAppContext,
-    accountingEntityRepo: mockAccountingEntityRepo,
-    accountingEntityService: mockAccountingEntityService,
     fiscalYearRepo: mockFiscalYearRepo,
     fiscalYearService: mockFiscalYearService,
-    repoService: mockRepoService,
     eventBus: mockEventBus,
   });
 
@@ -72,27 +62,21 @@ describe('makeCreateFiscalYearUsecase', () => {
     jest.resetAllMocks();
     mockAppContext.get.mockReturnValue({
       actor,
+      accountingEntity: entity,
       user: { id: userId } as IUser,
       correlationId,
     } as ReturnType<typeof mockAppContext.get>);
-    mockAccountingEntityRepo.findById.mockResolvedValue(entity);
     mockFiscalYearService.create.mockResolvedValue(creation);
-    mockRepoService.runInTransaction.mockImplementation(async (write) =>
-      write(tx)
-    );
   });
 
-  it('resolves and authorizes the entity before creating only its year and history', async () => {
+  it('uses the context entity to create only its fiscal year and history', async () => {
     const result = await execute(payload);
-    expect(result).toEqual(fiscalYearDtoMapper.toDto(year));
-    expect(result).not.toBe(year);
-    expect(mockAccountingEntityRepo.findById).toHaveBeenCalledWith(entity.id, {
-      correlationId,
-    });
-    expect(mockAccountingEntityService.validateAccess).toHaveBeenCalledWith(
-      entity,
-      userId
-    );
+    expect(result).toBe(year);
+    expect(mockAppContext.get).toHaveBeenCalledWith([
+      'actor',
+      'accountingEntity',
+    ]);
+    expect(mockAccountingEntityRepo.findById).not.toHaveBeenCalled();
     expect(mockFiscalYearService.create).toHaveBeenCalledWith(
       {
         accountingEntity: entity,
@@ -106,7 +90,6 @@ describe('makeCreateFiscalYearUsecase', () => {
     );
     expect(mockFiscalYearRepo.create).toHaveBeenCalledWith(year, {
       correlationId,
-      tx,
       history: expect.objectContaining({
         actorId: actor.id,
         correlationId,
@@ -133,24 +116,25 @@ describe('makeCreateFiscalYearUsecase', () => {
   });
 
   it('rejects a missing entity before domain creation', async () => {
-    mockAccountingEntityRepo.findById.mockResolvedValue(null);
+    mockAppContext.get.mockReturnValue({
+      actor,
+      correlationId,
+    } as ReturnType<typeof mockAppContext.get>);
     await expect(execute(payload)).rejects.toBeInstanceOf(
       accountingAppError.EntityNotFound
     );
-    expect(mockAccountingEntityService.validateAccess).not.toHaveBeenCalled();
     expect(mockFiscalYearService.create).not.toHaveBeenCalled();
     expect(mockFiscalYearRepo.create).not.toHaveBeenCalled();
   });
 
-  it('rejects an inaccessible entity before domain creation', async () => {
-    mockAccountingEntityService.validateAccess.mockImplementation(() => {
-      throw new accountingEntityError.Unauthorized();
+  it('propagates context rejection before domain creation', async () => {
+    const failure = new appError.Unauthorized();
+    mockAppContext.get.mockImplementation(() => {
+      throw failure;
     });
-    await expect(execute(payload)).rejects.toBeInstanceOf(
-      accountingEntityError.Unauthorized
-    );
+    await expect(execute(payload)).rejects.toBe(failure);
     expect(mockFiscalYearService.create).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockFiscalYearRepo.create).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -161,7 +145,7 @@ describe('makeCreateFiscalYearUsecase', () => {
     const error = new ErrorType();
     mockFiscalYearService.create.mockRejectedValue(error);
     await expect(execute(payload)).rejects.toBe(error);
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockFiscalYearRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -179,47 +163,29 @@ describe('makeCreateFiscalYearUsecase', () => {
     expect(mockAccountingEntityRepo.findById).not.toHaveBeenCalled();
   });
 
-  it('rolls back the owning transaction on persistence failure without publishing', async () => {
-    const failure = new Error('history failed');
-    let rolledBack = false;
-    mockFiscalYearRepo.create.mockRejectedValue(failure);
-    mockRepoService.runInTransaction.mockImplementation(async (write) => {
-      try {
-        return await write(tx);
-      } catch (error) {
-        rolledBack = true;
-        throw error;
-      }
-    });
-    await expect(execute(payload)).rejects.toBe(failure);
-    expect(rolledBack).toBe(true);
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
+  it.each([new Error('history failed'), new Error('commit failed')])(
+    'propagates persistence failure without publishing',
+    async (failure) => {
+      mockFiscalYearRepo.create.mockRejectedValueOnce(failure);
+      await expect(execute(payload)).rejects.toBe(failure);
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 
-  it('does not publish if commit fails', async () => {
-    const failure = new Error('commit failed');
-    mockRepoService.runInTransaction.mockImplementation(async (write) => {
-      await write(tx);
-      throw failure;
-    });
-    await expect(execute(payload)).rejects.toBe(failure);
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-
-  it('waits until the owning transaction commits before publication', async () => {
-    let commit!: () => void;
-    mockRepoService.runInTransaction.mockImplementation(async (write) => {
-      await write(tx);
-      await new Promise<void>((resolve) => {
-        commit = resolve;
-      });
-    });
+  it('waits for persistence to complete before publishing', async () => {
+    let finishPersistence!: () => void;
+    mockFiscalYearRepo.create.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishPersistence = resolve;
+        })
+    );
     const pending = execute(payload);
     await new Promise(process.nextTick);
-    expect(mockFiscalYearRepo.create).toHaveBeenCalled();
+    expect(mockFiscalYearRepo.create).toHaveBeenCalledTimes(1);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-    commit();
-    await pending;
+    finishPersistence();
+    await expect(pending).resolves.toBe(year);
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
   });
 });

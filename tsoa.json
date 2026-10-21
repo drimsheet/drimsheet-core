@@ -15,6 +15,16 @@
     "outputDirectory": "./generated",
     "basePath": "/api/v1",
     "specVersion": 3,
+    "specMerging": "recursive",
+    "spec": {
+      "components": {
+        "schemas": {
+          "TEntityId": {
+            "allOf": [{ "type": "string", "format": "uuid" }]
+          }
+        }
+      }
+    },
     "securityDefinitions": {
       "bearerAuth": {
         "type": "http",

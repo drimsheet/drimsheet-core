@@ -58,7 +58,9 @@ export interface IAccountingPeriod extends IPeriod {
 }
 
 /**
- * ================== Reporting Period ==================
+ * startDate is the first included UTC calendar date; endDate is the last.
+ * The interval is due for reporting from the following UTC day. Current-period
+ * selection, scheduling, and report execution are handled separately.
  */
 export interface IReportingPeriod extends IPeriod {
   fiscalYearId: TEntityId;

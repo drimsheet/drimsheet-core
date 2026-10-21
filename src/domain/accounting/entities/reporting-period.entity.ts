@@ -51,7 +51,7 @@ function make(
 
   const reportingPeriods: IReportingPeriod[] = intervals.map(
     (interval, index) =>
-      deepFreeze({
+      deepFreeze<IReportingPeriod>({
         id: stringUtils.generateUUID(),
         createdBy: payload.createdBy,
         name: `Reporting Period ${index + 1}`,
@@ -61,7 +61,6 @@ function make(
         startDate: interval.startDate,
         endDate: interval.endDate,
         fiscalYearId: payload.fiscalYear.id,
-        createdAt: timestamp,
         updatedAt: timestamp,
       })
   );

@@ -1,6 +1,4 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 
@@ -23,7 +21,6 @@ import {
 } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import mockReportingContextQueryRepo from '@app/accounting/contracts/__mocks__/reporting-context.query.repo.mock';
 import { IAccountingEntityCreationDto } from '@app/accounting/dtos/accounting/accounting.dto';
-import accountingEntityDtoMapper from '@app/accounting/dtos/accounting/accounting.dto.mapper';
 import makeCreateAccountingEntityUsecase from '@app/accounting/usecases/create-accounting-entity.usecase';
 import makeGetAccountingContextsUsecase from '@app/accounting/usecases/get-accounting-contexts.usecase';
 import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
@@ -53,12 +50,11 @@ const creation = accountingEntityEntity.make({
   createdBy: actor.id,
 });
 const [entity, events] = creation;
-const tx = {} as ITransactionContext;
+
 const execute = makeCreateAccountingEntityUsecase({
   appContext: mockAppContext,
   accountingEntityRepo: mockAccountingEntityRepo,
   accountingEntityService: mockAccountingEntityService,
-  repoService: mockRepoService,
   eventBus: mockEventBus,
 });
 
@@ -71,16 +67,12 @@ describe('makeCreateAccountingEntityUsecase', () => {
       correlationId,
     } as ReturnType<typeof mockAppContext.get>);
     mockAccountingEntityService.create.mockResolvedValue(creation);
-    mockRepoService.runInTransaction.mockImplementation(async (write) =>
-      write(tx)
-    );
     mockEventBus.publish.mockResolvedValue();
   });
 
-  it('creates only the entity with authenticated ownership and returns an application DTO', async () => {
+  it('creates only the entity with authenticated ownership and returns it directly', async () => {
     const result = await execute(payload);
-    expect(result).toEqual(accountingEntityDtoMapper.toDto(entity));
-    expect(result).not.toBe(entity);
+    expect(result).toBe(entity);
     expect(mockAppContext.get).toHaveBeenCalledWith(['user', 'actor']);
     expect(mockAccountingEntityService.create).toHaveBeenCalledWith(
       {
@@ -96,10 +88,8 @@ describe('makeCreateAccountingEntityUsecase', () => {
     expect(mockAccountingEntityRepo.create).toHaveBeenCalledTimes(1);
     expect(mockAccountingEntityRepo.create).toHaveBeenCalledWith(entity, {
       correlationId,
-      tx,
       history: expect.objectContaining({ actorId: actor.id, correlationId }),
     });
-    expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
     expect(mockEventBus.publish).toHaveBeenCalledWith(
       events.map((event) =>
         expect.objectContaining({
@@ -212,48 +202,37 @@ describe('makeCreateAccountingEntityUsecase', () => {
     ).rejects.toBeInstanceOf(
       accountingEntityError.OnlyOneIndividualAccountingEntityAllowed
     );
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockAccountingEntityRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('does not publish when entity or history persistence fails', async () => {
-    const failure = new Error('history insert failed');
-    mockAccountingEntityRepo.create.mockRejectedValueOnce(failure);
-    await expect(execute(payload)).rejects.toBe(failure);
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-
-  it('does not publish when the outer transaction fails to commit', async () => {
-    const failure = new Error('commit failed');
-    mockRepoService.runInTransaction.mockImplementationOnce(async (write) => {
-      await write(tx);
+  it.each([new Error('history insert failed'), new Error('commit failed')])(
+    'propagates persistence failure without publishing',
+    async (failure) => {
+      mockAccountingEntityRepo.create.mockRejectedValueOnce(failure);
+      await expect(execute(payload)).rejects.toBe(failure);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
-      throw failure;
-    });
-    await expect(execute(payload)).rejects.toBe(failure);
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
+    }
+  );
 
-  it('waits for successful commit before publishing', async () => {
-    let finishCommit!: () => void;
-    mockRepoService.runInTransaction.mockImplementationOnce(async (write) => {
-      await write(tx);
-      await new Promise<void>((resolve) => {
-        finishCommit = resolve;
-      });
-    });
-    const result = execute(payload);
-    await new Promise(process.nextTick);
-    expect(mockAccountingEntityRepo.create).toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-    finishCommit();
-    await expect(result).resolves.toEqual(
-      accountingEntityDtoMapper.toDto(entity)
+  it('waits for persistence to complete before publishing', async () => {
+    let finishPersistence!: () => void;
+    mockAccountingEntityRepo.create.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishPersistence = resolve;
+        })
     );
+    const pending = execute(payload);
+    await new Promise(process.nextTick);
+    expect(mockAccountingEntityRepo.create).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    finishPersistence();
+    await expect(pending).resolves.toBe(entity);
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
   });
 
-  it('awaits event publication and propagates publication failure after commit', async () => {
+  it('awaits event publication and propagates publication failure after persistence', async () => {
     const failure = new Error('publish failed');
     mockEventBus.publish.mockRejectedValueOnce(failure);
     await expect(execute(payload)).rejects.toBe(failure);

@@ -13,7 +13,6 @@ import makeGetNextCurrentAccountingPeriodUsecase from '@app/accounting/usecases/
 import makeGetNextCurrentReportingPeriodUsecase from '@app/accounting/usecases/get-next-current-reporting-period.usecase';
 import makeGetReportingContextsUsecase from '@app/accounting/usecases/get-reporting-contexts.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
-import makeOnboardAccountingEntityUsecase from '@app/accounting/usecases/onboard-accounting-entity.usecase';
 import makeSetCurrentAccountingPeriodUsecase from '@app/accounting/usecases/set-current-accounting-period.usecase';
 import makeSetCurrentReportingPeriodUsecase from '@app/accounting/usecases/set-current-reporting-period.usecase';
 import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-accounting-entity.usecase';
@@ -117,7 +116,6 @@ export const createAccountingPeriodsUseCase = makeTracedUseCase(
     fiscalYearRepo: accountingRepos.fiscalYear,
     accountingPeriodService,
     accountingPeriodRepo: accountingRepos.accountingPeriod,
-    repoService,
     eventBus: messaging.eventBus,
   })
 );
@@ -126,11 +124,8 @@ export const createFiscalYearUseCase = makeTracedUseCase(
   'accounting.createFiscalYearUseCase',
   makeCreateFiscalYearUsecase({
     appContext,
-    accountingEntityRepo: accountingRepos.accountingEntity,
-    accountingEntityService,
     fiscalYearRepo: accountingRepos.fiscalYear,
     fiscalYearService,
-    repoService,
     eventBus: messaging.eventBus,
   })
 );
@@ -140,27 +135,7 @@ export const createAccountingEntityUseCase = makeTracedUseCase(
   makeCreateAccountingEntityUseCase({
     appContext,
     accountingEntityRepo: accountingRepos.accountingEntity,
-    repoService,
     accountingEntityService,
-    eventBus: messaging.eventBus,
-  })
-);
-
-/** @deprecated Legacy combined onboarding; scheduled for removal. */
-export const onboardAccountingEntityUseCase = makeTracedUseCase(
-  'accounting.onboardAccountingEntityUseCase',
-  makeOnboardAccountingEntityUsecase({
-    appContext,
-    accountingEntityRepo: accountingRepos.accountingEntity,
-    userPreferencesAppService,
-    fiscalYearRepo: accountingRepos.fiscalYear,
-    accountingPeriodRepo: accountingRepos.accountingPeriod,
-    accountingContextRepo: accountingRepos.accountingContext,
-    reportingPeriodRepo: accountingRepos.reportingPeriod,
-    reportingContextRepo: accountingRepos.reportingContext,
-    repoService,
-    accountingEntityService,
-    accountingPeriodService,
     eventBus: messaging.eventBus,
   })
 );

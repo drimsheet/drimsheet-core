@@ -128,6 +128,7 @@ describe('accountingPeriodEntity', () => {
         closedAt: null,
         updatedAt: new Date('2028-04-01'),
       });
+      expect(period).not.toHaveProperty('createdAt');
       expect(Object.isFrozen(period)).toBe(true);
       expect(Object.isFrozen(period.startDate)).toBe(true);
       expect(events).toHaveLength(1);
