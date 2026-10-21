@@ -56,6 +56,7 @@ import {
   getFiscalYearUseCase,
   getJurisdictionsUseCase,
   getReportingContextUseCase,
+  getReportingPeriodsUseCase,
   getUserAccountingEntitiesUseCase,
   switchAccountingEntityUseCase,
   updateAccountingEntityUseCase,
@@ -221,6 +222,30 @@ export class AccountingController extends Controller {
   ): Promise<IReportingContext | null> {
     this.setHeader('Content-Type', 'application/json');
     return await getReportingContextUseCase(id);
+  }
+
+  /**
+   * Returns all reporting periods of a fiscal year belonging to
+   * x-accounting-entity-id.
+   */
+  @Get('/fiscal-years/{fiscalYearId}/reporting-periods')
+  @OperationId('getReportingPeriods')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getReportingPeriods(
+    @Path() fiscalYearId: string
+  ): Promise<IReportingPeriod[]> {
+    return await getReportingPeriodsUseCase(fiscalYearId);
   }
 
   /**

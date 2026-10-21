@@ -6757,6 +6757,99 @@
         ]
       }
     },
+    "/accounting/fiscal-years/{fiscalYearId}/reporting-periods": {
+      "get": {
+        "operationId": "getReportingPeriods",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IReportingPeriod"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns all reporting periods of a fiscal year belonging to\nx-accounting-entity-id.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fiscalYearId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/accounting/jurisdictions": {
       "get": {
         "operationId": "getJurisdictions",
@@ -11479,6 +11572,59 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IReportingPeriod": {
+        "description": "startDate is the first included UTC calendar date; endDate is the last.\nThe interval is due for reporting from the following UTC day. Current-period\nselection, scheduling, and report execution are handled separately.",
+        "properties": {
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UPeriodUnit"
+          },
+          "count": {
+            "type": "number",
+            "format": "double"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fiscalYearId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "createdBy",
+          "id",
+          "name",
+          "accountingEntityId",
+          "unit",
+          "count",
+          "startDate",
+          "endDate",
+          "fiscalYearId",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IAccountingStandardDto": {
         "properties": {
           "individual": {
@@ -11626,59 +11772,6 @@
           "currentAccountingPeriodId",
           "name",
           "description"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IReportingPeriod": {
-        "description": "startDate is the first included UTC calendar date; endDate is the last.\nThe interval is due for reporting from the following UTC day. Current-period\nselection, scheduling, and report execution are handled separately.",
-        "properties": {
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "name": {
-            "type": "string"
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "unit": {
-            "$ref": "#/components/schemas/UPeriodUnit"
-          },
-          "count": {
-            "type": "number",
-            "format": "double"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "fiscalYearId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "createdBy",
-          "id",
-          "name",
-          "accountingEntityId",
-          "unit",
-          "count",
-          "startDate",
-          "endDate",
-          "fiscalYearId",
-          "updatedAt"
         ],
         "type": "object",
         "additionalProperties": false

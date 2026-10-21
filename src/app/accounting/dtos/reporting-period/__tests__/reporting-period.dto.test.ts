@@ -2,7 +2,10 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import { EPeriodUnit } from '@domain/accounting/types/period.types';
 
-import { reportingPeriodsCreationDtoSchema } from '@app/accounting/dtos/reporting-period/reporting-period.dto.validation';
+import {
+  getReportingPeriodsParamsValidationSchema,
+  reportingPeriodsCreationDtoSchema,
+} from '@app/accounting/dtos/reporting-period/reporting-period.dto.validation';
 
 describe('reporting-period DTO', () => {
   const input = {
@@ -34,4 +37,27 @@ describe('reporting-period DTO', () => {
         .success
     ).toBe(false);
   });
+});
+
+describe('reporting-period read parameters', () => {
+  it('accepts a fiscal-year UUID', () => {
+    const fiscalYearId = generateUUID();
+    expect(
+      getReportingPeriodsParamsValidationSchema.parse({ fiscalYearId })
+    ).toEqual({ fiscalYearId });
+  });
+
+  it.each(['', 'invalid', undefined, 123])(
+    'rejects an invalid fiscal-year ID: %j',
+    (fiscalYearId) => {
+      const result = getReportingPeriodsParamsValidationSchema.safeParse({
+        fiscalYearId,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]).toMatchObject({
+        path: ['fiscalYearId'],
+        message: 'accounting_error_period_fiscal_year_id_invalid',
+      });
+    }
+  );
 });
