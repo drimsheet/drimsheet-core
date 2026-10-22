@@ -4,6 +4,7 @@ import makeCreateAccountingEntityUseCase from '@app/accounting/usecases/create-a
 import makeCreateAccountingIntervalUsecase from '@app/accounting/usecases/create-accounting-interval.usecase';
 import makeCreateFiscalYearUsecase from '@app/accounting/usecases/create-fiscal-year.usecase';
 import makeCreateReportingContextUsecase from '@app/accounting/usecases/create-reporting-context.usecase';
+import makeCreateReportingIntervalUsecase from '@app/accounting/usecases/create-reporting-interval.usecase';
 import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-accounting-entity.usecase';
 import makeGetAccountingContextUsecase from '@app/accounting/usecases/get-accounting-context.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
@@ -107,6 +108,18 @@ export const createAccountingIntervalUseCase = makeTracedUseCase(
     repoService,
     accountingIntervalRepo: accountingRepos.accountingInterval,
     accountingPeriodRepo: accountingRepos.accountingPeriod,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const createReportingIntervalUseCase = makeTracedUseCase(
+  'accounting.createReportingIntervalUseCase',
+  makeCreateReportingIntervalUsecase({
+    appContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    repoService,
+    reportingIntervalRepo: accountingRepos.reportingInterval,
+    reportingPeriodRepo: accountingRepos.reportingPeriod,
     eventBus: messaging.eventBus,
   })
 );

@@ -32,6 +32,7 @@ import {
 } from '@app/accounting/dtos/accounting/accounting.dto';
 import { IFiscalYearCreationReq } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
 import { IReportingContextCreationReq } from '@app/accounting/dtos/reporting-context/reporting-context.dto';
+import { IReportingIntervalCreationReq } from '@app/accounting/dtos/reporting-interval/reporting-interval.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
@@ -41,6 +42,7 @@ import {
   createAccountingIntervalUseCase,
   createFiscalYearUseCase,
   createReportingContextUseCase,
+  createReportingIntervalUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextUseCase,
   getActiveAccountingEntityUseCase,
@@ -274,6 +276,29 @@ export class AccountingController extends Controller {
     @Body() body: IAccountingContextCreationReq
   ) {
     return await createAccountingContextUseCase(body);
+  }
+
+  /**
+   * Creates an interval and its periods for x-accounting-entity-id.
+   */
+  @Post('/reporting-intervals')
+  @OperationId('createReportingInterval')
+  @SuccessResponse('201')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async createReportingInterval(
+    @Body() body: IReportingIntervalCreationReq
+  ) {
+    return await createReportingIntervalUseCase(body);
   }
 
   /**

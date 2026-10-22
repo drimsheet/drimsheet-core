@@ -48,6 +48,9 @@ describe('reportingIntervalMapper.toDomain', () => {
           updatedAt: period.updatedAt.toISOString(),
         })),
       };
+      const { periods: _periods, ...header } = interval;
+      const { reportingPeriodsInCores: _children, ...expectedHeader } = row;
+      expect(reportingIntervalMapper.toRepo(header)).toEqual(expectedHeader);
       const before = JSON.stringify(row);
       const result = reportingIntervalMapper.toDomain(row);
       expect(result).toEqual(interval);

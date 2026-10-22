@@ -1,4 +1,4 @@
-import { InferSelectModel } from 'drizzle-orm';
+import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 import { TEntityId } from '@shared/types/uuid';
 import deepFreeze from '@shared/utils/deep-freeze';
@@ -9,7 +9,10 @@ import {
   reportingIntervalsInCore,
   reportingPeriodsInCore,
 } from '@infra/config/drizzle/schema';
-import { fromRepoDate } from '@infra/persistence/helpers/date.mapper';
+import {
+  fromRepoDate,
+  toRepoDate,
+} from '@infra/persistence/helpers/date.mapper';
 
 interface IReportingIntervalModel extends InferSelectModel<
   typeof reportingIntervalsInCore
@@ -18,6 +21,26 @@ interface IReportingIntervalModel extends InferSelectModel<
 }
 
 const reportingIntervalMapper = {
+  toRepo(
+    interval: Omit<IReportingInterval, 'periods'>
+  ): InferInsertModel<typeof reportingIntervalsInCore> {
+    return {
+      id: interval.id,
+      accountingEntityId: interval.accountingEntityId,
+      fiscalYearId: interval.fiscalYearId,
+      unit: interval.unit,
+      count: interval.count,
+      startDate: toRepoDate(interval.startDate),
+      endDate: toRepoDate(interval.endDate),
+      currentPeriodOrdinal: interval.currentPeriodOrdinal,
+      nextPeriodStartDate: interval.nextPeriodStartDate
+        ? toRepoDate(interval.nextPeriodStartDate)
+        : null,
+      createdBy: interval.createdBy,
+      createdAt: toRepoDate(interval.createdAt),
+      updatedAt: toRepoDate(interval.updatedAt),
+    };
+  },
   toDomain(interval: IReportingIntervalModel): IReportingInterval {
     return deepFreeze<IReportingInterval>({
       id: interval.id as TEntityId,
