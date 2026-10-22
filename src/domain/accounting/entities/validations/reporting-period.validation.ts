@@ -1,38 +1,32 @@
-import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
+import stringUtils from '@shared/utils/string';
+import { IPeriod } from '@shared/values/interval/types/interval.types';
+import periodValidation from '@shared/values/interval/validations/period.validation';
 
-import periodError from '@domain/accounting/errors/period.error';
-import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { IReportingPeriod } from '@domain/accounting/types/period.types';
+import accountingError from '@domain/accounting/errors/accounting.error';
+import { IReportingPeriod } from '@domain/accounting/types/reporting-period.types';
 
-function validateFiscalYearOwnership(
-  accountingEntityId: TEntityId,
-  fiscalYear: IFiscalYear
+function validateCreation(
+  period: IPeriod,
+  metadata: Pick<IReportingPeriod, 'createdBy' | 'createdAt'>
 ) {
-  if (fiscalYear.accountingEntityId !== accountingEntityId) {
-    throw new periodError.InvalidAccountingEntityId();
-  }
-}
-
-/** Generated intervals must stay inside the year; overlap between reporting intervals is allowed. */
-function validateFiscalYearBounds(
-  intervals: Pick<IReportingPeriod, 'startDate' | 'endDate'>[],
-  fiscalYear: Pick<IFiscalYear, 'startDate' | 'endDate'>
-) {
-  const firstDate = dateUtils.toUtcStartOfDay(fiscalYear.startDate);
-  const lastDate = dateUtils.toUtcStartOfDay(fiscalYear.endDate);
-  const hasInvalidInterval = intervals.some(
-    (interval) =>
-      interval.startDate < firstDate ||
-      interval.endDate > lastDate ||
-      interval.startDate > interval.endDate
+  periodValidation.validate(period);
+  stringUtils.validateUUID(
+    metadata.createdBy,
+    accountingError.InvalidCreatedBy
   );
-  if (hasInvalidInterval) {
-    throw new periodError.InvalidInterval();
-  }
+  dateUtils.validateDate(metadata.createdAt, accountingError.InvalidDate);
 }
 
-export default Object.freeze({
-  validateFiscalYearOwnership,
-  validateFiscalYearBounds,
+function validate(period: IReportingPeriod) {
+  validateCreation(period, period);
+  dateUtils.validateDate(period.updatedAt, accountingError.InvalidDate);
+}
+
+const reportingPeriodValidation = Object.freeze({
+  ...periodValidation,
+  validateCreation,
+  validate,
 });
+
+export default reportingPeriodValidation;

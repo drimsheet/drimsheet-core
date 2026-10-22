@@ -2,7 +2,7 @@ import { ITransactionContext } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
 import historyValue from '@shared/values/history/history.vo';
 
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import periodError from '@domain/accounting/errors/period.error';
 

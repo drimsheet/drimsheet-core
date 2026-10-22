@@ -1,6 +1,6 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import getAccountingPeriodNeighborsHelper from '@domain/accounting/entities/helpers/get-accounting-period-neighbors.helper';
 import accountingError from '@domain/accounting/errors/accounting.error';

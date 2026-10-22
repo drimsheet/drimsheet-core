@@ -4,7 +4,7 @@ import appError from '@shared/values/errors/app.error';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
-import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity';
+import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity.deprecated';
 import periodError from '@domain/accounting/errors/period.error';
 import makeReportingPeriodService from '@domain/accounting/services/reporting-period.service';
 import actorEntity from '@domain/user/entities/actor.entity';

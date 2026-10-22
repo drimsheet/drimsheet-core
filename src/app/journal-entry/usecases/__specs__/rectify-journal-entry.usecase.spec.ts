@@ -5,7 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import periodError from '@domain/accounting/errors/period.error';
 import {

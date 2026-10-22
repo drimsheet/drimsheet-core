@@ -2,7 +2,7 @@ import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
 import { IAccountingPeriod } from '@domain/accounting/types/period.types';
 
 import { getAccountingPeriodParamsValidationSchema } from '@app/accounting/dtos/accounting-period/accounting-period.dto.validation';

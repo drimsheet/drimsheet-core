@@ -5,14 +5,14 @@ import accountingContextEntity from '@domain/accounting/entities/accounting-cont
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import reportingContextEntity from '@domain/accounting/entities/reporting-context.entity';
-import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity';
+import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity.deprecated';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import accountingStandardError from '@domain/accounting/errors/accounting-standard.error';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import { EReportingContextEvents } from '@domain/accounting/events/reporting-context.events';
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
 import IReportingContextRepo from '@domain/accounting/repos/reporting-context.repo';
-import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
 import makeReportingContextService from '@domain/accounting/services/reporting-context.service';
 import { UCurrencyCode } from '@domain/money/config/currencies.config';
 import currencyError from '@domain/money/errors/currency.error';

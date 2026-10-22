@@ -1,58 +1,53 @@
-import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
+import stringUtils from '@shared/utils/string';
+import { IPeriod } from '@shared/values/interval/types/interval.types';
+import periodValidation from '@shared/values/interval/validations/period.validation';
 
+import accountingError from '@domain/accounting/errors/accounting.error';
 import periodError from '@domain/accounting/errors/period.error';
-import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { IPeriod } from '@domain/accounting/types/period.types';
+import {
+  EAccountingPeriodStatus,
+  IAccountingPeriod,
+} from '@domain/accounting/types/accounting-period.types';
 
-function validateFiscalYearOwnership(
-  accountingEntityId: TEntityId,
-  fiscalYear: IFiscalYear
+function validateCreation(
+  period: IPeriod,
+  metadata: Pick<IAccountingPeriod, 'createdBy' | 'createdAt'>
 ) {
-  if (accountingEntityId !== fiscalYear.accountingEntityId) {
-    throw new periodError.InvalidAccountingEntityId();
-  }
+  periodValidation.validate(period);
+  stringUtils.validateUUID(
+    metadata.createdBy,
+    accountingError.InvalidCreatedBy
+  );
+  dateUtils.validateDate(metadata.createdAt, accountingError.InvalidDate);
 }
 
-/** Requires an ordered, gap-free partition of the fiscal year's inclusive calendar dates. */
-function validatePartition(
-  intervals: Pick<IPeriod, 'startDate' | 'endDate'>[],
-  fiscalYear: Pick<IFiscalYear, 'startDate' | 'endDate'>
-) {
-  const dates = [
-    fiscalYear.startDate,
-    fiscalYear.endDate,
-    ...intervals.flatMap((interval) => [interval.startDate, interval.endDate]),
-  ];
-  const hasInvalidDate = dates.some((date) => !dateUtils.isValidDate(date));
-  if (hasInvalidDate) {
-    throw new periodError.InvalidDateRange();
-  }
+function validate(period: IAccountingPeriod) {
+  validateCreation(period, period);
+  dateUtils.validateDate(period.updatedAt, accountingError.InvalidDate);
 
-  const lastInterval = intervals[intervals.length - 1];
-  const hasWrongEnd =
-    !lastInterval ||
-    !dateUtils.isSameUtcDay(lastInterval.endDate, fiscalYear.endDate);
-  if (hasWrongEnd) {
-    throw new periodError.InvalidInterval();
-  }
-
-  let expectedStart = fiscalYear.startDate;
-  for (const interval of intervals) {
-    const start = dateUtils.toUtcStartOfDay(interval.startDate);
-    const end = dateUtils.toUtcStartOfDay(interval.endDate);
-    const isInvalidInterval =
-      !dateUtils.isSameUtcDay(start, expectedStart) ||
-      dateUtils.isGreaterThan(start, end);
-    if (isInvalidInterval) {
-      throw new periodError.InvalidInterval();
+  stringUtils.validateIsInEnum(
+    period.status,
+    EAccountingPeriodStatus,
+    periodError.InvalidStatus
+  );
+  const isClosed = period.status === EAccountingPeriodStatus.Closed;
+  if (isClosed) {
+    const hasValidClosedAt =
+      period.closedAt instanceof Date &&
+      Number.isFinite(period.closedAt.getTime());
+    if (!hasValidClosedAt) {
+      throw new accountingError.InvalidDate();
     }
-
-    expectedStart = dateUtils.addUtcCalendarUnits(end, 1, 'day');
+  } else if (period.closedAt !== null) {
+    throw new periodError.InvalidStatus();
   }
 }
 
-export default Object.freeze({
-  validateFiscalYearOwnership,
-  validatePartition,
+const accountingPeriodValidation = Object.freeze({
+  ...periodValidation,
+  validateCreation,
+  validate,
 });
+
+export default accountingPeriodValidation;

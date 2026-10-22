@@ -6,7 +6,7 @@ import accountingContextEntity from '@domain/accounting/entities/accounting-cont
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import reportingContextEntity from '@domain/accounting/entities/reporting-context.entity';
-import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity';
+import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity.deprecated';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import accountingStandardError from '@domain/accounting/errors/accounting-standard.error';
 import accountingError from '@domain/accounting/errors/accounting.error';

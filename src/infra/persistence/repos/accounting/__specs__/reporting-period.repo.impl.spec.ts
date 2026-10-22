@@ -5,7 +5,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import historyValue from '@shared/values/history/history.vo';
 
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
-import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity';
+import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity.deprecated';
 import periodError from '@domain/accounting/errors/period.error';
 
 import { mockReportingPeriodHistoryRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';

@@ -2,6 +2,7 @@ import { TEntityId } from '@shared/types/uuid';
 import {
   IInterval,
   IPeriod,
+  IPeriodMakePayload,
 } from '@shared/values/interval/types/interval.types';
 
 export const EReportingIntervalUnit = {
@@ -21,6 +22,11 @@ export interface IReportingPeriod extends IPeriod {
   updatedAt: Date;
 }
 
+export interface IReportingPeriodMakePayload extends Omit<
+  IPeriod,
+  'intervalId' | 'accountingEntityId'
+> {}
+
 export interface IReportingInterval extends Omit<IInterval, 'unit'> {
   unit: UReportingIntervalUnit;
   fiscalYearId: TEntityId;
@@ -28,4 +34,17 @@ export interface IReportingInterval extends Omit<IInterval, 'unit'> {
   createdBy: TEntityId;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface IReportingIntervalMakePayload extends Pick<
+  IReportingInterval,
+  | 'accountingEntityId'
+  | 'fiscalYearId'
+  | 'unit'
+  | 'count'
+  | 'startDate'
+  | 'endDate'
+  | 'createdBy'
+> {
+  periods: IPeriodMakePayload[];
 }

@@ -3,7 +3,7 @@ import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
-import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
 import { IReportingPeriod } from '@domain/accounting/types/period.types';
 
 import { getReportingPeriodsParamsValidationSchema } from '@app/accounting/dtos/reporting-period/reporting-period.dto.validation';

@@ -3,7 +3,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import periodError from '@domain/accounting/errors/period.error';
 import makeAccountingPeriodService from '@domain/accounting/services/accounting-period.service';

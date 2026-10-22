@@ -5,7 +5,7 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import historyValue from '@shared/values/history/history.vo';
 
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import { IAccountingPeriod } from '@domain/accounting/types/period.types';

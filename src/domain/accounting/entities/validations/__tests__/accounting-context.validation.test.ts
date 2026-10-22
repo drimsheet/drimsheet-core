@@ -2,7 +2,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import accountingContextValidation from '@domain/accounting/entities/validations/accounting-context.validation';
 import accountingError from '@domain/accounting/errors/accounting.error';

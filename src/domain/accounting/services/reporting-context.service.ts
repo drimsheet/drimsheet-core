@@ -5,7 +5,7 @@ import accountingEntityError from '@domain/accounting/errors/accounting-entity.e
 import accountingError from '@domain/accounting/errors/accounting.error';
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
 import IReportingContextRepo from '@domain/accounting/repos/reporting-context.repo';
-import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
 import { EAccountingEntityStatus } from '@domain/accounting/types/accounting-entity.types';
 import IReportingContextService from '@domain/accounting/types/reporting-context.service.types';
 

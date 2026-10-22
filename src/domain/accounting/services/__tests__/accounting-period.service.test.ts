@@ -1,9 +1,9 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import periodError from '@domain/accounting/errors/period.error';
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
 import makeAccountingPeriodService from '@domain/accounting/services/accounting-period.service';
 import {
   EPeriodStatus,

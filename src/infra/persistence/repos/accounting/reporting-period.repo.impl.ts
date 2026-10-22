@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
 
-import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
 
 import { reportingPeriodsInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';

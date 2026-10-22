@@ -1,6 +1,6 @@
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
 import periodError from '@domain/accounting/errors/period.error';
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import { EPeriodStatus } from '@domain/accounting/types/period.types';
 

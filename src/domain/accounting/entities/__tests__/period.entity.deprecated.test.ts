@@ -1,6 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import periodEntity from '@domain/accounting/entities/period.entity';
+import periodEntity from '@domain/accounting/entities/period.entity.deprecated';
 import periodValidation from '@domain/accounting/entities/validations/period.validation';
 import periodError from '@domain/accounting/errors/period.error';
 import { EPeriodActions } from '@domain/accounting/types/period-audit.types';

@@ -7,7 +7,7 @@ import historyValue from '@shared/values/history/history.vo';
 
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
 import IReportingContextRepo from '@domain/accounting/repos/reporting-context.repo';
-import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
 import { IReportingContext } from '@domain/accounting/types/context.types';
 import IReportingContextService from '@domain/accounting/types/reporting-context.service.types';
 

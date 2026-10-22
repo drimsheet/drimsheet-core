@@ -1,6 +1,6 @@
-import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity';
+import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity.deprecated';
 import periodError from '@domain/accounting/errors/period.error';
-import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
 import IReportingPeriodService from '@domain/accounting/types/reporting-period.service.types';
 
 interface IDependencies {

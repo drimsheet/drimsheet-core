@@ -3,7 +3,7 @@ import getAccountingPeriodNeighborsHelper from '@domain/accounting/entities/help
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import IAccountingContextService from '@domain/accounting/types/accounting-context.service.types';
 import { EAccountingEntityStatus } from '@domain/accounting/types/accounting-entity.types';

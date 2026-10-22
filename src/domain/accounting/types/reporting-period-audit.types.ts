@@ -1,3 +1,4 @@
+import { IEvent } from '@shared/values/events/types/event.types';
 import {
   IEntityDelta,
   IHistory,
@@ -25,6 +26,12 @@ export interface IMakeReportingPeriodAuditPayload {
 
 export interface IReportingPeriodHistory extends IHistory<IReportingPeriod> {}
 
+export type TAuditedReportingPeriod = [
+  IReportingPeriod,
+  IEvent<IReportingPeriod>[],
+  IReportingPeriodAudit,
+];
+
 export const EReportingIntervalActions = {
   Created: 'created',
   Updated: 'updated',
@@ -44,3 +51,12 @@ export interface IMakeReportingIntervalAuditPayload {
 }
 
 export interface IReportingIntervalHistory extends IHistory<IReportingInterval> {}
+
+export type TAuditedReportingInterval = [
+  IReportingInterval,
+  IEvent<IReportingInterval | IReportingPeriod>[],
+  {
+    interval: IReportingIntervalAudit;
+    periods: IReportingPeriodAudit[];
+  },
+];

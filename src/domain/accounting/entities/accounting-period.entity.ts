@@ -1,76 +1,71 @@
-import dateUtils from '@shared/utils/date';
 import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
-import { TAuditedEntity } from '@shared/values/events/types/event.types';
+import periodValue from '@shared/values/interval/period.vo';
+import { IPeriod } from '@shared/values/interval/types/interval.types';
 
-import getCalendarPeriodIntervalsHelper from '@domain/accounting/entities/helpers/get-calendar-period-intervals.helper';
 import accountingPeriodValidation from '@domain/accounting/entities/validations/accounting-period.validation';
 import periodError from '@domain/accounting/errors/period.error';
-import periodEvents from '@domain/accounting/events/period.events';
-import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { EPeriodActions } from '@domain/accounting/types/period-audit.types';
+import accountingPeriodEvents from '@domain/accounting/events/accounting-period.events';
 import {
-  EPeriodStatus,
+  EAccountingPeriodActions,
+  TAuditedAccountingPeriod,
+} from '@domain/accounting/types/accounting-period-audit.types';
+import {
+  EAccountingPeriodStatus,
+  IAccountingInterval,
   IAccountingPeriod,
-} from '@domain/accounting/types/period.types';
+  IAccountingPeriodMakePayload,
+} from '@domain/accounting/types/accounting-period.types';
 import accountingPeriodAudit from '@domain/accounting/values/accounting-period-audit.vo';
 
-interface IMakePayload extends Pick<
-  IAccountingPeriod,
-  'createdBy' | 'accountingEntityId' | 'unit' | 'count'
-> {
-  fiscalYear: IFiscalYear;
-}
-
+/** Adds domain identity metadata to a child of the shared calendar. */
 function make(
-  payload: IMakePayload
-): TAuditedEntity<IAccountingPeriod, IAccountingPeriod, IAccountingPeriod>[] {
-  stringUtils.validateUUID(
-    payload.accountingEntityId,
-    periodError.InvalidAccountingEntityId
-  );
-  stringUtils.validateUUID(
-    payload.fiscalYear.id,
-    periodError.InvalidFiscalYearId
-  );
-  stringUtils.validateUUID(payload.createdBy, periodError.InvalidCreatedBy);
-  accountingPeriodValidation.validateFiscalYearOwnership(
-    payload.accountingEntityId,
-    payload.fiscalYear
-  );
-  const intervals = getCalendarPeriodIntervalsHelper({
-    startDate: payload.fiscalYear.startDate,
-    endDate: payload.fiscalYear.endDate,
-    unit: payload.unit,
-    count: payload.count,
-  });
-  accountingPeriodValidation.validatePartition(intervals, payload.fiscalYear);
+  interval: Pick<
+    IAccountingInterval,
+    'id' | 'accountingEntityId' | 'createdBy' | 'createdAt'
+  >,
+  payload: IAccountingPeriodMakePayload
+): TAuditedAccountingPeriod {
+  // Validate the supplied dates before copying, so coercion cannot admit them.
+  periodValue.validateDateRange(payload.startDate, payload.endDate);
 
-  const timestamp = dateUtils.now();
-  return intervals.map((interval, index) => {
-    const period = deepFreeze<IAccountingPeriod>({
-      id: stringUtils.generateUUID(),
-      createdBy: payload.createdBy,
-      name: `Accounting Period ${index + 1}`,
-      accountingEntityId: payload.accountingEntityId,
-      unit: payload.unit,
-      count: payload.count,
-      startDate: interval.startDate,
-      endDate: interval.endDate,
-      status: EPeriodStatus.Open,
-      fiscalYearId: payload.fiscalYear.id,
-      updatedAt: timestamp,
-      closedAt: null,
-    });
-    const event = periodEvents.accountingPeriodCreated(period);
-    const audit = accountingPeriodAudit.make({
-      before: null,
-      after: period,
-      action: EPeriodActions.Created,
-    });
+  const calendarPeriod: IPeriod = {
+    id: payload.id,
+    intervalId: interval.id,
+    accountingEntityId: interval.accountingEntityId,
+    ordinal: payload.ordinal,
+    name: stringUtils.sanitizeAndValidate(
+      payload.name,
+      { min: 1, max: 100 },
+      periodError.InvalidName
+    ),
+    startDate: new Date(payload.startDate),
+    endDate: new Date(payload.endDate),
+  };
+  accountingPeriodValidation.validateCreation(calendarPeriod, interval);
 
-    return [period, [event], audit];
+  const period = deepFreeze<IAccountingPeriod>({
+    id: calendarPeriod.id,
+    intervalId: calendarPeriod.intervalId,
+    accountingEntityId: calendarPeriod.accountingEntityId,
+    ordinal: calendarPeriod.ordinal,
+    name: calendarPeriod.name,
+    startDate: calendarPeriod.startDate,
+    endDate: calendarPeriod.endDate,
+    status: EAccountingPeriodStatus.Open,
+    closedAt: null,
+    createdBy: interval.createdBy,
+    createdAt: new Date(interval.createdAt),
+    updatedAt: new Date(interval.createdAt),
   });
+  const event = accountingPeriodEvents.created(period);
+  const audit = accountingPeriodAudit.make({
+    before: null,
+    after: period,
+    action: EAccountingPeriodActions.Created,
+  });
+
+  return [period, [event], audit];
 }
 
 const accountingPeriodEntity = Object.freeze({

@@ -2,7 +2,7 @@ import { and, eq, gte, lte } from 'drizzle-orm';
 
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
 
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
 
 import { accountingPeriodsInCore } from '@infra/config/drizzle/schema';
 import { toRepoDateOnly } from '@infra/persistence/helpers/date.mapper';

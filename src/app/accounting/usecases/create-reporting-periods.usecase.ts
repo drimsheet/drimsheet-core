@@ -6,7 +6,7 @@ import eventValue from '@shared/values/events/event.vo';
 import historyValue from '@shared/values/history/history.vo';
 
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
-import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
 import { IReportingPeriod } from '@domain/accounting/types/period.types';
 import IReportingPeriodService from '@domain/accounting/types/reporting-period.service.types';
 
