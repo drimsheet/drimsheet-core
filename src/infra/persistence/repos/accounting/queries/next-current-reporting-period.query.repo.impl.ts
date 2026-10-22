@@ -1,88 +1,30 @@
-import { and, eq, isNull, lte, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { lt } from 'drizzle-orm';
 
 import INextCurrentReportingPeriodQueryRepo from '@app/accounting/contracts/next-current-reporting-period.query.repo.contract';
 
-import {
-  accountingContextsInCore,
-  reportingContextsInCore,
-  reportingPeriodsInCore,
-} from '@infra/config/drizzle/schema';
-import { toRepoDateOnly } from '@infra/persistence/helpers/date.mapper';
+import { reportingIntervalsInCore } from '@infra/config/drizzle/schema';
+import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import nextCurrentReportingPeriodMapper from '@infra/persistence/repos/accounting/mappers/next-current-reporting-period.mapper';
-
-const currentPeriod = alias(reportingPeriodsInCore, 'current_period');
 
 const nextCurrentReportingPeriodQueryRepo: INextCurrentReportingPeriodQueryRepo =
   {
     async findDue(date, options) {
-      const periods = await getDbQuery(options)
+      const intervals = await getDbQuery(options)
         .select({
-          reportingContextId: reportingContextsInCore.id,
-          fiscalYearId: accountingContextsInCore.fiscalYearId,
-          accountingEntityId: reportingContextsInCore.accountingEntityId,
-          currentPeriodId: reportingContextsInCore.currentReportingPeriodId,
-          nextPeriodId: reportingPeriodsInCore.id,
+          accountingEntityId: reportingIntervalsInCore.accountingEntityId,
+          reportingIntervalId: reportingIntervalsInCore.id,
         })
-        .from(reportingContextsInCore)
-        .innerJoin(
-          accountingContextsInCore,
-          and(
-            eq(
-              accountingContextsInCore.id,
-              reportingContextsInCore.accountingContextId
-            ),
-            eq(
-              accountingContextsInCore.accountingEntityId,
-              reportingContextsInCore.accountingEntityId
-            )
-          )
-        )
-        .innerJoin(
-          currentPeriod,
-          and(
-            eq(
-              currentPeriod.id,
-              reportingContextsInCore.currentReportingPeriodId
-            ),
-            eq(
-              currentPeriod.accountingEntityId,
-              reportingContextsInCore.accountingEntityId
-            ),
-            eq(
-              currentPeriod.fiscalYearId,
-              accountingContextsInCore.fiscalYearId
-            )
-          )
-        )
-        .innerJoin(
-          reportingPeriodsInCore,
-          and(
-            eq(
-              reportingPeriodsInCore.accountingEntityId,
-              reportingContextsInCore.accountingEntityId
-            ),
-            eq(
-              reportingPeriodsInCore.fiscalYearId,
-              accountingContextsInCore.fiscalYearId
-            ),
-            eq(
-              reportingPeriodsInCore.startDate,
-              sql`${currentPeriod.endDate} + 1`
-            )
-          )
-        )
+        .from(reportingIntervalsInCore)
         .where(
-          and(
-            isNull(reportingContextsInCore.closedAt),
-            isNull(accountingContextsInCore.closedAt),
-            lte(reportingPeriodsInCore.startDate, toRepoDateOnly(date))
-          )
+          lt(reportingIntervalsInCore.nextPeriodStartDate, toRepoDate(date))
         )
-        .orderBy(reportingPeriodsInCore.startDate, reportingContextsInCore.id);
+        .orderBy(
+          reportingIntervalsInCore.nextPeriodStartDate,
+          reportingIntervalsInCore.id
+        );
 
-      return periods.map(nextCurrentReportingPeriodMapper.toDetails);
+      return intervals.map(nextCurrentReportingPeriodMapper.fromRepo);
     },
   };
 

@@ -22,11 +22,8 @@ jest.mock('@infra/config/redis.config', () => ({
 
 describe('queue lifecycle', () => {
   const payload: INextCurrentAccountingPeriodDto = {
-    accountingContextId: generateUUID(),
-    fiscalYearId: generateUUID(),
     accountingEntityId: generateUUID(),
-    currentPeriodId: generateUUID(),
-    nextPeriodId: generateUUID(),
+    accountingIntervalId: generateUUID(),
   };
 
   beforeEach(() => {

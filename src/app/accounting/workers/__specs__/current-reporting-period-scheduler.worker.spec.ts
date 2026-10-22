@@ -7,11 +7,8 @@ import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 
 describe('current reporting period scheduler worker', () => {
   const periods: INextCurrentReportingPeriodDto[] = [1, 2].map(() => ({
-    reportingContextId: generateUUID(),
-    fiscalYearId: generateUUID(),
     accountingEntityId: generateUUID(),
-    currentPeriodId: generateUUID(),
-    nextPeriodId: generateUUID(),
+    reportingIntervalId: generateUUID(),
   }));
   const usecase = jest.fn<Promise<INextCurrentReportingPeriodDto[]>, []>();
   const worker = makeCurrentReportingPeriodSchedulerWorker({

@@ -11,11 +11,8 @@ describe('set current accounting period worker', () => {
   const correlationId = generateUUID();
   const [actor] = actorEntity.makeSystem(actorEntity.makeMigration()[0].id);
   const payload: INextCurrentAccountingPeriodDto = {
-    accountingContextId: generateUUID(),
-    fiscalYearId: generateUUID(),
     accountingEntityId: generateUUID(),
-    currentPeriodId: generateUUID(),
-    nextPeriodId: generateUUID(),
+    accountingIntervalId: generateUUID(),
   };
   const usecase = jest.fn<Promise<void>, [INextCurrentAccountingPeriodDto]>();
   const worker = makeSetCurrentAccountingPeriodWorker({

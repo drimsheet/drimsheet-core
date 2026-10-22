@@ -3,23 +3,17 @@ import { TEntityId } from '@shared/types/uuid';
 import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 
 interface INextCurrentAccountingPeriodModel {
-  accountingContextId: string;
-  fiscalYearId: string;
   accountingEntityId: string;
-  currentPeriodId: string;
-  nextPeriodId: string;
+  accountingIntervalId: string;
 }
 
 const nextCurrentAccountingPeriodMapper = {
-  toDetails(
+  fromRepo(
     period: INextCurrentAccountingPeriodModel
   ): INextCurrentAccountingPeriodDto {
     return {
-      accountingContextId: period.accountingContextId as TEntityId,
-      fiscalYearId: period.fiscalYearId as TEntityId,
       accountingEntityId: period.accountingEntityId as TEntityId,
-      currentPeriodId: period.currentPeriodId as TEntityId,
-      nextPeriodId: period.nextPeriodId as TEntityId,
+      accountingIntervalId: period.accountingIntervalId as TEntityId,
     };
   },
 };
