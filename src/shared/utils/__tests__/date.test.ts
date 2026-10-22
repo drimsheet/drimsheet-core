@@ -78,6 +78,50 @@ describe('dateUtils', () => {
     });
   });
 
+  describe('UTC timestamp arithmetic', () => {
+    it.each([
+      ['second', '2028-01-31T13:45:57.789Z'],
+      ['minute', '2028-01-31T13:46:56.789Z'],
+      ['hour', '2028-01-31T14:45:56.789Z'],
+      ['day', '2028-02-01T13:45:56.789Z'],
+      ['week', '2028-02-07T13:45:56.789Z'],
+      ['month', '2028-02-29T13:45:56.789Z'],
+      ['year', '2029-01-31T13:45:56.789Z'],
+    ] as const)('adds one %s without discarding the time', (unit, expected) => {
+      const start = new Date('2028-01-31T13:45:56.789Z');
+      const end = dateUtils.addUtcUnits(start, 1, unit);
+
+      expect(end).toEqual(new Date(expected));
+      expect(dateUtils.getUtcUnitDistance(start, end, unit)).toBe(1);
+      expect(start).toEqual(new Date('2028-01-31T13:45:56.789Z'));
+    });
+
+    it('retains fractional distance and supports signed addition', () => {
+      const start = new Date('2024-01-01T10:00:00.123Z');
+      const end = new Date('2024-01-01T10:00:10.623Z');
+
+      expect(dateUtils.getUtcUnitDistance(start, end, 'second')).toBe(10.5);
+      expect(dateUtils.getUtcUnitDistance(end, start, 'second')).toBe(-10.5);
+      expect(dateUtils.getUtcUnitDistance(start, start, 'second')).toBe(0);
+      expect(dateUtils.addUtcUnits(end, -10.5, 'second')).toEqual(start);
+    });
+
+    it('rejects invalid dates in timestamp arithmetic', () => {
+      const valid = new Date('2024-01-01');
+      const invalid = new Date(NaN);
+
+      expect(() => dateUtils.addUtcUnits(invalid, 1, 'hour')).toThrow(
+        dateError.InvalidDate
+      );
+      expect(() =>
+        dateUtils.getUtcUnitDistance(invalid, valid, 'hour')
+      ).toThrow(dateError.InvalidDate);
+      expect(() =>
+        dateUtils.getUtcUnitDistance(valid, invalid, 'hour')
+      ).toThrow(dateError.InvalidDate);
+    });
+  });
+
   describe('UTC calendar arithmetic', () => {
     it.each([
       ['2028-03-01T16:00:00Z', '2028-02-29'],

@@ -2,16 +2,12 @@ import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 
+import { IStartAndEndDates, UCalendarUnits } from '@shared/types/date.types';
 import { TErrorConstructor } from '@shared/types/error.types';
 import dateError from '@shared/values/errors/date.error';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
-export interface IStartAndEndDates {
-  start: Date;
-  end: Date;
-}
 
 function now() {
   return dayjs().toDate();
@@ -221,8 +217,6 @@ function isSameDay(
   return dayjs(date1).isSame(dayjs(date2), 'day');
 }
 
-type TCalendarUnit = 'day' | 'week' | 'month' | 'quarter' | 'year';
-
 /** Returns a new Date at midnight on the input's UTC calendar day. */
 function toUtcStartOfDay(date: Date) {
   validateDate(date, dateError.InvalidDate);
@@ -244,7 +238,11 @@ function isSameUtcDay(first: Date, second: Date) {
 }
 
 /** Inclusive distance using UTC calendar dates, independent of process timezone. */
-function getUtcCalendarDistance(start: Date, end: Date, unit: TCalendarUnit) {
+function getUtcCalendarDistance(
+  start: Date,
+  end: Date,
+  unit: UCalendarUnits | 'quarter'
+) {
   return Math.round(
     dayjs
       .utc(end)
@@ -255,11 +253,30 @@ function getUtcCalendarDistance(start: Date, end: Date, unit: TCalendarUnit) {
 }
 
 /** Adds signed calendar units at UTC midnight, including month-end clamping. */
-function addUtcCalendarUnits(date: Date, count: number, unit: TCalendarUnit) {
+function addUtcCalendarUnits(
+  date: Date,
+  count: number,
+  unit: UCalendarUnits | 'quarter'
+) {
+  // TODO: Remove 'quarter' from the unit type and handling after the accounting
+  // and reporting periods migration.
   const start = dayjs.utc(date).startOf('day');
   return unit === 'quarter'
     ? start.add(count * 3, 'month').toDate()
     : start.add(count, unit).toDate();
+}
+
+/** Measures the UTC span to an exclusive end, retaining fractional units. */
+function getUtcUnitDistance(start: Date, end: Date, unit: UCalendarUnits) {
+  validateDate(start, dateError.InvalidDate);
+  validateDate(end, dateError.InvalidDate);
+  return dayjs.utc(end).diff(dayjs.utc(start), unit, true);
+}
+
+/** Adds UTC units without resetting the time, with calendar month clamping. */
+function addUtcUnits(date: Date, count: number, unit: UCalendarUnits) {
+  validateDate(date, dateError.InvalidDate);
+  return dayjs.utc(date).add(count, unit).toDate();
 }
 
 const dateUtils = Object.freeze({
@@ -269,6 +286,8 @@ const dateUtils = Object.freeze({
   isSameUtcDay,
   getUtcCalendarDistance,
   addUtcCalendarUnits,
+  getUtcUnitDistance,
+  addUtcUnits,
   isValidDate,
   isSameDay,
   validateDate,
