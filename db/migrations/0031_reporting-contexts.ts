@@ -2,9 +2,8 @@ import { ColumnDefinitions, MigrationBuilder } from 'node-pg-migrate';
 
 import {
   accountingContextsTable,
-  accountingStandardsTable,
   reportingContextsTable,
-  reportingPeriodsTable,
+  reportingIntervalsTable,
 } from '../config/accounting';
 import { accountingEntitiesTable } from '../config/accounting-entity';
 import { actorsTable } from '../config/actors';
@@ -58,17 +57,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       onDelete: 'RESTRICT',
     },
 
-    current_reporting_period_id: {
+    reporting_interval_id: {
       type: 'uuid',
       notNull: true,
-      references: reportingPeriodsTable,
-      onDelete: 'RESTRICT',
-    },
-
-    accounting_standard_code: {
-      type: 'varchar(15)',
-      notNull: true,
-      references: accountingStandardsTable,
+      references: reportingIntervalsTable,
       onDelete: 'RESTRICT',
     },
 

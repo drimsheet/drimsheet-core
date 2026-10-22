@@ -5,6 +5,7 @@ import accountingContextHistoryRepo from './accounting-context-history.repo.impl
 import accountingContextRepo from './accounting-context.repo.impl';
 import accountingEntityHistoryRepo from './accounting-entity-history.repo.impl';
 import accountingEntityRepo from './accounting-entity.repo.impl';
+import accountingIntervalRepo from './accounting-interval.repo.impl';
 import accountingPeriodHistoryRepo from './accounting-period-history.repo.impl';
 import accountingPeriodRepo from './accounting-period.repo.impl';
 import accountingStandardsRepo from './accounting-standards.repo.impl';
@@ -14,6 +15,7 @@ import jurisdictionAccountingStandardRepo from './jurisdiction-accounting-standa
 import jurisdictionRepo from './jurisdiction.repo.impl';
 import reportingContextHistoryRepo from './reporting-context-history.repo.impl';
 import reportingContextRepo from './reporting-context.repo.impl';
+import reportingIntervalRepo from './reporting-interval.repo.impl';
 import reportingPeriodHistoryRepo from './reporting-period-history.repo.impl';
 import reportingPeriodRepo from './reporting-period.repo.impl';
 
@@ -25,6 +27,7 @@ const accountingRepos = {
   accountingEntity: accountingEntityRepo,
   accountingEntityHistory: accountingEntityHistoryRepo,
   accountingPeriod: accountingPeriodRepo,
+  accountingInterval: accountingIntervalRepo,
   accountingPeriodHistory: accountingPeriodHistoryRepo,
   accountingStandards: accountingStandardsRepo,
   fiscalYear: fiscalYearRepo,
@@ -34,6 +37,7 @@ const accountingRepos = {
   reportingContext: reportingContextRepo,
   reportingContextHistory: reportingContextHistoryRepo,
   reportingPeriod: reportingPeriodRepo,
+  reportingInterval: reportingIntervalRepo,
   reportingPeriodHistory: reportingPeriodHistoryRepo,
 };
 

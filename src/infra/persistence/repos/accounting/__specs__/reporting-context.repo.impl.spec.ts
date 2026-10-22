@@ -51,9 +51,8 @@ describe('reporting-context atomic creation', () => {
     createdBy: id,
     accountingEntityId: id,
     accountingContextId: id,
-    currentReportingPeriodId: id,
+    reportingIntervalId: id,
     reportingCurrencyCode: 'USD',
-    accountingStandardCode: 'IFRS',
     name: 'Working context',
     description: null,
   });
@@ -168,10 +167,9 @@ describe('reporting-context lookup', () => {
     accountingEntityId: id,
     name: 'Accounting context',
     description: null,
-    accountingStandardCode: 'IFRS',
     accountingContextId: id,
     reportingCurrencyCode: 'USD',
-    currentReportingPeriodId: id,
+    reportingIntervalId: id,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     closedAt: null,
@@ -258,16 +256,15 @@ describe('reporting-context atomic update', () => {
     accountingEntityId: id,
     accountingContextId: id,
     reportingCurrencyCode: 'USD',
-    currentReportingPeriodId: oldId,
-    accountingStandardCode: 'IFRS',
+    reportingIntervalId: oldId,
     name: 'Working context',
     description: null,
   });
   const [context, , audit] = reportingContextEntity.update(previousContext, {
-    currentReportingPeriodId: currentId,
+    reportingIntervalId: currentId,
   });
-  const history = historyValue.make(audit!, id, 'period-update');
-  const options = { correlationId: 'period-update', tx: {}, history };
+  const history = historyValue.make(audit!, id, 'interval-update');
+  const options = { correlationId: 'interval-update', tx: {}, history };
 
   beforeEach(() => jest.resetAllMocks());
 

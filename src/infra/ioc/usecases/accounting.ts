@@ -85,7 +85,7 @@ export const createReportingContextUseCase = makeTracedUseCase(
     appContext,
     reportingContextService,
     accountingContextRepo: accountingRepos.accountingContext,
-    reportingPeriodRepo: accountingRepos.reportingPeriod,
+    reportingIntervalRepo: accountingRepos.reportingInterval,
     reportingContextRepo: accountingRepos.reportingContext,
     eventBus: messaging.eventBus,
   })
@@ -108,7 +108,7 @@ export const createAccountingContextUseCase = makeTracedUseCase(
     appContext,
     accountingContextService,
     fiscalYearRepo: accountingRepos.fiscalYear,
-    accountingPeriodRepo: accountingRepos.accountingPeriod,
+    accountingIntervalRepo: accountingRepos.accountingInterval,
     accountingContextRepo: accountingRepos.accountingContext,
     eventBus: messaging.eventBus,
   })

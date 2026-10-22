@@ -48,9 +48,7 @@ describe('accounting-context atomic creation', () => {
     createdBy: id,
     accountingEntityId: id,
     fiscalYearId: id,
-    currentAccountingPeriodId: id,
-    previousAccountingPeriodId: null,
-    nextAccountingPeriodId: null,
+    accountingIntervalId: id,
     accountingStandardCode: 'IFRS',
     name: 'Working context',
     description: null,
@@ -166,9 +164,7 @@ describe('accounting-context lookup', () => {
     description: null,
     accountingStandardCode: 'IFRS',
     fiscalYearId: id,
-    currentOperatingPeriodId: id,
-    previousAccountingPeriodId: null,
-    nextAccountingPeriodId: null,
+    accountingIntervalId: id,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     closedAt: null,
@@ -266,20 +262,16 @@ describe('accounting-context atomic update', () => {
     createdBy: id,
     accountingEntityId: id,
     fiscalYearId: id,
-    currentAccountingPeriodId: oldId,
-    previousAccountingPeriodId: null,
-    nextAccountingPeriodId: currentId,
+    accountingIntervalId: oldId,
     accountingStandardCode: 'IFRS',
     name: 'Working context',
     description: null,
   });
   const [context, , audit] = accountingContextEntity.update(previousContext, {
-    previousAccountingPeriodId: oldId,
-    currentAccountingPeriodId: currentId,
-    nextAccountingPeriodId: null,
+    accountingIntervalId: currentId,
   });
-  const history = historyValue.make(audit!, id, 'period-update');
-  const options = { correlationId: 'period-update', tx: {}, history };
+  const history = historyValue.make(audit!, id, 'interval-update');
+  const options = { correlationId: 'interval-update', tx: {}, history };
 
   beforeEach(() => jest.resetAllMocks());
 

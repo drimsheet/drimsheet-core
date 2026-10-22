@@ -3,7 +3,6 @@ import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { TEntityId } from '@shared/types/uuid';
 import deepFreeze from '@shared/utils/deep-freeze';
 
-import { UAccountingStandardCode } from '@domain/accounting/config/accounting-standards.config';
 import { IReportingContext } from '@domain/accounting/types/context.types';
 import { UCurrencyCode } from '@domain/money/config/currencies.config';
 
@@ -29,9 +28,7 @@ const reportingContextMapper = {
       accountingEntityId: context.accountingEntityId as TEntityId,
       reportingCurrencyCode: context.reportingCurrencyCode as UCurrencyCode,
       accountingContextId: context.accountingContextId as TEntityId,
-      currentReportingPeriodId: context.currentReportingPeriodId as TEntityId,
-      accountingStandardCode:
-        context.accountingStandardCode as UAccountingStandardCode,
+      reportingIntervalId: context.reportingIntervalId as TEntityId,
       createdAt: fromRepoDate(context.createdAt),
       updatedAt: fromRepoDate(context.updatedAt),
       closedAt: context.closedAt ? fromRepoDate(context.closedAt) : null,
@@ -46,8 +43,7 @@ const reportingContextMapper = {
       accountingEntityId: domain.accountingEntityId,
       reportingCurrencyCode: domain.reportingCurrencyCode,
       accountingContextId: domain.accountingContextId,
-      currentReportingPeriodId: domain.currentReportingPeriodId,
-      accountingStandardCode: domain.accountingStandardCode,
+      reportingIntervalId: domain.reportingIntervalId,
       createdAt: toRepoDate(domain.createdAt),
       updatedAt: toRepoDate(domain.updatedAt),
       closedAt: domain.closedAt ? toRepoDate(domain.closedAt) : null,

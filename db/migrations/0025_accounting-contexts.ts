@@ -2,7 +2,7 @@ import { ColumnDefinitions, MigrationBuilder } from 'node-pg-migrate';
 
 import {
   accountingContextsTable,
-  accountingPeriodsTable,
+  accountingIntervalsTable,
   accountingStandardsTable,
   fiscalYearsTable,
 } from '../config/accounting';
@@ -57,22 +57,10 @@ export function up(pgm: MigrationBuilder) {
       onDelete: 'CASCADE',
     },
 
-    current_operating_period_id: {
+    accounting_interval_id: {
       type: 'uuid',
       notNull: true,
-      references: accountingPeriodsTable,
-      onDelete: 'RESTRICT',
-    },
-
-    previous_accounting_period_id: {
-      type: 'uuid',
-      references: accountingPeriodsTable,
-      onDelete: 'RESTRICT',
-    },
-
-    next_accounting_period_id: {
-      type: 'uuid',
-      references: accountingPeriodsTable,
+      references: accountingIntervalsTable,
       onDelete: 'RESTRICT',
     },
 
