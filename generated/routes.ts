@@ -2805,7 +2805,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UPeriodStatus: {
+  UFiscalYearStatus: {
     dataType: 'refAlias',
     type: {
       dataType: 'union',
@@ -2825,7 +2825,7 @@ const models: TsoaRoute.Models = {
       id: { ref: 'TEntityId', required: true },
       createdBy: { ref: 'TEntityId', required: true },
       name: { dataType: 'string', required: true },
-      status: { ref: 'UPeriodStatus', required: true },
+      status: { ref: 'UFiscalYearStatus', required: true },
       accountingEntityId: { ref: 'TEntityId', required: true },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
@@ -3005,7 +3005,7 @@ const models: TsoaRoute.Models = {
       name: { dataType: 'string' },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
-      status: { ref: 'UPeriodStatus', required: true },
+      status: { ref: 'UFiscalYearStatus', required: true },
     },
     additionalProperties: false,
   },

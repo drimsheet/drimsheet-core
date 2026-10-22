@@ -9,7 +9,9 @@ requirements apply only when the named framework governs the reporting.
   - [Table of Contents](#table-of-contents)
   - [Accounting Entity](#accounting-entity)
   - [Fiscal Year](#fiscal-year)
+  - [Accounting Interval](#accounting-interval)
   - [Accounting Period](#accounting-period)
+  - [Reporting Interval](#reporting-interval)
   - [Reporting Period](#reporting-period)
   - [Accounting Context](#accounting-context)
   - [Reporting Context](#reporting-context)
@@ -35,7 +37,9 @@ need not coincide with a separate legal person.
 ## Fiscal Year
 
 A Fiscal Year identifies the annual accounting cycle for one Accounting Entity.
-Its dates bound that year's accounting and reporting periods.
+Its inclusive dates bound that year's accounting and reporting calendars.
+Each calendar belongs to an interval whose exclusive end is the UTC day after
+the fiscal-year end date.
 
 | ID         | Invariant                                                                                                                       | Accounting basis / rationale                                                                            | References (optional) |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------- |
@@ -52,7 +56,9 @@ subject to applicable jurisdiction restrictions.
 ## Accounting Interval
 
 An Accounting Interval owns the complete posting calendar and its child periods
-for one fiscal year.
+for one fiscal year. It defines the cadence and current-period selection; an
+Accounting Context references this interval. Its child periods partition the
+calendar without gaps or overlaps.
 
 | ID         | Invariant                                                                 | Accounting basis / rationale                                                             | References (optional) |
 | ---------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------- |
@@ -60,29 +66,33 @@ for one fiscal year.
 
 ## Accounting Period
 
-An Accounting Period is a posting interval within a Fiscal Year. Its status controls
-whether postings are accepted.
+An Accounting Period is a child of an Accounting Interval and belongs to that
+interval's fiscal year. It covers a range with an inclusive start and exclusive
+end. Its Open or Closed status controls whether postings are accepted; selecting
+a current period does not change that status.
 
-| ID         | Invariant                                                                                                         | Accounting basis / rationale                                                  | References (optional) |
-| ---------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------- |
-| ACC-AP-001 | An accounting period and its fiscal year must belong to the same accounting entity.                               | **Structural integrity:** preserve calendar ownership.                        | —                     |
-| ACC-AP-002 | An accounting period's start and end must fall within its fiscal year's start and end.                            | **Accounting principle:** posting intervals subdivide the annual cycle.       | —                     |
-| ACC-AP-003 | Accounting-period dates and generation parameters must satisfy the [shared period rules](#shared-period-rules).   | **Structural integrity:** use valid intervals and generation parameters.      | —                     |
-| ACC-AP-004 | A posting must have exactly one covering accounting period belonging to the posting's accounting entity.          | **Accounting principle:** allocate activity to the correct entity and period. | —                     |
-| ACC-AP-005 | The accounting period used for a posting must have status Open when that posting is accepted.                     | **Drimsheet policy:** control changes to period results.                      | —                     |
-| ACC-AP-006 | Accounting periods belonging to the same accounting entity must not overlap, regardless of status or fiscal year. | **Data reliability:** each date has unambiguous period ownership.             | —                     |
-| ACC-AP-007 | Generated accounting periods must cover every date of their fiscal year without gaps.                             | **Accounting principle:** the full annual cycle has a posting interval.       | —                     |
+| ID         | Invariant                                                                                                                   | Accounting basis / rationale                                                  | References (optional) |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------- |
+| ACC-AP-001 | An accounting period, its parent interval, and that interval's fiscal year must belong to the same accounting entity.       | **Structural integrity:** preserve calendar ownership.                        | —                     |
+| ACC-AP-002 | An accounting period's range must lie within its parent interval; its exclusive end may equal the interval's exclusive end. | **Accounting principle:** posting intervals subdivide the annual cycle.       | —                     |
+| ACC-AP-003 | Accounting-period ranges must satisfy the [shared period rules](#shared-period-rules).                                      | **Structural integrity:** preserve meaningful posting ranges.                 | —                     |
+| ACC-AP-004 | A posting must have exactly one covering accounting period belonging to the posting's accounting entity.                    | **Accounting principle:** allocate activity to the correct entity and period. | —                     |
+| ACC-AP-005 | The accounting period used for a posting must have status Open when that posting is accepted.                               | **Drimsheet policy:** control changes to period results.                      | —                     |
+| ACC-AP-006 | Accounting periods belonging to the same accounting entity must not overlap, regardless of status or fiscal year.           | **Data reliability:** each date has unambiguous period ownership.             | —                     |
+| ACC-AP-007 | The child periods must partition their accounting interval completely, covering every date of its fiscal year without gaps. | **Accounting principle:** the full annual cycle has a posting interval.       | —                     |
 
-Accounting-period boundaries are inclusive calendar dates. If one period begins
-on January 4, the previous period ends on January 3. January 3 belongs only to the
-previous period, and January 4 belongs only to the next. Different accounting
-entities may use the same dates. Non-overlap must hold before postings are
-accepted. Missing, ambiguous or non-Open periods prevent posting.
+Accounting-period ranges use `[startDate, endDate)`. If one period ends at
+January 4, 00:00 UTC, the next begins at that same instant. January 3 belongs
+only to the previous period, and January 4 belongs only to the next. Different
+accounting entities may use the same dates. Non-overlap must hold before postings
+are accepted. Missing, ambiguous or non-Open periods prevent posting.
 
 ## Reporting Interval
 
 A Reporting Interval owns the complete reporting calendar and its child periods
-for one fiscal year.
+for one fiscal year. It defines the reporting cadence and current-period
+selection; a Reporting Context references this interval. Its cadence may differ
+from the Accounting Interval for the same fiscal year.
 
 | ID         | Invariant                                                                | Accounting basis / rationale                                                               | References (optional) |
 | ---------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | --------------------- |
@@ -90,26 +100,27 @@ for one fiscal year.
 
 ## Reporting Period
 
-A Reporting Period defines the interval presented by a report within a Fiscal Year.
-Its cadence may differ from the posting cadence; it does not authorize postings.
+A Reporting Period is a child of a Reporting Interval and defines one reporting
+range within that interval's fiscal year. It has an inclusive start and exclusive
+end, and does not authorize postings.
 
-| ID         | Invariant                                                                                                      | Accounting basis / rationale                                              | References (optional)  |
-| ---------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------- |
-| ACC-RP-001 | A reporting period and its fiscal year must belong to the same accounting entity.                              | **Structural integrity:** preserve the reporting entity’s boundary.       | —                      |
-| ACC-RP-002 | A reporting period's start and end must fall within its fiscal year's start and end.                           | **Drimsheet policy:** reporting intervals belong to a single fiscal year. | —                      |
-| ACC-RP-003 | Reporting-period dates and generation parameters must satisfy the [shared period rules](#shared-period-rules). | **Structural integrity:** every report needs a defined interval.          | —                      |
-| ACC-RP-004 | A period described as interim under IAS 34 must be shorter than a full financial year.                         | **IFRS requirement:** distinguish interim from annual reporting.          | [IAS 34, About][ias34] |
+| ID         | Invariant                                                                                                                 | Accounting basis / rationale                                              | References (optional)  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------- |
+| ACC-RP-001 | A reporting period, its parent interval, and that interval's fiscal year must belong to the same accounting entity.       | **Structural integrity:** preserve the reporting entity’s boundary.       | —                      |
+| ACC-RP-002 | A reporting period's range must lie within its parent interval; its exclusive end may equal the interval's exclusive end. | **Drimsheet policy:** reporting intervals belong to a single fiscal year. | —                      |
+| ACC-RP-003 | Reporting-period ranges must satisfy the [shared period rules](#shared-period-rules).                                     | **Structural integrity:** every report needs a defined interval.          | —                      |
+| ACC-RP-004 | A period described as interim under IAS 34 must be shorter than a full financial year.                                    | **IFRS requirement:** distinguish interim from annual reporting.          | [IAS 34, About][ias34] |
 
 Report presentation ranges may overlap, as with quarterly and year-to-date
 reports. They do not permit additional reporting interval aggregates for the
 same fiscal year; see [ACC-RI-001](#reporting-interval).
 
-Generated reporting calendars use inclusive UTC calendar dates. Within one
-generated cadence, the next interval starts on the day after the previous
-interval ends: January–March includes March 31, and April–June starts April 1.
-The first and last intervals include the fiscal year's first and last dates.
-The reporting cadence may differ from the accounting cadence without changing
-posting eligibility.
+Generated reporting periods partition their parent interval using
+`[startDate, endDate)` ranges. A January–March period ends at April 1, 00:00 UTC;
+the April–June period begins at that same instant. March 31 is included only in
+the first period. The complete interval includes the fiscal year's last date
+by ending at the start of the following UTC day. Reporting cadence does not
+change posting eligibility.
 
 ## Accounting Context
 
@@ -124,8 +135,9 @@ accounting framework and an accounting interval.
 | ACC-AC-004 | On creation, the selected framework must be permitted by Drimsheet's configuration for the accounting entity's type and jurisdiction. | **Drimsheet policy:** restrict framework selection by entity type and jurisdiction.                                                    | —                     |
 | ACC-AC-005 | A fiscal year has at most one accounting context, including closed contexts.                                                          | **Record integrity:** preserve one authoritative accounting basis and posting calendar for each annual cycle.                          | —                     |
 
-The Accounting Interval owns current-period selection. Posting still requires
-the Accounting Period checks.
+The Accounting Context references the interval rather than storing current,
+previous, or next period IDs. The Accounting Interval owns current-period
+selection. Posting still requires the Accounting Period checks.
 
 ## Reporting Context
 
@@ -141,22 +153,29 @@ from the entity's functional currency.
 | ACC-RC-005 | Where IAS 21 applies and presentation currency differs from functional currency, financial statements must be translated under the applicable IAS 21 requirements before presentation. | **IFRS requirement:** translate amounts when changing presentation currency.                                                                                             | [IAS 21, presentation currency][ias21] |
 | ACC-RC-006 | A fiscal year has at most one reporting context through its accounting context, including closed contexts.                                                                             | **Record integrity:** preserve one authoritative reporting basis, presentation currency, and reporting calendar per annual cycle; see [ACC-AC-005](#accounting-context). | —                                      |
 
+The Reporting Context references the Reporting Interval and presentation currency.
+The Reporting Interval owns current-period selection; the accounting framework
+belongs to the linked Accounting Context.
+
 ## Shared Period Rules
 
-These rules cover Fiscal Year dates and Accounting Period and Reporting Period
-intervals. Shared interval values supply calendar generation for Accounting
-Intervals and Reporting Intervals.
+Fiscal Years use inclusive calendar dates, with a start no later than the end.
+Accounting Intervals, Reporting
+Intervals, and their child periods use an inclusive start and exclusive end.
+For a fiscal year covering January 1–December 31, 2026, both calendars therefore
+span `[2026-01-01T00:00:00Z, 2027-01-01T00:00:00Z)`. Adjacent child periods share
+one boundary instant, which belongs only to the following period.
 
-| ID        | Invariant                                                                           | Accounting basis / rationale                                              | References (optional) |
-| --------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------- |
-| ACC-P-001 | Every start and end must identify a valid date.                                     | **Structural integrity:** boundaries must be meaningful dates.            | —                     |
-| ACC-P-002 | An interval's start must not be after its end.                                      | **Structural integrity:** periods cannot run backwards.                   | —                     |
-| ACC-P-003 | When generating a set of periods, count must be a positive integer.                 | **Drimsheet policy:** count represents the number of generated intervals. | —                     |
-| ACC-P-004 | When generating periods, the unit must be Day, Week, Month, Quarter, or Year.       | **Drimsheet policy:** restrict generation to supported calendar units.    | —                     |
-| ACC-P-005 | A generated set must begin at the fiscal-year start and end at the fiscal-year end. | **Structural integrity:** cover the full annual cycle.                    | —                     |
+| ID        | Invariant                                                                                                                                   | Accounting basis / rationale                                              | References (optional) |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------- |
+| ACC-P-001 | Every start and end must identify a valid date.                                                                                             | **Structural integrity:** boundaries must be meaningful dates.            | —                     |
+| ACC-P-002 | Accounting/reporting intervals and their child periods must have a start strictly before their exclusive end.                               | **Structural integrity:** periods cannot run backwards.                   | —                     |
+| ACC-P-003 | When generating a set of periods, count must be a positive integer.                                                                         | **Drimsheet policy:** count represents the number of generated intervals. | —                     |
+| ACC-P-004 | When generating periods, the unit must be Day, Week, Month, Quarter, or Year.                                                               | **Drimsheet policy:** restrict generation to supported calendar units.    | —                     |
+| ACC-P-005 | A generated set must cover its entire parent interval, from the fiscal-year start through the exclusive boundary after the fiscal-year end. | **Structural integrity:** cover the full annual cycle.                    | —                     |
 
-Date ordering does not determine which period owns a shared boundary date.
-Period generation and posting-date lookup must use the same boundary convention.
+Period generation and posting-date lookup use the same exclusive end boundary
+so a posting cannot belong to two adjacent periods.
 
 ## Accounting References
 

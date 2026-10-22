@@ -15,7 +15,7 @@ Please read the following documents in order to understand the architecture and 
 3. [Adjustments & Reporting](./03-adjustments-and-reporting.md) - System reporting needs and how standard-specific adjustments are handled.
 4. [Individual Reporting](./04-individual-reporting.md) - MVP specifics for Individual reporting requirements.
 5. [Statutory Reporting](./05-statutory-reporting.md) - Tax types, taxation policies, and statutory compliance architecture.
-6. [Entity Invariants](./entities.md) - Accounting contracts for entities, their rationale, and supporting references.
+6. [Entity Invariants](./invariants.md) - Accounting contracts for entities, their rationale, and supporting references.
 
 ---
 

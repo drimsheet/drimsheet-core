@@ -28,20 +28,6 @@ describe('accounting context creation with an interval', () => {
       deleteByAccountingEntityId: jest.fn(),
       update: jest.fn(),
     },
-    fiscalYearRepo: {
-      findByAccountingEntityId: jest.fn(),
-      findById: jest.fn(),
-      existsByRange: jest.fn(),
-      create: jest.fn(),
-    },
-    accountingPeriodRepo: {
-      findAllByFiscalYear: jest.fn(),
-      findById: jest.fn(),
-      findByDate: jest.fn(),
-      findAllByDate: jest.fn(),
-      findByRange: jest.fn(),
-      create: jest.fn(),
-    },
   } satisfies Parameters<typeof makeAccountingContextService>[0];
   const service = makeAccountingContextService(deps);
   const options = { correlationId: 'create-context' };
@@ -110,6 +96,7 @@ describe('accounting context creation with an interval', () => {
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       });
+      expect(Object.isFrozen(service)).toBe(true);
       expect(Object.isFrozen(context)).toBe(true);
       expect(events).toHaveLength(1);
       expect(events[0].data).toBe(context);
@@ -118,10 +105,7 @@ describe('accounting context creation with an interval', () => {
       expect(
         deps.accountingContextRepo.existsByFiscalYear
       ).toHaveBeenCalledWith(input.fiscalYear.id, options);
-      expect(deps.accountingPeriodRepo.findByRange).not.toHaveBeenCalled();
       expect(deps.accountingContextRepo.create).not.toHaveBeenCalled();
-      expect(deps.accountingPeriodRepo.create).not.toHaveBeenCalled();
-      expect(deps.fiscalYearRepo.create).not.toHaveBeenCalled();
     }
   );
 
@@ -139,6 +123,27 @@ describe('accounting context creation with an interval', () => {
       );
     }
   );
+
+  it('allows a context for a different fiscal year', async () => {
+    const [existing] = await service.create(makeInput(2025), options);
+    deps.accountingContextRepo.existsByFiscalYear.mockImplementation(
+      async (fiscalYearId) => existing.fiscalYearId === fiscalYearId
+    );
+    const input = makeInput(2026);
+
+    await expect(service.create(input, options)).resolves.toEqual([
+      expect.objectContaining({
+        fiscalYearId: input.fiscalYear.id,
+        accountingIntervalId: input.accountingInterval.id,
+      }),
+      expect.any(Array),
+      expect.any(Object),
+    ]);
+    expect(
+      deps.accountingContextRepo.existsByFiscalYear
+    ).toHaveBeenLastCalledWith(input.fiscalYear.id, options);
+    expect(deps.accountingContextRepo.create).not.toHaveBeenCalled();
+  });
 
   it('rejects an archived accounting entity', async () => {
     const input = makeInput();

@@ -10992,7 +10992,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "UPeriodStatus": {
+      "UFiscalYearStatus": {
         "type": "string",
         "enum": ["pending", "open", "closing", "closed"]
       },
@@ -11008,7 +11008,7 @@
             "type": "string"
           },
           "status": {
-            "$ref": "#/components/schemas/UPeriodStatus"
+            "$ref": "#/components/schemas/UFiscalYearStatus"
           },
           "accountingEntityId": {
             "$ref": "#/components/schemas/TEntityId"
@@ -11295,7 +11295,7 @@
             "format": "date-time"
           },
           "status": {
-            "$ref": "#/components/schemas/UPeriodStatus"
+            "$ref": "#/components/schemas/UFiscalYearStatus"
           }
         },
         "required": ["accountingEntityId", "startDate", "endDate", "status"],

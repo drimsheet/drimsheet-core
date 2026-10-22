@@ -6,8 +6,8 @@ import deriveFiscalYearName from '@domain/accounting/entities/helpers/derive-nam
 import fiscalYearValidation from '@domain/accounting/entities/validations/fiscal-year.validation';
 import periodError from '@domain/accounting/errors/period.error';
 import periodEvents from '@domain/accounting/events/period.events';
+import { EFiscalYearActions } from '@domain/accounting/types/fiscal-year-audit.types';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { EPeriodActions } from '@domain/accounting/types/period-audit.types';
 import fiscalYearAudit from '@domain/accounting/values/fiscal-year-audit.vo';
 
 interface IMakePayload extends Pick<
@@ -54,7 +54,7 @@ function make(
   const audit = fiscalYearAudit.make({
     before: null,
     after: entity,
-    action: EPeriodActions.Created,
+    action: EFiscalYearActions.Created,
   });
 
   return [entity, [events], audit];

@@ -1,47 +1,10 @@
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
 import periodError from '@domain/accounting/errors/period.error';
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
-import { EPeriodStatus } from '@domain/accounting/types/period.types';
+import { EAccountingPeriodStatus } from '@domain/accounting/types/accounting-period.types';
 
 interface IDependencies {
   accountingPeriodRepo: IAccountingPeriodRepo;
-}
-
-/** Rejects stored conflicts before requesting the entity's period array. Storage enforces non-overlap against races. */
-function makeGenerate(
-  deps: IDependencies
-): IAccountingPeriodService['generate'] {
-  return async (input, repoOptions) => {
-    accountingPeriodEntity.validateFiscalYearOwnership(
-      input.accountingEntityId,
-      input.fiscalYear
-    );
-    const existingPeriods = await deps.accountingPeriodRepo.findByRange(
-      input.accountingEntityId,
-      {
-        startDate: input.fiscalYear.startDate,
-        endDate: input.fiscalYear.endDate,
-      },
-      repoOptions
-    );
-    if (existingPeriods.length > 0) {
-      throw new periodError.OverlappingPeriods({
-        accountingEntityId: input.accountingEntityId,
-        startDate: input.fiscalYear.startDate,
-        endDate: input.fiscalYear.endDate,
-        accountingPeriodIds: existingPeriods.map((period) => period.id),
-      });
-    }
-
-    return accountingPeriodEntity.make({
-      createdBy: input.createdBy,
-      accountingEntityId: input.accountingEntityId,
-      fiscalYear: input.fiscalYear,
-      unit: input.unit,
-      count: input.count,
-    });
-  };
 }
 
 /** Requires exactly one covering period before checking that it is Open. */
@@ -69,7 +32,7 @@ function makeValidatePostingPeriod(
     }
 
     const [accountingPeriod] = accountingPeriods;
-    if (accountingPeriod.status !== EPeriodStatus.Open) {
+    if (accountingPeriod.status !== EAccountingPeriodStatus.Open) {
       throw new periodError.PostingPeriodNotOpen({
         accountingEntityId,
         postingDate,
@@ -77,7 +40,6 @@ function makeValidatePostingPeriod(
         status: accountingPeriod.status,
       });
     }
-    return accountingPeriod;
   };
 }
 
@@ -85,7 +47,6 @@ export default function makeAccountingPeriodService(
   deps: IDependencies
 ): IAccountingPeriodService {
   return Object.freeze({
-    generate: makeGenerate(deps),
     validatePostingPeriod: makeValidatePostingPeriod(deps),
   });
 }

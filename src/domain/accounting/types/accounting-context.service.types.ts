@@ -1,11 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
-import { TEntityId } from '@shared/types/uuid';
-import { IEvent } from '@shared/values/events/types/event.types';
 
-import {
-  IAccountingContextAudit,
-  TAuditedAccountingContext,
-} from './accounting-context-audit.types';
+import { TAuditedAccountingContext } from './accounting-context-audit.types';
 import { IAccountingEntity } from './accounting-entity.types';
 import { IAccountingInterval } from './accounting-period.types';
 import { IAccountingContext } from './context.types';
@@ -20,27 +15,7 @@ interface ICreateAccountingContextInput extends Pick<
   accountingInterval: IAccountingInterval;
 }
 
-interface ICurrentAccountingPeriodUpdateInput {
-  accountingContextId: TEntityId;
-  previousState: {
-    currentAccountPeriod: TEntityId;
-    nextAccountingPeriod: TEntityId;
-  };
-}
-
 export default interface IAccountingContextService {
-  /** Prepares the period transition, events and nullable audit; never persists. */
-  updateCurrentAccountingPeriod(
-    input: ICurrentAccountingPeriodUpdateInput,
-    repoOptions: IReadRepoOptions
-  ): Promise<
-    [
-      IAccountingContext,
-      IEvent<IAccountingContext>[],
-      IAccountingContextAudit | null,
-    ]
-  >;
-
   /**
    * Prepares a context referencing the selected interval after enforcing
    * ownership and eligibility. Rejects an existing context for the fiscal year,

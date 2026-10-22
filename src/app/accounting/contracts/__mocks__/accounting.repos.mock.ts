@@ -4,8 +4,7 @@ import IAccountingEntityHistoryRepo from '@domain/accounting/repos/accounting-en
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 import IAccountingIntervalRepo from '@domain/accounting/repos/accounting-interval.repo';
 import IAccountingPeriodHistoryRepo from '@domain/accounting/repos/accounting-period-history.repo';
-import IAccountingPeriodCreationRepo from '@domain/accounting/repos/accounting-period.repo';
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 import { IAccountingStandardRepo } from '@domain/accounting/repos/accounting-standards.repo';
 import IFiscalYearHistoryRepo from '@domain/accounting/repos/fiscal-year-history.repo';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
@@ -114,16 +113,6 @@ export const mockAccountingIntervalRepo: jest.Mocked<IAccountingIntervalRepo> =
     update: jest.fn(),
     existsByFiscalYear: jest.fn(),
     findById: jest.fn(),
-    create: jest.fn(),
-  };
-
-export const mockAccountingPeriodCreationRepo: jest.Mocked<IAccountingPeriodCreationRepo> =
-  {
-    findAllByFiscalYear: jest.fn(),
-    findById: jest.fn(),
-    findByDate: jest.fn(),
-    findAllByDate: jest.fn(),
-    findByRange: jest.fn(),
     create: jest.fn(),
   };
 

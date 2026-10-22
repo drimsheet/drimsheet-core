@@ -7,7 +7,6 @@ import reportingIntervalEntity from '@domain/accounting/entities/reporting-inter
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import { EReportingContextEvents } from '@domain/accounting/events/reporting-context.events';
-import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
 import IReportingContextRepo from '@domain/accounting/repos/reporting-context.repo';
 import makeReportingContextService from '@domain/accounting/services/reporting-context.service';
 import { UCurrencyCode } from '@domain/money/config/currencies.config';
@@ -32,23 +31,8 @@ describe('reporting context creation with an interval', () => {
     create: jest.fn(),
     deleteByAccountingEntityId: jest.fn(),
   };
-  const accountingContextRepo: jest.Mocked<IAccountingContextRepo> = {
-    existsByFiscalYear: jest.fn(),
-    findByFiscalYear: jest.fn(),
-    findById: jest.fn(),
-    update: jest.fn(),
-    create: jest.fn(),
-    deleteByAccountingEntityId: jest.fn(),
-  };
-  const reportingPeriodRepo = {
-    findById: jest.fn(),
-    findAllByFiscalYear: jest.fn(),
-    create: jest.fn(),
-  };
   const service = makeReportingContextService({
     reportingContextRepo,
-    accountingContextRepo,
-    reportingPeriodRepo,
   });
 
   function makeInput(yearNumber = 2026) {
@@ -175,10 +159,7 @@ describe('reporting context creation with an interval', () => {
       });
       expect(audit.diff).toEqual({ before: null, after: context });
       expect(JSON.stringify(input)).toBe(before);
-      expect(reportingPeriodRepo.findById).not.toHaveBeenCalled();
       expect(reportingContextRepo.create).not.toHaveBeenCalled();
-      expect(reportingPeriodRepo.create).not.toHaveBeenCalled();
-      expect(accountingContextRepo.create).not.toHaveBeenCalled();
     }
   );
 

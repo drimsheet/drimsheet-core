@@ -25,18 +25,8 @@ const EErrorKeys = {
   InvalidAccountingIntervalId:
     'accounting_error_accounting_interval_id_invalid',
   InvalidReportingIntervalId: 'accounting_error_reporting_interval_id_invalid',
-  InvalidCurrentAccountingPeriodId:
-    'accounting_error_current_accounting_period_id_invalid',
-  InvalidPreviousAccountingPeriodId:
-    'accounting_error_previous_accounting_period_id_invalid',
-  InvalidNextAccountingPeriodId:
-    'accounting_error_next_accounting_period_id_invalid',
   InvalidAccountingContextId: 'accounting_error_accounting_context_id_invalid',
-  InvalidCurrentReportingPeriodId:
-    'accounting_error_current_reporting_period_id_invalid',
   InvalidReportingContextId: 'accounting_error_reporting_context_id_invalid',
-  InvalidNextReportingPeriodId:
-    'accounting_error_next_reporting_period_id_invalid',
   InvalidName: 'accounting_error_name_invalid',
   InvalidDescription: 'accounting_error_description_invalid',
   InvalidJurisdictionCode: 'accounting_error_jurisdiction_code_invalid',

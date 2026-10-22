@@ -1,7 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
+import { IFiscalYearHistory } from '@domain/accounting/types/fiscal-year-audit.types';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { IFiscalYearHistory } from '@domain/accounting/types/period-audit.types';
 
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
 import fiscalYearHistoryMapper from '@infra/persistence/repos/accounting/mappers/fiscal-year-history.mapper';

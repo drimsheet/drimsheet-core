@@ -1,1 +1,0 @@
-export const MAX_GENERATED_PERIODS = 550;

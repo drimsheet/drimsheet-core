@@ -141,7 +141,7 @@ describe('accountingPeriodRepo.create', () => {
     const fake = fakeTransaction();
     const failure = {
       code: '23503',
-      constraint: 'accounting_periods_fiscal_year_id_fkey',
+      constraint: 'accounting_periods_interval_id_fkey',
     };
     fake.values.mockRejectedValue(failure);
     await expect(accountingPeriodRepo.create(periods, options)).rejects.toBe(

@@ -17,7 +17,7 @@ import {
   mockAccountingContextRepo,
   mockAccountingEntityRepo,
   mockAccountingIntervalRepo,
-  mockAccountingPeriodCreationRepo,
+  mockAccountingPeriodRepo,
   mockFiscalYearRepo,
   mockReportingContextRepo,
   mockReportingPeriodRepo,
@@ -77,7 +77,7 @@ describe('makeCreateAccountingIntervalUsecase', () => {
     fiscalYearRepo: mockFiscalYearRepo,
     accountingIntervalService: mockAccountingIntervalService,
     accountingIntervalRepo: mockAccountingIntervalRepo,
-    accountingPeriodRepo: mockAccountingPeriodCreationRepo,
+    accountingPeriodRepo: mockAccountingPeriodRepo,
     repoService: mockRepoService,
     eventBus: mockEventBus,
   });
@@ -135,29 +135,24 @@ describe('makeCreateAccountingIntervalUsecase', () => {
         },
       }),
     });
-    expect(mockAccountingPeriodCreationRepo.create).toHaveBeenCalledTimes(1);
-    expect(mockAccountingPeriodCreationRepo.create).toHaveBeenCalledWith(
-      periods,
-      {
-        correlationId,
-        tx,
-        history: periods.map((period) =>
-          expect.objectContaining({
-            entityId: period.id,
-            actorId: actor.id,
-            correlationId,
-            diff: {
-              before: null,
-              after: JSON.parse(JSON.stringify(period)) as unknown,
-            },
-          })
-        ),
-      }
-    );
+    expect(mockAccountingPeriodRepo.create).toHaveBeenCalledTimes(1);
+    expect(mockAccountingPeriodRepo.create).toHaveBeenCalledWith(periods, {
+      correlationId,
+      tx,
+      history: periods.map((period) =>
+        expect.objectContaining({
+          entityId: period.id,
+          actorId: actor.id,
+          correlationId,
+          diff: {
+            before: null,
+            after: JSON.parse(JSON.stringify(period)) as unknown,
+          },
+        })
+      ),
+    });
     expect(options.tx).toBe(tx);
-    expect(mockAccountingPeriodCreationRepo.create.mock.calls[0][1].tx).toBe(
-      tx
-    );
+    expect(mockAccountingPeriodRepo.create.mock.calls[0][1].tx).toBe(tx);
     expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
     expect(mockEventBus.publish).toHaveBeenCalledWith(
       events.map((event) =>
@@ -296,7 +291,7 @@ describe('makeCreateAccountingIntervalUsecase', () => {
   ])('propagates persistence failure without publishing', async (failure) => {
     mockAccountingIntervalRepo.create.mockRejectedValue(failure);
     await expect(execute(payload)).rejects.toBe(failure);
-    expect(mockAccountingPeriodCreationRepo.create).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -329,7 +324,7 @@ describe('makeCreateAccountingIntervalUsecase', () => {
     const pending = execute(payload);
     await new Promise(process.nextTick);
     expect(mockAccountingIntervalRepo.create).toHaveBeenCalledTimes(1);
-    expect(mockAccountingPeriodCreationRepo.create).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     finish();
     await pending;
@@ -338,17 +333,17 @@ describe('makeCreateAccountingIntervalUsecase', () => {
 
   it('propagates a period write failure through the transaction without publishing', async () => {
     const failure = new Error('period history failed');
-    mockAccountingPeriodCreationRepo.create.mockRejectedValue(failure);
+    mockAccountingPeriodRepo.create.mockRejectedValue(failure);
     await expect(execute(payload)).rejects.toBe(failure);
     expect(mockAccountingIntervalRepo.create).toHaveBeenCalledTimes(1);
-    expect(mockAccountingPeriodCreationRepo.create).toHaveBeenCalledTimes(1);
+    expect(mockAccountingPeriodRepo.create).toHaveBeenCalledTimes(1);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('awaits the period write before completing the transaction', async () => {
     let finish!: () => void;
     let transactionCompleted = false;
-    mockAccountingPeriodCreationRepo.create.mockImplementation(
+    mockAccountingPeriodRepo.create.mockImplementation(
       () =>
         new Promise<void>((resolve) => {
           finish = resolve;
@@ -361,7 +356,7 @@ describe('makeCreateAccountingIntervalUsecase', () => {
     });
     const pending = execute(payload);
     await new Promise(process.nextTick);
-    expect(mockAccountingPeriodCreationRepo.create).toHaveBeenCalledTimes(1);
+    expect(mockAccountingPeriodRepo.create).toHaveBeenCalledTimes(1);
     expect(transactionCompleted).toBe(false);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     finish();
@@ -386,7 +381,7 @@ describe('makeCreateAccountingIntervalUsecase', () => {
     });
     await new Promise(process.nextTick);
     expect(mockAccountingIntervalRepo.create).toHaveBeenCalledTimes(1);
-    expect(mockAccountingPeriodCreationRepo.create).toHaveBeenCalledTimes(1);
+    expect(mockAccountingPeriodRepo.create).toHaveBeenCalledTimes(1);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(returned).toBe(false);
     finish();
@@ -402,7 +397,7 @@ describe('makeCreateAccountingIntervalUsecase', () => {
     });
     await expect(execute(payload)).rejects.toBe(failure);
     expect(mockAccountingIntervalRepo.create).toHaveBeenCalledTimes(1);
-    expect(mockAccountingPeriodCreationRepo.create).toHaveBeenCalledTimes(1);
+    expect(mockAccountingPeriodRepo.create).toHaveBeenCalledTimes(1);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -411,7 +406,7 @@ describe('makeCreateAccountingIntervalUsecase', () => {
     mockRepoService.runInTransaction.mockRejectedValue(failure);
     await expect(execute(payload)).rejects.toBe(failure);
     expect(mockAccountingIntervalRepo.create).not.toHaveBeenCalled();
-    expect(mockAccountingPeriodCreationRepo.create).not.toHaveBeenCalled();
+    expect(mockAccountingPeriodRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 });

@@ -84,8 +84,7 @@ const payload = {
   name: 'Working context',
   description: null,
   accountingContextId: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
-  currentReportingPeriodId: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
-  accountingStandardCode: 'IFRS' as const,
+  reportingIntervalId: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
   reportingCurrencyCode: 'USD' as const,
 };
 const context = {
@@ -148,7 +147,7 @@ describe('POST /accounting/reporting-context', () => {
   describe('400 Response', () => {
     it.each([
       accountingError.InvalidAccountingContextId,
-      accountingError.InvalidCurrentReportingPeriodId,
+      accountingError.InvalidReportingIntervalId,
       accountingStandardError.Invalid,
     ])('maps invalid references and standards', async (ErrorType) => {
       const error = new ErrorType();
@@ -199,7 +198,7 @@ describe('POST /accounting/reporting-context', () => {
   describe('404 Response', () => {
     it.each([
       accountingAppError.AccountingContextNotFound,
-      accountingAppError.ReportingPeriodNotFound,
+      accountingAppError.ReportingIntervalNotFound,
     ])('maps missing prerequisites', async (ErrorType) => {
       const error = new ErrorType();
       create.mockRejectedValue(error);
@@ -234,7 +233,7 @@ describe('POST /accounting/reporting-context', () => {
       { reportingCurrencyCode: 'INVALID' },
       { reportingCurrencyCode: undefined },
       { fiscalYearId: payload.accountingContextId },
-      { currentReportingPeriodId: undefined },
+      { reportingIntervalId: undefined },
       { accountingContextId: undefined },
       { description: 42 },
       { accountingEntityId },

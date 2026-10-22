@@ -5,8 +5,8 @@ import deriveFiscalYearName from '@domain/accounting/entities/helpers/derive-nam
 import fiscalYearValidation from '@domain/accounting/entities/validations/fiscal-year.validation';
 import periodError from '@domain/accounting/errors/period.error';
 import { EPeriodEvents } from '@domain/accounting/events/period.events';
-import { EPeriodActions } from '@domain/accounting/types/period-audit.types';
-import { EPeriodStatus } from '@domain/accounting/types/period.types';
+import { EFiscalYearActions } from '@domain/accounting/types/fiscal-year-audit.types';
+import { EFiscalYearStatus } from '@domain/accounting/types/fiscal-year.types';
 
 describe('fiscalYearEntity', () => {
   beforeEach(() => {
@@ -25,7 +25,7 @@ describe('fiscalYearEntity', () => {
       accountingEntityId: '98402eb7-ec79-436f-b258-00a4fb9a572a' as TEntityId,
       startDate: new Date('2026-01-01T00:00:00.000Z'),
       endDate: new Date('2026-12-31T23:59:59.999Z'),
-      status: EPeriodStatus.Pending,
+      status: EFiscalYearStatus.Pending,
     };
 
     it('creates a valid fiscal year entity with events', () => {
@@ -51,7 +51,7 @@ describe('fiscalYearEntity', () => {
       expect(audit).toEqual({
         entityId: entity.id,
         entityVersion: 1,
-        action: EPeriodActions.Created,
+        action: EFiscalYearActions.Created,
         diff: {
           before: null,
           after: entity,

@@ -36,14 +36,19 @@ jest.mock('@infra/ioc/usecases/ledger', () => ({
 jest.mock('@infra/ioc/usecases/money', () => ({
   getExchangeRateUseCase: jest.fn(),
 }));
-jest.mock('@infra/observability', () => ({
-  __esModule: true,
-  default: {
-    reporter: jest.requireActual<
-      typeof import('@shared/contracts/__mocks__/reporter.mock')
-    >('@shared/contracts/__mocks__/reporter.mock').default,
-  },
-}));
+jest.mock('@infra/ioc/handlers/mcp', () => {
+  const makeMcpErrorHandler = jest.requireActual<
+    typeof import('@interface/mcp/handlers/error.handler')
+  >('@interface/mcp/handlers/error.handler').default;
+  const reporter = jest.requireActual<
+    typeof import('@shared/contracts/__mocks__/reporter.mock')
+  >('@shared/contracts/__mocks__/reporter.mock').default;
+
+  return {
+    __esModule: true,
+    default: { error: makeMcpErrorHandler(reporter) },
+  };
+});
 
 type TUseCase = jest.Mock<Promise<unknown>, [unknown]>;
 const counterparty = jest.requireMock<Record<string, TUseCase>>(

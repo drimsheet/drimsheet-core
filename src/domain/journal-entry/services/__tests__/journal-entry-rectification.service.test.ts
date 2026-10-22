@@ -1,16 +1,14 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
-import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import accountingIntervalEntity from '@domain/accounting/entities/accounting-interval.entity';
 import periodError from '@domain/accounting/errors/period.error';
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
+import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 import makeAccountingPeriodService from '@domain/accounting/services/accounting-period.service';
 import {
-  EPeriodStatus,
-  EPeriodUnit,
+  EAccountingPeriodStatus,
   IAccountingPeriod,
-} from '@domain/accounting/types/period.types';
+} from '@domain/accounting/types/accounting-period.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
@@ -87,22 +85,19 @@ describe('makeJournalEntryRectificationService', () => {
   let periods: IAccountingPeriod[];
 
   function makePeriods() {
-    const [fiscalYear] = fiscalYearEntity.make({
+    const [interval] = accountingIntervalEntity.make({
       accountingEntityId,
       createdBy,
+      fiscalYearId: generateUUID(),
       startDate: new Date('2026-01-01'),
-      endDate: new Date('2026-12-31'),
-      status: EPeriodStatus.Open,
+      endDate: new Date('2027-01-01'),
+      unit: 'month',
+      count: 12,
+      periods: Array.from({ length: 12 }, (_, index) => ({
+        name: `Month ${index + 1}`,
+      })),
     });
-    return accountingPeriodEntity
-      .make({
-        accountingEntityId,
-        createdBy,
-        fiscalYear,
-        unit: EPeriodUnit.Month,
-        count: 12,
-      })
-      .map(([period]) => period);
+    return [...interval.periods];
   }
 
   function makeAccount(id: TEntityId) {
@@ -138,7 +133,7 @@ describe('makeJournalEntryRectificationService', () => {
         (period) =>
           period.accountingEntityId === entityId &&
           period.startDate <= day &&
-          period.endDate >= day
+          period.endDate > day
       );
     });
     ledgerAccountRepo.findAllByIds.mockResolvedValue([
@@ -648,29 +643,26 @@ describe('makeJournalEntryRectificationService', () => {
     }
 
     describe.each(['reverse', 'rectify'] as const)('%s', (mode) => {
-      it.each([
-        EPeriodStatus.Closed,
-        EPeriodStatus.Closing,
-        EPeriodStatus.Pending,
-      ])(
-        'rejects a %s reversal period without changing the original',
-        async (status) => {
-          const [original] = makeEntry({ posted: true });
-          const snapshot = structuredClone(original);
-          periods[9] = { ...periods[9], status };
+      it('rejects a closed reversal period without changing the original', async () => {
+        const [original] = makeEntry({ posted: true });
+        const snapshot = structuredClone(original);
+        periods[9] = {
+          ...periods[9],
+          status: EAccountingPeriodStatus.Closed,
+          closedAt: reversalDate,
+        };
 
-          await expect(prepare(mode, original)).rejects.toBeInstanceOf(
-            periodError.PostingPeriodNotOpen
-          );
-          expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
-            accountingEntityId,
-            reversalDate,
-            repoOptions
-          );
-          expect(original).toEqual(snapshot);
-          expect(periodRepo.create).not.toHaveBeenCalled();
-        }
-      );
+        await expect(prepare(mode, original)).rejects.toBeInstanceOf(
+          periodError.PostingPeriodNotOpen
+        );
+        expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
+          accountingEntityId,
+          reversalDate,
+          repoOptions
+        );
+        expect(original).toEqual(snapshot);
+        expect(periodRepo.create).not.toHaveBeenCalled();
+      });
 
       it.each(['uncovered', 'another entity'] as const)(
         'rejects a reversal date with %s coverage',
@@ -725,7 +717,11 @@ describe('makeJournalEntryRectificationService', () => {
 
     it('reverses an original from a closed earlier period in the current open period', async () => {
       const [original] = makeEntry({ posted: true });
-      periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
+      periods[8] = {
+        ...periods[8],
+        status: EAccountingPeriodStatus.Closed,
+        closedAt: reversalDate,
+      };
       const result = await service.reverse(original, createdBy, repoOptions);
       expect(result.reversingJournalEntry.effectiveDate).toEqual(reversalDate);
       expect(result.entryUpdate?.entry.status).toBe(EJournalEntryStatus.Voided);
@@ -734,7 +730,11 @@ describe('makeJournalEntryRectificationService', () => {
 
     it('rectifies an original from a closed earlier period when both new entries are open', async () => {
       const [original] = makeEntry({ posted: true });
-      periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
+      periods[8] = {
+        ...periods[8],
+        status: EAccountingPeriodStatus.Closed,
+        closedAt: reversalDate,
+      };
       const result = await service.rectify(
         {
           actorId: createdBy,
@@ -757,7 +757,11 @@ describe('makeJournalEntryRectificationService', () => {
       'rejects a %s replacement date even when the reversal date is open',
       async (kind) => {
         const [original] = makeEntry({ posted: true });
-        periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
+        periods[8] = {
+          ...periods[8],
+          status: EAccountingPeriodStatus.Closed,
+          closedAt: reversalDate,
+        };
         if (kind === 'uncovered') {
           periods.splice(8, 1);
         }
@@ -792,7 +796,11 @@ describe('makeJournalEntryRectificationService', () => {
         const payload = makePayload(original, makeEntry({ posted: true }));
         const snapshot = structuredClone(original);
         if (kind === 'closed') {
-          periods[8] = { ...periods[8], status: EPeriodStatus.Closed };
+          periods[8] = {
+            ...periods[8],
+            status: EAccountingPeriodStatus.Closed,
+            closedAt: reversalDate,
+          };
         }
         if (kind === 'uncovered') {
           periods.splice(8, 1);

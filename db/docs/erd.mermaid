@@ -1,4 +1,6 @@
 erDiagram
+%% Accounting/reporting definitions reflect repository migrations 0021-0031.
+%% Interval and child-period ranges are [start_date, end_date); fiscal-year dates remain inclusive.
 
 audit_accounting_context_history {
     bigint id PK
@@ -15,6 +17,19 @@ audit_accounting_context_history {
 
 audit_accounting_entity_history {
     bigint id PK
+    uuid accounting_entity_id
+    uuid actor_id FK
+    uuid on_behalf_of FK
+    varchar_50_ action
+    jsonb diff
+    varchar_255_ correlation_id
+    timestamptz occurred_at
+    timestamptz recorded_at
+}
+
+audit_accounting_interval_history {
+    bigint id PK
+    uuid accounting_interval_id
     uuid accounting_entity_id
     uuid actor_id FK
     uuid on_behalf_of FK
@@ -132,6 +147,19 @@ audit_reporting_context_history {
     timestamptz recorded_at
 }
 
+audit_reporting_interval_history {
+    bigint id PK
+    uuid reporting_interval_id
+    uuid accounting_entity_id
+    uuid actor_id FK
+    uuid on_behalf_of FK
+    varchar_50_ action
+    jsonb diff
+    varchar_255_ correlation_id
+    timestamptz occurred_at
+    timestamptz recorded_at
+}
+
 audit_reporting_period_history {
     bigint id PK
     uuid reporting_period_id
@@ -205,7 +233,7 @@ core_accounting_contexts {
     uuid accounting_entity_id FK
     varchar_15_ accounting_standard_code FK
     uuid fiscal_year_id FK
-    uuid current_operating_period_id FK
+    uuid accounting_interval_id FK
     timestamptz created_at
     timestamptz updated_at
     timestamptz closed_at
@@ -224,18 +252,33 @@ core_accounting_entities {
     core_accounting_entity_status status
 }
 
-core_accounting_periods {
-    uuid created_by FK
+core_accounting_intervals {
     uuid id PK
-    varchar_150_ name
     uuid accounting_entity_id FK
     uuid fiscal_year_id FK
-    core_period_unit unit
-    smallint count
-    date start_date
-    date end_date
-    core_period_status status
+    core_accounting_interval_unit unit
+    integer count
+    timestamptz start_date
+    timestamptz end_date
+    integer current_period_ordinal
+    timestamptz next_period_start_date
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz updated_at
+}
+
+core_accounting_periods {
+    uuid id PK
+    uuid created_by FK
+    varchar_100_ name
+    uuid accounting_entity_id FK
+    uuid interval_id FK
+    integer ordinal
+    timestamptz start_date
+    timestamptz end_date
+    core_accounting_period_status status
     timestamptz closed_at
+    timestamptz created_at
     timestamptz updated_at
 }
 
@@ -456,23 +499,37 @@ core_reporting_contexts {
     uuid accounting_entity_id FK
     varchar_3_ reporting_currency_code FK
     uuid accounting_context_id FK
-    uuid current_reporting_period_id FK
-    varchar_15_ accounting_standard_code FK
+    uuid reporting_interval_id FK
     timestamptz created_at
     timestamptz updated_at
     timestamptz closed_at
 }
 
+core_reporting_intervals {
+    uuid id PK
+    uuid accounting_entity_id FK
+    uuid fiscal_year_id FK
+    core_reporting_interval_unit unit
+    integer count
+    timestamptz start_date
+    timestamptz end_date
+    integer current_period_ordinal
+    timestamptz next_period_start_date
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz updated_at
+}
+
 core_reporting_periods {
     uuid created_by FK
     uuid id PK
-    varchar_150_ name
+    varchar_100_ name
     uuid accounting_entity_id FK
-    uuid fiscal_year_id FK
-    core_period_unit unit
-    smallint count
-    date start_date
-    date end_date
+    uuid interval_id FK
+    integer ordinal
+    timestamptz start_date
+    timestamptz end_date
+    timestamptz created_at
     timestamptz updated_at
 }
 
@@ -595,6 +652,8 @@ core_actors ||--o{ audit_accounting_context_history : "accounting_context_histor
 core_actors ||--o{ audit_accounting_context_history : "accounting_context_history_on_behalf_of_fkey"
 core_actors ||--o{ audit_accounting_entity_history : "accounting_entity_history_actor_id_fkey"
 core_actors ||--o{ audit_accounting_entity_history : "accounting_entity_history_on_behalf_of_fkey"
+core_actors ||--o{ audit_accounting_interval_history : "accounting_interval_history_actor_id_fkey"
+core_actors ||--o{ audit_accounting_interval_history : "accounting_interval_history_on_behalf_of_fkey"
 core_actors ||--o{ audit_accounting_period_history : "accounting_period_history_actor_id_fkey"
 core_actors ||--o{ audit_accounting_period_history : "accounting_period_history_on_behalf_of_fkey"
 core_actors ||--o{ audit_actor_history : "actor_history_actor_entity_id_fkey"
@@ -612,6 +671,8 @@ core_actors ||--o{ audit_ledger_account_history : "ledger_account_history_actor_
 core_actors ||--o{ audit_ledger_account_history : "ledger_account_history_on_behalf_of_fkey"
 core_actors ||--o{ audit_reporting_context_history : "reporting_context_history_actor_id_fkey"
 core_actors ||--o{ audit_reporting_context_history : "reporting_context_history_on_behalf_of_fkey"
+core_actors ||--o{ audit_reporting_interval_history : "reporting_interval_history_actor_id_fkey"
+core_actors ||--o{ audit_reporting_interval_history : "reporting_interval_history_on_behalf_of_fkey"
 core_actors ||--o{ audit_reporting_period_history : "reporting_period_history_actor_id_fkey"
 core_actors ||--o{ audit_reporting_period_history : "reporting_period_history_on_behalf_of_fkey"
 core_actors ||--o{ audit_subledger_fx_cost_basis_lot_acquisition_history : "subledger_fx_cost_basis_lot_acquisition_histo_on_behalf_of_fkey"
@@ -623,17 +684,20 @@ core_actors ||--o{ audit_subledger_fx_cost_basis_lot_history : "subledger_fx_cos
 core_actors ||--o{ audit_user_profile_history : "user_profile_history_actor_id_fkey"
 core_actors ||--o{ audit_user_profile_history : "user_profile_history_on_behalf_of_fkey"
 core_accounting_entities ||--o{ core_accounting_contexts : "accounting_contexts_accounting_entity_id_fkey"
+core_accounting_intervals ||--o{ core_accounting_contexts : "accounting_contexts_accounting_interval_id_fkey"
 core_accounting_standards ||--o{ core_accounting_contexts : "accounting_contexts_accounting_standard_code_fkey"
 core_actors ||--o{ core_accounting_contexts : "accounting_contexts_created_by_fkey"
-core_accounting_periods ||--o{ core_accounting_contexts : "accounting_contexts_current_operating_period_id_fkey"
-core_fiscal_years ||--o{ core_accounting_contexts : "accounting_contexts_fiscal_year_id_fkey"
+core_fiscal_years ||--o| core_accounting_contexts : "accounting_contexts_fiscal_year_id_fkey"
 core_actors ||--o{ core_accounting_entities : "accounting_entities_created_by_fkey"
 core_currencies ||--o{ core_accounting_entities : "accounting_entities_functional_currency_code_fkey"
 core_jurisdictions ||--o{ core_accounting_entities : "accounting_entities_jurisdiction_code_fkey"
 core_users ||--o{ core_accounting_entities : "accounting_entities_owner_id_fkey"
+core_accounting_entities ||--o{ core_accounting_intervals : "accounting_intervals_accounting_entity_id_fkey"
+core_actors ||--o{ core_accounting_intervals : "accounting_intervals_created_by_fkey"
+core_fiscal_years ||--o| core_accounting_intervals : "accounting_intervals_fiscal_year_id_fkey"
 core_accounting_entities ||--o{ core_accounting_periods : "accounting_periods_accounting_entity_id_fkey"
 core_actors ||--o{ core_accounting_periods : "accounting_periods_created_by_fkey"
-core_fiscal_years ||--o{ core_accounting_periods : "accounting_periods_fiscal_year_id_fkey"
+core_accounting_intervals ||--o{ core_accounting_periods : "accounting_periods_interval_id_fkey"
 core_actors ||--o{ core_accounting_standards : "accounting_standards_created_by_fkey"
 core_actors ||--o{ core_actors : "actors_created_by_fkey"
 core_actors ||--o{ core_actors : "actors_owner_actor_id_fkey"
@@ -676,15 +740,17 @@ core_accounting_entities ||--o{ core_ledger_accounts : "ledger_accounts_accounti
 core_ledger_accounts ||--o{ core_ledger_accounts : "ledger_accounts_control_account_id_fkey"
 core_actors ||--o{ core_ledger_accounts : "ledger_accounts_created_by_fkey"
 core_currencies ||--o{ core_ledger_accounts : "ledger_accounts_currency_code_fkey"
-core_accounting_contexts ||--o{ core_reporting_contexts : "reporting_contexts_accounting_context_id_fkey"
+core_accounting_contexts ||--o| core_reporting_contexts : "reporting_contexts_accounting_context_id_fkey"
 core_accounting_entities ||--o{ core_reporting_contexts : "reporting_contexts_accounting_entity_id_fkey"
-core_accounting_standards ||--o{ core_reporting_contexts : "reporting_contexts_accounting_standard_code_fkey"
 core_actors ||--o{ core_reporting_contexts : "reporting_contexts_created_by_fkey"
-core_reporting_periods ||--o{ core_reporting_contexts : "reporting_contexts_current_reporting_period_id_fkey"
 core_currencies ||--o{ core_reporting_contexts : "reporting_contexts_reporting_currency_code_fkey"
+core_reporting_intervals ||--o{ core_reporting_contexts : "reporting_contexts_reporting_interval_id_fkey"
+core_accounting_entities ||--o{ core_reporting_intervals : "reporting_intervals_accounting_entity_id_fkey"
+core_actors ||--o{ core_reporting_intervals : "reporting_intervals_created_by_fkey"
+core_fiscal_years ||--o| core_reporting_intervals : "reporting_intervals_fiscal_year_id_fkey"
 core_accounting_entities ||--o{ core_reporting_periods : "reporting_periods_accounting_entity_id_fkey"
 core_actors ||--o{ core_reporting_periods : "reporting_periods_created_by_fkey"
-core_fiscal_years ||--o{ core_reporting_periods : "reporting_periods_fiscal_year_id_fkey"
+core_reporting_intervals ||--o{ core_reporting_periods : "reporting_periods_interval_id_fkey"
 core_accounting_entities ||--o{ core_subledger_fx_cost_basis_lot_acquisitions : "subledger_fx_cost_basis_lot_acquisiti_accounting_entity_id_fkey"
 core_currencies ||--o{ core_subledger_fx_cost_basis_lot_acquisitions : "subledger_fx_cost_basis_lot_acquisitio_cost_basis_currency_fkey"
 core_actors ||--o{ core_subledger_fx_cost_basis_lot_acquisitions : "subledger_fx_cost_basis_lot_acquisitions_created_by_fkey"
