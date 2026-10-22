@@ -94,40 +94,38 @@ eligibility.
 ## Accounting Context
 
 An Accounting Context associates an Accounting Entity and Fiscal Year with an
-accounting framework and a selected accounting period.
+accounting framework and an accounting interval.
 
-| ID         | Invariant                                                                                                                             | Accounting basis / rationale                                                                                          | References (optional) |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| ACC-AC-001 | The context's fiscal year must belong to its accounting entity.                                                                       | **Structural integrity:** attach the accounting basis to the correct annual cycle.                                    | —                     |
-| ACC-AC-002 | The selected accounting period must belong to the context's fiscal year.                                                              | **Structural integrity:** select a period within the annual cycle; see [ACC-AP-001](#accounting-period).              | —                     |
-| ACC-AC-003 | The accounting-standard code must identify a framework recognized by Drimsheet.                                                       | **Drimsheet policy:** make the accounting basis explicit.                                                             | —                     |
-| ACC-AC-004 | On creation, the selected framework must be permitted by Drimsheet's configuration for the accounting entity's type and jurisdiction. | **Drimsheet policy:** restrict framework selection by entity type and jurisdiction.                                   | —                     |
-| ACC-AC-005 | A fiscal year has at most one accounting context, including closed contexts.                                                          | **Record integrity:** preserve one authoritative accounting basis and working-period selection for each annual cycle. | —                     |
+| ID         | Invariant                                                                                                                             | Accounting basis / rationale                                                                                                           | References (optional) |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| ACC-AC-001 | The context's fiscal year must belong to its accounting entity.                                                                       | **Structural integrity:** attach the accounting basis to the correct annual cycle.                                                     | —                     |
+| ACC-AC-002 | The referenced accounting interval must belong to the context's accounting entity and fiscal year.                                    | **Structural integrity:** attribute the posting calendar to the correct entity and annual cycle; see [ACC-AP-001](#accounting-period). | —                     |
+| ACC-AC-003 | The accounting-standard code must identify a framework recognized by Drimsheet.                                                       | **Drimsheet policy:** make the accounting basis explicit.                                                                              | —                     |
+| ACC-AC-004 | On creation, the selected framework must be permitted by Drimsheet's configuration for the accounting entity's type and jurisdiction. | **Drimsheet policy:** restrict framework selection by entity type and jurisdiction.                                                    | —                     |
+| ACC-AC-005 | A fiscal year has at most one accounting context, including closed contexts.                                                          | **Record integrity:** preserve one authoritative accounting basis and posting calendar for each annual cycle.                          | —                     |
 
-“Current” means the selected working period, which need not contain today's date.
-Posting still requires the Accounting Period checks.
+The Accounting Interval owns current-period selection. Posting still requires
+the Accounting Period checks.
 
 ## Reporting Context
 
-A Reporting Context links an Accounting Context to a reporting framework,
-Reporting Period, and presentation currency. Presentation currency may differ
+A Reporting Context links an Accounting Context to a Reporting Interval and
+presentation currency. Presentation currency may differ
 from the entity's functional currency.
 
-| ID         | Invariant                                                                                                                                                                              | Accounting basis / rationale                                                                                                                                           | References (optional)                  |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| ACC-RC-001 | The reporting context and its accounting context must belong to the same accounting entity.                                                                                            | **Structural integrity:** preserve entity identity across reporting views.                                                                                             | —                                      |
-| ACC-RC-002 | The selected reporting period must belong to the fiscal year identified by the linked accounting context.                                                                              | **Structural integrity:** align reporting with the annual cycle; see [ACC-RP-001](#reporting-period).                                                                  | —                                      |
-| ACC-RC-003 | The reporting framework must have a code recognized by Drimsheet.                                                                                                                      | **Drimsheet policy:** make the reporting basis explicit.                                                                                                               | —                                      |
-| ACC-RC-004 | A reporting context must identify one reporting currency using a recognized currency code.                                                                                             | **Structural integrity:** identify the currency of presented amounts.                                                                                                  | —                                      |
-| ACC-RC-005 | Where IAS 21 applies and presentation currency differs from functional currency, financial statements must be translated under the applicable IAS 21 requirements before presentation. | **IFRS requirement:** translate amounts when changing presentation currency.                                                                                           | [IAS 21, presentation currency][ias21] |
-| ACC-RC-006 | A fiscal year has at most one reporting context through its accounting context, including closed contexts.                                                                             | **Record integrity:** preserve one authoritative reporting basis, presentation currency, and period selection per annual cycle; see [ACC-AC-005](#accounting-context). | —                                      |
+| ID         | Invariant                                                                                                                                                                              | Accounting basis / rationale                                                                                                                                             | References (optional)                  |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| ACC-RC-001 | The reporting context and its accounting context must belong to the same accounting entity.                                                                                            | **Structural integrity:** preserve entity identity across reporting views.                                                                                               | —                                      |
+| ACC-RC-002 | The referenced reporting interval must belong to the context's accounting entity and the fiscal year identified by its accounting context.                                             | **Structural integrity:** align reporting with the annual cycle; see [ACC-RP-001](#reporting-period).                                                                    | —                                      |
+| ACC-RC-004 | A reporting context must identify one reporting currency using a recognized currency code.                                                                                             | **Structural integrity:** identify the currency of presented amounts.                                                                                                    | —                                      |
+| ACC-RC-005 | Where IAS 21 applies and presentation currency differs from functional currency, financial statements must be translated under the applicable IAS 21 requirements before presentation. | **IFRS requirement:** translate amounts when changing presentation currency.                                                                                             | [IAS 21, presentation currency][ias21] |
+| ACC-RC-006 | A fiscal year has at most one reporting context through its accounting context, including closed contexts.                                                                             | **Record integrity:** preserve one authoritative reporting basis, presentation currency, and reporting calendar per annual cycle; see [ACC-AC-005](#accounting-context). | —                                      |
 
 ## Shared Period Rules
 
 These rules cover Fiscal Year dates and Accounting Period and Reporting Period
-intervals. `period.entity.ts` supplies shared behavior and an additional
-Reporting Period constructor; both reporting-period constructors follow the same
-contract.
+intervals. Shared interval values supply calendar generation for Accounting
+Intervals and Reporting Intervals.
 
 | ID        | Invariant                                                                           | Accounting basis / rationale                                              | References (optional) |
 | --------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------- |

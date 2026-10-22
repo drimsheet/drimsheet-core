@@ -2,12 +2,11 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
+import accountingIntervalEntity from '@domain/accounting/entities/accounting-interval.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import accountingContextValidation from '@domain/accounting/entities/validations/accounting-context.validation';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import jurisdictionError from '@domain/accounting/errors/jurisdiction.error';
-import { EPeriodStatus } from '@domain/accounting/types/period.types';
 
 describe('accountingContextValidation', () => {
   it('exposes the frozen accounting-context validators', () => {
@@ -16,7 +15,7 @@ describe('accountingContextValidation', () => {
       accountingContextValidation.validateAccountingStandardCode
     );
     expect(Object.keys(accountingContextValidation)).toEqual([
-      'validatePeriodSelection',
+      'validateIntervalSelection',
       'isValidAccountingStandardCode',
       'validateAccountingStandardCode',
       'validateStandardCode',
@@ -38,7 +37,7 @@ describe('accountingContextValidation', () => {
   });
 });
 
-describe('accounting-context period selection', () => {
+describe('accounting-context interval selection', () => {
   const actorId = generateUUID();
   const entity = accountingEntityEntity.make({
     createdBy: actorId,
@@ -58,15 +57,20 @@ describe('accounting-context period selection', () => {
       endDate: new Date(`${yearNumber}-12-31`),
       status: 'open',
     })[0];
-    const period = accountingPeriodEntity.make({
+    const [interval] = accountingIntervalEntity.make({
       accountingEntityId: entity.id,
       createdBy: actorId,
-      fiscalYear: year,
+      fiscalYearId: year.id,
+      startDate: year.startDate,
+      endDate: new Date(`${yearNumber + 1}-01-01`),
       unit: 'month',
       count: 12,
-    })[3][0];
+      periods: Array.from({ length: 12 }, (_, index) => ({
+        name: `Month ${index + 1}`,
+      })),
+    });
     jest.setSystemTime(new Date('2026-10-17'));
-    return { year, period };
+    return { year, interval };
   }
 
   beforeEach(() => {
@@ -77,27 +81,30 @@ describe('accounting-context period selection', () => {
   });
 
   it.each([2025, 2026, 2027])(
-    'accepts an explicitly selected period in year %s regardless of today',
+    'accepts an explicitly referenced interval in year %s regardless of today',
     (yearNumber) => {
-      const { year, period } = makeCalendar(yearNumber);
+      const { year, interval } = makeCalendar(yearNumber);
       expect(() =>
-        accountingContextValidation.validatePeriodSelection(
+        accountingContextValidation.validateIntervalSelection(
           entity.id,
           year,
-          period
+          interval
         )
       ).not.toThrow();
     }
   );
 
-  it.each(Object.values(EPeriodStatus))(
-    'does not change or reject the selected period status %s',
-    (status) => {
-      const { year, period } = makeCalendar(2026);
-      const selected = Object.freeze({ ...period, status });
+  it.each([0, 3, 11])(
+    'leaves current-period selection %s owned by the interval',
+    (ordinal) => {
+      const { year, interval } = makeCalendar(2026);
+      const [selected] = accountingIntervalEntity.updateCurrentPeriod(
+        interval,
+        new Date(Date.UTC(2026, ordinal, 1))
+      );
       const before = JSON.stringify(selected);
       expect(() =>
-        accountingContextValidation.validatePeriodSelection(
+        accountingContextValidation.validateIntervalSelection(
           entity.id,
           year,
           selected
@@ -108,26 +115,26 @@ describe('accounting-context period selection', () => {
   );
 
   it('rejects a fiscal year owned by another entity', () => {
-    const { year, period } = makeCalendar(2026);
+    const { year, interval } = makeCalendar(2026);
     expect(() =>
-      accountingContextValidation.validatePeriodSelection(
+      accountingContextValidation.validateIntervalSelection(
         generateUUID(),
         year,
-        period
+        interval
       )
     ).toThrow(accountingError.InvalidFiscalYearId);
   });
 
   it.each(['accountingEntityId', 'fiscalYearId'] as const)(
-    'rejects a period with mismatched %s',
+    'rejects an interval with mismatched %s',
     (field) => {
-      const { year, period } = makeCalendar(2026);
+      const { year, interval } = makeCalendar(2026);
       expect(() =>
-        accountingContextValidation.validatePeriodSelection(entity.id, year, {
-          ...period,
+        accountingContextValidation.validateIntervalSelection(entity.id, year, {
+          ...interval,
           [field]: generateUUID(),
         })
-      ).toThrow(accountingError.InvalidCurrentAccountingPeriodId);
+      ).toThrow(accountingError.InvalidAccountingIntervalId);
     }
   );
 });

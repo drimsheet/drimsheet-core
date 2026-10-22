@@ -1,28 +1,25 @@
-import { TCreationOmits } from '@shared/types/creation-omits.types';
 import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
-import {
-  IEvent,
-  TAuditedEntity,
-} from '@shared/values/events/types/event.types';
 
 import getAccountingContextDescription from '@domain/accounting/entities/helpers/get-description.helper';
-import accountingContextValidation from '@domain/accounting/entities/validations/accounting-context.validation';
 import reportingContextValidation from '@domain/accounting/entities/validations/reporting-context.validation';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import reportingContextEvents from '@domain/accounting/events/reporting-context.events';
-import { IReportingContext } from '@domain/accounting/types/context.types';
+import {
+  IReportingContext,
+  IReportingContextMakePayload,
+  IReportingContextUpdatePayload,
+} from '@domain/accounting/types/context.types';
 import {
   EReportingContextActions,
-  IReportingContextAudit,
+  TAuditedReportingContext,
+  TAuditedReportingContextUpdate,
 } from '@domain/accounting/types/reporting-context-audit.types';
 import reportingContextAudit from '@domain/accounting/values/reporting-context-audit.vo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
-function make(
-  payload: TCreationOmits<IReportingContext, 'closedAt'>
-): TAuditedEntity<IReportingContext, IReportingContext, IReportingContext> {
+function make(payload: IReportingContextMakePayload): TAuditedReportingContext {
   stringUtils.validateUUID(
     payload.accountingEntityId,
     accountingError.InvalidAccountingEntityId
@@ -33,28 +30,20 @@ function make(
     accountingError.InvalidAccountingContextId
   );
   stringUtils.validateUUID(
-    payload.currentReportingPeriodId,
-    accountingError.InvalidCurrentReportingPeriodId
-  );
-  accountingContextValidation.validateAccountingStandardCode(
-    payload.accountingStandardCode
+    payload.reportingIntervalId,
+    accountingError.InvalidReportingIntervalId
   );
 
   const name = stringUtils.sanitizeAndValidate(
     payload.name,
-    {
-      min: 1,
-      max: 150,
-    },
+    { min: 1, max: 150 },
     accountingError.InvalidName
   );
   const description = getAccountingContextDescription(payload.description);
-
   stringUtils.validateUUID(payload.createdBy, accountingError.InvalidCreatedBy);
 
   const timestamp = new Date();
-
-  const entity: IReportingContext = deepFreeze({
+  const entity = deepFreeze<IReportingContext>({
     id: generateUUID(),
     createdBy: payload.createdBy,
     name,
@@ -62,42 +51,37 @@ function make(
     accountingEntityId: payload.accountingEntityId,
     reportingCurrencyCode: payload.reportingCurrencyCode,
     accountingContextId: payload.accountingContextId,
-    currentReportingPeriodId: payload.currentReportingPeriodId,
-    accountingStandardCode: payload.accountingStandardCode,
+    reportingIntervalId: payload.reportingIntervalId,
     createdAt: timestamp,
     updatedAt: timestamp,
     closedAt: null,
   });
-
-  const events = reportingContextEvents.created(entity);
-
+  const event = reportingContextEvents.created(entity);
   const audit = reportingContextAudit.make({
     before: null,
     after: entity,
     action: EReportingContextActions.Created,
   });
 
-  return [entity, [events], audit];
+  return [entity, [event], audit];
 }
 
 function update(
   context: IReportingContext,
-  changes: Pick<IReportingContext, 'currentReportingPeriodId'>
-): [
-  IReportingContext,
-  IEvent<IReportingContext>[],
-  IReportingContextAudit | null,
-] {
+  changes: IReportingContextUpdatePayload
+): TAuditedReportingContextUpdate {
+  const { reportingIntervalId = context.reportingIntervalId } = changes;
   stringUtils.validateUUID(
-    changes.currentReportingPeriodId,
-    accountingError.InvalidCurrentReportingPeriodId
+    reportingIntervalId,
+    accountingError.InvalidReportingIntervalId
   );
 
-  if (context.currentReportingPeriodId === changes.currentReportingPeriodId) {
+  const isUnchanged = context.reportingIntervalId === reportingIntervalId;
+  if (isUnchanged) {
     return [context, [], null];
   }
 
-  const entity: IReportingContext = deepFreeze({
+  const entity = deepFreeze<IReportingContext>({
     id: context.id,
     createdBy: context.createdBy,
     name: context.name,
@@ -105,13 +89,11 @@ function update(
     accountingEntityId: context.accountingEntityId,
     reportingCurrencyCode: context.reportingCurrencyCode,
     accountingContextId: context.accountingContextId,
-    currentReportingPeriodId: changes.currentReportingPeriodId,
-    accountingStandardCode: context.accountingStandardCode,
+    reportingIntervalId,
     createdAt: context.createdAt,
     updatedAt: new Date(),
     closedAt: context.closedAt,
   });
-
   const audit = reportingContextAudit.make({
     before: context,
     after: entity,

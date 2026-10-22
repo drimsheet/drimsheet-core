@@ -18,6 +18,9 @@ const EErrorKeys = {
   InvalidDate: 'accounting_error_date_invalid',
   InvalidAccountingEntityId: 'accounting_error_accounting_entity_id_invalid',
   InvalidFiscalYearId: 'accounting_error_fiscal_year_id_invalid',
+  InvalidAccountingIntervalId:
+    'accounting_error_accounting_interval_id_invalid',
+  InvalidReportingIntervalId: 'accounting_error_reporting_interval_id_invalid',
   InvalidCurrentAccountingPeriodId:
     'accounting_error_current_accounting_period_id_invalid',
   InvalidPreviousAccountingPeriodId:
@@ -37,8 +40,6 @@ const EErrorKeys = {
     'accounting_error_invalid_accounting_entity_type_invalid',
   InvalidAccountingStandardCode:
     'accounting_error_accounting_standard_code_invalid',
-  TransferNotPermittedOnAccount:
-    'accounting_error_transfer_not_permitted_on_account_invalid',
 } as const satisfies TErrorKeys<'accounting_error'>;
 
 type UAccountingError = (typeof EErrorKeys)[keyof typeof EErrorKeys];

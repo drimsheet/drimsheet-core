@@ -2,27 +2,27 @@ import { TEntityId } from '@shared/types/uuid';
 
 import accountingError from '@domain/accounting/errors/accounting.error';
 import { IAccountingContext } from '@domain/accounting/types/context.types';
-import { IReportingPeriod } from '@domain/accounting/types/period.types';
+import { IReportingInterval } from '@domain/accounting/types/reporting-period.types';
 
-/** ACC-RC-001/002: the selected reporting period shares the context's entity and fiscal year. */
-function validatePeriodSelection(
+/** ACC-RC-001/002: the interval shares the context's entity and fiscal year. */
+function validateIntervalSelection(
   accountingEntityId: TEntityId,
   accountingContext: IAccountingContext,
-  reportingPeriod: IReportingPeriod
+  reportingInterval: IReportingInterval
 ) {
   if (accountingContext.accountingEntityId !== accountingEntityId) {
     throw new accountingError.InvalidAccountingContextId();
   }
 
-  const hasInvalidPeriodOwnership =
-    reportingPeriod.accountingEntityId !== accountingEntityId ||
-    reportingPeriod.fiscalYearId !== accountingContext.fiscalYearId;
+  const hasInvalidIntervalOwnership =
+    reportingInterval.accountingEntityId !== accountingEntityId ||
+    reportingInterval.fiscalYearId !== accountingContext.fiscalYearId;
 
-  if (hasInvalidPeriodOwnership) {
-    throw new accountingError.InvalidCurrentReportingPeriodId();
+  if (hasInvalidIntervalOwnership) {
+    throw new accountingError.InvalidReportingIntervalId();
   }
 }
 
-const reportingContextValidation = Object.freeze({ validatePeriodSelection });
+const reportingContextValidation = Object.freeze({ validateIntervalSelection });
 
 export default reportingContextValidation;
