@@ -69,20 +69,25 @@ jest.mock('@infra/ioc/usecases/journal-entry', () => ({
   getJournalEntriesUseCase: jest.fn(),
   getJournalEntryUseCase: jest.fn(),
 }));
-jest.mock('@infra/observability', () => ({
-  __esModule: true,
-  default: {
-    reporter: jest.requireActual<
-      typeof import('@shared/contracts/__mocks__/reporter.mock')
-    >('@shared/contracts/__mocks__/reporter.mock').default,
-  },
-}));
+jest.mock('@infra/ioc/handlers/mcp', () => {
+  const makeMcpErrorHandler = jest.requireActual<
+    typeof import('@interface/mcp/handlers/error.handler')
+  >('@interface/mcp/handlers/error.handler').default;
+  const reporter = jest.requireActual<
+    typeof import('@shared/contracts/__mocks__/reporter.mock')
+  >('@shared/contracts/__mocks__/reporter.mock').default;
+
+  return {
+    __esModule: true,
+    default: { error: makeMcpErrorHandler(reporter) },
+  };
+});
 
 jest.mock('@infra/ioc/services/user', () => ({
-  ...jest.requireActual('@infra/ioc/services/user'),
-  actorService: jest.requireActual(
-    '@app/user/contracts/__mocks__/actor.services.mock'
-  ).mockActorService,
+  __esModule: true,
+  actorService: jest.requireActual<
+    typeof import('@app/user/contracts/__mocks__/actor.services.mock')
+  >('@app/user/contracts/__mocks__/actor.services.mock').mockActorService,
 }));
 
 jest.mock('@infra/ioc/middlewares/http', () => ({

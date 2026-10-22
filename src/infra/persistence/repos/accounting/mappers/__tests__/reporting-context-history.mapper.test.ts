@@ -1,49 +1,48 @@
-import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
+import historyValue from '@shared/values/history/history.vo';
 
-import { IReportingContext } from '@domain/accounting/types/context.types';
-import { IReportingContextHistory } from '@domain/accounting/types/reporting-context-audit.types';
+import reportingContextEntity from '@domain/accounting/entities/reporting-context.entity';
 
-import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
 import reportingContextHistoryMapper from '@infra/persistence/repos/accounting/mappers/reporting-context-history.mapper';
 
 describe('reportingContextHistoryMapper', () => {
-  it('maps reporting context history to the repository model', () => {
-    const reportingContextId = 'reporting-context-uuid' as TEntityId;
-    const accountingEntityId = 'accounting-entity-uuid' as TEntityId;
-    const userId = 'user-uuid' as TEntityId;
-    const occurredAt = new Date('2026-07-25T12:00:00.000Z');
-
-    const reportingContext: IReportingContext = {
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      accountingEntityId,
-    } as IReportingContext;
-
-    const history: IReportingContextHistory = {
-      entityId: reportingContextId,
-      entityVersion: 1,
-      action: 'updated',
-      diff: {
-        before: null,
-        after: reportingContext,
-      },
-      occurredAt,
-      actorId: userId,
-      onBehalfOf: null,
-      correlationId: 'correlation-id-def',
-    };
-
-    expect(
-      reportingContextHistoryMapper.toRepo(reportingContext, history)
-    ).toEqual({
-      reportingContextId,
-      accountingEntityId,
-      actorId: userId,
-      onBehalfOf: null,
-      action: 'updated',
-
-      diff: history.diff,
-      correlationId: 'correlation-id-def',
-      occurredAt: toRepoDate(occurredAt),
-    });
-  });
+  it.each(['created', 'updated'] as const)(
+    'preserves interval references in %s snapshots',
+    (action) => {
+      const actorId = generateUUID();
+      const [original, , creationAudit] = reportingContextEntity.make({
+        createdBy: actorId,
+        accountingEntityId: generateUUID(),
+        accountingContextId: generateUUID(),
+        reportingCurrencyCode: 'USD',
+        reportingIntervalId: generateUUID(),
+        name: 'Context',
+        description: null,
+      });
+      const [updated, , updateAudit] = reportingContextEntity.update(original, {
+        reportingIntervalId: generateUUID(),
+      });
+      const context = action === 'created' ? original : updated;
+      const audit = action === 'created' ? creationAudit : updateAudit!;
+      const history = historyValue.make(audit, actorId, 'context-history');
+      const row = reportingContextHistoryMapper.toRepo(context, history);
+      expect(row).toEqual({
+        reportingContextId: context.id,
+        accountingEntityId: context.accountingEntityId,
+        actorId,
+        onBehalfOf: null,
+        action,
+        diff: {
+          before:
+            action === 'created'
+              ? null
+              : (JSON.parse(JSON.stringify(original)) as unknown),
+          after: JSON.parse(JSON.stringify(context)) as unknown,
+        },
+        correlationId: 'context-history',
+        occurredAt: history.occurredAt.toISOString(),
+      });
+      expect(row.diff).toBe(history.diff);
+    }
+  );
 });

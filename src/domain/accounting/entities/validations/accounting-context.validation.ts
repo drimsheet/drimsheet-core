@@ -13,23 +13,23 @@ import accountingStandardError from '@domain/accounting/errors/accounting-standa
 import accountingError from '@domain/accounting/errors/accounting.error';
 import jurisdictionError from '@domain/accounting/errors/jurisdiction.error';
 import { UAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
+import { IAccountingInterval } from '@domain/accounting/types/accounting-period.types';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { IAccountingPeriod } from '@domain/accounting/types/period.types';
 
-/** ACC-AC-001/002: selection is explicit for every year and independent of period status or today's date. */
-function validatePeriodSelection(
+/** ACC-AC-001/002: the interval shares the fiscal year and entity. */
+function validateIntervalSelection(
   accountingEntityId: TEntityId,
   fiscalYear: IFiscalYear,
-  accountingPeriod: IAccountingPeriod
+  accountingInterval: IAccountingInterval
 ) {
   if (fiscalYear.accountingEntityId !== accountingEntityId) {
     throw new accountingError.InvalidFiscalYearId();
   }
-  const hasInvalidPeriodOwnership =
-    accountingPeriod.accountingEntityId !== accountingEntityId ||
-    accountingPeriod.fiscalYearId !== fiscalYear.id;
-  if (hasInvalidPeriodOwnership) {
-    throw new accountingError.InvalidCurrentAccountingPeriodId();
+  const hasInvalidIntervalOwnership =
+    accountingInterval.accountingEntityId !== accountingEntityId ||
+    accountingInterval.fiscalYearId !== fiscalYear.id;
+  if (hasInvalidIntervalOwnership) {
+    throw new accountingError.InvalidAccountingIntervalId();
   }
 }
 
@@ -88,7 +88,7 @@ function validateStandardCodeAndJurisdiction(
 }
 
 const accountingContextValidation = Object.freeze({
-  validatePeriodSelection,
+  validateIntervalSelection,
   isValidAccountingStandardCode,
   validateAccountingStandardCode,
   validateStandardCode,

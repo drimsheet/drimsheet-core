@@ -1,14 +1,12 @@
 import makeArchiveAccountingEntityUsecase from '@app/accounting/usecases/archive-accounting-entity.usecase';
 import makeCreateAccountingContextUsecase from '@app/accounting/usecases/create-accounting-context.usecase';
 import makeCreateAccountingEntityUseCase from '@app/accounting/usecases/create-accounting-entity.usecase';
-import makeCreateAccountingPeriodsUsecase from '@app/accounting/usecases/create-accounting-periods.usecase';
+import makeCreateAccountingIntervalUsecase from '@app/accounting/usecases/create-accounting-interval.usecase';
 import makeCreateFiscalYearUsecase from '@app/accounting/usecases/create-fiscal-year.usecase';
 import makeCreateReportingContextUsecase from '@app/accounting/usecases/create-reporting-context.usecase';
-import makeCreateReportingPeriodsUsecase from '@app/accounting/usecases/create-reporting-periods.usecase';
+import makeCreateReportingIntervalUsecase from '@app/accounting/usecases/create-reporting-interval.usecase';
 import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-accounting-entity.usecase';
 import makeGetAccountingContextUsecase from '@app/accounting/usecases/get-accounting-context.usecase';
-import makeGetAccountingPeriodUsecase from '@app/accounting/usecases/get-accounting-period.usecase';
-import makeGetAccountingPeriodsUsecase from '@app/accounting/usecases/get-accounting-periods.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetFiscalYearUsecase from '@app/accounting/usecases/get-fiscal-year.usecase';
 import makeGetFiscalYearsUsecase from '@app/accounting/usecases/get-fiscal-years.usecase';
@@ -16,7 +14,6 @@ import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdicti
 import makeGetNextCurrentAccountingPeriodUsecase from '@app/accounting/usecases/get-next-current-accounting-period.usecase';
 import makeGetNextCurrentReportingPeriodUsecase from '@app/accounting/usecases/get-next-current-reporting-period.usecase';
 import makeGetReportingContextUsecase from '@app/accounting/usecases/get-reporting-context.usecase';
-import makeGetReportingPeriodsUsecase from '@app/accounting/usecases/get-reporting-periods.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import makeSetCurrentAccountingPeriodUsecase from '@app/accounting/usecases/set-current-accounting-period.usecase';
 import makeSetCurrentReportingPeriodUsecase from '@app/accounting/usecases/set-current-reporting-period.usecase';
@@ -26,10 +23,10 @@ import makeUpdateAccountingEntityUsecase from '@app/accounting/usecases/update-a
 import {
   accountingContextService,
   accountingEntityService,
-  accountingPeriodService,
+  accountingIntervalService,
   fiscalYearService,
   reportingContextService,
-  reportingPeriodService,
+  reportingIntervalService,
 } from '@infra/ioc/services/accounting';
 import { repoService } from '@infra/ioc/services/repo';
 import { userPreferencesAppService } from '@infra/ioc/services/user';
@@ -45,8 +42,7 @@ export const setCurrentAccountingPeriodUseCase = makeTracedUseCase(
   'accounting.setCurrentAccountingPeriodUseCase',
   makeSetCurrentAccountingPeriodUsecase({
     appContext,
-    accountingContextService,
-    accountingContextRepo: accountingRepos.accountingContext,
+    accountingIntervalRepo: accountingRepos.accountingInterval,
     eventBus: messaging.eventBus,
   })
 );
@@ -64,8 +60,7 @@ export const setCurrentReportingPeriodUseCase = makeTracedUseCase(
   'accounting.setCurrentReportingPeriodUseCase',
   makeSetCurrentReportingPeriodUsecase({
     appContext,
-    reportingContextService,
-    reportingContextRepo: accountingRepos.reportingContext,
+    reportingIntervalRepo: accountingRepos.reportingInterval,
     eventBus: messaging.eventBus,
   })
 );
@@ -85,19 +80,8 @@ export const createReportingContextUseCase = makeTracedUseCase(
     appContext,
     reportingContextService,
     accountingContextRepo: accountingRepos.accountingContext,
-    reportingPeriodRepo: accountingRepos.reportingPeriod,
+    reportingIntervalRepo: accountingRepos.reportingInterval,
     reportingContextRepo: accountingRepos.reportingContext,
-    eventBus: messaging.eventBus,
-  })
-);
-
-export const createReportingPeriodsUseCase = makeTracedUseCase(
-  'accounting.createReportingPeriodsUseCase',
-  makeCreateReportingPeriodsUsecase({
-    appContext,
-    fiscalYearRepo: accountingRepos.fiscalYear,
-    reportingPeriodService,
-    reportingPeriodRepo: accountingRepos.reportingPeriod,
     eventBus: messaging.eventBus,
   })
 );
@@ -108,19 +92,34 @@ export const createAccountingContextUseCase = makeTracedUseCase(
     appContext,
     accountingContextService,
     fiscalYearRepo: accountingRepos.fiscalYear,
-    accountingPeriodRepo: accountingRepos.accountingPeriod,
+    accountingIntervalRepo: accountingRepos.accountingInterval,
     accountingContextRepo: accountingRepos.accountingContext,
     eventBus: messaging.eventBus,
   })
 );
 
-export const createAccountingPeriodsUseCase = makeTracedUseCase(
-  'accounting.createAccountingPeriodsUseCase',
-  makeCreateAccountingPeriodsUsecase({
+export const createAccountingIntervalUseCase = makeTracedUseCase(
+  'accounting.createAccountingIntervalUseCase',
+  makeCreateAccountingIntervalUsecase({
     appContext,
     fiscalYearRepo: accountingRepos.fiscalYear,
-    accountingPeriodService,
+    accountingIntervalService,
+    repoService,
+    accountingIntervalRepo: accountingRepos.accountingInterval,
     accountingPeriodRepo: accountingRepos.accountingPeriod,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const createReportingIntervalUseCase = makeTracedUseCase(
+  'accounting.createReportingIntervalUseCase',
+  makeCreateReportingIntervalUsecase({
+    appContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    reportingIntervalService,
+    repoService,
+    reportingIntervalRepo: accountingRepos.reportingInterval,
+    reportingPeriodRepo: accountingRepos.reportingPeriod,
     eventBus: messaging.eventBus,
   })
 );
@@ -245,31 +244,5 @@ export const archiveAccountingEntityUseCase = makeTracedUseCase(
     userPreferencesRepo: userRepos.userPreferences,
     repoService,
     eventBus: messaging.eventBus,
-  })
-);
-
-export const getAccountingPeriodUseCase = makeTracedUseCase(
-  'accounting.getAccountingPeriodUseCase',
-  makeGetAccountingPeriodUsecase({
-    appContext,
-    accountingPeriodRepo: accountingRepos.accountingPeriod,
-  })
-);
-
-export const getAccountingPeriodsUseCase = makeTracedUseCase(
-  'accounting.getAccountingPeriodsUseCase',
-  makeGetAccountingPeriodsUsecase({
-    appContext,
-    fiscalYearRepo: accountingRepos.fiscalYear,
-    accountingPeriodRepo: accountingRepos.accountingPeriod,
-  })
-);
-
-export const getReportingPeriodsUseCase = makeTracedUseCase(
-  'accounting.getReportingPeriodsUseCase',
-  makeGetReportingPeriodsUsecase({
-    appContext,
-    fiscalYearRepo: accountingRepos.fiscalYear,
-    reportingPeriodRepo: accountingRepos.reportingPeriod,
   })
 );

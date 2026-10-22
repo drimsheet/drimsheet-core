@@ -6,11 +6,6 @@ import accountingEntityEntity from '@domain/accounting/entities/accounting-entit
 import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
-import {
-  EPeriodStatus,
-  EPeriodUnit,
-  IAccountingPeriod,
-} from '@domain/accounting/types/period.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -75,7 +70,6 @@ const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
 };
 
 const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
-  generate: jest.fn(),
   validatePostingPeriod: jest.fn(),
 };
 
@@ -110,20 +104,6 @@ describe('journalEntryService', () => {
   const effectiveDate = new Date('2026-08-03T10:00:00.000Z');
   const repoOptions: IReadRepoOptions = {
     correlationId: 'journal-entry-service-test',
-  };
-  const openPeriod: IAccountingPeriod = {
-    createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-    id: generateUUID(),
-    name: 'August 2026',
-    accountingEntityId: generateUUID(),
-    unit: EPeriodUnit.Month,
-    count: 1,
-    startDate: new Date('2026-08-01T00:00:00.000Z'),
-    endDate: new Date('2026-08-31T23:59:59.999Z'),
-    status: EPeriodStatus.Open,
-    fiscalYearId: generateUUID(),
-    closedAt: null,
-    updatedAt: timestamp,
   };
   const service = makeJournalEntryService({
     ledgerAccountRepo: mockLedgerAccountRepo,
@@ -705,7 +685,7 @@ describe('journalEntryService', () => {
         )
     );
     mockAccountingPeriodService.validatePostingPeriod.mockResolvedValue(
-      openPeriod
+      undefined
     );
   });
 

@@ -1,6 +1,6 @@
 Project drimsheet {
   database_type: 'PostgreSQL'
-  Note: 'Generated from the migrated PostgreSQL schema'
+  Note: 'Database schema export. Accounting/reporting interval, period, and context definitions refreshed from repository migrations 0021-0031.'
 }
 
 Enum core.accounting_entity_status {
@@ -12,6 +12,19 @@ Enum core.accounting_entity_type {
   individual
   sole_trader
   private_company
+}
+
+Enum core.accounting_interval_unit {
+  day
+  week
+  month
+  quarter
+  year
+}
+
+Enum core.accounting_period_status {
+  open
+  closed
 }
 
 Enum core.adjunct_account_rule {
@@ -107,7 +120,7 @@ Enum core.period_status {
   closed
 }
 
-Enum core.period_unit {
+Enum core.reporting_interval_unit {
   day
   week
   month
@@ -165,6 +178,32 @@ Table audit.accounting_entity_history {
 
   checks {
     `jsonb_typeof(diff) = 'object'::text AND diff ? 'before'::text AND diff ? 'after'::text AND ((diff -> 'before'::text) <> 'null'::jsonb OR (diff -> 'after'::text) <> 'null'::jsonb)` [name: 'accounting_entity_history_diff_check']
+  }
+
+  Note: 'Schema: audit'
+}
+
+Table audit.accounting_interval_history {
+  id bigint [pk, not null, default: `nextval('audit.accounting_interval_history_id_seq'::regclass)`]
+  accounting_interval_id uuid [not null]
+  accounting_entity_id uuid [not null]
+  actor_id uuid [not null]
+  on_behalf_of uuid
+  action varchar(50) [not null]
+  diff jsonb [not null]
+  correlation_id varchar(255)
+  occurred_at timestamptz [not null]
+  recorded_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (actor_id) [name: 'accounting_interval_history_actor_id_index']
+    (on_behalf_of) [name: 'accounting_interval_history_on_behalf_of_index']
+    (accounting_entity_id, occurred_at, id) [name: 'accounting_interval_history_tenant_timeline_idx']
+    (accounting_interval_id, occurred_at, id) [name: 'accounting_interval_history_timeline_idx']
+  }
+
+  checks {
+    `( jsonb_typeof(diff) = 'object' AND diff ? 'before' AND diff ? 'after' AND ( diff->'before' <> 'null'::jsonb OR diff->'after' <> 'null'::jsonb ) )` [name: 'accounting_interval_history_diff_check']
   }
 
   Note: 'Schema: audit'
@@ -377,6 +416,32 @@ Table audit.reporting_context_history {
   Note: 'Schema: audit'
 }
 
+Table audit.reporting_interval_history {
+  id bigint [pk, not null, default: `nextval('audit.reporting_interval_history_id_seq'::regclass)`]
+  reporting_interval_id uuid [not null]
+  accounting_entity_id uuid [not null]
+  actor_id uuid [not null]
+  on_behalf_of uuid
+  action varchar(50) [not null]
+  diff jsonb [not null]
+  correlation_id varchar(255)
+  occurred_at timestamptz [not null]
+  recorded_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (actor_id) [name: 'reporting_interval_history_actor_id_index']
+    (on_behalf_of) [name: 'reporting_interval_history_on_behalf_of_index']
+    (accounting_entity_id, occurred_at, id) [name: 'reporting_interval_history_tenant_timeline_idx']
+    (reporting_interval_id, occurred_at, id) [name: 'reporting_interval_history_timeline_idx']
+  }
+
+  checks {
+    `( jsonb_typeof(diff) = 'object' AND diff ? 'before' AND diff ? 'after' AND ( diff->'before' <> 'null'::jsonb OR diff->'after' <> 'null'::jsonb ) )` [name: 'reporting_interval_history_diff_check']
+  }
+
+  Note: 'Schema: audit'
+}
+
 Table audit.reporting_period_history {
   id bigint [pk, not null, default: `nextval('audit.reporting_period_history_id_seq'::regclass)`]
   reporting_period_id uuid [not null]
@@ -513,8 +578,8 @@ Table core.accounting_contexts {
   description varchar(255)
   accounting_entity_id uuid [not null]
   accounting_standard_code varchar(15) [not null]
-  fiscal_year_id uuid [not null]
-  current_operating_period_id uuid [not null]
+  fiscal_year_id uuid [unique, not null]
+  accounting_interval_id uuid [not null]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
   closed_at timestamptz
@@ -542,25 +607,61 @@ Table core.accounting_entities {
   Note: 'Schema: core'
 }
 
-Table core.accounting_periods {
-  created_by uuid [not null]
-  id uuid [pk, not null, default: `uuid_generate_v4()`]
-  name varchar(150) [not null]
+Table core.accounting_intervals {
+  id uuid [pk, not null]
   accounting_entity_id uuid [not null]
-  fiscal_year_id uuid [not null]
-  unit core.period_unit [not null]
-  count smallint [not null]
-  start_date date [not null]
-  end_date date [not null]
-  status core.period_status [not null]
-  closed_at timestamptz
+  fiscal_year_id uuid [unique, not null]
+  unit core.accounting_interval_unit [not null]
+  count integer [not null]
+  start_date timestamptz [not null]
+  end_date timestamptz [not null]
+  current_period_ordinal integer [not null]
+  next_period_start_date timestamptz
+  created_by uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
-  checks {
-    `start_date <= end_date` [name: 'accounting_periods_dates_ordered']
+  indexes {
+    (accounting_entity_id) [name: 'accounting_intervals_accounting_entity_id_index']
+    (next_period_start_date) [name: 'accounting_intervals_next_start_idx']
   }
 
-  Note: 'Schema: core'
+  checks {
+    `count > 0` [name: 'accounting_intervals_count_positive']
+    `current_period_ordinal >= 0 AND current_period_ordinal < count` [name: 'accounting_intervals_current_period_valid']
+    `start_date < end_date` [name: 'accounting_intervals_dates_ordered']
+    `( (current_period_ordinal = count - 1 AND next_period_start_date IS NULL) OR ( current_period_ordinal < count - 1 AND next_period_start_date IS NOT NULL AND next_period_start_date > start_date AND next_period_start_date < end_date ) )` [name: 'accounting_intervals_next_start_valid']
+  }
+
+  Note: 'Schema: core. Period and interval ranges include start_date and exclude end_date.'
+}
+
+Table core.accounting_periods {
+  id uuid [pk, not null]
+  created_by uuid [not null]
+  name varchar(100) [not null]
+  accounting_entity_id uuid [not null]
+  interval_id uuid [not null]
+  ordinal integer [not null]
+  start_date timestamptz [not null]
+  end_date timestamptz [not null]
+  status core.accounting_period_status [not null]
+  closed_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (interval_id, ordinal) [unique, name: 'accounting_periods_interval_ordinal_key']
+    (interval_id, start_date) [unique, name: 'accounting_periods_interval_start_date_key']
+    (accounting_entity_id) [name: 'accounting_periods_accounting_entity_id_index']
+  }
+
+  checks {
+    `start_date < end_date` [name: 'accounting_periods_dates_ordered']
+    `ordinal >= 0` [name: 'accounting_periods_ordinal_nonnegative']
+  }
+
+  Note: 'Schema: core. Period and interval ranges include start_date and exclude end_date. The accounting_periods_entity_dates_excl constraint prevents overlapping ranges for the same accounting_entity_id using inclusive starts and exclusive ends.'
 }
 
 Table core.accounting_standards {
@@ -876,9 +977,8 @@ Table core.reporting_contexts {
   description varchar(255)
   accounting_entity_id uuid [not null]
   reporting_currency_code varchar(3) [not null]
-  accounting_context_id uuid [not null]
-  current_reporting_period_id uuid [not null]
-  accounting_standard_code varchar(15) [not null]
+  accounting_context_id uuid [unique, not null]
+  reporting_interval_id uuid [not null]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
   closed_at timestamptz
@@ -886,19 +986,59 @@ Table core.reporting_contexts {
   Note: 'Schema: core'
 }
 
-Table core.reporting_periods {
-  created_by uuid [not null]
-  id uuid [pk, not null, default: `uuid_generate_v4()`]
-  name varchar(150) [not null]
+Table core.reporting_intervals {
+  id uuid [pk, not null]
   accounting_entity_id uuid [not null]
-  fiscal_year_id uuid [not null]
-  unit core.period_unit [not null]
-  count smallint [not null]
-  start_date date [not null]
-  end_date date [not null]
+  fiscal_year_id uuid [unique, not null]
+  unit core.reporting_interval_unit [not null]
+  count integer [not null]
+  start_date timestamptz [not null]
+  end_date timestamptz [not null]
+  current_period_ordinal integer [not null]
+  next_period_start_date timestamptz
+  created_by uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
-  Note: 'Schema: core'
+  indexes {
+    (accounting_entity_id) [name: 'reporting_intervals_accounting_entity_id_index']
+    (next_period_start_date) [name: 'reporting_intervals_next_start_idx']
+  }
+
+  checks {
+    `count > 0` [name: 'reporting_intervals_count_positive']
+    `current_period_ordinal >= 0 AND current_period_ordinal < count` [name: 'reporting_intervals_current_period_valid']
+    `start_date < end_date` [name: 'reporting_intervals_dates_ordered']
+    `( (current_period_ordinal = count - 1 AND next_period_start_date IS NULL) OR ( current_period_ordinal < count - 1 AND next_period_start_date IS NOT NULL AND next_period_start_date > start_date AND next_period_start_date < end_date ) )` [name: 'reporting_intervals_next_start_valid']
+  }
+
+  Note: 'Schema: core. Period and interval ranges include start_date and exclude end_date.'
+}
+
+Table core.reporting_periods {
+  created_by uuid [not null]
+  id uuid [pk, not null]
+  name varchar(100) [not null]
+  accounting_entity_id uuid [not null]
+  interval_id uuid [not null]
+  ordinal integer [not null]
+  start_date timestamptz [not null]
+  end_date timestamptz [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (interval_id, ordinal) [unique, name: 'reporting_periods_interval_ordinal_key']
+    (interval_id, start_date) [unique, name: 'reporting_periods_interval_start_date_key']
+    (accounting_entity_id) [name: 'reporting_periods_accounting_entity_id_index']
+  }
+
+  checks {
+    `start_date < end_date` [name: 'reporting_periods_dates_ordered']
+    `ordinal >= 0` [name: 'reporting_periods_ordinal_nonnegative']
+  }
+
+  Note: 'Schema: core. Period and interval ranges include start_date and exclude end_date.'
 }
 
 Table core.subledger_fx_cost_basis_lot_acquisitions {
@@ -1061,6 +1201,8 @@ Ref accounting_context_history_actor_id_fkey: audit.accounting_context_history.(
 Ref accounting_context_history_on_behalf_of_fkey: audit.accounting_context_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
 Ref accounting_entity_history_actor_id_fkey: audit.accounting_entity_history.(actor_id) > core.actors.(id) [delete: restrict]
 Ref accounting_entity_history_on_behalf_of_fkey: audit.accounting_entity_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
+Ref accounting_interval_history_actor_id_fkey: audit.accounting_interval_history.(actor_id) > core.actors.(id) [delete: restrict]
+Ref accounting_interval_history_on_behalf_of_fkey: audit.accounting_interval_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
 Ref accounting_period_history_actor_id_fkey: audit.accounting_period_history.(actor_id) > core.actors.(id) [delete: restrict]
 Ref accounting_period_history_on_behalf_of_fkey: audit.accounting_period_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
 Ref actor_history_actor_entity_id_fkey: audit.actor_history.(actor_entity_id) > core.actors.(id) [delete: restrict]
@@ -1078,6 +1220,8 @@ Ref ledger_account_history_actor_id_fkey: audit.ledger_account_history.(actor_id
 Ref ledger_account_history_on_behalf_of_fkey: audit.ledger_account_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
 Ref reporting_context_history_actor_id_fkey: audit.reporting_context_history.(actor_id) > core.actors.(id) [delete: restrict]
 Ref reporting_context_history_on_behalf_of_fkey: audit.reporting_context_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
+Ref reporting_interval_history_actor_id_fkey: audit.reporting_interval_history.(actor_id) > core.actors.(id) [delete: restrict]
+Ref reporting_interval_history_on_behalf_of_fkey: audit.reporting_interval_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
 Ref reporting_period_history_actor_id_fkey: audit.reporting_period_history.(actor_id) > core.actors.(id) [delete: restrict]
 Ref reporting_period_history_on_behalf_of_fkey: audit.reporting_period_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
 Ref subledger_fx_cost_basis_lot_acquisition_histo_on_behalf_of_fkey: audit.subledger_fx_cost_basis_lot_acquisition_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
@@ -1089,17 +1233,20 @@ Ref subledger_fx_cost_basis_lot_history_on_behalf_of_fkey: audit.subledger_fx_co
 Ref user_profile_history_actor_id_fkey: audit.user_profile_history.(actor_id) > core.actors.(id) [delete: restrict]
 Ref user_profile_history_on_behalf_of_fkey: audit.user_profile_history.(on_behalf_of) > core.actors.(id) [delete: restrict]
 Ref accounting_contexts_accounting_entity_id_fkey: core.accounting_contexts.(accounting_entity_id) > core.accounting_entities.(id) [delete: cascade]
+Ref accounting_contexts_accounting_interval_id_fkey: core.accounting_contexts.(accounting_interval_id) > core.accounting_intervals.(id) [delete: restrict]
 Ref accounting_contexts_accounting_standard_code_fkey: core.accounting_contexts.(accounting_standard_code) > core.accounting_standards.(code) [delete: restrict]
 Ref accounting_contexts_created_by_fkey: core.accounting_contexts.(created_by) > core.actors.(id) [delete: restrict]
-Ref accounting_contexts_current_operating_period_id_fkey: core.accounting_contexts.(current_operating_period_id) > core.accounting_periods.(id) [delete: restrict]
-Ref accounting_contexts_fiscal_year_id_fkey: core.accounting_contexts.(fiscal_year_id) > core.fiscal_years.(id) [delete: cascade]
+Ref accounting_contexts_fiscal_year_id_fkey: core.accounting_contexts.(fiscal_year_id) - core.fiscal_years.(id) [delete: cascade]
 Ref accounting_entities_created_by_fkey: core.accounting_entities.(created_by) > core.actors.(id) [delete: restrict]
 Ref accounting_entities_functional_currency_code_fkey: core.accounting_entities.(functional_currency_code) > core.currencies.(code)
 Ref accounting_entities_jurisdiction_code_fkey: core.accounting_entities.(jurisdiction_code) > core.jurisdictions.(code)
 Ref accounting_entities_owner_id_fkey: core.accounting_entities.(owner_id) > core.users.(id) [delete: cascade]
+Ref accounting_intervals_accounting_entity_id_fkey: core.accounting_intervals.(accounting_entity_id) > core.accounting_entities.(id) [delete: cascade]
+Ref accounting_intervals_created_by_fkey: core.accounting_intervals.(created_by) > core.actors.(id) [delete: restrict]
+Ref accounting_intervals_fiscal_year_id_fkey: core.accounting_intervals.(fiscal_year_id) - core.fiscal_years.(id) [delete: cascade]
 Ref accounting_periods_accounting_entity_id_fkey: core.accounting_periods.(accounting_entity_id) > core.accounting_entities.(id) [delete: cascade]
 Ref accounting_periods_created_by_fkey: core.accounting_periods.(created_by) > core.actors.(id) [delete: restrict]
-Ref accounting_periods_fiscal_year_id_fkey: core.accounting_periods.(fiscal_year_id) > core.fiscal_years.(id) [delete: cascade]
+Ref accounting_periods_interval_id_fkey: core.accounting_periods.(interval_id) > core.accounting_intervals.(id) [delete: cascade]
 Ref accounting_standards_created_by_fkey: core.accounting_standards.(created_by) > core.actors.(id) [delete: restrict]
 Ref actors_created_by_fkey: core.actors.(created_by) > core.actors.(id) [delete: restrict]
 Ref actors_owner_actor_id_fkey: core.actors.(owner_actor_id) > core.actors.(id) [delete: restrict]
@@ -1142,15 +1289,17 @@ Ref ledger_accounts_accounting_entity_id_fkey: core.ledger_accounts.(accounting_
 Ref ledger_accounts_control_account_id_fkey: core.ledger_accounts.(control_account_id) > core.ledger_accounts.(id) [delete: restrict]
 Ref ledger_accounts_created_by_fkey: core.ledger_accounts.(created_by) > core.actors.(id) [delete: restrict]
 Ref ledger_accounts_currency_code_fkey: core.ledger_accounts.(currency_code) > core.currencies.(code) [delete: restrict]
-Ref reporting_contexts_accounting_context_id_fkey: core.reporting_contexts.(accounting_context_id) > core.accounting_contexts.(id) [delete: restrict]
+Ref reporting_contexts_accounting_context_id_fkey: core.reporting_contexts.(accounting_context_id) - core.accounting_contexts.(id) [delete: restrict]
 Ref reporting_contexts_accounting_entity_id_fkey: core.reporting_contexts.(accounting_entity_id) > core.accounting_entities.(id) [delete: cascade]
-Ref reporting_contexts_accounting_standard_code_fkey: core.reporting_contexts.(accounting_standard_code) > core.accounting_standards.(code) [delete: restrict]
 Ref reporting_contexts_created_by_fkey: core.reporting_contexts.(created_by) > core.actors.(id) [delete: restrict]
-Ref reporting_contexts_current_reporting_period_id_fkey: core.reporting_contexts.(current_reporting_period_id) > core.reporting_periods.(id) [delete: restrict]
 Ref reporting_contexts_reporting_currency_code_fkey: core.reporting_contexts.(reporting_currency_code) > core.currencies.(code) [delete: restrict]
+Ref reporting_contexts_reporting_interval_id_fkey: core.reporting_contexts.(reporting_interval_id) > core.reporting_intervals.(id) [delete: restrict]
+Ref reporting_intervals_accounting_entity_id_fkey: core.reporting_intervals.(accounting_entity_id) > core.accounting_entities.(id) [delete: cascade]
+Ref reporting_intervals_created_by_fkey: core.reporting_intervals.(created_by) > core.actors.(id) [delete: restrict]
+Ref reporting_intervals_fiscal_year_id_fkey: core.reporting_intervals.(fiscal_year_id) - core.fiscal_years.(id) [delete: cascade]
 Ref reporting_periods_accounting_entity_id_fkey: core.reporting_periods.(accounting_entity_id) > core.accounting_entities.(id) [delete: cascade]
 Ref reporting_periods_created_by_fkey: core.reporting_periods.(created_by) > core.actors.(id) [delete: restrict]
-Ref reporting_periods_fiscal_year_id_fkey: core.reporting_periods.(fiscal_year_id) > core.fiscal_years.(id) [delete: cascade]
+Ref reporting_periods_interval_id_fkey: core.reporting_periods.(interval_id) > core.reporting_intervals.(id) [delete: cascade]
 Ref subledger_fx_cost_basis_lot_acquisiti_accounting_entity_id_fkey: core.subledger_fx_cost_basis_lot_acquisitions.(accounting_entity_id) > core.accounting_entities.(id) [delete: cascade]
 Ref subledger_fx_cost_basis_lot_acquisitio_cost_basis_currency_fkey: core.subledger_fx_cost_basis_lot_acquisitions.(cost_basis_currency) > core.currencies.(code) [delete: restrict]
 Ref subledger_fx_cost_basis_lot_acquisitions_created_by_fkey: core.subledger_fx_cost_basis_lot_acquisitions.(created_by) > core.actors.(id) [delete: restrict]

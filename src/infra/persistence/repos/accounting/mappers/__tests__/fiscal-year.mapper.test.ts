@@ -1,7 +1,9 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { EPeriodStatus } from '@domain/accounting/types/period.types';
+import {
+  EFiscalYearStatus,
+  IFiscalYear,
+} from '@domain/accounting/types/fiscal-year.types';
 
 import fiscalYearMapper from '@infra/persistence/repos/accounting/mappers/fiscal-year.mapper';
 
@@ -11,7 +13,7 @@ describe('fiscalYearMapper', () => {
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       id: 'uuid-1' as TEntityId,
       name: 'FY 2026',
-      status: EPeriodStatus.Open,
+      status: EFiscalYearStatus.Open,
       accountingEntityId: 'entity-1' as TEntityId,
       startDate: new Date('2026-01-01T00:00:00Z'),
       endDate: new Date('2026-12-31T23:59:59Z'),
@@ -30,7 +32,7 @@ describe('fiscalYearMapper', () => {
       count: 12,
       startDate: '2026-01-01',
       endDate: '2026-12-31',
-      status: EPeriodStatus.Open,
+      status: EFiscalYearStatus.Open,
       closedAt: null,
       updatedAt: '2026-01-01T00:00:00.000Z',
     });
@@ -41,7 +43,7 @@ describe('fiscalYearMapper', () => {
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       id: 'uuid-1' as TEntityId,
       name: 'FY 2026',
-      status: EPeriodStatus.Closed,
+      status: EFiscalYearStatus.Closed,
       accountingEntityId: 'entity-1' as TEntityId,
       startDate: new Date('2026-01-01T00:00:00Z'),
       endDate: new Date('2026-12-31T23:59:59Z'),

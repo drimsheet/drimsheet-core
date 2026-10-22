@@ -2,13 +2,12 @@ import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 import { TEntityId } from '@shared/types/uuid';
 
-import { IAccountingPeriod } from '@domain/accounting/types/period.types';
+import { IAccountingPeriod } from '@domain/accounting/types/accounting-period.types';
 
 import { accountingPeriodsInCore } from '@infra/config/drizzle/schema';
 import {
   fromRepoDate,
   toRepoDate,
-  toRepoDateOnly,
 } from '@infra/persistence/helpers/date.mapper';
 
 export interface IAccountingPeriodRepoModel extends InferInsertModel<
@@ -26,11 +25,11 @@ const accountingPeriodMapper = {
       createdBy: domain.createdBy,
       name: domain.name,
       accountingEntityId: domain.accountingEntityId,
-      fiscalYearId: domain.fiscalYearId,
-      unit: domain.unit,
-      count: domain.count,
-      startDate: toRepoDateOnly(domain.startDate),
-      endDate: toRepoDateOnly(domain.endDate),
+      intervalId: domain.intervalId,
+      ordinal: domain.ordinal,
+      createdAt: toRepoDate(domain.createdAt),
+      startDate: toRepoDate(domain.startDate),
+      endDate: toRepoDate(domain.endDate),
       status: domain.status,
       closedAt: domain.closedAt ? toRepoDate(domain.closedAt) : null,
       updatedAt: toRepoDate(domain.updatedAt),
@@ -43,9 +42,9 @@ const accountingPeriodMapper = {
       createdBy: payload.createdBy as TEntityId,
       name: payload.name,
       accountingEntityId: payload.accountingEntityId as TEntityId,
-      fiscalYearId: payload.fiscalYearId as TEntityId,
-      unit: payload.unit,
-      count: payload.count,
+      intervalId: payload.intervalId as TEntityId,
+      ordinal: payload.ordinal,
+      createdAt: fromRepoDate(payload.createdAt),
       startDate: fromRepoDate(payload.startDate),
       endDate: fromRepoDate(payload.endDate),
       status: payload.status,

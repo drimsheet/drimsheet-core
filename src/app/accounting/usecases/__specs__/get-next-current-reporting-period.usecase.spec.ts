@@ -23,21 +23,15 @@ describe('getNextCurrentReportingPeriodUsecase', () => {
 
   afterEach(() => jest.useRealTimers());
 
-  it('returns due period references across entities using the current date and correlation ID', async () => {
+  it('returns due interval references across entities using the current instant and correlation ID', async () => {
     const periods = [
       {
-        reportingContextId: 'context-1' as TEntityId,
-        fiscalYearId: 'year-1' as TEntityId,
         accountingEntityId: 'entity-1' as TEntityId,
-        currentPeriodId: 'current-1' as TEntityId,
-        nextPeriodId: 'next-1' as TEntityId,
+        reportingIntervalId: 'next-1' as TEntityId,
       },
       {
-        reportingContextId: 'context-2' as TEntityId,
-        fiscalYearId: 'year-2' as TEntityId,
         accountingEntityId: 'entity-2' as TEntityId,
-        currentPeriodId: 'current-2' as TEntityId,
-        nextPeriodId: 'next-2' as TEntityId,
+        reportingIntervalId: 'next-2' as TEntityId,
       },
     ];
     mockNextCurrentReportingPeriodQueryRepo.findDue.mockResolvedValue(periods);

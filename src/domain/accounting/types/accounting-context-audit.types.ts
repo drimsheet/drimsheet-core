@@ -1,3 +1,4 @@
+import { IEvent } from '@shared/values/events/types/event.types';
 import {
   IEntityDelta,
   IHistory,
@@ -24,3 +25,15 @@ export interface IMakeAccountingContextAuditPayload {
 }
 
 export interface IAccountingContextHistory extends IHistory<IAccountingContext> {}
+
+export type TAuditedAccountingContext = [
+  IAccountingContext,
+  IEvent<IAccountingContext>[],
+  IAccountingContextAudit,
+];
+
+export type TAuditedAccountingContextUpdate = [
+  IAccountingContext,
+  IEvent<IAccountingContext>[],
+  IAccountingContextAudit | null,
+];

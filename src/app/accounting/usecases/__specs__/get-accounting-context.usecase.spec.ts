@@ -14,7 +14,7 @@ import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 const entityId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
 const actorId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
 const fiscalYearId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
-const periodId = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
+const intervalId = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
 const timestamp = new Date('2026-01-01T00:00:00.000Z');
 const context: IAccountingContext = {
   id: '123e4567-e89b-12d3-a456-426614174004' as TEntityId,
@@ -24,9 +24,7 @@ const context: IAccountingContext = {
   accountingEntityId: entityId,
   accountingStandardCode: 'IFRS',
   fiscalYearId,
-  currentAccountingPeriodId: periodId,
-  previousAccountingPeriodId: null,
-  nextAccountingPeriodId: null,
+  accountingIntervalId: intervalId,
   createdAt: timestamp,
   updatedAt: timestamp,
   closedAt: null,

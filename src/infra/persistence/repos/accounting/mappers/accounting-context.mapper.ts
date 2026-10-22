@@ -1,6 +1,7 @@
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 import { TEntityId } from '@shared/types/uuid';
+import deepFreeze from '@shared/utils/deep-freeze';
 
 import { UAccountingStandardCode } from '@domain/accounting/config/accounting-standards.config';
 import { IAccountingContext } from '@domain/accounting/types/context.types';
@@ -19,7 +20,7 @@ const accountingContextMapper = {
   toDomain(
     context: InferSelectModel<typeof accountingContextsInCore>
   ): IAccountingContext {
-    return Object.freeze({
+    return deepFreeze<IAccountingContext>({
       id: context.id as TEntityId,
       createdBy: context.createdBy as TEntityId,
       name: context.name,
@@ -28,11 +29,7 @@ const accountingContextMapper = {
       accountingStandardCode:
         context.accountingStandardCode as UAccountingStandardCode,
       fiscalYearId: context.fiscalYearId as TEntityId,
-      currentAccountingPeriodId: context.currentOperatingPeriodId as TEntityId,
-      previousAccountingPeriodId:
-        context.previousAccountingPeriodId as TEntityId | null,
-      nextAccountingPeriodId:
-        context.nextAccountingPeriodId as TEntityId | null,
+      accountingIntervalId: context.accountingIntervalId as TEntityId,
       createdAt: fromRepoDate(context.createdAt),
       updatedAt: fromRepoDate(context.updatedAt),
       closedAt: context.closedAt ? fromRepoDate(context.closedAt) : null,
@@ -47,9 +44,7 @@ const accountingContextMapper = {
       accountingEntityId: domain.accountingEntityId,
       accountingStandardCode: domain.accountingStandardCode,
       fiscalYearId: domain.fiscalYearId,
-      currentOperatingPeriodId: domain.currentAccountingPeriodId,
-      previousAccountingPeriodId: domain.previousAccountingPeriodId,
-      nextAccountingPeriodId: domain.nextAccountingPeriodId,
+      accountingIntervalId: domain.accountingIntervalId,
       createdAt: toRepoDate(domain.createdAt),
       updatedAt: toRepoDate(domain.updatedAt),
       closedAt: domain.closedAt ? toRepoDate(domain.closedAt) : null,

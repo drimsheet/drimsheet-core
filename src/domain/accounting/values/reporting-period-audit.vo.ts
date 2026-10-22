@@ -1,15 +1,15 @@
 import {
-  EPeriodActions,
-  IMakePeriodAuditPayload,
+  EReportingPeriodActions,
+  IMakeReportingPeriodAuditPayload,
   IReportingPeriodAudit,
-} from '@domain/accounting/types/period-audit.types';
-import { IReportingPeriod } from '@domain/accounting/types/period.types';
-import accountingAudit from '@domain/accounting/values/accounting-audit.vo';
+} from '@domain/accounting/types/reporting-period-audit.types';
+
+import accountingAudit from './accounting-audit.vo';
 
 function make(
-  payload: IMakePeriodAuditPayload<IReportingPeriod>
+  payload: IMakeReportingPeriodAuditPayload
 ): IReportingPeriodAudit {
-  return accountingAudit.make(payload, EPeriodActions);
+  return accountingAudit.make(payload, EReportingPeriodActions);
 }
 
 const reportingPeriodAudit = Object.freeze({

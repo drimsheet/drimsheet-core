@@ -2,7 +2,7 @@ import { ITransactionContext } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
 import historyValue from '@shared/values/history/history.vo';
 
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
+import accountingIntervalEntity from '@domain/accounting/entities/accounting-interval.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import periodError from '@domain/accounting/errors/period.error';
 
@@ -35,15 +35,20 @@ describe('accountingPeriodRepo.create', () => {
     endDate: new Date('2090-12-31'),
     status: 'open',
   });
-  const creations = accountingPeriodEntity.make({
+  const [interval, , audits] = accountingIntervalEntity.make({
     createdBy,
     accountingEntityId,
-    fiscalYear,
+    fiscalYearId: fiscalYear.id,
+    startDate: fiscalYear.startDate,
+    endDate: new Date('2091-01-01'),
+    periods: Array.from({ length: 12 }, (_, index) => ({
+      name: `Month ${index + 1}`,
+    })),
     unit: 'month',
     count: 12,
   });
-  const periods = creations.map(([period]) => period);
-  const histories = creations.map(([, , audit]) =>
+  const periods = interval.periods;
+  const histories = audits.periods.map((audit) =>
     historyValue.make(audit, createdBy, 'periods')
   );
   const outerTx: ITransactionContext = {};
@@ -100,18 +105,6 @@ describe('accountingPeriodRepo.create', () => {
     expect(getDbQuery).toHaveBeenCalledWith(options);
   });
 
-  it('also preserves the existing single-period creation contract', async () => {
-    const fake = fakeTransaction();
-    await accountingPeriodRepo.create(periods[0], {
-      ...options,
-      history: histories[0],
-    });
-    expect(fake.committed).toEqual([
-      accountingPeriodMapper.toRepo(periods[0]),
-      histories[0],
-    ]);
-  });
-
   it('rolls back all period records and staged histories when history persistence fails', async () => {
     const fake = fakeTransaction();
     const failure = new Error('history write failed');
@@ -148,7 +141,7 @@ describe('accountingPeriodRepo.create', () => {
     const fake = fakeTransaction();
     const failure = {
       code: '23503',
-      constraint: 'accounting_periods_fiscal_year_id_fkey',
+      constraint: 'accounting_periods_interval_id_fkey',
     };
     fake.values.mockRejectedValue(failure);
     await expect(accountingPeriodRepo.create(periods, options)).rejects.toBe(

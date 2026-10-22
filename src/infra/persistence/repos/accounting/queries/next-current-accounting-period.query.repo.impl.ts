@@ -1,56 +1,30 @@
-import { and, eq, isNull, lte } from 'drizzle-orm';
+import { lt } from 'drizzle-orm';
 
 import INextCurrentAccountingPeriodQueryRepo from '@app/accounting/contracts/next-current-accounting-period.query.repo.contract';
 
-import {
-  accountingContextsInCore,
-  accountingPeriodsInCore,
-} from '@infra/config/drizzle/schema';
-import { toRepoDateOnly } from '@infra/persistence/helpers/date.mapper';
+import { accountingIntervalsInCore } from '@infra/config/drizzle/schema';
+import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import nextCurrentAccountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/next-current-accounting-period.mapper';
 
 const nextCurrentAccountingPeriodQueryRepo: INextCurrentAccountingPeriodQueryRepo =
   {
     async findDue(date, options) {
-      const periods = await getDbQuery(options)
+      const intervals = await getDbQuery(options)
         .select({
-          accountingContextId: accountingContextsInCore.id,
-          fiscalYearId: accountingContextsInCore.fiscalYearId,
-          accountingEntityId: accountingContextsInCore.accountingEntityId,
-          currentPeriodId: accountingContextsInCore.currentOperatingPeriodId,
-          nextPeriodId: accountingPeriodsInCore.id,
+          accountingEntityId: accountingIntervalsInCore.accountingEntityId,
+          accountingIntervalId: accountingIntervalsInCore.id,
         })
-        .from(accountingContextsInCore)
-        .innerJoin(
-          accountingPeriodsInCore,
-          and(
-            eq(
-              accountingPeriodsInCore.id,
-              accountingContextsInCore.nextAccountingPeriodId
-            ),
-            eq(
-              accountingPeriodsInCore.accountingEntityId,
-              accountingContextsInCore.accountingEntityId
-            ),
-            eq(
-              accountingPeriodsInCore.fiscalYearId,
-              accountingContextsInCore.fiscalYearId
-            )
-          )
-        )
+        .from(accountingIntervalsInCore)
         .where(
-          and(
-            isNull(accountingContextsInCore.closedAt),
-            lte(accountingPeriodsInCore.startDate, toRepoDateOnly(date))
-          )
+          lt(accountingIntervalsInCore.nextPeriodStartDate, toRepoDate(date))
         )
         .orderBy(
-          accountingPeriodsInCore.startDate,
-          accountingContextsInCore.id
+          accountingIntervalsInCore.nextPeriodStartDate,
+          accountingIntervalsInCore.id
         );
 
-      return periods.map(nextCurrentAccountingPeriodMapper.toDetails);
+      return intervals.map(nextCurrentAccountingPeriodMapper.fromRepo);
     },
   };
 

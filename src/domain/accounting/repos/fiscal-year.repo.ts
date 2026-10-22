@@ -1,8 +1,8 @@
 import { IReadRepoOptions, IWriteRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
+import { IFiscalYearHistory } from '@domain/accounting/types/fiscal-year-audit.types';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { IFiscalYearHistory } from '@domain/accounting/types/period-audit.types';
 
 export default interface IFiscalYearRepo {
   findByAccountingEntityId(

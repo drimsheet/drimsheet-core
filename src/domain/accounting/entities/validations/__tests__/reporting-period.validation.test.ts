@@ -1,57 +1,64 @@
-import generateUUID from '@shared/utils/uuid-generator';
+import { TEntityId } from '@shared/types/uuid';
+import sharedPeriodError from '@shared/values/interval/period.error';
 
-import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import reportingIntervalEntity from '@domain/accounting/entities/reporting-interval.entity';
 import reportingPeriodValidation from '@domain/accounting/entities/validations/reporting-period.validation';
-import periodError from '@domain/accounting/errors/period.error';
+import accountingError from '@domain/accounting/errors/accounting.error';
+
+function makePeriod() {
+  const [interval] = reportingIntervalEntity.make({
+    accountingEntityId: '11111111-1111-4111-8111-111111111111' as TEntityId,
+    fiscalYearId: '22222222-2222-4222-8222-222222222222' as TEntityId,
+    createdBy: '33333333-3333-4333-8333-333333333333' as TEntityId,
+    unit: 'month',
+    count: 1,
+    startDate: new Date('2024-01-01'),
+    endDate: new Date('2024-02-01'),
+    periods: [{ name: 'January' }],
+  });
+  return interval.periods[0];
+}
 
 describe('reportingPeriodValidation', () => {
-  const [year] = fiscalYearEntity.make({
-    createdBy: generateUUID(),
-    accountingEntityId: generateUUID(),
-    startDate: new Date('2092-01-01'),
-    endDate: new Date('2092-12-31'),
-    status: 'open',
-  });
-  it('accepts the fiscal-year owner', () => {
+  it('accepts a constructed period and exposes shared validation', () => {
+    const period = makePeriod();
+    expect(() => reportingPeriodValidation.validate(period)).not.toThrow();
     expect(() =>
-      reportingPeriodValidation.validateFiscalYearOwnership(
-        year.accountingEntityId,
-        year
-      )
+      reportingPeriodValidation.validateCreation(period, period)
     ).not.toThrow();
-  });
-  it('rejects another entity', () => {
-    expect(() =>
-      reportingPeriodValidation.validateFiscalYearOwnership(
-        generateUUID(),
-        year
-      )
-    ).toThrow(periodError.InvalidAccountingEntityId);
+    expect(() => reportingPeriodValidation.validateName('Valid')).not.toThrow();
+    expect(() => reportingPeriodValidation.validateOrdinal(0)).not.toThrow();
+    expect(Object.isFrozen(reportingPeriodValidation)).toBe(true);
   });
 
-  it('allows overlapping intervals within the fiscal year', () => {
-    const interval = { startDate: year.startDate, endDate: year.endDate };
+  it('rejects invalid child identity and domain metadata', () => {
+    const period = makePeriod();
     expect(() =>
-      reportingPeriodValidation.validateFiscalYearBounds(
-        [interval, interval],
-        year
-      )
-    ).not.toThrow();
+      reportingPeriodValidation.validate({ ...period, id: 'bad' as TEntityId })
+    ).toThrow(sharedPeriodError.InvalidId);
+    expect(() =>
+      reportingPeriodValidation.validate({
+        ...period,
+        intervalId: 'bad' as TEntityId,
+      })
+    ).toThrow(sharedPeriodError.InvalidIntervalId);
+    expect(() =>
+      reportingPeriodValidation.validate({
+        ...period,
+        createdBy: 'bad' as TEntityId,
+      })
+    ).toThrow(accountingError.InvalidCreatedBy);
+    expect(() =>
+      reportingPeriodValidation.validate({
+        ...period,
+        createdAt: new Date(NaN),
+      })
+    ).toThrow(accountingError.InvalidDate);
+    expect(() =>
+      reportingPeriodValidation.validate({
+        ...period,
+        updatedAt: new Date(NaN),
+      })
+    ).toThrow(accountingError.InvalidDate);
   });
-
-  it.each([
-    ['2091-12-31', '2092-01-31'],
-    ['2092-12-01', '2093-01-01'],
-    ['2092-03-01', '2092-02-29'],
-  ])(
-    'rejects intervals outside or reversed within the fiscal year: %s–%s',
-    (start, end) => {
-      expect(() =>
-        reportingPeriodValidation.validateFiscalYearBounds(
-          [{ startDate: new Date(start), endDate: new Date(end) }],
-          year
-        )
-      ).toThrow(periodError.InvalidInterval);
-    }
-  );
 });

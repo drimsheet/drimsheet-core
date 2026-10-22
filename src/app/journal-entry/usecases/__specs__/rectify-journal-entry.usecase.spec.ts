@@ -5,13 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
-import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import periodError from '@domain/accounting/errors/period.error';
-import {
-  EPeriodStatus,
-  EPeriodUnit,
-} from '@domain/accounting/types/period.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -606,27 +600,12 @@ describe('makeRectifyJournalEntryUsecase', () => {
       const snapshot = structuredClone(originalEntry);
       const reversalDate = new Date('2026-10-01T10:00:00.000Z');
       jest.setSystemTime(reversalDate);
-      const [fiscalYear] = fiscalYearEntity.make({
-        accountingEntityId,
-        createdBy: actor.id,
-        startDate: new Date('2026-01-01'),
-        endDate: new Date('2026-12-31'),
-        status: EPeriodStatus.Open,
-      });
-      const periods = accountingPeriodEntity.make({
-        accountingEntityId,
-        createdBy: actor.id,
-        fiscalYear,
-        unit: EPeriodUnit.Month,
-        count: 12,
-      });
-      const [replacementPeriod] = periods[8];
       const failure = new ErrorType({
         accountingEntityId,
         postingDate: reversalDate,
       });
       mockAccountingPeriodService.validatePostingPeriod
-        .mockResolvedValueOnce(replacementPeriod)
+        .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(failure);
       mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
       mockJournalEntryRectificationPreparationAppService.prepare.mockImplementationOnce(

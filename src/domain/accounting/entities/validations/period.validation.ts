@@ -2,25 +2,13 @@ import dateUtils from '@shared/utils/date';
 
 import errors from '@domain/accounting/errors/period.error';
 import {
-  EPeriodStatus,
-  EPeriodUnit,
-  IPeriod,
-  UPeriodStatus,
-  UPeriodUnit,
-} from '@domain/accounting/types/period.types';
+  EFiscalYearStatus,
+  IFiscalYear,
+  UFiscalYearStatus,
+} from '@domain/accounting/types/fiscal-year.types';
 
-function isValidUnit(unit: unknown): unit is UPeriodUnit {
-  return Object.values(EPeriodUnit).includes(unit as UPeriodUnit);
-}
-
-function validateUnit(unit: unknown) {
-  if (!isValidUnit(unit)) {
-    throw new errors.InvalidUnit();
-  }
-}
-
-function isValidStatus(status: unknown): status is UPeriodStatus {
-  return Object.values(EPeriodStatus).includes(status as UPeriodStatus);
+function isValidStatus(status: unknown): status is UFiscalYearStatus {
+  return Object.values(EFiscalYearStatus).includes(status as UFiscalYearStatus);
 }
 
 function validateStatus(status: unknown) {
@@ -30,7 +18,7 @@ function validateStatus(status: unknown) {
 }
 
 function validateStartAndEndDate(
-  payload: Pick<IPeriod, 'startDate' | 'endDate'>
+  payload: Pick<IFiscalYear, 'startDate' | 'endDate'>
 ) {
   const isValidStartDate = dateUtils.isValidDate(payload.startDate);
   const isValidEndDate = dateUtils.isValidDate(payload.endDate);
@@ -59,9 +47,6 @@ function validateStartAndEndDate(
 }
 
 const periodValidation = Object.freeze({
-  isValidUnit,
-  validateUnit,
-
   isValidStatus,
   validateStatus,
 

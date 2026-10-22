@@ -2,14 +2,8 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity';
-import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import periodError from '@domain/accounting/errors/period.error';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
-import {
-  EPeriodStatus,
-  EPeriodUnit,
-} from '@domain/accounting/types/period.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -933,28 +927,13 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           journalEntry: candidate,
           destinationAssetAccount: destinationAccount,
         });
-        const [fiscalYear] = fiscalYearEntity.make({
-          accountingEntityId,
-          createdBy: actor,
-          startDate: new Date('2026-01-01'),
-          endDate: new Date('2026-12-31'),
-          status: EPeriodStatus.Open,
-        });
-        const periods = accountingPeriodEntity.make({
-          accountingEntityId,
-          createdBy: actor,
-          fiscalYear,
-          unit: EPeriodUnit.Month,
-          count: 12,
-        });
-        const [replacementPeriod] = periods[8];
         const failure = new ErrorType({
           accountingEntityId,
           postingDate: reversalDate,
         });
         mockAccountingPeriodService.validatePostingPeriod.mockReset();
         mockAccountingPeriodService.validatePostingPeriod
-          .mockResolvedValueOnce(replacementPeriod)
+          .mockResolvedValueOnce(undefined)
           .mockRejectedValueOnce(failure);
         mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([]);
         const realRectificationService = makeJournalEntryRectificationService({

@@ -4,7 +4,6 @@ import {
   fiscalYearPeriodUnit,
   fiscalYearsTable,
   periodStatus,
-  periodUnit,
 } from '../config/accounting';
 import { accountingEntitiesTable } from '../config/accounting-entity';
 import { actorsTable } from '../config/actors';
@@ -15,7 +14,6 @@ export const shorthands: ColumnDefinitions | undefined = undefined;
 export function up(pgm: MigrationBuilder) {
   pgm.createExtension('btree_gist', { ifNotExists: true });
   pgm.createType(fiscalYearPeriodUnit, ['month']);
-  pgm.createType(periodUnit, ['day', 'week', 'month', 'quarter', 'year']);
   pgm.createType(periodStatus, ['pending', 'open', 'closing', 'closed']);
 
   pgm.createTable(fiscalYearsTable, {
@@ -97,5 +95,4 @@ export function down(pgm: MigrationBuilder) {
 
   pgm.dropType(periodStatus);
   pgm.dropType(fiscalYearPeriodUnit);
-  pgm.dropType(periodUnit);
 }

@@ -18,10 +18,7 @@ describe('accountingContextAudit', () => {
       accountingEntityId: '123e4567-e89b-12d3-a456-426614174000' as TEntityId,
       accountingStandardCode: 'IFRS',
       fiscalYearId: '123e4567-e89b-12d3-a456-426614174001' as TEntityId,
-      currentAccountingPeriodId:
-        '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
-      previousAccountingPeriodId: null,
-      nextAccountingPeriodId: null,
+      accountingIntervalId: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
     })[0];
 
   describe('make', () => {

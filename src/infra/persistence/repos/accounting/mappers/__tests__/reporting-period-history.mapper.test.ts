@@ -1,7 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import { IReportingPeriodHistory } from '@domain/accounting/types/period-audit.types';
-import { IReportingPeriod } from '@domain/accounting/types/period.types';
+import { IReportingPeriodHistory } from '@domain/accounting/types/reporting-period-audit.types';
+import { IReportingPeriod } from '@domain/accounting/types/reporting-period.types';
 
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
 import reportingPeriodHistoryMapper from '@infra/persistence/repos/accounting/mappers/reporting-period-history.mapper';

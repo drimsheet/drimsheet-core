@@ -94,10 +94,7 @@ const context: IAccountingContext = {
   accountingEntityId: entity.id,
   accountingStandardCode: 'IFRS',
   fiscalYearId: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
-  currentAccountingPeriodId:
-    '123e4567-e89b-12d3-a456-426614174004' as TEntityId,
-  previousAccountingPeriodId: null,
-  nextAccountingPeriodId: null,
+  accountingIntervalId: '123e4567-e89b-12d3-a456-426614174004' as TEntityId,
   createdAt: entity.createdAt,
   updatedAt: entity.updatedAt,
   closedAt: null,

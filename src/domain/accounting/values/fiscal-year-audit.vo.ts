@@ -1,13 +1,12 @@
-import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import {
-  EPeriodActions,
+  EFiscalYearActions,
   IFiscalYearAudit,
-  IMakePeriodAuditPayload,
-} from '@domain/accounting/types/period-audit.types';
+  IMakeFiscalYearAuditPayload,
+} from '@domain/accounting/types/fiscal-year-audit.types';
 import accountingAudit from '@domain/accounting/values/accounting-audit.vo';
 
-function make(payload: IMakePeriodAuditPayload<IFiscalYear>): IFiscalYearAudit {
-  return accountingAudit.make(payload, EPeriodActions);
+function make(payload: IMakeFiscalYearAuditPayload): IFiscalYearAudit {
+  return accountingAudit.make(payload, EFiscalYearActions);
 }
 
 const fiscalYearAudit = Object.freeze({

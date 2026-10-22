@@ -18,11 +18,8 @@ jest.mock('@infra/config/redis.config', () => ({
 
 describe('current accounting period queue', () => {
   const payload: INextCurrentAccountingPeriodDto = {
-    accountingContextId: generateUUID(),
-    fiscalYearId: generateUUID(),
     accountingEntityId: generateUUID(),
-    currentPeriodId: generateUUID(),
-    nextPeriodId: generateUUID(),
+    accountingIntervalId: generateUUID(),
   };
   let queue: ReturnType<TQueueFactory>;
 
@@ -53,7 +50,7 @@ describe('current accounting period queue', () => {
         trace: { sentryTrace: 'trace-carrier' },
       },
       {
-        jobId: `${CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME}_${payload.accountingContextId}_${payload.accountingEntityId}_${payload.fiscalYearId}_${payload.currentPeriodId}_${payload.nextPeriodId}`,
+        jobId: `${CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME}_${payload.accountingEntityId}_${payload.accountingIntervalId}`,
         attempts: 3,
         backoff: { type: 'exponential', delay: 5_000 },
         removeOnComplete: true,
@@ -62,7 +59,7 @@ describe('current accounting period queue', () => {
     );
   });
 
-  it('reuses the queue and transition job ID across scheduler runs', async () => {
+  it('reuses the queue and interval job ID across scheduler runs', async () => {
     await queue.add('producer-correlation', payload);
     await queue.add('producer-correlation', payload);
     expect(mockQueueConstructor).toHaveBeenCalledTimes(1);
@@ -72,7 +69,7 @@ describe('current accounting period queue', () => {
 
     await queue.add('producer-correlation', {
       ...payload,
-      nextPeriodId: generateUUID(),
+      accountingIntervalId: generateUUID(),
     });
     expect(mockQueueAdd.mock.calls[2][2].jobId).not.toBe(
       mockQueueAdd.mock.calls[0][2].jobId
@@ -80,7 +77,7 @@ describe('current accounting period queue', () => {
 
     await queue.add('producer-correlation', {
       ...payload,
-      accountingContextId: generateUUID(),
+      accountingEntityId: generateUUID(),
     });
     expect(mockQueueAdd.mock.calls[3][2].jobId).not.toBe(
       mockQueueAdd.mock.calls[0][2].jobId

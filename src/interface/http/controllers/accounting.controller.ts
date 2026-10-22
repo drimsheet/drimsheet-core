@@ -22,13 +22,9 @@ import {
   IReportingContext,
 } from '@domain/accounting/types/context.types';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import {
-  IAccountingPeriod,
-  IReportingPeriod,
-} from '@domain/accounting/types/period.types';
 
 import { IAccountingContextCreationReq } from '@app/accounting/dtos/accounting-context/accounting-context.dto';
-import { IAccountingPeriodsCreationReq } from '@app/accounting/dtos/accounting-period/accounting-period.dto';
+import { IAccountingIntervalCreationReq } from '@app/accounting/dtos/accounting-interval/accounting-interval.dto';
 import {
   IAccountingEntityCreationDto,
   IAccountingEntitySwitchReq,
@@ -36,27 +32,24 @@ import {
 } from '@app/accounting/dtos/accounting/accounting.dto';
 import { IFiscalYearCreationReq } from '@app/accounting/dtos/fiscal-year/fiscal-year.dto';
 import { IReportingContextCreationReq } from '@app/accounting/dtos/reporting-context/reporting-context.dto';
-import { IReportingPeriodsCreationReq } from '@app/accounting/dtos/reporting-period/reporting-period.dto';
+import { IReportingIntervalCreationReq } from '@app/accounting/dtos/reporting-interval/reporting-interval.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   archiveAccountingEntityUseCase,
   createAccountingContextUseCase,
   createAccountingEntityUseCase,
-  createAccountingPeriodsUseCase,
+  createAccountingIntervalUseCase,
   createFiscalYearUseCase,
   createReportingContextUseCase,
-  createReportingPeriodsUseCase,
+  createReportingIntervalUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextUseCase,
-  getAccountingPeriodsUseCase,
-  getAccountingPeriodUseCase,
   getActiveAccountingEntityUseCase,
   getFiscalYearsUseCase,
   getFiscalYearUseCase,
   getJurisdictionsUseCase,
   getReportingContextUseCase,
-  getReportingPeriodsUseCase,
   getUserAccountingEntitiesUseCase,
   switchAccountingEntityUseCase,
   updateAccountingEntityUseCase,
@@ -100,27 +93,6 @@ export class AccountingController extends Controller {
   )
   public async getActiveAccountingEntity() {
     return await getActiveAccountingEntityUseCase();
-  }
-
-  /** Returns one accounting period belonging to x-accounting-entity-id. */
-  @Get('/accounting-periods/{id}')
-  @OperationId('getAccountingPeriod')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('404')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async getAccountingPeriod(
-    @Path() id: string
-  ): Promise<IAccountingPeriod> {
-    return await getAccountingPeriodUseCase(id);
   }
 
   /** Returns all fiscal years for x-accounting-entity-id. */
@@ -181,27 +153,6 @@ export class AccountingController extends Controller {
     return await getAccountingContextUseCase(id);
   }
 
-  /** Returns all periods of a fiscal year belonging to x-accounting-entity-id. */
-  @Get('/fiscal-years/{fiscalYearId}/accounting-periods')
-  @OperationId('getAccountingPeriods')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('404')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async getAccountingPeriods(
-    @Path() fiscalYearId: string
-  ): Promise<IAccountingPeriod[]> {
-    return await getAccountingPeriodsUseCase(fiscalYearId);
-  }
-
   /** Returns the fiscal year's context, including closed contexts, or null. */
   @Get('/fiscal-years/{id}/reporting-context')
   @OperationId('getReportingContext')
@@ -222,30 +173,6 @@ export class AccountingController extends Controller {
   ): Promise<IReportingContext | null> {
     this.setHeader('Content-Type', 'application/json');
     return await getReportingContextUseCase(id);
-  }
-
-  /**
-   * Returns all reporting periods of a fiscal year belonging to
-   * x-accounting-entity-id.
-   */
-  @Get('/fiscal-years/{fiscalYearId}/reporting-periods')
-  @OperationId('getReportingPeriods')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('404')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async getReportingPeriods(
-    @Path() fiscalYearId: string
-  ): Promise<IReportingPeriod[]> {
-    return await getReportingPeriodsUseCase(fiscalYearId);
   }
 
   /**
@@ -301,9 +228,11 @@ export class AccountingController extends Controller {
     return await createFiscalYearUseCase(body);
   }
 
-  /** Generates the fiscal year's posting calendar for x-accounting-entity-id. Context and schedule setup are separate. */
-  @Post('/accounting-periods')
-  @OperationId('createAccountingPeriods')
+  /**
+   * Creates an interval and its periods for x-accounting-entity-id.
+   */
+  @Post('/accounting-intervals')
+  @OperationId('createAccountingInterval')
   @SuccessResponse('201')
   @Response<IHttpErrorDto>('400')
   @Response<IHttpErrorDto>('401')
@@ -317,13 +246,17 @@ export class AccountingController extends Controller {
     middlewares.featureFlagAccess.canAccessAlpha1,
     middlewares.accountingEntityAccess
   )
-  public async createAccountingPeriods(
-    @Body() body: IAccountingPeriodsCreationReq
-  ): Promise<IAccountingPeriod[]> {
-    return await createAccountingPeriodsUseCase(body);
+  public async createAccountingInterval(
+    @Body() body: IAccountingIntervalCreationReq
+  ) {
+    return await createAccountingIntervalUseCase(body);
   }
 
-  /** Creates a context for x-accounting-entity-id from existing records; archived entities return 409. Explicit period selection is required for current, historical, and future years and never changes period status or posting eligibility. */
+  /**
+   * Creates a context for x-accounting-entity-id from existing records;
+   * archived entities return 409.Explicit period selection is required for current, historical,
+   * and future years and never changes period status or posting eligibility.
+   */
   @Post('/accounting-context')
   @OperationId('createAccountingContext')
   @SuccessResponse('201')
@@ -345,9 +278,11 @@ export class AccountingController extends Controller {
     return await createAccountingContextUseCase(body);
   }
 
-  /** Generates inclusive UTC reporting intervals for x-accounting-entity-id. A fiscal year with existing reporting periods returns 409, regardless of requested cadence. */
-  @Post('/reporting-periods')
-  @OperationId('createReportingPeriods')
+  /**
+   * Creates an interval and its periods for x-accounting-entity-id.
+   */
+  @Post('/reporting-intervals')
+  @OperationId('createReportingInterval')
   @SuccessResponse('201')
   @Response<IHttpErrorDto>('400')
   @Response<IHttpErrorDto>('401')
@@ -361,13 +296,17 @@ export class AccountingController extends Controller {
     middlewares.featureFlagAccess.canAccessAlpha1,
     middlewares.accountingEntityAccess
   )
-  public async createReportingPeriods(
-    @Body() body: IReportingPeriodsCreationReq
-  ): Promise<IReportingPeriod[]> {
-    return await createReportingPeriodsUseCase(body);
+  public async createReportingInterval(
+    @Body() body: IReportingIntervalCreationReq
+  ) {
+    return await createReportingIntervalUseCase(body);
   }
 
-  /** Creates only a reporting context and its history for x-accounting-entity-id; archived entities return 409. The selected reporting period must share the linked accounting context's entity and fiscal year. */
+  /**
+   * Creates only a reporting context and its history for x-accounting-entity-id;
+   * archived entities return 409.
+   * The selected reporting period must share the linked accounting context's entity and fiscal year.
+   */
   @Post('/reporting-context')
   @OperationId('createReportingContext')
   @SuccessResponse('201')

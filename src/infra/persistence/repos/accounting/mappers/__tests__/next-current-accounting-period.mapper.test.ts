@@ -1,22 +1,16 @@
 import nextCurrentAccountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/next-current-accounting-period.mapper';
 
 describe('nextCurrentAccountingPeriodMapper', () => {
-  it('returns only the requested context and period reference fields', () => {
+  it('returns only the requested entity and interval reference fields', () => {
     const row = {
-      accountingContextId: 'context',
-      fiscalYearId: 'year',
       accountingEntityId: 'entity',
-      currentPeriodId: 'current',
-      nextPeriodId: 'next',
+      accountingIntervalId: 'next',
       internal: 'private',
     };
 
-    expect(nextCurrentAccountingPeriodMapper.toDetails(row)).toEqual({
-      accountingContextId: 'context',
-      fiscalYearId: 'year',
+    expect(nextCurrentAccountingPeriodMapper.fromRepo(row)).toEqual({
       accountingEntityId: 'entity',
-      currentPeriodId: 'current',
-      nextPeriodId: 'next',
+      accountingIntervalId: 'next',
     });
   });
 });

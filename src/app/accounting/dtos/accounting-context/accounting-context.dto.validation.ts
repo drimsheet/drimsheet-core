@@ -7,8 +7,8 @@ import accountingError from '@domain/accounting/errors/accounting.error';
 export const accountingContextCreationDtoSchema = z
   .object({
     fiscalYearId: z.uuid(new accountingError.InvalidFiscalYearId().errorKey),
-    currentAccountingPeriodId: z.uuid(
-      new accountingError.InvalidCurrentAccountingPeriodId().errorKey
+    accountingIntervalId: z.uuid(
+      new accountingError.InvalidAccountingIntervalId().errorKey
     ),
     accountingStandardCode: z.enum(
       Object.keys(SYSTEM_ACCOUNTING_STANDARDS),

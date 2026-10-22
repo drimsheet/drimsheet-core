@@ -1,11 +1,14 @@
-import { and, eq, gte, lte } from 'drizzle-orm';
+import { and, eq, getTableColumns, gt, lt, lte } from 'drizzle-orm';
 
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
 
 import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 
-import { accountingPeriodsInCore } from '@infra/config/drizzle/schema';
-import { toRepoDateOnly } from '@infra/persistence/helpers/date.mapper';
+import {
+  accountingIntervalsInCore,
+  accountingPeriodsInCore,
+} from '@infra/config/drizzle/schema';
+import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import mapAccountingPeriodOverlapErrorHelper from '@infra/persistence/helpers/map-accounting-period-overlap-error.helper';
 import accountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/accounting-period.mapper';
@@ -15,12 +18,17 @@ import accountingPeriodHistoryRepo from './accounting-period-history.repo.impl';
 const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   findAllByFiscalYear: async (accountingEntityId, fiscalYearId, options) => {
     const periods = await getDbQuery(options)
-      .select()
+      .select(getTableColumns(accountingPeriodsInCore))
       .from(accountingPeriodsInCore)
+      .innerJoin(
+        accountingIntervalsInCore,
+        eq(accountingPeriodsInCore.intervalId, accountingIntervalsInCore.id)
+      )
       .where(
         and(
           eq(accountingPeriodsInCore.accountingEntityId, accountingEntityId),
-          eq(accountingPeriodsInCore.fiscalYearId, fiscalYearId)
+          eq(accountingIntervalsInCore.fiscalYearId, fiscalYearId),
+          eq(accountingIntervalsInCore.accountingEntityId, accountingEntityId)
         )
       )
       .orderBy(accountingPeriodsInCore.startDate, accountingPeriodsInCore.id);
@@ -44,7 +52,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   },
 
   findByDate: async (accountingEntityId, date, options) => {
-    const repoDate = toRepoDateOnly(date);
+    const repoDate = toRepoDate(date);
     const baseQuery = getDbQuery(options)
       .select()
       .from(accountingPeriodsInCore)
@@ -52,7 +60,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
         and(
           eq(accountingPeriodsInCore.accountingEntityId, accountingEntityId),
           lte(accountingPeriodsInCore.startDate, repoDate),
-          gte(accountingPeriodsInCore.endDate, repoDate)
+          gt(accountingPeriodsInCore.endDate, repoDate)
         )
       );
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
@@ -62,7 +70,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   },
 
   findAllByDate: async (accountingEntityId, date, options) => {
-    const repoDate = toRepoDateOnly(date);
+    const repoDate = toRepoDate(date);
     const baseQuery = getDbQuery(options)
       .select()
       .from(accountingPeriodsInCore)
@@ -70,7 +78,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
         and(
           eq(accountingPeriodsInCore.accountingEntityId, accountingEntityId),
           lte(accountingPeriodsInCore.startDate, repoDate),
-          gte(accountingPeriodsInCore.endDate, repoDate)
+          gt(accountingPeriodsInCore.endDate, repoDate)
         )
       );
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
@@ -86,8 +94,8 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
       .where(
         and(
           eq(accountingPeriodsInCore.accountingEntityId, accountingEntityId),
-          lte(accountingPeriodsInCore.startDate, toRepoDateOnly(range.endDate)),
-          gte(accountingPeriodsInCore.endDate, toRepoDateOnly(range.startDate))
+          lt(accountingPeriodsInCore.startDate, toRepoDate(range.endDate)),
+          gt(accountingPeriodsInCore.endDate, toRepoDate(range.startDate))
         )
       );
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
@@ -98,9 +106,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   create: async (payload, options) => {
     try {
       await getDbQuery(options).transaction(async (tx) => {
-        const valuesArray = Array.isArray(payload)
-          ? payload.map(accountingPeriodMapper.toRepo)
-          : [accountingPeriodMapper.toRepo(payload)];
+        const valuesArray = payload.map(accountingPeriodMapper.toRepo);
 
         await tx.insert(accountingPeriodsInCore).values(valuesArray);
 

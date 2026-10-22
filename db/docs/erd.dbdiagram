@@ -267,6 +267,30 @@
       "schemaName": "core",
       "x": 1572,
       "y": 3612
+    },
+    {
+      "name": "accounting_interval_history",
+      "schemaName": "audit",
+      "x": 12,
+      "y": 3972
+    },
+    {
+      "name": "reporting_interval_history",
+      "schemaName": "audit",
+      "x": 532,
+      "y": 3972
+    },
+    {
+      "name": "accounting_intervals",
+      "schemaName": "core",
+      "x": 1052,
+      "y": 3972
+    },
+    {
+      "name": "reporting_intervals",
+      "schemaName": "core",
+      "x": 1572,
+      "y": 3972
     }
   ],
   "referencePaths": [
@@ -326,6 +350,36 @@
         "on_behalf_of"
       ],
       "secondTableName": "accounting_entity_history",
+      "secondSchemaName": "audit",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "actors",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "actor_id"
+      ],
+      "secondTableName": "accounting_interval_history",
+      "secondSchemaName": "audit",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "actors",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "on_behalf_of"
+      ],
+      "secondTableName": "accounting_interval_history",
       "secondSchemaName": "audit",
       "secondRelation": "*",
       "checkPoints": []
@@ -595,6 +649,36 @@
       "secondFieldNames": [
         "actor_id"
       ],
+      "secondTableName": "reporting_interval_history",
+      "secondSchemaName": "audit",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "actors",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "on_behalf_of"
+      ],
+      "secondTableName": "reporting_interval_history",
+      "secondSchemaName": "audit",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "actors",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "actor_id"
+      ],
       "secondTableName": "reporting_period_history",
       "secondSchemaName": "audit",
       "secondRelation": "*",
@@ -752,6 +836,21 @@
     },
     {
       "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "accounting_intervals",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "accounting_interval_id"
+      ],
+      "secondTableName": "accounting_contexts",
+      "secondSchemaName": "core",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
         "code"
       ],
       "firstTableName": "accounting_standards",
@@ -784,21 +883,6 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "accounting_periods",
-      "firstSchemaName": "core",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "current_operating_period_id"
-      ],
-      "secondTableName": "accounting_contexts",
-      "secondSchemaName": "core",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
       "firstTableName": "fiscal_years",
       "firstSchemaName": "core",
       "firstRelation": "1",
@@ -807,7 +891,7 @@
       ],
       "secondTableName": "accounting_contexts",
       "secondSchemaName": "core",
-      "secondRelation": "*",
+      "secondRelation": "1",
       "checkPoints": []
     },
     {
@@ -880,6 +964,51 @@
       "secondFieldNames": [
         "accounting_entity_id"
       ],
+      "secondTableName": "accounting_intervals",
+      "secondSchemaName": "core",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "actors",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "created_by"
+      ],
+      "secondTableName": "accounting_intervals",
+      "secondSchemaName": "core",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "fiscal_years",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "fiscal_year_id"
+      ],
+      "secondTableName": "accounting_intervals",
+      "secondSchemaName": "core",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "accounting_entities",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "accounting_entity_id"
+      ],
       "secondTableName": "accounting_periods",
       "secondSchemaName": "core",
       "secondRelation": "*",
@@ -904,11 +1033,11 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "fiscal_years",
+      "firstTableName": "accounting_intervals",
       "firstSchemaName": "core",
       "firstRelation": "1",
       "secondFieldNames": [
-        "fiscal_year_id"
+        "interval_id"
       ],
       "secondTableName": "accounting_periods",
       "secondSchemaName": "core",
@@ -1557,7 +1686,7 @@
       ],
       "secondTableName": "reporting_contexts",
       "secondSchemaName": "core",
-      "secondRelation": "*",
+      "secondRelation": "1",
       "checkPoints": []
     },
     {
@@ -1577,21 +1706,6 @@
     },
     {
       "firstFieldNames": [
-        "code"
-      ],
-      "firstTableName": "accounting_standards",
-      "firstSchemaName": "core",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "accounting_standard_code"
-      ],
-      "secondTableName": "reporting_contexts",
-      "secondSchemaName": "core",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
         "id"
       ],
       "firstTableName": "actors",
@@ -1599,21 +1713,6 @@
       "firstRelation": "1",
       "secondFieldNames": [
         "created_by"
-      ],
-      "secondTableName": "reporting_contexts",
-      "secondSchemaName": "core",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "reporting_periods",
-      "firstSchemaName": "core",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "current_reporting_period_id"
       ],
       "secondTableName": "reporting_contexts",
       "secondSchemaName": "core",
@@ -1639,6 +1738,66 @@
       "firstFieldNames": [
         "id"
       ],
+      "firstTableName": "reporting_intervals",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "reporting_interval_id"
+      ],
+      "secondTableName": "reporting_contexts",
+      "secondSchemaName": "core",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "accounting_entities",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "accounting_entity_id"
+      ],
+      "secondTableName": "reporting_intervals",
+      "secondSchemaName": "core",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "actors",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "created_by"
+      ],
+      "secondTableName": "reporting_intervals",
+      "secondSchemaName": "core",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "fiscal_years",
+      "firstSchemaName": "core",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "fiscal_year_id"
+      ],
+      "secondTableName": "reporting_intervals",
+      "secondSchemaName": "core",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
       "firstTableName": "accounting_entities",
       "firstSchemaName": "core",
       "firstRelation": "1",
@@ -1669,11 +1828,11 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "fiscal_years",
+      "firstTableName": "reporting_intervals",
       "firstSchemaName": "core",
       "firstRelation": "1",
       "secondFieldNames": [
-        "fiscal_year_id"
+        "interval_id"
       ],
       "secondTableName": "reporting_periods",
       "secondSchemaName": "core",

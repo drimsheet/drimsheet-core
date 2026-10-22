@@ -4,7 +4,7 @@ import { INextCurrentReportingPeriodDto } from '@app/accounting/dtos/current-rep
 
 export default interface INextCurrentReportingPeriodQueryRepo {
   /**
-   * Returns unclosed contexts' next periods due by the supplied UTC date,
+   * Returns intervals whose next period starts before the supplied instant,
    * across all accounting entities.
    */
   findDue(

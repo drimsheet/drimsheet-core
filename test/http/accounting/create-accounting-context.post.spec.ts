@@ -84,14 +84,11 @@ const payload = {
   name: 'Working context',
   description: null,
   fiscalYearId: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
-  currentAccountingPeriodId:
-    '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
+  accountingIntervalId: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
   accountingStandardCode: 'IFRS' as const,
 };
 const context = {
   ...payload,
-  previousAccountingPeriodId: null,
-  nextAccountingPeriodId: null,
   accountingEntityId,
   id: '123e4567-e89b-12d3-a456-426614174004' as TEntityId,
   createdBy: userId,
@@ -150,7 +147,7 @@ describe('POST /accounting/accounting-context', () => {
   describe('400 Response', () => {
     it.each([
       accountingError.InvalidFiscalYearId,
-      accountingError.InvalidCurrentAccountingPeriodId,
+      accountingError.InvalidAccountingIntervalId,
       accountingStandardError.Invalid,
     ])('maps invalid references and standards', async (ErrorType) => {
       const error = new ErrorType();
@@ -201,7 +198,7 @@ describe('POST /accounting/accounting-context', () => {
   describe('404 Response', () => {
     it.each([
       accountingAppError.FiscalYearNotFound,
-      accountingAppError.AccountingPeriodNotFound,
+      accountingAppError.AccountingIntervalNotFound,
     ])('maps missing prerequisites', async (ErrorType) => {
       const error = new ErrorType();
       create.mockRejectedValue(error);
@@ -233,7 +230,7 @@ describe('POST /accounting/accounting-context', () => {
   describe('422 Response', () => {
     it.each([
       { accountingStandardCode: 'INVALID' },
-      { currentAccountingPeriodId: undefined },
+      { accountingIntervalId: undefined },
       { fiscalYearId: undefined },
       { description: 42 },
       { accountingEntityId },

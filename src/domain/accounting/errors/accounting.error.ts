@@ -5,6 +5,10 @@ import DomainError from '@shared/values/errors/domain.error';
 type TErrorPrefix = TErrorKey<'accounting_error'>;
 
 const EErrorKeys = {
+  AccountingIntervalAlreadyExists:
+    'accounting_error_accounting_interval_already_exists_conflict',
+  ReportingIntervalAlreadyExists:
+    'accounting_error_reporting_interval_already_exists_conflict',
   AccountingContextAlreadyExists:
     'accounting_error_accounting_context_already_exists_conflict',
   AccountingContextNotFound: 'accounting_error_accounting_context_not_found',
@@ -18,18 +22,11 @@ const EErrorKeys = {
   InvalidDate: 'accounting_error_date_invalid',
   InvalidAccountingEntityId: 'accounting_error_accounting_entity_id_invalid',
   InvalidFiscalYearId: 'accounting_error_fiscal_year_id_invalid',
-  InvalidCurrentAccountingPeriodId:
-    'accounting_error_current_accounting_period_id_invalid',
-  InvalidPreviousAccountingPeriodId:
-    'accounting_error_previous_accounting_period_id_invalid',
-  InvalidNextAccountingPeriodId:
-    'accounting_error_next_accounting_period_id_invalid',
+  InvalidAccountingIntervalId:
+    'accounting_error_accounting_interval_id_invalid',
+  InvalidReportingIntervalId: 'accounting_error_reporting_interval_id_invalid',
   InvalidAccountingContextId: 'accounting_error_accounting_context_id_invalid',
-  InvalidCurrentReportingPeriodId:
-    'accounting_error_current_reporting_period_id_invalid',
   InvalidReportingContextId: 'accounting_error_reporting_context_id_invalid',
-  InvalidNextReportingPeriodId:
-    'accounting_error_next_reporting_period_id_invalid',
   InvalidName: 'accounting_error_name_invalid',
   InvalidDescription: 'accounting_error_description_invalid',
   InvalidJurisdictionCode: 'accounting_error_jurisdiction_code_invalid',
@@ -37,8 +34,6 @@ const EErrorKeys = {
     'accounting_error_invalid_accounting_entity_type_invalid',
   InvalidAccountingStandardCode:
     'accounting_error_accounting_standard_code_invalid',
-  TransferNotPermittedOnAccount:
-    'accounting_error_transfer_not_permitted_on_account_invalid',
 } as const satisfies TErrorKeys<'accounting_error'>;
 
 type UAccountingError = (typeof EErrorKeys)[keyof typeof EErrorKeys];

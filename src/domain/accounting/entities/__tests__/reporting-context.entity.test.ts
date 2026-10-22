@@ -1,185 +1,192 @@
 import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
 
 import reportingContextEntity from '@domain/accounting/entities/reporting-context.entity';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import { EReportingContextEvents } from '@domain/accounting/events/reporting-context.events';
 import { EReportingContextActions } from '@domain/accounting/types/reporting-context-audit.types';
 
-describe('reportingContextEntity', () => {
-  beforeAll(() => {
-    jest.useFakeTimers().setSystemTime(new Date('2024-01-01T00:00:00Z'));
-  });
+function makePayload(): Parameters<typeof reportingContextEntity.make>[0] {
+  return {
+    createdBy: generateUUID(),
+    name: '  Primary context  ',
+    description: '  Context description  ',
+    accountingEntityId: generateUUID(),
+    accountingContextId: generateUUID(),
+    reportingCurrencyCode: 'NGN',
+    reportingIntervalId: generateUUID(),
+  };
+}
 
-  afterAll(() => {
+describe('reportingContextEntity interval references', () => {
+  const timestamp = new Date('2026-01-01T12:00:00Z');
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(timestamp);
+  });
+  afterEach(() => {
     jest.useRealTimers();
   });
 
-  const validPayload = {
-    createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-    name: 'USD Reporting Context',
-    description: 'Weekly automated translation reports',
-    accountingEntityId: '123e4567-e89b-12d3-a456-426614174000' as TEntityId,
-    reportingCurrencyCode: 'NGN',
-    accountingContextId: '123e4567-e89b-12d3-a456-426614174001' as TEntityId,
-    currentReportingPeriodId:
-      '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
-    accountingStandardCode: 'IFRS',
-  } as const;
-
-  describe('make', () => {
-    it('creates a valid reporting context entity with events', () => {
-      const [entity, events, audit] = reportingContextEntity.make(validPayload);
-
-      expect(entity).toEqual({
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        id: expect.any(String),
-        name: validPayload.name,
-        description: validPayload.description,
-        accountingEntityId: validPayload.accountingEntityId,
-        reportingCurrencyCode: validPayload.reportingCurrencyCode,
-        accountingContextId: validPayload.accountingContextId,
-        currentReportingPeriodId: validPayload.currentReportingPeriodId,
-        accountingStandardCode: validPayload.accountingStandardCode,
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T00:00:00Z'),
-        closedAt: null,
-      });
-      expect(Object.isFrozen(entity)).toBe(true);
-
-      expect(events).toHaveLength(1);
-      expect(events[0]).toMatchObject({
-        type: EReportingContextEvents.Created,
-        data: entity,
-      });
-
-      expect(audit).toEqual({
-        entityId: entity.id,
-        entityVersion: 1,
-        action: EReportingContextActions.Created,
-        diff: {
-          before: null,
-          after: entity,
-        },
-        occurredAt: entity.updatedAt,
-      });
-      expect(Object.isFrozen(audit)).toBe(true);
+  it('creates only the new context shape, with matching event and audit', () => {
+    const payload = makePayload();
+    const [context, events, audit] = reportingContextEntity.make(payload);
+    expect(context).toEqual({
+      ...payload,
+      name: 'Primary context',
+      description: 'Context description',
+      id: expect.any(String),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      closedAt: null,
     });
-
-    it('throws AppError if accountingEntityId is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        accountingEntityId: 'invalid-uuid',
-      };
-      // @ts-expect-error testing invalid UUID
-      expect(() => reportingContextEntity.make(invalidPayload)).toThrow(
-        accountingError.InvalidAccountingEntityId
-      );
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: EReportingContextEvents.Created,
+      data: context,
     });
-
-    it('throws AppError if reportingCurrencyCode is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        reportingCurrencyCode: 'INVALID',
-      };
-      // @ts-expect-error testing invalid currency code
-      expect(() => reportingContextEntity.make(invalidPayload)).toThrow();
+    expect(audit).toEqual({
+      entityId: context.id,
+      entityVersion: 1,
+      action: EReportingContextActions.Created,
+      diff: { before: null, after: context },
+      occurredAt: timestamp,
     });
-
-    it('throws AppError if accountingContextId is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        accountingContextId: 'invalid-uuid',
-      };
-      // @ts-expect-error testing invalid UUID
-      expect(() => reportingContextEntity.make(invalidPayload)).toThrow(
-        accountingError.InvalidAccountingContextId
-      );
-    });
-
-    it('throws AppError if currentReportingPeriodId is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        currentReportingPeriodId: 'invalid-uuid',
-      };
-      // @ts-expect-error testing invalid UUID
-      expect(() => reportingContextEntity.make(invalidPayload)).toThrow(
-        accountingError.InvalidCurrentReportingPeriodId
-      );
-    });
-
-    it('throws AppError if name is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        name: '',
-      };
-      expect(() => reportingContextEntity.make(invalidPayload)).toThrow(
-        accountingError.InvalidName
-      );
-    });
-
-    it('throws AppError if description is invalid', () => {
-      const invalidPayload = {
-        ...validPayload,
-        description: '',
-      };
-      expect(() => reportingContextEntity.make(invalidPayload)).toThrow(
-        accountingError.InvalidDescription
-      );
-    });
+    expect(Object.isFrozen(context)).toBe(true);
+    expect(Object.isFrozen(context.createdAt)).toBe(true);
+    expect(Object.isFrozen(context.updatedAt)).toBe(true);
+    expect(Object.isFrozen(audit)).toBe(true);
+    expect(Object.isFrozen(reportingContextEntity)).toBe(true);
   });
-  describe('update', () => {
-    it('changes only the selected period and timestamp, with an event and audit', () => {
-      const [context] = reportingContextEntity.make(validPayload);
-      const nextId = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
-      jest.setSystemTime(new Date('2024-02-01T00:00:00Z'));
-      const [updated, events, audit] = reportingContextEntity.update(context, {
-        currentReportingPeriodId: nextId,
-      });
-      expect(updated).toEqual({
-        ...context,
-        currentReportingPeriodId: nextId,
-        updatedAt: new Date('2024-02-01T00:00:00Z'),
-      });
-      expect(Object.isFrozen(updated)).toBe(true);
-      expect(Object.isFrozen(updated.updatedAt)).toBe(true);
-      expect(context.currentReportingPeriodId).toBe(
-        validPayload.currentReportingPeriodId
-      );
-      expect(events).toEqual([
-        expect.objectContaining({
-          type: EReportingContextEvents.Updated,
-          data: updated,
-        }),
-      ]);
-      expect(audit).toMatchObject({
-        action: EReportingContextActions.Updated,
-        diff: {
-          before: {
-            currentReportingPeriodId: context.currentReportingPeriodId,
-          },
-          after: { currentReportingPeriodId: nextId },
-        },
-      });
-    });
 
-    it('preserves identity, timestamps and audit state for an identical selection', () => {
-      const [context] = reportingContextEntity.make(validPayload);
-      const [updated, events, audit] = reportingContextEntity.update(context, {
-        currentReportingPeriodId: context.currentReportingPeriodId,
+  it('supports a null description', () => {
+    const [context] = reportingContextEntity.make({
+      ...makePayload(),
+      description: null,
+    });
+    expect(context.description).toBeNull();
+  });
+
+  it.each([
+    ['createdBy', accountingError.InvalidCreatedBy],
+    ['accountingEntityId', accountingError.InvalidAccountingEntityId],
+    ['accountingContextId', accountingError.InvalidAccountingContextId],
+    ['reportingIntervalId', accountingError.InvalidReportingIntervalId],
+  ] as const)('rejects an invalid %s on creation', (field, error) => {
+    expect(() =>
+      reportingContextEntity.make({
+        ...makePayload(),
+        [field]: 'bad' as TEntityId,
+      })
+    ).toThrow(error);
+  });
+
+  it.each([
+    ['name', '', accountingError.InvalidName],
+    ['name', ' '.repeat(5), accountingError.InvalidName],
+    ['name', 'x'.repeat(151), accountingError.InvalidName],
+    ['description', '', accountingError.InvalidDescription],
+    ['description', 'x'.repeat(256), accountingError.InvalidDescription],
+  ] as const)('rejects invalid %s content', (field, value, error) => {
+    expect(() =>
+      reportingContextEntity.make({ ...makePayload(), [field]: value })
+    ).toThrow(error);
+  });
+
+  it('rejects an invalid reporting currency', () => {
+    expect(() =>
+      reportingContextEntity.make({
+        ...makePayload(),
+        reportingCurrencyCode: 'INVALID' as never,
+      })
+    ).toThrow();
+  });
+
+  it('changes the interval reference with an event and audit, preserving identity', () => {
+    const [context] = reportingContextEntity.make(makePayload());
+    const intervalId = generateUUID();
+    jest.setSystemTime(new Date('2026-02-01'));
+    const [updated, events, audit] = reportingContextEntity.update(context, {
+      reportingIntervalId: intervalId,
+    });
+    expect(updated).toEqual({
+      ...context,
+      reportingIntervalId: intervalId,
+      updatedAt: new Date('2026-02-01'),
+    });
+    expect(context.reportingIntervalId).not.toBe(intervalId);
+    expect(updated.createdAt).toBe(context.createdAt);
+    expect(Object.isFrozen(updated)).toBe(true);
+    expect(Object.isFrozen(updated.updatedAt)).toBe(true);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: EReportingContextEvents.Updated,
+      data: updated,
+    });
+    expect(audit).toMatchObject({
+      entityId: context.id,
+      action: EReportingContextActions.Updated,
+      occurredAt: updated.updatedAt,
+      diff: { before: context, after: updated },
+    });
+    const [repeated, repeatedEvents, repeatedAudit] =
+      reportingContextEntity.update(updated, {
+        reportingIntervalId: intervalId,
       });
-      expect(updated).toBe(context);
-      expect(updated.updatedAt).toBe(context.updatedAt);
+    expect(repeated).toBe(updated);
+    expect(repeated.updatedAt).toBe(updated.updatedAt);
+    expect(repeatedEvents).toEqual([]);
+    expect(repeatedAudit).toBeNull();
+  });
+
+  it('preserves identity and produces no effects for empty or identical updates', () => {
+    const [context] = reportingContextEntity.make(makePayload());
+    for (const changes of [
+      {},
+      { reportingIntervalId: context.reportingIntervalId },
+      { reportingIntervalId: undefined },
+    ]) {
+      const [unchanged, events, audit] = reportingContextEntity.update(
+        context,
+        changes
+      );
+      expect(unchanged).toBe(context);
+      expect(unchanged.updatedAt).toBe(context.updatedAt);
       expect(events).toEqual([]);
       expect(audit).toBeNull();
-    });
+    }
+  });
 
-    it('rejects invalid period IDs', () => {
-      const [context] = reportingContextEntity.make(validPayload);
+  it.each(['invalid', null])(
+    'rejects invalid interval input %j before no-op detection',
+    (intervalId) => {
+      const [context] = reportingContextEntity.make(makePayload());
       expect(() =>
         reportingContextEntity.update(context, {
-          currentReportingPeriodId: 'invalid' as TEntityId,
+          reportingIntervalId: intervalId as TEntityId,
         })
-      ).toThrow(accountingError.InvalidCurrentReportingPeriodId);
+      ).toThrow(accountingError.InvalidReportingIntervalId);
+      expect(() =>
+        reportingContextEntity.update(
+          { ...context, reportingIntervalId: intervalId as TEntityId },
+          {}
+        )
+      ).toThrow(accountingError.InvalidReportingIntervalId);
+    }
+  );
+
+  it('does not copy a legacy reporting standard or current-period reference', () => {
+    const payload = {
+      ...makePayload(),
+      accountingStandardCode: 'INVALID',
+      currentReportingPeriodId: generateUUID(),
+    };
+    const [context] = reportingContextEntity.make(payload);
+    const [updated] = reportingContextEntity.update(context, {
+      reportingIntervalId: generateUUID(),
     });
+    expect(context).not.toHaveProperty('accountingStandardCode');
+    expect(context).not.toHaveProperty('currentReportingPeriodId');
+    expect(updated).not.toHaveProperty('accountingStandardCode');
+    expect(updated).not.toHaveProperty('currentReportingPeriodId');
   });
 });

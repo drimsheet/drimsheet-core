@@ -1,7 +1,7 @@
 import { InferSelectModel } from 'drizzle-orm';
 
+import { IFiscalYearHistory } from '@domain/accounting/types/fiscal-year-audit.types';
 import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
-import { IFiscalYearHistory } from '@domain/accounting/types/period-audit.types';
 
 import { fiscalYearHistoryInAudit } from '@infra/config/drizzle/schema';
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';

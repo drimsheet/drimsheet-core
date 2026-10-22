@@ -29,7 +29,7 @@ function getCurrentReportingPeriodQueue(): Queue<
 
 function getConfig(payload: INextCurrentReportingPeriodDto) {
   return Object.freeze({
-    jobId: `${CURRENT_REPORTING_PERIOD_QUEUE_NAME}_${payload.reportingContextId}_${payload.accountingEntityId}_${payload.fiscalYearId}_${payload.currentPeriodId}_${payload.nextPeriodId}`,
+    jobId: `${CURRENT_REPORTING_PERIOD_QUEUE_NAME}_${payload.accountingEntityId}_${payload.reportingIntervalId}`,
     removeOnComplete: true,
     removeOnFail: true,
     attempts: 3,

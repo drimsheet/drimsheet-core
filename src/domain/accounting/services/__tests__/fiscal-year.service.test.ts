@@ -5,11 +5,11 @@ import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import periodError from '@domain/accounting/errors/period.error';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import makeFiscalYearService from '@domain/accounting/services/fiscal-year.service';
-import { IFiscalYear } from '@domain/accounting/types/fiscal-year.types';
 import {
-  EPeriodStatus,
-  UPeriodStatus,
-} from '@domain/accounting/types/period.types';
+  EFiscalYearStatus,
+  IFiscalYear,
+  UFiscalYearStatus,
+} from '@domain/accounting/types/fiscal-year.types';
 
 describe('fiscalYearService.create', () => {
   const createdBy = generateUUID();
@@ -27,7 +27,7 @@ describe('fiscalYearService.create', () => {
     name: 'FY 2027',
     startDate: new Date('2027-01-01'),
     endDate: new Date('2027-12-31'),
-    status: EPeriodStatus.Open,
+    status: EFiscalYearStatus.Open,
   };
   const repo: jest.Mocked<IFiscalYearRepo> = {
     findByAccountingEntityId: jest.fn(),
@@ -45,7 +45,7 @@ describe('fiscalYearService.create', () => {
   });
   afterEach(() => jest.useRealTimers());
 
-  it.each(Object.values(EPeriodStatus))(
+  it.each(Object.values(EFiscalYearStatus))(
     'prepares the initial year with valid status %s without changing dates',
     async (status) => {
       const [year, events, audit] = await service.create(
@@ -109,7 +109,10 @@ describe('fiscalYearService.create', () => {
 
   it('rejects invalid status in the domain', async () => {
     await expect(
-      service.create({ ...input, status: 'invalid' as UPeriodStatus }, options)
+      service.create(
+        { ...input, status: 'invalid' as UFiscalYearStatus },
+        options
+      )
     ).rejects.toBeInstanceOf(periodError.InvalidStatus);
     expect(repo.existsByRange).not.toHaveBeenCalled();
   });
@@ -134,7 +137,7 @@ describe('fiscalYearService.create', () => {
           accountingEntityId: accountingEntity.id,
           startDate: new Date('2027-01-01'),
           endDate: new Date('2027-12-31'),
-          status: EPeriodStatus.Closed,
+          status: EFiscalYearStatus.Closed,
         })[0],
       ];
       repo.existsByRange.mockImplementation(async (id, range) =>

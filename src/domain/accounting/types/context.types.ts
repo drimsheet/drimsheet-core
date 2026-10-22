@@ -1,3 +1,4 @@
+import { TCreationOmits } from '@shared/types/creation-omits.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import { UAccountingStandardCode } from '@domain/accounting/config/accounting-standards.config';
@@ -11,10 +12,7 @@ export interface IAccountingContext {
   accountingEntityId: TEntityId;
   accountingStandardCode: UAccountingStandardCode;
   fiscalYearId: TEntityId;
-  /** Stored working-period selection, maintained independently of reads. */
-  currentAccountingPeriodId: TEntityId;
-  previousAccountingPeriodId: TEntityId | null;
-  nextAccountingPeriodId: TEntityId | null;
+  accountingIntervalId: TEntityId;
   createdAt: Date;
   updatedAt: Date;
   closedAt: Date | null;
@@ -28,10 +26,26 @@ export interface IReportingContext {
   accountingEntityId: TEntityId;
   reportingCurrencyCode: UCurrencyCode;
   accountingContextId: TEntityId;
-  /** Stored working-period selection, maintained independently of reads. */
-  currentReportingPeriodId: TEntityId;
-  accountingStandardCode: UAccountingStandardCode;
+  reportingIntervalId: TEntityId;
   createdAt: Date;
   updatedAt: Date;
   closedAt: Date | null;
 }
+
+export interface IAccountingContextMakePayload extends TCreationOmits<
+  IAccountingContext,
+  'closedAt'
+> {}
+
+export type IAccountingContextUpdatePayload = Partial<
+  Pick<IAccountingContext, 'name' | 'description' | 'accountingIntervalId'>
+>;
+
+export interface IReportingContextMakePayload extends TCreationOmits<
+  IReportingContext,
+  'closedAt'
+> {}
+
+export type IReportingContextUpdatePayload = Partial<
+  Pick<IReportingContext, 'reportingIntervalId'>
+>;

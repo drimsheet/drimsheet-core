@@ -1,9 +1,9 @@
-import { UPeriodStatus } from '@domain/accounting/types/period.types';
+import { UFiscalYearStatus } from '@domain/accounting/types/fiscal-year.types';
 
 export interface IFiscalYearCreationReq {
   accountingEntityId: string;
   name?: string;
   startDate: Date;
   endDate: Date;
-  status: UPeriodStatus;
+  status: UFiscalYearStatus;
 }
