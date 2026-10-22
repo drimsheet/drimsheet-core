@@ -16,7 +16,7 @@ interface IDependencies {
 
 /**
  * Enforces eligibility and one context per fiscal year (ACC-AC-005), then
- * resolves neighboring periods and prepares the context, event, and audit.
+ * prepares the interval-based context, event, and audit.
  * Storage uniqueness protects against concurrent creation.
  */
 function makeCreate(deps: IDependencies): IAccountingContextService['create'] {
@@ -25,13 +25,10 @@ function makeCreate(deps: IDependencies): IAccountingContextService['create'] {
       throw new accountingEntityError.Archived();
     }
 
-    accountingContextEntity.validatePeriodSelection(
+    accountingContextEntity.validateIntervalSelection(
       input.accountingEntity.id,
       input.fiscalYear,
-      input.accountingPeriod
-    );
-    accountingContextEntity.validateAccountingStandardCode(
-      input.accountingStandardCode
+      input.accountingInterval
     );
     accountingContextEntity.validateStandardCodeAndJurisdiction(
       input.accountingStandardCode,
@@ -47,28 +44,13 @@ function makeCreate(deps: IDependencies): IAccountingContextService['create'] {
       throw new accountingError.AccountingContextAlreadyExists();
     }
 
-    const periods = await deps.accountingPeriodRepo.findByRange(
-      input.accountingEntity.id,
-      {
-        startDate: input.fiscalYear.startDate,
-        endDate: input.fiscalYear.endDate,
-      },
-      repoOptions
-    );
-    const neighbors = getAccountingPeriodNeighborsHelper(
-      periods,
-      input.accountingPeriod.id
-    );
-
     return accountingContextEntity.make({
       accountingEntityId: input.accountingEntity.id,
       fiscalYearId: input.fiscalYear.id,
       accountingStandardCode: input.accountingStandardCode,
       name: input.name,
       description: input.description,
-      currentAccountingPeriodId: input.accountingPeriod.id,
-      previousAccountingPeriodId: neighbors.previousAccountingPeriodId,
-      nextAccountingPeriodId: neighbors.nextAccountingPeriodId,
+      accountingIntervalId: input.accountingInterval.id,
       createdBy: input.createdBy,
     });
   };

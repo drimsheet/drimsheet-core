@@ -6,7 +6,7 @@ import eventValue from '@shared/values/events/event.vo';
 import historyValue from '@shared/values/history/history.vo';
 
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
-import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo.deprecated';
+import IAccountingIntervalRepo from '@domain/accounting/repos/accounting-interval.repo';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import IAccountingContextService from '@domain/accounting/types/accounting-context.service.types';
 import { IAccountingContext } from '@domain/accounting/types/context.types';
@@ -20,7 +20,7 @@ interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   accountingContextService: IAccountingContextService;
   fiscalYearRepo: IFiscalYearRepo;
-  accountingPeriodRepo: IAccountingPeriodRepo;
+  accountingIntervalRepo: IAccountingIntervalRepo;
   accountingContextRepo: IAccountingContextRepo;
   eventBus: IEventBus;
 }
@@ -48,20 +48,20 @@ export default function makeCreateAccountingContextUsecase(
       throw new accountingAppError.FiscalYearNotFound();
     }
 
-    const accountingPeriod = await deps.accountingPeriodRepo.findById(
+    const accountingInterval = await deps.accountingIntervalRepo.findById(
       accountingEntity.id,
-      payload.currentAccountingPeriodId as TEntityId,
+      payload.accountingIntervalId as TEntityId,
       repoOptions
     );
 
-    if (!accountingPeriod) {
-      throw new accountingAppError.AccountingPeriodNotFound();
+    if (!accountingInterval) {
+      throw new accountingAppError.AccountingIntervalNotFound();
     }
 
     const creationInput = {
       accountingEntity,
       fiscalYear,
-      accountingPeriod,
+      accountingInterval,
       accountingStandardCode: payload.accountingStandardCode,
       name: payload.name,
       description: payload.description,

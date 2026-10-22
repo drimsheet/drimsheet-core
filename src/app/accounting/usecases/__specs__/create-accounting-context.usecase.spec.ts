@@ -4,7 +4,7 @@ import appError from '@shared/values/errors/app.error';
 
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
-import accountingPeriodEntity from '@domain/accounting/entities/accounting-period.entity.deprecated';
+import accountingIntervalEntity from '@domain/accounting/entities/accounting-interval.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import accountingStandardError from '@domain/accounting/errors/accounting-standard.error';
@@ -15,7 +15,7 @@ import { mockAccountingContextService } from '@app/accounting/contracts/__mocks_
 import {
   mockAccountingContextRepo,
   mockAccountingEntityRepo,
-  mockAccountingPeriodRepo,
+  mockAccountingIntervalRepo,
   mockFiscalYearRepo,
   mockReportingContextRepo,
   mockReportingPeriodRepo,
@@ -46,19 +46,24 @@ describe('makeCreateAccountingContextUsecase', () => {
     endDate: new Date('2026-12-31'),
     status: 'open',
   })[0];
-  const periods = accountingPeriodEntity
-    .make({
+  const [interval] = accountingIntervalEntity.make(
+    {
       accountingEntityId: entity.id,
       createdBy: actor.id,
-      fiscalYear: year,
+      fiscalYearId: year.id,
+      startDate: year.startDate,
+      endDate: new Date('2027-01-01'),
       unit: 'month',
       count: 12,
-    })
-    .map(([period]) => period);
-  const period = periods[3];
+      periods: Array.from({ length: 12 }, (_, index) => ({
+        name: `Month ${index + 1}`,
+      })),
+    },
+    new Date('2026-04-01')
+  );
   const payload: IAccountingContextCreationReq = {
     fiscalYearId: year.id,
-    currentAccountingPeriodId: period.id,
+    accountingIntervalId: interval.id,
     accountingStandardCode: 'IFRS',
     name: 'Working context',
     description: null,
@@ -67,9 +72,7 @@ describe('makeCreateAccountingContextUsecase', () => {
     ...payload,
     accountingEntityId: entity.id,
     fiscalYearId: year.id,
-    currentAccountingPeriodId: period.id,
-    previousAccountingPeriodId: periods[2].id,
-    nextAccountingPeriodId: periods[4].id,
+    accountingIntervalId: interval.id,
     createdBy: actor.id,
   });
   const correlationId = 'create-accounting-context';
@@ -77,7 +80,7 @@ describe('makeCreateAccountingContextUsecase', () => {
     appContext: mockAppContext,
     accountingContextService: mockAccountingContextService,
     fiscalYearRepo: mockFiscalYearRepo,
-    accountingPeriodRepo: mockAccountingPeriodRepo,
+    accountingIntervalRepo: mockAccountingIntervalRepo,
     accountingContextRepo: mockAccountingContextRepo,
     eventBus: mockEventBus,
   });
@@ -90,7 +93,7 @@ describe('makeCreateAccountingContextUsecase', () => {
       correlationId,
     } as ReturnType<typeof mockAppContext.get>);
     mockFiscalYearRepo.findById.mockResolvedValue(year);
-    mockAccountingPeriodRepo.findById.mockResolvedValue(period);
+    mockAccountingIntervalRepo.findById.mockResolvedValue(interval);
     mockAccountingContextService.create.mockResolvedValue(creation);
     mockAccountingContextRepo.create.mockResolvedValue(undefined);
   });
@@ -109,9 +112,9 @@ describe('makeCreateAccountingContextUsecase', () => {
         correlationId,
       }
     );
-    expect(mockAccountingPeriodRepo.findById).toHaveBeenCalledWith(
+    expect(mockAccountingIntervalRepo.findById).toHaveBeenCalledWith(
       entity.id,
-      period.id,
+      interval.id,
       {
         correlationId,
       }
@@ -120,7 +123,7 @@ describe('makeCreateAccountingContextUsecase', () => {
       {
         accountingEntity: entity,
         fiscalYear: year,
-        accountingPeriod: period,
+        accountingInterval: interval,
         accountingStandardCode: payload.accountingStandardCode,
         name: payload.name,
         description: payload.description,
@@ -130,8 +133,6 @@ describe('makeCreateAccountingContextUsecase', () => {
     );
     expect(result).toEqual({
       ...payload,
-      previousAccountingPeriodId: periods[2].id,
-      nextAccountingPeriodId: periods[4].id,
       accountingEntityId: entity.id,
       id: expect.any(String),
       createdBy: actor.id,
@@ -157,7 +158,6 @@ describe('makeCreateAccountingContextUsecase', () => {
     for (const repo of [
       mockAccountingEntityRepo,
       mockFiscalYearRepo,
-      mockAccountingPeriodRepo,
       mockReportingPeriodRepo,
       mockReportingContextRepo,
     ]) {
@@ -171,27 +171,27 @@ describe('makeCreateAccountingContextUsecase', () => {
     await expect(execute(payload)).rejects.toBeInstanceOf(
       accountingAppError.FiscalYearNotFound
     );
-    expect(mockAccountingPeriodRepo.findById).not.toHaveBeenCalled();
+    expect(mockAccountingIntervalRepo.findById).not.toHaveBeenCalled();
     expect(mockAccountingContextService.create).not.toHaveBeenCalled();
     expect(mockAccountingContextRepo.create).not.toHaveBeenCalled();
   });
 
-  it('rejects a period belonging to another entity before creating the context', async () => {
-    const foreignPeriod = { ...period, accountingEntityId: generateUUID() };
-    mockAccountingPeriodRepo.findById.mockImplementation(
+  it('rejects an interval belonging to another entity before creating the context', async () => {
+    const foreignInterval = { ...interval, accountingEntityId: generateUUID() };
+    mockAccountingIntervalRepo.findById.mockImplementation(
       async (accountingEntityId, id) =>
-        accountingEntityId === foreignPeriod.accountingEntityId &&
-        id === foreignPeriod.id
-          ? foreignPeriod
+        accountingEntityId === foreignInterval.accountingEntityId &&
+        id === foreignInterval.id
+          ? foreignInterval
           : null
     );
 
     await expect(execute(payload)).rejects.toBeInstanceOf(
-      accountingAppError.AccountingPeriodNotFound
+      accountingAppError.AccountingIntervalNotFound
     );
-    expect(mockAccountingPeriodRepo.findById).toHaveBeenCalledWith(
+    expect(mockAccountingIntervalRepo.findById).toHaveBeenCalledWith(
       entity.id,
-      period.id,
+      interval.id,
       { correlationId }
     );
     expect(mockAccountingContextService.create).not.toHaveBeenCalled();
@@ -199,10 +199,10 @@ describe('makeCreateAccountingContextUsecase', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('rejects a missing selected period', async () => {
-    mockAccountingPeriodRepo.findById.mockResolvedValue(null);
+  it('rejects a missing selected interval', async () => {
+    mockAccountingIntervalRepo.findById.mockResolvedValue(null);
     await expect(execute(payload)).rejects.toBeInstanceOf(
-      accountingAppError.AccountingPeriodNotFound
+      accountingAppError.AccountingIntervalNotFound
     );
     expect(mockAccountingContextService.create).not.toHaveBeenCalled();
     expect(mockAccountingContextRepo.create).not.toHaveBeenCalled();
@@ -212,7 +212,7 @@ describe('makeCreateAccountingContextUsecase', () => {
     accountingEntityError.Archived,
     accountingError.AccountingContextAlreadyExists,
     accountingError.InvalidFiscalYearId,
-    accountingError.InvalidCurrentAccountingPeriodId,
+    accountingError.InvalidAccountingIntervalId,
     accountingStandardError.Invalid,
   ])(
     'propagates domain creation rejection without persisting or publishing',
@@ -228,9 +228,10 @@ describe('makeCreateAccountingContextUsecase', () => {
 
   it.each([
     { accountingEntityId: entity.id },
+    { currentAccountingPeriodId: generateUUID() },
     { fiscalYearId: 'invalid' },
-    { currentAccountingPeriodId: undefined },
-    { currentAccountingPeriodId: 'invalid' },
+    { accountingIntervalId: undefined },
+    { accountingIntervalId: 'invalid' },
     { accountingStandardCode: 'UNKNOWN' },
     { name: null },
     { description: 4 },
@@ -261,7 +262,7 @@ describe('makeCreateAccountingContextUsecase', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('waits for the service to resolve the period references before persisting', async () => {
+  it('waits for the service to prepare the interval reference before persisting', async () => {
     let finishCreation!: () => void;
     mockAccountingContextService.create.mockImplementation(
       () =>
