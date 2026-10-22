@@ -14,7 +14,7 @@ interface ICreateAccountingIntervalInput extends Pick<
 export default interface IAccountingIntervalService {
   /**
    * Prepares the full fiscal-year interval, child periods, events, and audits.
-   * Validates fiscal-year ownership and rejects overlapping stored periods.
+   * Validates fiscal-year ownership and uniqueness.
    * Converts the inclusive fiscal-year end to an exclusive interval end.
    * Never persists.
    */

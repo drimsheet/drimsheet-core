@@ -49,6 +49,15 @@ An annual cycle need not be exactly twelve months. [IAS 1, paragraphs 36–37][i
 allow changed reporting periods with required disclosures and 52-week reporting,
 subject to applicable jurisdiction restrictions.
 
+## Accounting Interval
+
+An Accounting Interval owns the complete posting calendar and its child periods
+for one fiscal year.
+
+| ID         | Invariant                                                                 | Accounting basis / rationale                                                             | References (optional) |
+| ---------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------- |
+| ACC-AI-001 | A fiscal year has at most one accounting interval, regardless of cadence. | **Record integrity:** preserve one authoritative posting calendar for each annual cycle. | —                     |
+
 ## Accounting Period
 
 An Accounting Period is a posting interval within a Fiscal Year. Its status controls
@@ -70,6 +79,15 @@ previous period, and January 4 belongs only to the next. Different accounting
 entities may use the same dates. Non-overlap must hold before postings are
 accepted. Missing, ambiguous or non-Open periods prevent posting.
 
+## Reporting Interval
+
+A Reporting Interval owns the complete reporting calendar and its child periods
+for one fiscal year.
+
+| ID         | Invariant                                                                | Accounting basis / rationale                                                               | References (optional) |
+| ---------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | --------------------- |
+| ACC-RI-001 | A fiscal year has at most one reporting interval, regardless of cadence. | **Record integrity:** preserve one authoritative reporting calendar for each annual cycle. | —                     |
+
 ## Reporting Period
 
 A Reporting Period defines the interval presented by a report within a Fiscal Year.
@@ -82,14 +100,16 @@ Its cadence may differ from the posting cadence; it does not authorize postings.
 | ACC-RP-003 | Reporting-period dates and generation parameters must satisfy the [shared period rules](#shared-period-rules). | **Structural integrity:** every report needs a defined interval.          | —                      |
 | ACC-RP-004 | A period described as interim under IAS 34 must be shorter than a full financial year.                         | **IFRS requirement:** distinguish interim from annual reporting.          | [IAS 34, About][ias34] |
 
-Reporting intervals may overlap, as with quarterly and year-to-date reports.
+Report presentation ranges may overlap, as with quarterly and year-to-date
+reports. They do not permit additional reporting interval aggregates for the
+same fiscal year; see [ACC-RI-001](#reporting-interval).
 
 Generated reporting calendars use inclusive UTC calendar dates. Within one
 generated cadence, the next interval starts on the day after the previous
 interval ends: January–March includes March 31, and April–June starts April 1.
 The first and last intervals include the fiscal year's first and last dates.
-Different reporting cadences may cover the same dates without changing posting
-eligibility.
+The reporting cadence may differ from the accounting cadence without changing
+posting eligibility.
 
 ## Accounting Context
 

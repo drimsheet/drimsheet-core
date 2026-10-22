@@ -26,6 +26,7 @@ import {
   accountingIntervalService,
   fiscalYearService,
   reportingContextService,
+  reportingIntervalService,
 } from '@infra/ioc/services/accounting';
 import { repoService } from '@infra/ioc/services/repo';
 import { userPreferencesAppService } from '@infra/ioc/services/user';
@@ -117,6 +118,7 @@ export const createReportingIntervalUseCase = makeTracedUseCase(
   makeCreateReportingIntervalUsecase({
     appContext,
     fiscalYearRepo: accountingRepos.fiscalYear,
+    reportingIntervalService,
     repoService,
     reportingIntervalRepo: accountingRepos.reportingInterval,
     reportingPeriodRepo: accountingRepos.reportingPeriod,

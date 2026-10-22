@@ -5,15 +5,14 @@ import {
   TRepoTransactionFn,
 } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
-import dateUtils from '@shared/utils/date';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import historyValue from '@shared/values/history/history.vo';
 
-import reportingIntervalEntity from '@domain/accounting/entities/reporting-interval.entity';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import IReportingIntervalRepo from '@domain/accounting/repos/reporting-interval.repo';
 import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
+import IReportingIntervalService from '@domain/accounting/types/reporting-interval.service.types';
 import { IReportingInterval } from '@domain/accounting/types/reporting-period.types';
 
 import { IReportingIntervalCreationReq } from '@app/accounting/dtos/reporting-interval/reporting-interval.dto';
@@ -24,6 +23,7 @@ import { IAppContextData } from '@app/context/types/app-context.types';
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   fiscalYearRepo: IFiscalYearRepo;
+  reportingIntervalService: IReportingIntervalService;
   reportingIntervalRepo: IReportingIntervalRepo;
   reportingPeriodRepo: IReportingPeriodRepo;
   repoService: IRepoService;
@@ -56,17 +56,15 @@ export default function makeCreateReportingIntervalUsecase(
 
     const creationInput = {
       accountingEntityId: accountingEntity.id,
-      fiscalYearId: fiscalYear.id,
+      fiscalYear,
       createdBy: actor.id,
       unit: payload.unit,
       count: payload.count,
       periods: payload.periods,
-      startDate: fiscalYear.startDate,
-      endDate: dateUtils.addUtcUnits(fiscalYear.endDate, 1, 'day'),
     };
 
     const [interval, events, audits] =
-      reportingIntervalEntity.make(creationInput);
+      await deps.reportingIntervalService.create(creationInput, repoOptions);
 
     const intervalHistory = historyValue.make(
       audits.interval,

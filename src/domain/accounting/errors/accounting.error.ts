@@ -5,6 +5,10 @@ import DomainError from '@shared/values/errors/domain.error';
 type TErrorPrefix = TErrorKey<'accounting_error'>;
 
 const EErrorKeys = {
+  AccountingIntervalAlreadyExists:
+    'accounting_error_accounting_interval_already_exists_conflict',
+  ReportingIntervalAlreadyExists:
+    'accounting_error_reporting_interval_already_exists_conflict',
   AccountingContextAlreadyExists:
     'accounting_error_accounting_context_already_exists_conflict',
   AccountingContextNotFound: 'accounting_error_accounting_context_not_found',

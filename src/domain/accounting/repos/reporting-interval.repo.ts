@@ -10,6 +10,13 @@ export default interface IReportingIntervalRepo {
     options: IWriteRepoOptions<IReportingIntervalHistory>
   ): Promise<void>;
 
+  /** Whether this entity already has an interval for the fiscal year. */
+  existsByFiscalYear(
+    accountingEntityId: TEntityId,
+    fiscalYearId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<boolean>;
+
   findById(
     accountingEntityId: TEntityId,
     id: TEntityId,

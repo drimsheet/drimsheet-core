@@ -111,7 +111,7 @@ export const mockReportingPeriodRepo: jest.Mocked<IReportingPeriodRepo> = {
 
 export const mockAccountingIntervalRepo: jest.Mocked<IAccountingIntervalRepo> =
   {
-    existsByRange: jest.fn(),
+    existsByFiscalYear: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
   };
@@ -127,6 +127,7 @@ export const mockAccountingPeriodCreationRepo: jest.Mocked<IAccountingPeriodCrea
   };
 
 export const mockReportingIntervalRepo: jest.Mocked<IReportingIntervalRepo> = {
+  existsByFiscalYear: jest.fn(),
   create: jest.fn(),
   findById: jest.fn(),
 };

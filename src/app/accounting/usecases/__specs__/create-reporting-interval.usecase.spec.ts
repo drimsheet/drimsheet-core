@@ -4,12 +4,15 @@ import mockRepoService, {
 } from '@shared/contracts/__mocks__/repo.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
-import periodError from '@shared/values/interval/period.error';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import reportingIntervalEntity from '@domain/accounting/entities/reporting-interval.entity';
+import accountingError from '@domain/accounting/errors/accounting.error';
+import periodError from '@domain/accounting/errors/period.error';
 import actorEntity from '@domain/user/entities/actor.entity';
 
+import { mockReportingIntervalService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
 import {
   mockAccountingContextRepo,
   mockAccountingEntityRepo,
@@ -52,11 +55,26 @@ describe('makeCreateReportingIntervalUsecase', () => {
       name: `Month ${index + 1}`,
     })),
   };
+  const creation = reportingIntervalEntity.make(
+    {
+      accountingEntityId: entity.id,
+      createdBy: actor.id,
+      fiscalYearId: year.id,
+      unit: payload.unit,
+      count: payload.count,
+      periods: payload.periods,
+      startDate: year.startDate,
+      endDate: new Date('2093-01-01'),
+    },
+    new Date('2092-04-01')
+  );
+  const [interval, events] = creation;
   const correlationId = 'create-reporting-interval';
   const tx = mockRepoTransaction.context;
   const execute = makeCreateReportingIntervalUsecase({
     appContext: mockAppContext,
     fiscalYearRepo: mockFiscalYearRepo,
+    reportingIntervalService: mockReportingIntervalService,
     reportingIntervalRepo: mockReportingIntervalRepo,
     reportingPeriodRepo: mockReportingPeriodRepo,
     repoService: mockRepoService,
@@ -72,10 +90,12 @@ describe('makeCreateReportingIntervalUsecase', () => {
       correlationId,
     } as ReturnType<typeof mockAppContext.get>);
     mockFiscalYearRepo.findById.mockResolvedValue(year);
+    mockReportingIntervalService.create.mockResolvedValue(creation);
   });
 
   it('persists interval and periods separately with their histories in one transaction', async () => {
-    const interval = await execute(payload);
+    const result = await execute(payload);
+    expect(result).toBe(interval);
     expect(mockAppContext.get).toHaveBeenCalledWith([
       'accountingEntity',
       'actor',
@@ -85,16 +105,17 @@ describe('makeCreateReportingIntervalUsecase', () => {
       year.id,
       { correlationId }
     );
-    expect(interval).toMatchObject({
-      accountingEntityId: entity.id,
-      fiscalYearId: year.id,
-      createdBy: actor.id,
-      unit: payload.unit,
-      count: payload.count,
-      periods: payload.periods,
-      startDate: year.startDate,
-      endDate: new Date('2093-01-01'),
-    });
+    expect(mockReportingIntervalService.create).toHaveBeenCalledWith(
+      {
+        accountingEntityId: entity.id,
+        fiscalYear: year,
+        createdBy: actor.id,
+        unit: payload.unit,
+        count: payload.count,
+        periods: payload.periods,
+      },
+      { correlationId }
+    );
     expect(mockReportingIntervalRepo.create).toHaveBeenCalledTimes(1);
     const [saved, options] = mockReportingIntervalRepo.create.mock.calls[0];
     const { periods, ...intervalHeader } = interval;
@@ -132,22 +153,15 @@ describe('makeCreateReportingIntervalUsecase', () => {
     expect(options.tx).toBe(tx);
     expect(mockReportingPeriodRepo.create.mock.calls[0][1].tx).toBe(tx);
     expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
-    expect(mockEventBus.publish).toHaveBeenCalledWith([
-      expect.objectContaining({
-        type: 'domain:accounting:reporting-interval:created',
-        data: interval,
-        correlationId,
-        enrichedAt: expect.any(Date),
-      }),
-      ...periods.map((period) =>
+    expect(mockEventBus.publish).toHaveBeenCalledWith(
+      events.map((event) =>
         expect.objectContaining({
-          type: 'domain:accounting:reporting-period:created',
-          data: period,
+          ...event,
           correlationId,
           enrichedAt: expect.any(Date),
         })
-      ),
-    ]);
+      )
+    );
     for (const repo of [
       mockAccountingEntityRepo,
       mockFiscalYearRepo,
@@ -164,6 +178,7 @@ describe('makeCreateReportingIntervalUsecase', () => {
     await expect(execute(payload)).rejects.toBeInstanceOf(
       accountingAppError.FiscalYearNotFound
     );
+    expect(mockReportingIntervalService.create).not.toHaveBeenCalled();
     expect(mockReportingIntervalRepo.create).not.toHaveBeenCalled();
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -190,6 +205,7 @@ describe('makeCreateReportingIntervalUsecase', () => {
       year.id,
       { correlationId }
     );
+    expect(mockReportingIntervalService.create).not.toHaveBeenCalled();
     expect(mockReportingIntervalRepo.create).not.toHaveBeenCalled();
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
   });
@@ -198,21 +214,28 @@ describe('makeCreateReportingIntervalUsecase', () => {
     const failure = new Error('read failed');
     mockFiscalYearRepo.findById.mockRejectedValue(failure);
     await expect(execute(payload)).rejects.toBe(failure);
+    expect(mockReportingIntervalService.create).not.toHaveBeenCalled();
     expect(mockReportingIntervalRepo.create).not.toHaveBeenCalled();
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
   });
 
-  it('propagates domain rejection without persisting or publishing', async () => {
-    await expect(execute({ ...payload, periods: [] })).rejects.toBeInstanceOf(
-      periodError.InvalidPeriods
-    );
-    expect(mockReportingIntervalRepo.create).not.toHaveBeenCalled();
-    expect(mockReportingPeriodRepo.create).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
+  it.each([
+    accountingError.ReportingIntervalAlreadyExists,
+    periodError.InvalidInterval,
+    periodError.InvalidFiscalYearId,
+  ])(
+    'propagates domain rejection without persisting or publishing',
+    async (ErrorType) => {
+      const failure = new ErrorType();
+      mockReportingIntervalService.create.mockRejectedValue(failure);
+      await expect(execute(payload)).rejects.toBe(failure);
+      expect(mockReportingIntervalRepo.create).not.toHaveBeenCalled();
+      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+    }
+  );
 
-  it('maps quarter units and period names into the created interval', async () => {
+  it('passes quarter units and period names to the domain service', async () => {
     const request: IReportingIntervalCreationReq = {
       ...payload,
       unit: 'quarter',
@@ -221,14 +244,15 @@ describe('makeCreateReportingIntervalUsecase', () => {
         name: `Quarter ${index + 1}`,
       })),
     };
-    const interval = await execute(request);
-    expect(interval).toMatchObject({
-      unit: 'quarter',
-      count: 4,
-      periods: request.periods,
-      startDate: year.startDate,
-      endDate: new Date('2093-01-01'),
-    });
+    await execute(request);
+    expect(mockReportingIntervalService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        unit: 'quarter',
+        count: 4,
+        periods: request.periods,
+      }),
+      { correlationId }
+    );
   });
 
   it.each([
@@ -253,25 +277,28 @@ describe('makeCreateReportingIntervalUsecase', () => {
     ).rejects.toBeInstanceOf(appError.UnprocessableEntity);
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockFiscalYearRepo.findById).not.toHaveBeenCalled();
+    expect(mockReportingIntervalService.create).not.toHaveBeenCalled();
     expect(mockReportingIntervalRepo.create).not.toHaveBeenCalled();
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('propagates persistence failure without publishing', async () => {
-    const failure = new Error('history failed');
+  it.each([
+    new Error('history failed'),
+    new accountingError.ReportingIntervalAlreadyExists(),
+  ])('propagates persistence failure without publishing', async (failure) => {
     mockReportingIntervalRepo.create.mockRejectedValue(failure);
     await expect(execute(payload)).rejects.toBe(failure);
     expect(mockReportingPeriodRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('awaits the fiscal-year lookup before persisting', async () => {
+  it('awaits domain preparation before persisting', async () => {
     let finish!: () => void;
-    mockFiscalYearRepo.findById.mockImplementation(
+    mockReportingIntervalService.create.mockImplementation(
       () =>
         new Promise((resolve) => {
-          finish = () => resolve(year);
+          finish = () => resolve(creation);
         })
     );
     const pending = execute(payload);
@@ -356,10 +383,7 @@ describe('makeCreateReportingIntervalUsecase', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(returned).toBe(false);
     finish();
-    await expect(pending).resolves.toEqual({
-      ...mockReportingIntervalRepo.create.mock.calls[0][0],
-      periods: mockReportingPeriodRepo.create.mock.calls[0][0],
-    });
+    await expect(pending).resolves.toBe(interval);
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
   });
 

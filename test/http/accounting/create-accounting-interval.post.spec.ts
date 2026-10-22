@@ -7,6 +7,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import accountingIntervalEntity from '@domain/accounting/entities/accounting-interval.entity';
+import accountingError from '@domain/accounting/errors/accounting.error';
 import periodError from '@domain/accounting/errors/period.error';
 import { IUser } from '@domain/user/types/user.types';
 
@@ -233,17 +234,16 @@ describe('POST /accounting/accounting-intervals', () => {
     );
   });
   describe('409 Response', () => {
-    it('maps overlapping posting intervals', async () => {
-      create.mockRejectedValue(new periodError.OverlappingPeriods());
+    it('rejects a second accounting interval for the fiscal year', async () => {
+      const error = new accountingError.AccountingIntervalAlreadyExists();
+      create.mockRejectedValue(error);
       const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
         .send(payload);
       expect(response.status).toBe(409);
-      expect(response.body.errorKey).toBe(
-        'accounting_error_period_overlap_conflict'
-      );
+      expect(response.body.errorKey).toBe(error.errorKey);
     });
   });
   describe('422 Response', () => {

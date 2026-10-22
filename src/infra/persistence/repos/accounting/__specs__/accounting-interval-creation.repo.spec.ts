@@ -5,6 +5,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import historyValue from '@shared/values/history/history.vo';
 
 import accountingIntervalEntity from '@domain/accounting/entities/accounting-interval.entity';
+import accountingError from '@domain/accounting/errors/accounting.error';
 
 import {
   accountingIntervalHistoryInAudit,
@@ -101,12 +102,27 @@ describe('accountingIntervalRepo creation', () => {
     }
   );
 
+  it('maps a concurrent duplicate to the fiscal-year conflict without committing', async () => {
+    const fake = fakeTransaction();
+    fake.values.mockRejectedValueOnce({
+      cause: {
+        code: '23505',
+        constraint: 'accounting_intervals_fiscal_year_id_key',
+      },
+    });
+    await expect(
+      accountingIntervalRepo.create(header, options)
+    ).rejects.toBeInstanceOf(accountingError.AccountingIntervalAlreadyExists);
+    expect(fake.values).toHaveBeenCalledTimes(1);
+    expect(fake.committed).toEqual([]);
+  });
+
   it.each([true, false])(
-    'checks half-open overlap within the entity: %s',
-    async (overlaps) => {
+    'checks fiscal-year uniqueness within the entity: %s',
+    async (exists) => {
       const limit = jest
         .fn()
-        .mockResolvedValue(overlaps ? [{ id: interval.id }] : []);
+        .mockResolvedValue(exists ? [{ id: interval.id }] : []);
       const where = jest.fn().mockReturnValue({ limit });
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
@@ -115,27 +131,23 @@ describe('accountingIntervalRepo creation', () => {
         .mockReturnValue({ select } as unknown as ReturnType<
           typeof getDbQuery
         >);
-      const readOptions = { correlationId: 'read' };
-      const range = {
-        startDate: interval.startDate,
-        endDate: interval.endDate,
-      };
+      const readOptions = { correlationId: 'uniqueness' };
       await expect(
-        accountingIntervalRepo.existsByRange(
+        accountingIntervalRepo.existsByFiscalYear(
           interval.accountingEntityId,
-          range,
+          interval.fiscalYearId,
           readOptions
         )
-      ).resolves.toBe(overlaps);
+      ).resolves.toBe(exists);
       const query = new PgDialect().sqlToQuery(where.mock.calls[0][0] as SQL);
       expect(query.sql).toBe(
-        '(\"core\".\"accounting_intervals\".\"accounting_entity_id\" = $1 and \"core\".\"accounting_intervals\".\"start_date\" < $2 and \"core\".\"accounting_intervals\".\"end_date\" > $3)'
+        '("core"."accounting_intervals"."accounting_entity_id" = $1 and "core"."accounting_intervals"."fiscal_year_id" = $2)'
       );
       expect(query.params).toEqual([
         interval.accountingEntityId,
-        interval.endDate.toISOString(),
-        interval.startDate.toISOString(),
+        interval.fiscalYearId,
       ]);
+      expect(from).toHaveBeenCalledWith(accountingIntervalsInCore);
       expect(limit).toHaveBeenCalledWith(1);
       expect(getDbQuery).toHaveBeenCalledWith(readOptions);
     }

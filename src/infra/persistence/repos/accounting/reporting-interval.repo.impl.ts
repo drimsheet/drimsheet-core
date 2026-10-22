@@ -9,28 +9,47 @@ import {
 } from '@infra/config/drizzle/schema';
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import mapReportingIntervalConflictErrorHelper from '@infra/persistence/helpers/map-reporting-interval-conflict-error.helper';
 import reportingIntervalMapper from '@infra/persistence/repos/accounting/mappers/reporting-interval.mapper';
 
 const reportingIntervalRepo: IReportingIntervalRepo = {
   async create(interval, options) {
-    await getDbQuery(options).transaction(async (tx) => {
-      await tx
-        .insert(reportingIntervalsInCore)
-        .values(reportingIntervalMapper.toRepo(interval));
+    try {
+      await getDbQuery(options).transaction(async (tx) => {
+        await tx
+          .insert(reportingIntervalsInCore)
+          .values(reportingIntervalMapper.toRepo(interval));
 
-      const { history } = options;
+        const { history } = options;
 
-      await tx.insert(reportingIntervalHistoryInAudit).values({
-        reportingIntervalId: history.entityId,
-        accountingEntityId: interval.accountingEntityId,
-        actorId: history.actorId,
-        onBehalfOf: history.onBehalfOf,
-        action: history.action,
-        diff: history.diff,
-        correlationId: history.correlationId,
-        occurredAt: toRepoDate(history.occurredAt),
+        await tx.insert(reportingIntervalHistoryInAudit).values({
+          reportingIntervalId: history.entityId,
+          accountingEntityId: interval.accountingEntityId,
+          actorId: history.actorId,
+          onBehalfOf: history.onBehalfOf,
+          action: history.action,
+          diff: history.diff,
+          correlationId: history.correlationId,
+          occurredAt: toRepoDate(history.occurredAt),
+        });
       });
-    });
+    } catch (error) {
+      throw mapReportingIntervalConflictErrorHelper(error);
+    }
+  },
+
+  async existsByFiscalYear(accountingEntityId, fiscalYearId, options) {
+    const rows = await getDbQuery(options)
+      .select({ id: reportingIntervalsInCore.id })
+      .from(reportingIntervalsInCore)
+      .where(
+        and(
+          eq(reportingIntervalsInCore.accountingEntityId, accountingEntityId),
+          eq(reportingIntervalsInCore.fiscalYearId, fiscalYearId)
+        )
+      )
+      .limit(1);
+    return rows.length > 0;
   },
 
   async findById(accountingEntityId, id, options) {

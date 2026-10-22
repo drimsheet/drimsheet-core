@@ -35,6 +35,7 @@ export function up(pgm: MigrationBuilder) {
       type: 'uuid',
       notNull: true,
       references: fiscalYearsTable,
+      unique: true,
       onDelete: 'CASCADE',
     },
     unit: {
@@ -116,7 +117,6 @@ export function up(pgm: MigrationBuilder) {
   );
 
   pgm.createIndex(reportingIntervalsTable, 'accounting_entity_id');
-  pgm.createIndex(reportingIntervalsTable, 'fiscal_year_id');
   pgm.createIndex(reportingIntervalsTable, 'next_period_start_date', {
     name: 'reporting_intervals_next_start_idx',
     where: 'next_period_start_date IS NOT NULL',

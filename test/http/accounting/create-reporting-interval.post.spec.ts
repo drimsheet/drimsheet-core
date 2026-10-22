@@ -7,6 +7,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import reportingIntervalEntity from '@domain/accounting/entities/reporting-interval.entity';
+import accountingError from '@domain/accounting/errors/accounting.error';
 import periodError from '@domain/accounting/errors/period.error';
 import { IUser } from '@domain/user/types/user.types';
 
@@ -229,6 +230,19 @@ describe('POST /accounting/reporting-intervals', () => {
         expect(response.body.errorKey).toBe(error.errorKey);
       }
     );
+  });
+  describe('409 Response', () => {
+    it('rejects a second reporting interval for the fiscal year', async () => {
+      const error = new accountingError.ReportingIntervalAlreadyExists();
+      create.mockRejectedValue(error);
+      const response = await request(server)
+        .post(ENDPOINT)
+        .set('Authorization', 'Bearer token')
+        .set('x-accounting-entity-id', accountingEntityId)
+        .send(payload);
+      expect(response.status).toBe(409);
+      expect(response.body.errorKey).toBe(error.errorKey);
+    });
   });
   describe('422 Response', () => {
     it.each([

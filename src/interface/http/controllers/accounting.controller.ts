@@ -288,6 +288,7 @@ export class AccountingController extends Controller {
   @Response<IHttpErrorDto>('401')
   @Response<IHttpErrorDto>('403')
   @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
   @Response<IHttpErrorDto>('422')
   @Response<IHttpErrorDto>('500')
   @Middlewares(

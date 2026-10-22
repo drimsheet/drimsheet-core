@@ -4,6 +4,7 @@ import IAccountingIntervalService from '@domain/accounting/types/accounting-inte
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import IFiscalYearService from '@domain/accounting/types/fiscal-year.service.types';
 import IReportingContextService from '@domain/accounting/types/reporting-context.service.types';
+import IReportingIntervalService from '@domain/accounting/types/reporting-interval.service.types';
 import IReportingPeriodService from '@domain/accounting/types/reporting-period.service.types';
 
 export const mockReportingContextService: jest.Mocked<IReportingContextService> =
@@ -43,6 +44,11 @@ export const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> 
   };
 
 export const mockAccountingIntervalService: jest.Mocked<IAccountingIntervalService> =
+  {
+    create: jest.fn(),
+  };
+
+export const mockReportingIntervalService: jest.Mocked<IReportingIntervalService> =
   {
     create: jest.fn(),
   };

@@ -8,6 +8,7 @@ import appError from '@shared/values/errors/app.error';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import accountingIntervalEntity from '@domain/accounting/entities/accounting-interval.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import accountingError from '@domain/accounting/errors/accounting.error';
 import periodError from '@domain/accounting/errors/period.error';
 import actorEntity from '@domain/user/entities/actor.entity';
 
@@ -226,7 +227,7 @@ describe('makeCreateAccountingIntervalUsecase', () => {
   });
 
   it.each([
-    periodError.OverlappingPeriods,
+    accountingError.AccountingIntervalAlreadyExists,
     periodError.InvalidInterval,
     periodError.InvalidFiscalYearId,
   ])(
@@ -289,15 +290,15 @@ describe('makeCreateAccountingIntervalUsecase', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it.each([new Error('history failed'), new periodError.OverlappingPeriods()])(
-    'propagates persistence failure without publishing',
-    async (failure) => {
-      mockAccountingIntervalRepo.create.mockRejectedValue(failure);
-      await expect(execute(payload)).rejects.toBe(failure);
-      expect(mockAccountingPeriodCreationRepo.create).not.toHaveBeenCalled();
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-    }
-  );
+  it.each([
+    new Error('history failed'),
+    new accountingError.AccountingIntervalAlreadyExists(),
+  ])('propagates persistence failure without publishing', async (failure) => {
+    mockAccountingIntervalRepo.create.mockRejectedValue(failure);
+    await expect(execute(payload)).rejects.toBe(failure);
+    expect(mockAccountingPeriodCreationRepo.create).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
 
   it('awaits domain preparation before persisting', async () => {
     let finish!: () => void;

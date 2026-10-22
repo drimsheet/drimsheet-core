@@ -1,6 +1,7 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
+import accountingError from '@domain/accounting/errors/accounting.error';
 import periodError from '@domain/accounting/errors/period.error';
 import IAccountingIntervalRepo from '@domain/accounting/repos/accounting-interval.repo';
 import makeAccountingIntervalService from '@domain/accounting/services/accounting-interval.service';
@@ -18,7 +19,7 @@ describe('accountingIntervalService.create', () => {
   const repo: jest.Mocked<IAccountingIntervalRepo> = {
     create: jest.fn(),
     findById: jest.fn(),
-    existsByRange: jest.fn(),
+    existsByFiscalYear: jest.fn(),
   };
   const service = makeAccountingIntervalService({
     accountingIntervalRepo: repo,
@@ -37,7 +38,7 @@ describe('accountingIntervalService.create', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    repo.existsByRange.mockResolvedValue(false);
+    repo.existsByFiscalYear.mockResolvedValue(false);
   });
 
   it('prepares a complete fiscal-year calendar with quarter cadence, events and audits', async () => {
@@ -62,9 +63,9 @@ describe('accountingIntervalService.create', () => {
     expect(events).toHaveLength(5);
     expect(audits.periods).toHaveLength(4);
     expect(Object.isFrozen(interval)).toBe(true);
-    expect(repo.existsByRange).toHaveBeenCalledWith(
+    expect(repo.existsByFiscalYear).toHaveBeenCalledWith(
       accountingEntityId,
-      { startDate: fiscalYear.startDate, endDate: new Date('2093-01-01') },
+      fiscalYear.id,
       options
     );
     expect(repo.create).not.toHaveBeenCalled();
@@ -74,27 +75,80 @@ describe('accountingIntervalService.create', () => {
     await expect(
       service.create({ ...input, accountingEntityId: generateUUID() }, options)
     ).rejects.toBeInstanceOf(periodError.InvalidFiscalYearId);
-    expect(repo.existsByRange).not.toHaveBeenCalled();
+    expect(repo.existsByFiscalYear).not.toHaveBeenCalled();
   });
 
-  it('rejects an invalid calendar before reading storage', async () => {
+  it('rejects an invalid calendar after checking fiscal-year uniqueness', async () => {
     await expect(
       service.create({ ...input, count: 0 }, options)
     ).rejects.toThrow();
-    expect(repo.existsByRange).not.toHaveBeenCalled();
+    expect(repo.existsByFiscalYear).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects an overlapping stored interval', async () => {
-    repo.existsByRange.mockResolvedValue(true);
-    await expect(service.create(input, options)).rejects.toBeInstanceOf(
-      periodError.OverlappingPeriods
+  it.each([
+    { unit: 'quarter' as const, count: 4 },
+    { unit: 'month' as const, count: 12 },
+    { unit: 'year' as const, count: 1 },
+  ])(
+    'rejects an existing fiscal-year interval regardless of cadence: %j',
+    async (cadence) => {
+      repo.existsByFiscalYear.mockResolvedValue(true);
+      await expect(
+        service.create(
+          {
+            ...input,
+            ...cadence,
+            periods: Array.from({ length: cadence.count }, (_, index) => ({
+              name: `Period ${index + 1}`,
+            })),
+          },
+          options
+        )
+      ).rejects.toBeInstanceOf(accountingError.AccountingIntervalAlreadyExists);
+      expect(repo.existsByFiscalYear).toHaveBeenCalledWith(
+        accountingEntityId,
+        fiscalYear.id,
+        options
+      );
+      expect(repo.create).not.toHaveBeenCalled();
+    }
+  );
+
+  it('allows creation for another fiscal year', async () => {
+    const [nextYear] = fiscalYearEntity.make({
+      accountingEntityId,
+      createdBy,
+      startDate: new Date('2093-01-01'),
+      endDate: new Date('2093-12-31'),
+      status: 'open',
+    });
+    repo.existsByFiscalYear.mockImplementation(
+      async (_, id) => id === fiscalYear.id
     );
+    const [interval] = await service.create(
+      { ...input, fiscalYear: nextYear },
+      options
+    );
+    expect(interval.fiscalYearId).toBe(nextYear.id);
+    expect(repo.existsByFiscalYear).toHaveBeenCalledWith(
+      accountingEntityId,
+      nextYear.id,
+      options
+    );
+  });
+
+  it('propagates fiscal-year uniqueness lookup failures', async () => {
+    const failure = new Error('lookup failed');
+    repo.existsByFiscalYear.mockRejectedValue(failure);
+    await expect(service.create(input, options)).rejects.toBe(failure);
     expect(repo.create).not.toHaveBeenCalled();
   });
 
-  it('propagates overlap lookup failures', async () => {
-    const failure = new Error('lookup failed');
-    repo.existsByRange.mockRejectedValue(failure);
-    await expect(service.create(input, options)).rejects.toBe(failure);
+  it('rejects a duplicate before attempting to construct the calendar', async () => {
+    repo.existsByFiscalYear.mockResolvedValue(true);
+    await expect(
+      service.create({ ...input, count: 0 }, options)
+    ).rejects.toBeInstanceOf(accountingError.AccountingIntervalAlreadyExists);
+    expect(repo.create).not.toHaveBeenCalled();
   });
 });

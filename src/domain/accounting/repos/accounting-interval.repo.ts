@@ -10,10 +10,10 @@ export default interface IAccountingIntervalRepo {
     options: IWriteRepoOptions<IAccountingIntervalHistory>
   ): Promise<void>;
 
-  /** Half-open instant overlap across all intervals belonging to the entity. */
-  existsByRange(
+  /** Whether this entity already has an interval for the fiscal year. */
+  existsByFiscalYear(
     accountingEntityId: TEntityId,
-    range: Pick<IAccountingInterval, 'startDate' | 'endDate'>,
+    fiscalYearId: TEntityId,
     options: IReadRepoOptions
   ): Promise<boolean>;
 
