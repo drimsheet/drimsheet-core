@@ -15,11 +15,6 @@ export const jurisdictionAccountingStandardsTable = {
   schema: 'core',
 };
 
-export const periodUnit = {
-  name: 'period_unit',
-  schema: 'core',
-};
-
 export const periodStatus = {
   name: 'period_status',
   schema: 'core',
@@ -35,6 +30,26 @@ export const fiscalYearPeriodUnit = {
   schema: 'core',
 };
 
+export const accountingIntervalsTable = {
+  name: 'accounting_intervals',
+  schema: 'core',
+};
+
+export const accountingIntervalUnit = {
+  name: 'accounting_interval_unit',
+  schema: 'core',
+};
+
+export const accountingIntervalHistoryTable = {
+  name: 'accounting_interval_history',
+  schema: auditSchema,
+};
+
+export const accountingPeriodStatus = {
+  name: 'accounting_period_status',
+  schema: 'core',
+};
+
 export const accountingPeriodsTable = {
   name: 'accounting_periods',
   schema: 'core',
@@ -43,6 +58,21 @@ export const accountingPeriodsTable = {
 export const accountingContextsTable = {
   name: 'accounting_contexts',
   schema: 'core',
+};
+
+export const reportingIntervalsTable = {
+  name: 'reporting_intervals',
+  schema: 'core',
+};
+
+export const reportingIntervalUnit = {
+  name: 'reporting_interval_unit',
+  schema: 'core',
+};
+
+export const reportingIntervalHistoryTable = {
+  name: 'reporting_interval_history',
+  schema: auditSchema,
 };
 
 export const reportingPeriodsTable = {

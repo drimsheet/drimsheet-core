@@ -1,13 +1,11 @@
 import { ColumnDefinitions, MigrationBuilder } from 'node-pg-migrate';
 
 import {
-  fiscalYearsTable,
-  periodUnit,
+  reportingIntervalsTable,
   reportingPeriodsTable,
 } from '../config/accounting';
 import { accountingEntitiesTable } from '../config/accounting-entity';
 import { actorsTable } from '../config/actors';
-import toSchemaString from '../utils/to-schema-string';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
@@ -21,12 +19,11 @@ export function up(pgm: MigrationBuilder) {
     },
     id: {
       type: 'uuid',
-      default: pgm.func('uuid_generate_v4()'),
       primaryKey: true,
     },
 
     name: {
-      type: 'varchar(150)',
+      type: 'varchar(100)',
       notNull: true,
     },
 
@@ -37,31 +34,32 @@ export function up(pgm: MigrationBuilder) {
       onDelete: 'CASCADE',
     },
 
-    fiscal_year_id: {
+    interval_id: {
       type: 'uuid',
       notNull: true,
-      references: fiscalYearsTable,
+      references: reportingIntervalsTable,
       onDelete: 'CASCADE',
     },
 
-    unit: {
-      type: toSchemaString(periodUnit),
-      notNull: true,
-    },
-
-    count: {
-      type: 'smallint',
+    ordinal: {
+      type: 'integer',
       notNull: true,
     },
 
     start_date: {
-      type: 'date',
+      type: 'timestamptz',
       notNull: true,
     },
 
     end_date: {
-      type: 'date',
+      type: 'timestamptz',
       notNull: true,
+    },
+
+    created_at: {
+      type: 'timestamptz',
+      notNull: true,
+      default: pgm.func('now()'),
     },
 
     updated_at: {
@@ -70,11 +68,32 @@ export function up(pgm: MigrationBuilder) {
       default: pgm.func('now()'),
     },
   });
+  pgm.addConstraint(reportingPeriodsTable, 'reporting_periods_dates_ordered', {
+    check: 'start_date < end_date',
+  });
   pgm.addConstraint(
     reportingPeriodsTable,
-    'reporting_periods_fiscal_year_start_date_key',
-    { unique: ['fiscal_year_id', 'start_date'] }
+    'reporting_periods_ordinal_nonnegative',
+    {
+      check: 'ordinal >= 0',
+    }
   );
+  pgm.addConstraint(
+    reportingPeriodsTable,
+    'reporting_periods_interval_ordinal_key',
+    {
+      unique: ['interval_id', 'ordinal'],
+    }
+  );
+  pgm.addConstraint(
+    reportingPeriodsTable,
+    'reporting_periods_interval_start_date_key',
+    {
+      unique: ['interval_id', 'start_date'],
+    }
+  );
+
+  pgm.createIndex(reportingPeriodsTable, 'accounting_entity_id');
 }
 
 export function down(pgm: MigrationBuilder) {

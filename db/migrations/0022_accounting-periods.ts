@@ -1,10 +1,9 @@
 import { ColumnDefinitions, MigrationBuilder } from 'node-pg-migrate';
 
 import {
+  accountingIntervalsTable,
   accountingPeriodsTable,
-  fiscalYearsTable,
-  periodStatus,
-  periodUnit,
+  accountingPeriodStatus,
 } from '../config/accounting';
 import { accountingEntitiesTable } from '../config/accounting-entity';
 import { actorsTable } from '../config/actors';
@@ -15,10 +14,11 @@ export const shorthands: ColumnDefinitions | undefined = undefined;
 export function up(pgm: MigrationBuilder) {
   pgm.createExtension('btree_gist', { ifNotExists: true });
 
+  pgm.createType(accountingPeriodStatus, ['open', 'closed']);
+
   pgm.createTable(accountingPeriodsTable, {
     id: {
       type: 'uuid',
-      default: pgm.func('uuid_generate_v4()'),
       primaryKey: true,
     },
 
@@ -30,7 +30,7 @@ export function up(pgm: MigrationBuilder) {
     },
 
     name: {
-      type: 'varchar(150)',
+      type: 'varchar(100)',
       notNull: true,
     },
 
@@ -41,40 +41,41 @@ export function up(pgm: MigrationBuilder) {
       onDelete: 'CASCADE',
     },
 
-    fiscal_year_id: {
+    interval_id: {
       type: 'uuid',
       notNull: true,
-      references: fiscalYearsTable,
+      references: accountingIntervalsTable,
       onDelete: 'CASCADE',
     },
 
-    unit: {
-      type: toSchemaString(periodUnit),
-      notNull: true,
-    },
-
-    count: {
-      type: 'smallint',
+    ordinal: {
+      type: 'integer',
       notNull: true,
     },
 
     start_date: {
-      type: 'date',
+      type: 'timestamptz',
       notNull: true,
     },
 
     end_date: {
-      type: 'date',
+      type: 'timestamptz',
       notNull: true,
     },
 
     status: {
-      type: toSchemaString(periodStatus),
+      type: toSchemaString(accountingPeriodStatus),
       notNull: true,
     },
 
     closed_at: {
       type: 'timestamptz',
+    },
+
+    created_at: {
+      type: 'timestamptz',
+      notNull: true,
+      default: pgm.func('now()'),
     },
 
     updated_at: {
@@ -88,7 +89,28 @@ export function up(pgm: MigrationBuilder) {
     accountingPeriodsTable,
     'accounting_periods_dates_ordered',
     {
-      check: 'start_date <= end_date',
+      check: 'start_date < end_date',
+    }
+  );
+  pgm.addConstraint(
+    accountingPeriodsTable,
+    'accounting_periods_ordinal_nonnegative',
+    {
+      check: 'ordinal >= 0',
+    }
+  );
+  pgm.addConstraint(
+    accountingPeriodsTable,
+    'accounting_periods_interval_ordinal_key',
+    {
+      unique: ['interval_id', 'ordinal'],
+    }
+  );
+  pgm.addConstraint(
+    accountingPeriodsTable,
+    'accounting_periods_interval_start_date_key',
+    {
+      unique: ['interval_id', 'start_date'],
     }
   );
 
@@ -96,10 +118,13 @@ export function up(pgm: MigrationBuilder) {
     ADD CONSTRAINT accounting_periods_entity_dates_excl
     EXCLUDE USING gist (
       accounting_entity_id WITH =,
-      daterange(start_date, end_date, '[]') WITH &&
+      tstzrange(start_date, end_date, '[)') WITH &&
     )`);
+
+  pgm.createIndex(accountingPeriodsTable, 'accounting_entity_id');
 }
 
 export function down(pgm: MigrationBuilder) {
   pgm.dropTable(accountingPeriodsTable);
+  pgm.dropType(accountingPeriodStatus);
 }
