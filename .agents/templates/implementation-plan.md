@@ -74,10 +74,31 @@ Omit any scope subsection that does not add useful information.
 
 ## Proposed Approach
 
-Describe the implementation at the granularity appropriate to the task. Use a
-short ordered list for small changes, steps when order matters, workstreams when
-work can proceed independently, and phases only for genuine milestones or
-rollouts.
+Use flow charts as the primary explanation of the process. Supplement them with
+concise details about contracts, invariants, data changes, and decisions rather
+than repeating each arrow in prose. Scale the detail to the task.
+
+### Process Flow (Required)
+
+Every plan must include at least one Mermaid flow chart showing the proposed
+process from its entry point to its outcomes. Use separate focused charts for
+distinct workflows when one chart would become difficult to follow.
+
+- Name the participating services and methods in the nodes, including use cases,
+  entities, and repositories where they participate. Use verified existing
+  names and explicitly mark proposed new or changed methods.
+- Show ownership, call order, meaningful inputs/results, and relevant decision,
+  unchanged-operation, and failure branches.
+- Show transaction boundaries, persistence, and event publication when applicable;
+  make the use case initiating each write clear.
+- Keep diagrams consistent with the contracts and implementation basis. A node
+  does not authorize a new service or resolve an open architectural decision.
+- For work without a runtime process, diagram the change and verification
+  workflow using the actual participating components or commands; do not invent
+  services or methods to fill the chart.
+
+Sequence diagrams may supplement flow charts for concurrency or interactions;
+they do not replace the required process flow chart.
 
 ### <Step or Workstream>
 

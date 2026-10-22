@@ -22,9 +22,12 @@ description: Use whenever the user asks for a plan, implementation plan, approac
 6. Mark a plan with an unresolved material decision or unapproved deviation as
    not implementation-ready.
 7. Create the plan in `.agents/plans` using the template as its structure.
-8. Name the file `<concise-kebab-case-outcome>-plan.md`.
-9. Remove template sections that do not apply; do not leave placeholders.
-10. Present or summarize the saved plan and link to its path.
+8. Include the template's required process flow chart in every plan, naming
+   participating services and methods. Follow its diagram guidance and keep
+   supporting prose focused on details the charts do not explain.
+9. Name the file `<concise-kebab-case-outcome>-plan.md`.
+10. Remove optional template sections that do not apply; do not leave placeholders.
+11. Present or summarize the saved plan and link to its path.
 
 Do not provide a plan only in chat. Save it before presenting it. Preserve
 unrelated working-tree and staged changes.
