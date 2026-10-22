@@ -17,6 +17,7 @@ describe('reportingIntervalService.create', () => {
     status: 'open',
   });
   const repo: jest.Mocked<IReportingIntervalRepo> = {
+    update: jest.fn(),
     create: jest.fn(),
     findById: jest.fn(),
     existsByFiscalYear: jest.fn(),

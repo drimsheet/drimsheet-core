@@ -38,6 +38,36 @@ const reportingIntervalRepo: IReportingIntervalRepo = {
     }
   },
 
+  async update(interval, options) {
+    await getDbQuery(options).transaction(async (tx) => {
+      await tx
+        .update(reportingIntervalsInCore)
+        .set(reportingIntervalMapper.toRepo(interval))
+        .where(
+          and(
+            eq(reportingIntervalsInCore.id, interval.id),
+            eq(
+              reportingIntervalsInCore.accountingEntityId,
+              interval.accountingEntityId
+            )
+          )
+        );
+
+      const { history } = options;
+
+      await tx.insert(reportingIntervalHistoryInAudit).values({
+        reportingIntervalId: history.entityId,
+        accountingEntityId: interval.accountingEntityId,
+        actorId: history.actorId,
+        onBehalfOf: history.onBehalfOf,
+        action: history.action,
+        diff: history.diff,
+        correlationId: history.correlationId,
+        occurredAt: toRepoDate(history.occurredAt),
+      });
+    });
+  },
+
   async existsByFiscalYear(accountingEntityId, fiscalYearId, options) {
     const rows = await getDbQuery(options)
       .select({ id: reportingIntervalsInCore.id })

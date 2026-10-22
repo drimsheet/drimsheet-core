@@ -10,6 +10,12 @@ export default interface IAccountingIntervalRepo {
     options: IWriteRepoOptions<IAccountingIntervalHistory>
   ): Promise<void>;
 
+  /** Saves the interval header and history atomically; leaves children intact. */
+  update(
+    interval: Omit<IAccountingInterval, 'periods'>,
+    options: IWriteRepoOptions<IAccountingIntervalHistory>
+  ): Promise<void>;
+
   /** Whether this entity already has an interval for the fiscal year. */
   existsByFiscalYear(
     accountingEntityId: TEntityId,

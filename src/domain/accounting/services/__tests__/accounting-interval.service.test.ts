@@ -17,6 +17,7 @@ describe('accountingIntervalService.create', () => {
     status: 'open',
   });
   const repo: jest.Mocked<IAccountingIntervalRepo> = {
+    update: jest.fn(),
     create: jest.fn(),
     findById: jest.fn(),
     existsByFiscalYear: jest.fn(),

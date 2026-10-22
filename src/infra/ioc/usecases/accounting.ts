@@ -42,8 +42,7 @@ export const setCurrentAccountingPeriodUseCase = makeTracedUseCase(
   'accounting.setCurrentAccountingPeriodUseCase',
   makeSetCurrentAccountingPeriodUsecase({
     appContext,
-    accountingContextService,
-    accountingContextRepo: accountingRepos.accountingContext,
+    accountingIntervalRepo: accountingRepos.accountingInterval,
     eventBus: messaging.eventBus,
   })
 );
@@ -61,8 +60,7 @@ export const setCurrentReportingPeriodUseCase = makeTracedUseCase(
   'accounting.setCurrentReportingPeriodUseCase',
   makeSetCurrentReportingPeriodUsecase({
     appContext,
-    reportingContextService,
-    reportingContextRepo: accountingRepos.reportingContext,
+    reportingIntervalRepo: accountingRepos.reportingInterval,
     eventBus: messaging.eventBus,
   })
 );
