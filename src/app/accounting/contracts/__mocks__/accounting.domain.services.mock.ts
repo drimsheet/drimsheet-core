@@ -1,5 +1,6 @@
 import IAccountingContextService from '@domain/accounting/types/accounting-context.service.types';
 import IAccountingEntityService from '@domain/accounting/types/accounting-entity.service.types';
+import IAccountingIntervalService from '@domain/accounting/types/accounting-interval.service.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import IFiscalYearService from '@domain/accounting/types/fiscal-year.service.types';
 import IReportingContextService from '@domain/accounting/types/reporting-context.service.types';
@@ -39,4 +40,9 @@ export const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> 
   {
     generate: jest.fn(),
     validatePostingPeriod: jest.fn(),
+  };
+
+export const mockAccountingIntervalService: jest.Mocked<IAccountingIntervalService> =
+  {
+    create: jest.fn(),
   };

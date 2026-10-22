@@ -6230,96 +6230,6 @@
         "parameters": []
       }
     },
-    "/accounting/accounting-periods/{id}": {
-      "get": {
-        "operationId": "getAccountingPeriod",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IAccountingPeriod"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Returns one accounting period belonging to x-accounting-entity-id.",
-        "tags": ["Accounting"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
     "/accounting/fiscal-years": {
       "get": {
         "operationId": "getFiscalYears",
@@ -6569,99 +6479,6 @@
         ]
       }
     },
-    "/accounting/fiscal-years/{fiscalYearId}/accounting-periods": {
-      "get": {
-        "operationId": "getAccountingPeriods",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IAccountingPeriod"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Returns all periods of a fiscal year belonging to x-accounting-entity-id.",
-        "tags": ["Accounting"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "fiscalYearId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
     "/accounting/fiscal-years/{id}/reporting-context": {
       "get": {
         "operationId": "getReportingContext",
@@ -6749,99 +6566,6 @@
           {
             "in": "path",
             "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/accounting/fiscal-years/{fiscalYearId}/reporting-periods": {
-      "get": {
-        "operationId": "getReportingPeriods",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IReportingPeriod"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Returns all reporting periods of a fiscal year belonging to\nx-accounting-entity-id.",
-        "tags": ["Accounting"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "fiscalYearId",
             "required": true,
             "schema": {
               "type": "string"
@@ -6985,19 +6709,16 @@
         }
       }
     },
-    "/accounting/accounting-periods": {
+    "/accounting/accounting-intervals": {
       "post": {
-        "operationId": "createAccountingPeriods",
+        "operationId": "createAccountingInterval",
         "responses": {
           "201": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IAccountingPeriod"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/IAccountingInterval"
                 }
               }
             }
@@ -7073,7 +6794,7 @@
             }
           }
         },
-        "description": "Generates the fiscal year's posting calendar for x-accounting-entity-id. Context and schedule setup are separate.",
+        "description": "Creates an interval and its periods for x-accounting-entity-id.",
         "tags": ["Accounting"],
         "security": [],
         "parameters": [],
@@ -7082,7 +6803,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/IAccountingPeriodsCreationReq"
+                "$ref": "#/components/schemas/IAccountingIntervalCreationReq"
               }
             }
           }
@@ -7174,7 +6895,7 @@
             }
           }
         },
-        "description": "Creates a context for x-accounting-entity-id from existing records; archived entities return 409. Explicit period selection is required for current, historical, and future years and never changes period status or posting eligibility.",
+        "description": "Creates a context for x-accounting-entity-id from existing records;\narchived entities return 409.Explicit period selection is required for current, historical,\nand future years and never changes period status or posting eligibility.",
         "tags": ["Accounting"],
         "security": [],
         "parameters": [],
@@ -7184,110 +6905,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IAccountingContextCreationReq"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounting/reporting-periods": {
-      "post": {
-        "operationId": "createReportingPeriods",
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IReportingPeriod"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Generates inclusive UTC reporting intervals for x-accounting-entity-id. A fiscal year with existing reporting periods returns 409, regardless of requested cadence.",
-        "tags": ["Accounting"],
-        "security": [],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IReportingPeriodsCreationReq"
               }
             }
           }
@@ -7379,7 +6996,7 @@
             }
           }
         },
-        "description": "Creates only a reporting context and its history for x-accounting-entity-id; archived entities return 409. The selected reporting period must share the linked accounting context's entity and fiscal year.",
+        "description": "Creates only a reporting context and its history for x-accounting-entity-id;\narchived entities return 409.\nThe selected reporting period must share the linked accounting context's entity and fiscal year.",
         "tags": ["Accounting"],
         "security": [],
         "parameters": [],
@@ -11278,73 +10895,6 @@
         "type": "string",
         "enum": ["pending", "open", "closing", "closed"]
       },
-      "UPeriodUnit": {
-        "type": "string",
-        "enum": ["day", "week", "month", "quarter", "year"]
-      },
-      "IAccountingPeriod": {
-        "description": "================== Accounting Period ==================",
-        "properties": {
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "name": {
-            "type": "string"
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "unit": {
-            "$ref": "#/components/schemas/UPeriodUnit"
-          },
-          "count": {
-            "type": "number",
-            "format": "double"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "status": {
-            "$ref": "#/components/schemas/UPeriodStatus"
-          },
-          "fiscalYearId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "closedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "createdBy",
-          "id",
-          "name",
-          "accountingEntityId",
-          "unit",
-          "count",
-          "startDate",
-          "endDate",
-          "status",
-          "fiscalYearId",
-          "closedAt",
-          "updatedAt"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IFiscalYear": {
         "properties": {
           "id": {
@@ -11458,25 +11008,8 @@
           "fiscalYearId": {
             "$ref": "#/components/schemas/TEntityId"
           },
-          "currentAccountingPeriodId": {
-            "$ref": "#/components/schemas/TEntityId",
-            "description": "Stored working-period selection, maintained independently of reads."
-          },
-          "previousAccountingPeriodId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TEntityId"
-              }
-            ],
-            "nullable": true
-          },
-          "nextAccountingPeriodId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TEntityId"
-              }
-            ],
-            "nullable": true
+          "accountingIntervalId": {
+            "$ref": "#/components/schemas/TEntityId"
           },
           "createdAt": {
             "type": "string",
@@ -11500,9 +11033,7 @@
           "accountingEntityId",
           "accountingStandardCode",
           "fiscalYearId",
-          "currentAccountingPeriodId",
-          "previousAccountingPeriodId",
-          "nextAccountingPeriodId",
+          "accountingIntervalId",
           "createdAt",
           "updatedAt",
           "closedAt"
@@ -11534,12 +11065,8 @@
           "accountingContextId": {
             "$ref": "#/components/schemas/TEntityId"
           },
-          "currentReportingPeriodId": {
-            "$ref": "#/components/schemas/TEntityId",
-            "description": "Stored working-period selection, maintained independently of reads."
-          },
-          "accountingStandardCode": {
-            "$ref": "#/components/schemas/UAccountingStandardCode"
+          "reportingIntervalId": {
+            "$ref": "#/components/schemas/TEntityId"
           },
           "createdAt": {
             "type": "string",
@@ -11563,64 +11090,10 @@
           "accountingEntityId",
           "reportingCurrencyCode",
           "accountingContextId",
-          "currentReportingPeriodId",
-          "accountingStandardCode",
+          "reportingIntervalId",
           "createdAt",
           "updatedAt",
           "closedAt"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IReportingPeriod": {
-        "description": "startDate is the first included UTC calendar date; endDate is the last.\nThe interval is due for reporting from the following UTC day. Current-period\nselection, scheduling, and report execution are handled separately.",
-        "properties": {
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "name": {
-            "type": "string"
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "unit": {
-            "$ref": "#/components/schemas/UPeriodUnit"
-          },
-          "count": {
-            "type": "number",
-            "format": "double"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "fiscalYearId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "createdBy",
-          "id",
-          "name",
-          "accountingEntityId",
-          "unit",
-          "count",
-          "startDate",
-          "endDate",
-          "fiscalYearId",
-          "updatedAt"
         ],
         "type": "object",
         "additionalProperties": false
@@ -11728,21 +11201,275 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IAccountingPeriodsCreationReq": {
+      "UAccountingIntervalUnit": {
+        "type": "string",
+        "enum": ["day", "week", "month", "quarter", "year"]
+      },
+      "UAccountingPeriodStatus": {
+        "type": "string",
+        "enum": ["open", "closed"]
+      },
+      "IAccountingPeriod": {
         "properties": {
-          "fiscalYearId": {
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "intervalId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "ordinal": {
+            "type": "number",
+            "format": "double"
+          },
+          "name": {
             "type": "string"
           },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start instant."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end instant, shared with the following period's start."
+          },
+          "status": {
+            "$ref": "#/components/schemas/UAccountingPeriodStatus"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "intervalId",
+          "accountingEntityId",
+          "ordinal",
+          "name",
+          "startDate",
+          "endDate",
+          "status",
+          "createdBy",
+          "closedAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPeriod": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "intervalId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "ordinal": {
+            "type": "number",
+            "format": "double"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start instant."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end instant, shared with the following period's start."
+          }
+        },
+        "required": [
+          "id",
+          "intervalId",
+          "accountingEntityId",
+          "ordinal",
+          "name",
+          "startDate",
+          "endDate"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "Pick_IInterval.Exclude_keyofIInterval.unit__": {
+        "properties": {
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Total number of periods, not the number of units per period."
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/IPeriod"
+            },
+            "type": "array"
+          },
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start instant."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end instant."
+          },
+          "currentPeriodOrdinal": {
+            "type": "number",
+            "format": "double"
+          },
+          "nextPeriodStartDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "count",
+          "periods",
+          "id",
+          "accountingEntityId",
+          "startDate",
+          "endDate",
+          "currentPeriodOrdinal",
+          "nextPeriodStartDate"
+        ],
+        "type": "object",
+        "description": "From T, pick a set of properties whose keys are in the union K"
+      },
+      "IAccountingInterval": {
+        "properties": {
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Total number of periods, not the number of units per period."
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/IAccountingPeriod"
+            },
+            "type": "array"
+          },
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start instant."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end instant."
+          },
+          "currentPeriodOrdinal": {
+            "type": "number",
+            "format": "double"
+          },
+          "nextPeriodStartDate": {
+            "type": "string",
+            "format": "date-time"
+          },
           "unit": {
-            "$ref": "#/components/schemas/UPeriodUnit"
+            "$ref": "#/components/schemas/UAccountingIntervalUnit"
+          },
+          "fiscalYearId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "count",
+          "periods",
+          "id",
+          "accountingEntityId",
+          "startDate",
+          "endDate",
+          "currentPeriodOrdinal",
+          "nextPeriodStartDate",
+          "unit",
+          "fiscalYearId",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPeriodMakePayload": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["name"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountingIntervalCreationReq": {
+        "properties": {
+          "unit": {
+            "$ref": "#/components/schemas/UAccountingIntervalUnit"
           },
           "count": {
             "type": "number",
             "format": "double",
-            "description": "Number of intervals to generate across the complete fiscal year."
+            "description": "Total number of periods, not the number of units per period."
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/IPeriodMakePayload"
+            },
+            "type": "array"
+          },
+          "fiscalYearId": {
+            "type": "string"
           }
         },
-        "required": ["fiscalYearId", "unit", "count"],
+        "required": ["unit", "count", "periods", "fiscalYearId"],
         "type": "object",
         "additionalProperties": false
       },
@@ -11754,9 +11481,8 @@
           "accountingStandardCode": {
             "$ref": "#/components/schemas/UAccountingStandardCode"
           },
-          "currentAccountingPeriodId": {
-            "type": "string",
-            "description": "Required for current, historical, and future years; selection never changes posting eligibility."
+          "accountingIntervalId": {
+            "type": "string"
           },
           "name": {
             "type": "string"
@@ -11769,28 +11495,10 @@
         "required": [
           "fiscalYearId",
           "accountingStandardCode",
-          "currentAccountingPeriodId",
+          "accountingIntervalId",
           "name",
           "description"
         ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IReportingPeriodsCreationReq": {
-        "properties": {
-          "fiscalYearId": {
-            "type": "string"
-          },
-          "unit": {
-            "$ref": "#/components/schemas/UPeriodUnit"
-          },
-          "count": {
-            "type": "number",
-            "format": "double",
-            "description": "Number of intervals across the complete fiscal year. A fiscal year with existing reporting periods returns 409."
-          }
-        },
-        "required": ["fiscalYearId", "unit", "count"],
         "type": "object",
         "additionalProperties": false
       },
@@ -11799,12 +11507,8 @@
           "accountingContextId": {
             "type": "string"
           },
-          "currentReportingPeriodId": {
-            "type": "string",
-            "description": "Explicit working-period selection within the linked accounting context's fiscal year."
-          },
-          "accountingStandardCode": {
-            "$ref": "#/components/schemas/UAccountingStandardCode"
+          "reportingIntervalId": {
+            "type": "string"
           },
           "reportingCurrencyCode": {
             "$ref": "#/components/schemas/UCurrencyCode"
@@ -11819,8 +11523,7 @@
         },
         "required": [
           "accountingContextId",
-          "currentReportingPeriodId",
-          "accountingStandardCode",
+          "reportingIntervalId",
           "reportingCurrencyCode",
           "name",
           "description"

@@ -2819,47 +2819,6 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UPeriodUnit: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['day'] },
-        { dataType: 'enum', enums: ['week'] },
-        { dataType: 'enum', enums: ['month'] },
-        { dataType: 'enum', enums: ['quarter'] },
-        { dataType: 'enum', enums: ['year'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingPeriod: {
-    dataType: 'refObject',
-    properties: {
-      createdBy: { ref: 'TEntityId', required: true },
-      id: { ref: 'TEntityId', required: true },
-      name: { dataType: 'string', required: true },
-      accountingEntityId: { ref: 'TEntityId', required: true },
-      unit: { ref: 'UPeriodUnit', required: true },
-      count: { dataType: 'double', required: true },
-      startDate: { dataType: 'datetime', required: true },
-      endDate: { dataType: 'datetime', required: true },
-      status: { ref: 'UPeriodStatus', required: true },
-      fiscalYearId: { ref: 'TEntityId', required: true },
-      closedAt: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'datetime' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      updatedAt: { dataType: 'datetime', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IFiscalYear: {
     dataType: 'refObject',
     properties: {
@@ -2947,17 +2906,7 @@ const models: TsoaRoute.Models = {
         required: true,
       },
       fiscalYearId: { ref: 'TEntityId', required: true },
-      currentAccountingPeriodId: { ref: 'TEntityId', required: true },
-      previousAccountingPeriodId: {
-        dataType: 'union',
-        subSchemas: [{ ref: 'TEntityId' }, { dataType: 'enum', enums: [null] }],
-        required: true,
-      },
-      nextAccountingPeriodId: {
-        dataType: 'union',
-        subSchemas: [{ ref: 'TEntityId' }, { dataType: 'enum', enums: [null] }],
-        required: true,
-      },
+      accountingIntervalId: { ref: 'TEntityId', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
       closedAt: {
@@ -2989,11 +2938,7 @@ const models: TsoaRoute.Models = {
       accountingEntityId: { ref: 'TEntityId', required: true },
       reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
       accountingContextId: { ref: 'TEntityId', required: true },
-      currentReportingPeriodId: { ref: 'TEntityId', required: true },
-      accountingStandardCode: {
-        ref: 'UAccountingStandardCode',
-        required: true,
-      },
+      reportingIntervalId: { ref: 'TEntityId', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
       closedAt: {
@@ -3004,23 +2949,6 @@ const models: TsoaRoute.Models = {
         ],
         required: true,
       },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IReportingPeriod: {
-    dataType: 'refObject',
-    properties: {
-      createdBy: { ref: 'TEntityId', required: true },
-      id: { ref: 'TEntityId', required: true },
-      name: { dataType: 'string', required: true },
-      accountingEntityId: { ref: 'TEntityId', required: true },
-      unit: { ref: 'UPeriodUnit', required: true },
-      count: { dataType: 'double', required: true },
-      startDate: { dataType: 'datetime', required: true },
-      endDate: { dataType: 'datetime', required: true },
-      fiscalYearId: { ref: 'TEntityId', required: true },
-      updatedAt: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
   },
@@ -3082,12 +3010,138 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountingPeriodsCreationReq: {
+  UAccountingIntervalUnit: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['day'] },
+        { dataType: 'enum', enums: ['week'] },
+        { dataType: 'enum', enums: ['month'] },
+        { dataType: 'enum', enums: ['quarter'] },
+        { dataType: 'enum', enums: ['year'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UAccountingPeriodStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['open'] },
+        { dataType: 'enum', enums: ['closed'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingPeriod: {
     dataType: 'refObject',
     properties: {
-      fiscalYearId: { dataType: 'string', required: true },
-      unit: { ref: 'UPeriodUnit', required: true },
+      id: { ref: 'TEntityId', required: true },
+      intervalId: { ref: 'TEntityId', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
+      ordinal: { dataType: 'double', required: true },
+      name: { dataType: 'string', required: true },
+      startDate: { dataType: 'datetime', required: true },
+      endDate: { dataType: 'datetime', required: true },
+      status: { ref: 'UAccountingPeriodStatus', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      closedAt: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'datetime' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      createdAt: { dataType: 'datetime', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IPeriod: {
+    dataType: 'refObject',
+    properties: {
+      id: { ref: 'TEntityId', required: true },
+      intervalId: { ref: 'TEntityId', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
+      ordinal: { dataType: 'double', required: true },
+      name: { dataType: 'string', required: true },
+      startDate: { dataType: 'datetime', required: true },
+      endDate: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  'Pick_IInterval.Exclude_keyofIInterval.unit__': {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'nestedObjectLiteral',
+      nestedProperties: {
+        count: { dataType: 'double', required: true },
+        periods: {
+          dataType: 'array',
+          array: { dataType: 'refObject', ref: 'IPeriod' },
+          required: true,
+        },
+        id: { ref: 'TEntityId', required: true },
+        accountingEntityId: { ref: 'TEntityId', required: true },
+        startDate: { dataType: 'datetime', required: true },
+        endDate: { dataType: 'datetime', required: true },
+        currentPeriodOrdinal: { dataType: 'double', required: true },
+        nextPeriodStartDate: { dataType: 'datetime', required: true },
+      },
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingInterval: {
+    dataType: 'refObject',
+    properties: {
       count: { dataType: 'double', required: true },
+      periods: {
+        dataType: 'array',
+        array: { dataType: 'refObject', ref: 'IAccountingPeriod' },
+        required: true,
+      },
+      id: { ref: 'TEntityId', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
+      startDate: { dataType: 'datetime', required: true },
+      endDate: { dataType: 'datetime', required: true },
+      currentPeriodOrdinal: { dataType: 'double', required: true },
+      nextPeriodStartDate: { dataType: 'datetime', required: true },
+      unit: { ref: 'UAccountingIntervalUnit', required: true },
+      fiscalYearId: { ref: 'TEntityId', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      createdAt: { dataType: 'datetime', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IPeriodMakePayload: {
+    dataType: 'refObject',
+    properties: {
+      name: { dataType: 'string', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountingIntervalCreationReq: {
+    dataType: 'refObject',
+    properties: {
+      unit: { ref: 'UAccountingIntervalUnit', required: true },
+      count: { dataType: 'double', required: true },
+      periods: {
+        dataType: 'array',
+        array: { dataType: 'refObject', ref: 'IPeriodMakePayload' },
+        required: true,
+      },
+      fiscalYearId: { dataType: 'string', required: true },
     },
     additionalProperties: false,
   },
@@ -3100,7 +3154,7 @@ const models: TsoaRoute.Models = {
         ref: 'UAccountingStandardCode',
         required: true,
       },
-      currentAccountingPeriodId: { dataType: 'string', required: true },
+      accountingIntervalId: { dataType: 'string', required: true },
       name: { dataType: 'string', required: true },
       description: {
         dataType: 'union',
@@ -3114,25 +3168,11 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IReportingPeriodsCreationReq: {
-    dataType: 'refObject',
-    properties: {
-      fiscalYearId: { dataType: 'string', required: true },
-      unit: { ref: 'UPeriodUnit', required: true },
-      count: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IReportingContextCreationReq: {
     dataType: 'refObject',
     properties: {
       accountingContextId: { dataType: 'string', required: true },
-      currentReportingPeriodId: { dataType: 'string', required: true },
-      accountingStandardCode: {
-        ref: 'UAccountingStandardCode',
-        required: true,
-      },
+      reportingIntervalId: { dataType: 'string', required: true },
       reportingCurrencyCode: { ref: 'UCurrencyCode', required: true },
       name: { dataType: 'string', required: true },
       description: {
@@ -6600,50 +6640,6 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_getAccountingPeriod: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
-  };
-  app.get(
-    '/api/v1/accounting/accounting-periods/:id',
-    ...fetchMiddlewares<RequestHandler>(AccountingController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.getAccountingPeriod
-    ),
-
-    async function AccountingController_getAccountingPeriod(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_getAccountingPeriod,
-          request,
-          response,
-        });
-
-        const controller = new AccountingController();
-
-        await templateService.apiHandler({
-          methodName: 'getAccountingPeriod',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsAccountingController_getFiscalYears: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -6774,55 +6770,6 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_getAccountingPeriods: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    fiscalYearId: {
-      in: 'path',
-      name: 'fiscalYearId',
-      required: true,
-      dataType: 'string',
-    },
-  };
-  app.get(
-    '/api/v1/accounting/fiscal-years/:fiscalYearId/accounting-periods',
-    ...fetchMiddlewares<RequestHandler>(AccountingController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.getAccountingPeriods
-    ),
-
-    async function AccountingController_getAccountingPeriods(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_getAccountingPeriods,
-          request,
-          response,
-        });
-
-        const controller = new AccountingController();
-
-        await templateService.apiHandler({
-          methodName: 'getAccountingPeriods',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsAccountingController_getReportingContext: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -6855,55 +6802,6 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getReportingContext',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_getReportingPeriods: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    fiscalYearId: {
-      in: 'path',
-      name: 'fiscalYearId',
-      required: true,
-      dataType: 'string',
-    },
-  };
-  app.get(
-    '/api/v1/accounting/fiscal-years/:fiscalYearId/reporting-periods',
-    ...fetchMiddlewares<RequestHandler>(AccountingController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.getReportingPeriods
-    ),
-
-    async function AccountingController_getReportingPeriods(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_getReportingPeriods,
-          request,
-          response,
-        });
-
-        const controller = new AccountingController();
-
-        await templateService.apiHandler({
-          methodName: 'getReportingPeriods',
           controller,
           response,
           next,
@@ -7056,7 +6954,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_createAccountingPeriods: Record<
+  const argsAccountingController_createAccountingInterval: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -7064,17 +6962,17 @@ export function RegisterRoutes(app: Router) {
       in: 'body',
       name: 'body',
       required: true,
-      ref: 'IAccountingPeriodsCreationReq',
+      ref: 'IAccountingIntervalCreationReq',
     },
   };
   app.post(
-    '/api/v1/accounting/accounting-periods',
+    '/api/v1/accounting/accounting-intervals',
     ...fetchMiddlewares<RequestHandler>(AccountingController),
     ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.createAccountingPeriods
+      AccountingController.prototype.createAccountingInterval
     ),
 
-    async function AccountingController_createAccountingPeriods(
+    async function AccountingController_createAccountingInterval(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -7084,7 +6982,7 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_createAccountingPeriods,
+          args: argsAccountingController_createAccountingInterval,
           request,
           response,
         });
@@ -7092,7 +6990,7 @@ export function RegisterRoutes(app: Router) {
         const controller = new AccountingController();
 
         await templateService.apiHandler({
-          methodName: 'createAccountingPeriods',
+          methodName: 'createAccountingInterval',
           controller,
           response,
           next,
@@ -7142,55 +7040,6 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'createAccountingContext',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 201,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsAccountingController_createReportingPeriods: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    body: {
-      in: 'body',
-      name: 'body',
-      required: true,
-      ref: 'IReportingPeriodsCreationReq',
-    },
-  };
-  app.post(
-    '/api/v1/accounting/reporting-periods',
-    ...fetchMiddlewares<RequestHandler>(AccountingController),
-    ...fetchMiddlewares<RequestHandler>(
-      AccountingController.prototype.createReportingPeriods
-    ),
-
-    async function AccountingController_createReportingPeriods(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsAccountingController_createReportingPeriods,
-          request,
-          response,
-        });
-
-        const controller = new AccountingController();
-
-        await templateService.apiHandler({
-          methodName: 'createReportingPeriods',
           controller,
           response,
           next,

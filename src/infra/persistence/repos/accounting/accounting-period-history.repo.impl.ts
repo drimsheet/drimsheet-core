@@ -1,6 +1,6 @@
 import repoError from '@shared/values/errors/repo.error';
 
-import IAccountingPeriodHistoryRepo from '@domain/accounting/repos/accounting-period-history.repo.deprecated';
+import IAccountingPeriodHistoryRepo from '@domain/accounting/repos/accounting-period-history.repo';
 
 import { accountingPeriodHistoryInAudit } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';

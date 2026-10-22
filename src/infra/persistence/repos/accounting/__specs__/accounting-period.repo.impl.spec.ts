@@ -4,7 +4,7 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
-import { IAccountingPeriod } from '@domain/accounting/types/period.types';
+import { IAccountingPeriod } from '@domain/accounting/types/accounting-period.types';
 
 import { accountingPeriodsInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
@@ -28,12 +28,14 @@ describe('accountingPeriodRepoImpl', () => {
 
   function mockRead(results: unknown[]) {
     const baseQuery = {
+      for: jest.fn().mockResolvedValue(results),
       orderBy: jest.fn().mockResolvedValue(results),
       limit: jest.fn().mockResolvedValue(results),
       then: (resolve: (value: unknown[]) => void) => resolve(results),
     };
     const where = jest.fn<typeof baseQuery, [SQL]>().mockReturnValue(baseQuery);
-    const from = jest.fn().mockReturnValue({ where });
+    const innerJoin = jest.fn().mockReturnValue({ where });
+    const from = jest.fn().mockReturnValue({ where, innerJoin });
     const select = jest.fn().mockReturnValue({ from });
     (getDbQuery as jest.Mock).mockReturnValue({ select });
     return { select, from, where, baseQuery };
@@ -73,7 +75,7 @@ describe('accountingPeriodRepoImpl', () => {
     'reads all fiscal-year periods within the entity, ordered by start date: %s',
     async (exists) => {
       const rows = exists
-        ? ['pending', 'open', 'closing', 'closed'].map((status) => ({
+        ? ['open', 'closed'].map((status) => ({
             ...row,
             status,
           }))
@@ -92,9 +94,13 @@ describe('accountingPeriodRepoImpl', () => {
         query.where.mock.calls[0][0]
       );
       expect(predicate.sql).toBe(
-        '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."fiscal_year_id" = $2)'
+        '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_intervals"."fiscal_year_id" = $2 and "core"."accounting_intervals"."accounting_entity_id" = $3)'
       );
-      expect(predicate.params).toEqual([accountingEntityId, fiscalYearId]);
+      expect(predicate.params).toEqual([
+        accountingEntityId,
+        fiscalYearId,
+        accountingEntityId,
+      ]);
       expect(query.from).toHaveBeenCalledWith(accountingPeriodsInCore);
       expect(query.baseQuery.orderBy).toHaveBeenCalledWith(
         accountingPeriodsInCore.startDate,
@@ -120,10 +126,10 @@ describe('accountingPeriodRepoImpl', () => {
     ).resolves.toEqual(period);
 
     const predicate = new PgDialect().sqlToQuery(query.where.mock.calls[0][0]);
-    const day = boundary.toISOString().slice(0, 10);
+    const day = boundary.toISOString();
     expect(predicate.params).toEqual([accountingEntityId, day, day]);
     expect(predicate.sql).toBe(
-      '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."start_date" <= $2 and "core"."accounting_periods"."end_date" >= $3)'
+      '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."start_date" <= $2 and "core"."accounting_periods"."end_date" > $3)'
     );
     expect(accountingPeriodMapper.toDomain).toHaveBeenCalledWith(row);
     expect(getDbQuery).toHaveBeenCalledWith(options);
@@ -152,10 +158,10 @@ describe('accountingPeriodRepoImpl', () => {
       })
     ).resolves.toEqual([period]);
     const predicate = new PgDialect().sqlToQuery(query.where.mock.calls[0][0]);
-    const day = boundary.toISOString().slice(0, 10);
+    const day = boundary.toISOString();
     expect(predicate.params).toEqual([accountingEntityId, day, day]);
     expect(predicate.sql).toBe(
-      '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."start_date" <= $2 and "core"."accounting_periods"."end_date" >= $3)'
+      '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."start_date" <= $2 and "core"."accounting_periods"."end_date" > $3)'
     );
     expect(accountingPeriodMapper.toDomain).toHaveBeenCalledWith(row, 0, [row]);
   });
@@ -186,7 +192,7 @@ describe('accountingPeriodRepoImpl', () => {
     ).toEqual([period, secondPeriod]);
   });
 
-  it('retrieves inclusive overlap across statuses and fiscal years for the requested entity', async () => {
+  it('retrieves half-open overlap across statuses and fiscal years for the requested entity', async () => {
     const query = mockRead([row]);
     const options = { correlationId: 'correlation-id' };
     expect(
@@ -202,11 +208,11 @@ describe('accountingPeriodRepoImpl', () => {
     const predicate = new PgDialect().sqlToQuery(query.where.mock.calls[0][0]);
     expect(predicate.params).toEqual([
       accountingEntityId,
-      '2026-01-31',
-      '2026-01-01',
+      '2026-01-31T23:59:59.999Z',
+      '2026-01-01T00:00:00.000Z',
     ]);
     expect(predicate.sql).toBe(
-      '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."start_date" <= $2 and "core"."accounting_periods"."end_date" >= $3)'
+      '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."start_date" < $2 and "core"."accounting_periods"."end_date" > $3)'
     );
     expect(getDbQuery).toHaveBeenCalledWith(options);
   });
@@ -224,4 +230,26 @@ describe('accountingPeriodRepoImpl', () => {
 
     expect(getDbQuery).toHaveBeenCalledWith(options);
   });
+  it.each(['findByDate', 'findAllByDate', 'findByRange'] as const)(
+    'passes the requested row lock to %s',
+    async (method) => {
+      const query = mockRead([row]);
+      const options = {
+        correlationId: 'locked',
+        tx: {},
+        lock: 'update' as const,
+      };
+      if (method === 'findByRange') {
+        await accountingPeriodRepo.findByRange(
+          accountingEntityId,
+          { startDate: new Date('2026-01-01'), endDate: date },
+          options
+        );
+      } else {
+        await accountingPeriodRepo[method](accountingEntityId, date, options);
+      }
+      expect(query.baseQuery.for).toHaveBeenCalledWith('update');
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+    }
+  );
 });

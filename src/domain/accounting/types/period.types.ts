@@ -14,7 +14,7 @@ export const EPeriodUnit = {
 
 export type UPeriodUnit = (typeof EPeriodUnit)[keyof typeof EPeriodUnit];
 
-export interface IPeriod {
+interface ILegacyPeriod {
   createdBy: TEntityId;
   id: TEntityId;
   name: string;
@@ -36,7 +36,7 @@ export const EPeriodHistoryAction = {
 export type UPeriodHistoryAction =
   (typeof EPeriodHistoryAction)[keyof typeof EPeriodHistoryAction];
 
-export interface IPeriodHistory<T extends IPeriod> extends IHistory<T> {}
+export interface IPeriodHistory<T extends ILegacyPeriod> extends IHistory<T> {}
 
 export const EPeriodStatus = {
   Pending: 'pending',
@@ -50,7 +50,7 @@ export type UPeriodStatus = (typeof EPeriodStatus)[keyof typeof EPeriodStatus];
 /**
  * ================== Accounting Period ==================
  */
-export interface IAccountingPeriod extends IPeriod {
+export interface IAccountingPeriod extends ILegacyPeriod {
   status: UPeriodStatus;
   fiscalYearId: TEntityId;
   closedAt: Date | null;
@@ -62,7 +62,9 @@ export interface IAccountingPeriod extends IPeriod {
  * The interval is due for reporting from the following UTC day. Current-period
  * selection, scheduling, and report execution are handled separately.
  */
-export interface IReportingPeriod extends IPeriod {
+export interface IReportingPeriod extends ILegacyPeriod {
   fiscalYearId: TEntityId;
   updatedAt: Date;
 }
+
+export type { ILegacyPeriod as IPeriod };

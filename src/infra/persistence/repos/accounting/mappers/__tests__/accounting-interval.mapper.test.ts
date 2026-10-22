@@ -50,6 +50,9 @@ describe('accountingIntervalMapper.toDomain', () => {
           updatedAt: period.updatedAt.toISOString(),
         })),
       };
+      const { periods: _periods, ...header } = interval;
+      const { accountingPeriodsInCores: _children, ...expectedHeader } = row;
+      expect(accountingIntervalMapper.toRepo(header)).toEqual(expectedHeader);
       const before = JSON.stringify(row);
       const result = accountingIntervalMapper.toDomain(row);
       expect(result).toEqual(interval);

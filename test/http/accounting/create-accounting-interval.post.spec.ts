@@ -6,6 +6,7 @@ import request from 'supertest';
 import { TEntityId } from '@shared/types/uuid';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
+import accountingIntervalEntity from '@domain/accounting/entities/accounting-interval.entity';
 import periodError from '@domain/accounting/errors/period.error';
 import { IUser } from '@domain/user/types/user.types';
 
@@ -20,6 +21,27 @@ import userRepos from '@infra/persistence/repos/user';
 import createApplication from '@interface/http/application';
 
 import { closeTestServer, startTestServer } from '../../setup/http-listener';
+
+jest.mock('@infra/ioc/services/accounting', () => ({
+  accountingEntityService: jest
+    .requireActual<
+      typeof import('@domain/accounting/services/accounting-entity.service')
+    >('@domain/accounting/services/accounting-entity.service')
+    .default({
+      accountingEntityRepo: jest.requireActual<
+        typeof import('@app/accounting/contracts/__mocks__/accounting.repos.mock')
+      >('@app/accounting/contracts/__mocks__/accounting.repos.mock')
+        .mockAccountingEntityRepo,
+      ledgerAccountBalanceRepo: jest.requireActual<
+        typeof import('@app/ledger/contracts/__mocks__/ledger.repos.mock')
+      >('@app/ledger/contracts/__mocks__/ledger.repos.mock')
+        .mockLedgerAccountBalanceRepo,
+      journalEntryRepo: jest.requireActual<
+        typeof import('@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock')
+      >('@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock')
+        .mockJournalEntryRepo,
+    }),
+}));
 
 jest.mock('@infra/ioc/services/user', () => ({
   ...jest.requireActual('@infra/ioc/services/user'),
@@ -44,7 +66,7 @@ jest.mock('@infra/ioc/services/auth', () => ({
 
 jest.mock('@infra/ioc/usecases/accounting', () => ({
   __esModule: true,
-  createReportingPeriodsUseCase: jest.fn(),
+  createAccountingIntervalUseCase: jest.fn(),
   getJurisdictionsUseCase: jest.fn(),
   getUserAccountingEntitiesUseCase: jest.fn(),
   getActiveAccountingEntityUseCase: jest.fn(),
@@ -67,7 +89,7 @@ jest.mock('@infra/persistence/repos/user', () => ({
   },
 }));
 
-const ENDPOINT = '/api/v1/accounting/reporting-periods';
+const ENDPOINT = '/api/v1/accounting/accounting-intervals';
 const userId = '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
 const [entity] = accountingEntityEntity.make({
   createdBy: userId,
@@ -82,24 +104,27 @@ const payload = {
   fiscalYearId: '123e4567-e89b-12d3-a456-426614174002' as TEntityId,
   unit: 'month' as const,
   count: 12,
+  periods: Array.from({ length: 12 }, (_, index) => ({
+    name: `Month ${index + 1}`,
+  })),
 };
-const period = {
-  id: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
-  createdBy: userId,
-  name: 'Reporting Period 1',
-  accountingEntityId,
-  fiscalYearId: payload.fiscalYearId,
-  unit: payload.unit,
-  count: payload.count,
-  startDate: new Date('2090-01-01'),
-  endDate: new Date('2090-01-31'),
-  updatedAt: new Date('2090-01-01'),
-};
+const [interval] = accountingIntervalEntity.make(
+  {
+    ...payload,
+    accountingEntityId,
+    createdBy: userId,
+    startDate: new Date('2090-01-01'),
+    endDate: new Date('2091-01-01'),
+  },
+  new Date('2090-01-01')
+);
 
-describe('POST /accounting/reporting-periods', () => {
+describe('POST /accounting/accounting-intervals', () => {
   let app: Express;
   let server: Server;
-  const create = jest.mocked(accountingUsecases.createReportingPeriodsUseCase);
+  const create = jest.mocked(
+    accountingUsecases.createAccountingIntervalUseCase
+  );
   beforeEach(async () => {
     jest.resetAllMocks();
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
@@ -114,7 +139,7 @@ describe('POST /accounting/reporting-periods', () => {
     (
       accountingRepos.accountingEntity.findByIdAndUserId as jest.Mock
     ).mockResolvedValue(entity);
-    create.mockResolvedValue([period]);
+    create.mockResolvedValue(interval);
     app = createApplication();
     server = await startTestServer(app);
   });
@@ -124,21 +149,16 @@ describe('POST /accounting/reporting-periods', () => {
   });
 
   describe('201 Response', () => {
-    it('uses the entity header and returns the created periods', async () => {
+    it('uses the entity header and returns the created interval and periods', async () => {
       const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
         .set('x-accounting-entity-id', accountingEntityId)
         .send(payload);
       expect(response.status).toBe(201);
-      expect(response.body).toEqual([
-        {
-          ...period,
-          startDate: period.startDate.toISOString(),
-          endDate: period.endDate.toISOString(),
-          updatedAt: period.updatedAt.toISOString(),
-        },
-      ]);
+      expect(response.body).toEqual(
+        JSON.parse(JSON.stringify(interval)) as unknown
+      );
       expect(create).toHaveBeenCalledWith(payload);
       expect(
         accountingRepos.accountingEntity.findByIdAndUserId
@@ -213,8 +233,8 @@ describe('POST /accounting/reporting-periods', () => {
     );
   });
   describe('409 Response', () => {
-    it('maps duplicate reporting generation', async () => {
-      create.mockRejectedValue(new periodError.DuplicateReportingPeriods());
+    it('maps overlapping posting intervals', async () => {
+      create.mockRejectedValue(new periodError.OverlappingPeriods());
       const response = await request(server)
         .post(ENDPOINT)
         .set('Authorization', 'Bearer token')
@@ -222,7 +242,7 @@ describe('POST /accounting/reporting-periods', () => {
         .send(payload);
       expect(response.status).toBe(409);
       expect(response.body.errorKey).toBe(
-        'accounting_error_period_reporting_duplicate_conflict'
+        'accounting_error_period_overlap_conflict'
       );
     });
   });
@@ -233,6 +253,10 @@ describe('POST /accounting/reporting-periods', () => {
       { fiscalYearId: undefined },
       { accountingEntityId },
       { createdBy: userId },
+      { periods: undefined },
+      { periods: {} },
+      { periods: [{}] },
+      { periods: [{ name: 'January', startDate: '2090-01-01' }] },
     ])('rejects malformed payload before orchestration: %j', async (change) => {
       const response = await request(server)
         .post(ENDPOINT)

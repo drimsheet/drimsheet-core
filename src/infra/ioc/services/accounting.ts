@@ -1,5 +1,6 @@
 import makeAccountingContextService from '@domain/accounting/services/accounting-context.service';
 import makeAccountingEntityService from '@domain/accounting/services/accounting-entity.service';
+import makeAccountingIntervalService from '@domain/accounting/services/accounting-interval.service';
 import makeAccountingPeriodService from '@domain/accounting/services/accounting-period.service';
 import makeFiscalYearService from '@domain/accounting/services/fiscal-year.service';
 import makeReportingContextService from '@domain/accounting/services/reporting-context.service';
@@ -37,4 +38,8 @@ export const accountingEntityService = makeAccountingEntityService({
   accountingEntityRepo: accountingRepos.accountingEntity,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   journalEntryRepo: journalEntryRepos.journalEntry,
+});
+
+export const accountingIntervalService = makeAccountingIntervalService({
+  accountingIntervalRepo: accountingRepos.accountingInterval,
 });

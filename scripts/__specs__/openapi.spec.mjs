@@ -45,10 +45,8 @@ it('preserves existing schema references and security definitions', () => {
       $ref: '#/components/schemas/TEntityId',
     });
   }
-  assert.deepEqual(spec.components.schemas.UPeriodStatus.enum, [
-    'pending',
+  assert.deepEqual(spec.components.schemas.UAccountingPeriodStatus.enum, [
     'open',
-    'closing',
     'closed',
   ]);
   assert.deepEqual(spec.components.securitySchemes.bearerAuth, {
