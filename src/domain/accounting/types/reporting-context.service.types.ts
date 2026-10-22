@@ -1,26 +1,22 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import {
-  IEvent,
-  TAuditedEntity,
-} from '@shared/values/events/types/event.types';
+import { IEvent } from '@shared/values/events/types/event.types';
 
 import { IAccountingEntity } from './accounting-entity.types';
 import { IAccountingContext, IReportingContext } from './context.types';
-import { IReportingPeriod } from './period.types';
-import { IReportingContextAudit } from './reporting-context-audit.types';
+import {
+  IReportingContextAudit,
+  TAuditedReportingContext,
+} from './reporting-context-audit.types';
+import { IReportingInterval } from './reporting-period.types';
 
 interface ICreateReportingContextInput extends Pick<
   IReportingContext,
-  | 'createdBy'
-  | 'name'
-  | 'description'
-  | 'accountingStandardCode'
-  | 'reportingCurrencyCode'
+  'createdBy' | 'name' | 'description' | 'reportingCurrencyCode'
 > {
   accountingEntity: IAccountingEntity;
   accountingContext: IAccountingContext;
-  reportingPeriod: IReportingPeriod;
+  reportingInterval: IReportingInterval;
 }
 
 export default interface IReportingContextService {
@@ -43,14 +39,12 @@ export default interface IReportingContextService {
   >;
 
   /**
-   * Rejects archived entities and invalid reference ownership, framework,
+   * Rejects archived entities and invalid interval or context ownership,
    * or currency. Rejects existing reporting contexts, including closed ones
    * (ACC-RC-006), before preparing the context, event, and audit. Never persists.
    */
   create(
     input: ICreateReportingContextInput,
     repoOptions: IReadRepoOptions
-  ): Promise<
-    TAuditedEntity<IReportingContext, IReportingContext, IReportingContext>
-  >;
+  ): Promise<TAuditedReportingContext>;
 }

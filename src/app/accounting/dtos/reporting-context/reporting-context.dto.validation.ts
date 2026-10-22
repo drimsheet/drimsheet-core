@@ -2,7 +2,6 @@ import z from 'zod';
 
 import accountingError from '@domain/accounting/errors/accounting.error';
 
-import { accountingStandardCodeValidation } from '@app/accounting/dtos/accounting/accounting.dto.validation';
 import { currencyCodeValidation } from '@app/money/dtos/currency/currency.dto.validation';
 
 export const reportingContextCreationDtoSchema = z
@@ -10,10 +9,9 @@ export const reportingContextCreationDtoSchema = z
     accountingContextId: z.uuid(
       new accountingError.InvalidAccountingContextId().errorKey
     ),
-    currentReportingPeriodId: z.uuid(
-      new accountingError.InvalidCurrentReportingPeriodId().errorKey
+    reportingIntervalId: z.uuid(
+      new accountingError.InvalidReportingIntervalId().errorKey
     ),
-    accountingStandardCode: accountingStandardCodeValidation,
     reportingCurrencyCode: currencyCodeValidation,
     name: z.string(new accountingError.InvalidName().errorKey),
     description: z

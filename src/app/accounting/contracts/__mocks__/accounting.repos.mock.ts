@@ -12,6 +12,7 @@ import IJurisdictionAccountingStandardRepo from '@domain/accounting/repos/jurisd
 import IJurisdictionRepo from '@domain/accounting/repos/jurisdiction.repo';
 import IReportingContextHistoryRepo from '@domain/accounting/repos/reporting-context-history.repo';
 import IReportingContextRepo from '@domain/accounting/repos/reporting-context.repo';
+import IReportingIntervalRepo from '@domain/accounting/repos/reporting-interval.repo';
 import IReportingPeriodHistoryRepo from '@domain/accounting/repos/reporting-period-history.repo.deprecated';
 import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
 
@@ -111,3 +112,7 @@ export const mockAccountingIntervalRepo: jest.Mocked<IAccountingIntervalRepo> =
   {
     findById: jest.fn(),
   };
+
+export const mockReportingIntervalRepo: jest.Mocked<IReportingIntervalRepo> = {
+  findById: jest.fn(),
+};

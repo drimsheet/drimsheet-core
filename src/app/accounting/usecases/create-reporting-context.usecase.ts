@@ -7,7 +7,7 @@ import historyValue from '@shared/values/history/history.vo';
 
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
 import IReportingContextRepo from '@domain/accounting/repos/reporting-context.repo';
-import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo.deprecated';
+import IReportingIntervalRepo from '@domain/accounting/repos/reporting-interval.repo';
 import { IReportingContext } from '@domain/accounting/types/context.types';
 import IReportingContextService from '@domain/accounting/types/reporting-context.service.types';
 
@@ -20,7 +20,7 @@ interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   reportingContextService: IReportingContextService;
   accountingContextRepo: IAccountingContextRepo;
-  reportingPeriodRepo: IReportingPeriodRepo;
+  reportingIntervalRepo: IReportingIntervalRepo;
   reportingContextRepo: IReportingContextRepo;
   eventBus: IEventBus;
 }
@@ -45,20 +45,20 @@ export default function makeCreateReportingContextUsecase(deps: IDependencies) {
       throw new accountingAppError.AccountingContextNotFound();
     }
 
-    const reportingPeriod = await deps.reportingPeriodRepo.findById(
-      payload.currentReportingPeriodId as TEntityId,
+    const reportingInterval = await deps.reportingIntervalRepo.findById(
+      accountingEntity.id,
+      payload.reportingIntervalId as TEntityId,
       repoOptions
     );
-    if (!reportingPeriod) {
-      throw new accountingAppError.ReportingPeriodNotFound();
+    if (!reportingInterval) {
+      throw new accountingAppError.ReportingIntervalNotFound();
     }
 
     const [context, events, audit] = await deps.reportingContextService.create(
       {
         accountingEntity,
         accountingContext,
-        reportingPeriod,
-        accountingStandardCode: payload.accountingStandardCode,
+        reportingInterval,
         reportingCurrencyCode: payload.reportingCurrencyCode,
         name: payload.name,
         description: payload.description,

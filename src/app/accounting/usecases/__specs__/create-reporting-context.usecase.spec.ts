@@ -6,10 +6,10 @@ import accountingContextEntity from '@domain/accounting/entities/accounting-cont
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
 import reportingContextEntity from '@domain/accounting/entities/reporting-context.entity';
-import reportingPeriodEntity from '@domain/accounting/entities/reporting-period.entity.deprecated';
+import reportingIntervalEntity from '@domain/accounting/entities/reporting-interval.entity';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
-import accountingStandardError from '@domain/accounting/errors/accounting-standard.error';
 import accountingError from '@domain/accounting/errors/accounting.error';
+import currencyError from '@domain/money/errors/currency.error';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import { mockReportingContextService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
@@ -19,7 +19,7 @@ import {
   mockAccountingPeriodRepo,
   mockFiscalYearRepo,
   mockReportingContextRepo,
-  mockReportingPeriodRepo,
+  mockReportingIntervalRepo,
 } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import { IReportingContextCreationReq } from '@app/accounting/dtos/reporting-context/reporting-context.dto';
 import accountingAppError from '@app/accounting/errors/accounting.error';
@@ -47,19 +47,25 @@ describe('makeCreateReportingContextUsecase', () => {
     endDate: new Date('2026-12-31'),
     status: 'open',
   })[0];
-  const period = reportingPeriodEntity.make({
-    accountingEntityId: entity.id,
-    createdBy: actor.id,
-    fiscalYear: year,
-    unit: 'month',
-    count: 12,
-  })[3][0];
+  const [interval] = reportingIntervalEntity.make(
+    {
+      accountingEntityId: entity.id,
+      createdBy: actor.id,
+      fiscalYearId: year.id,
+      startDate: year.startDate,
+      endDate: new Date('2027-01-01'),
+      unit: 'month',
+      count: 12,
+      periods: Array.from({ length: 12 }, (_, index) => ({
+        name: `Month ${index + 1}`,
+      })),
+    },
+    new Date('2026-04-01')
+  );
   const sourceContext = accountingContextEntity.make({
     accountingEntityId: entity.id,
     fiscalYearId: year.id,
-    currentAccountingPeriodId: generateUUID(),
-    previousAccountingPeriodId: null,
-    nextAccountingPeriodId: null,
+    accountingIntervalId: generateUUID(),
     accountingStandardCode: 'IFRS',
     createdBy: actor.id,
     name: 'Accounting context',
@@ -67,8 +73,7 @@ describe('makeCreateReportingContextUsecase', () => {
   })[0];
   const payload: IReportingContextCreationReq = {
     accountingContextId: sourceContext.id,
-    currentReportingPeriodId: period.id,
-    accountingStandardCode: 'IFRS',
+    reportingIntervalId: interval.id,
     reportingCurrencyCode: 'USD',
     name: 'Working context',
     description: null,
@@ -77,7 +82,7 @@ describe('makeCreateReportingContextUsecase', () => {
     ...payload,
     accountingEntityId: entity.id,
     accountingContextId: sourceContext.id,
-    currentReportingPeriodId: period.id,
+    reportingIntervalId: interval.id,
     createdBy: actor.id,
   });
   const correlationId = 'create-reporting-context';
@@ -85,7 +90,7 @@ describe('makeCreateReportingContextUsecase', () => {
     appContext: mockAppContext,
     reportingContextService: mockReportingContextService,
     accountingContextRepo: mockAccountingContextRepo,
-    reportingPeriodRepo: mockReportingPeriodRepo,
+    reportingIntervalRepo: mockReportingIntervalRepo,
     reportingContextRepo: mockReportingContextRepo,
     eventBus: mockEventBus,
   });
@@ -98,7 +103,7 @@ describe('makeCreateReportingContextUsecase', () => {
       correlationId,
     } as ReturnType<typeof mockAppContext.get>);
     mockAccountingContextRepo.findById.mockResolvedValue(sourceContext);
-    mockReportingPeriodRepo.findById.mockResolvedValue(period);
+    mockReportingIntervalRepo.findById.mockResolvedValue(interval);
     mockReportingContextService.create.mockResolvedValue(creation);
     mockReportingContextRepo.create.mockResolvedValue(undefined);
   });
@@ -116,15 +121,18 @@ describe('makeCreateReportingContextUsecase', () => {
         correlationId,
       }
     );
-    expect(mockReportingPeriodRepo.findById).toHaveBeenCalledWith(period.id, {
-      correlationId,
-    });
+    expect(mockReportingIntervalRepo.findById).toHaveBeenCalledWith(
+      entity.id,
+      interval.id,
+      {
+        correlationId,
+      }
+    );
     expect(mockReportingContextService.create).toHaveBeenCalledWith(
       {
         accountingEntity: entity,
         accountingContext: sourceContext,
-        reportingPeriod: period,
-        accountingStandardCode: payload.accountingStandardCode,
+        reportingInterval: interval,
         reportingCurrencyCode: payload.reportingCurrencyCode,
         name: payload.name,
         description: payload.description,
@@ -160,7 +168,6 @@ describe('makeCreateReportingContextUsecase', () => {
       mockAccountingEntityRepo,
       mockFiscalYearRepo,
       mockAccountingPeriodRepo,
-      mockReportingPeriodRepo,
       mockAccountingContextRepo,
     ]) {
       expect(repo.create).not.toHaveBeenCalled();
@@ -173,26 +180,48 @@ describe('makeCreateReportingContextUsecase', () => {
     await expect(execute(payload)).rejects.toBeInstanceOf(
       accountingAppError.AccountingContextNotFound
     );
-    expect(mockReportingPeriodRepo.findById).not.toHaveBeenCalled();
+    expect(mockReportingIntervalRepo.findById).not.toHaveBeenCalled();
     expect(mockReportingContextService.create).not.toHaveBeenCalled();
     expect(mockReportingContextRepo.create).not.toHaveBeenCalled();
   });
 
-  it('rejects a missing selected period', async () => {
-    mockReportingPeriodRepo.findById.mockResolvedValue(null);
+  it('rejects a missing selected interval', async () => {
+    mockReportingIntervalRepo.findById.mockResolvedValue(null);
     await expect(execute(payload)).rejects.toBeInstanceOf(
-      accountingAppError.ReportingPeriodNotFound
+      accountingAppError.ReportingIntervalNotFound
     );
     expect(mockReportingContextService.create).not.toHaveBeenCalled();
     expect(mockReportingContextRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('scopes interval lookup to the active accounting entity', async () => {
+    const foreignInterval = { ...interval, accountingEntityId: generateUUID() };
+    mockReportingIntervalRepo.findById.mockImplementation(
+      async (accountingEntityId, id) =>
+        accountingEntityId === foreignInterval.accountingEntityId &&
+        id === foreignInterval.id
+          ? foreignInterval
+          : null
+    );
+    await expect(execute(payload)).rejects.toBeInstanceOf(
+      accountingAppError.ReportingIntervalNotFound
+    );
+    expect(mockReportingIntervalRepo.findById).toHaveBeenCalledWith(
+      entity.id,
+      interval.id,
+      { correlationId }
+    );
+    expect(mockReportingContextService.create).not.toHaveBeenCalled();
+    expect(mockReportingContextRepo.create).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it.each([
     accountingEntityError.Archived,
     accountingError.ReportingContextAlreadyExists,
     accountingError.InvalidAccountingContextId,
-    accountingError.InvalidCurrentReportingPeriodId,
-    accountingStandardError.Invalid,
+    accountingError.InvalidReportingIntervalId,
+    currencyError.InvalidCode,
   ])(
     'propagates domain creation rejection without persisting or publishing',
     async (ErrorType) => {
@@ -212,9 +241,10 @@ describe('makeCreateReportingContextUsecase', () => {
     { fiscalYearId: year.id },
     { reportingCurrencyCode: 'INVALID' },
     { reportingCurrencyCode: undefined },
-    { currentReportingPeriodId: undefined },
-    { currentReportingPeriodId: 'invalid' },
-    { accountingStandardCode: 'UNKNOWN' },
+    { reportingIntervalId: undefined },
+    { reportingIntervalId: 'invalid' },
+    { accountingStandardCode: 'IFRS' },
+    { currentReportingPeriodId: generateUUID() },
     { name: null },
     { description: 4 },
     { createdBy: userId },

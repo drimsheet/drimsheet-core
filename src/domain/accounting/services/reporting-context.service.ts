@@ -25,10 +25,10 @@ function makeCreate(deps: IDependencies): IReportingContextService['create'] {
       throw new accountingEntityError.Archived();
     }
 
-    reportingContextEntity.validatePeriodSelection(
+    reportingContextEntity.validateIntervalSelection(
       input.accountingEntity.id,
       input.accountingContext,
-      input.reportingPeriod
+      input.reportingInterval
     );
 
     const contextExists =
@@ -43,8 +43,7 @@ function makeCreate(deps: IDependencies): IReportingContextService['create'] {
     return reportingContextEntity.make({
       accountingEntityId: input.accountingEntity.id,
       accountingContextId: input.accountingContext.id,
-      currentReportingPeriodId: input.reportingPeriod.id,
-      accountingStandardCode: input.accountingStandardCode,
+      reportingIntervalId: input.reportingInterval.id,
       reportingCurrencyCode: input.reportingCurrencyCode,
       name: input.name,
       description: input.description,
