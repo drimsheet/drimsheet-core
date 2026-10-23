@@ -459,6 +459,124 @@
         ]
       }
     },
+    "/reporting/asset-liability-account-participation": {
+      "get": {
+        "operationId": "getAssetLiabilityAccountParticipation",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IPaginatedResponse_IAssetLiabilityAccountParticipationDto_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Asset/liability posting accounts with current signed functional balances.\nReads stored balances only; balances update asynchronously. Includes all\nstatuses, zero balances and suspense. Shares use all root balances of the\nsame type, including root posting accounts, before search/pagination.\nControl accounts are excluded from rows. Zero totals yield null shares;\npercentages round to two decimals. Search matches name or code; rows sort\nby code/ID. Omit type for both classes. No date range is applied.\nAmount magnitudes above 1 trillion major units return 400; missing balances\nreturn 404; unsafe numeric serialization returns 500. Defaults to page 1,\nlimit 10.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Omit for both asset and liability posting accounts.",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["asset", "liability"]
+            }
+          }
+        ]
+      }
+    },
     "/reporting/asset-liability-summary": {
       "get": {
         "operationId": "getAssetLiabilitySummary",
@@ -7871,6 +7989,93 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ULedgerAccountStatus": {
+        "type": "string",
+        "enum": ["draft", "active", "archived"]
+      },
+      "IAssetLiabilityAccountParticipationDto": {
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["asset", "liability"]
+          },
+          "subType": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ULedgerAccountStatus"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Current signed functional balance of this posting account."
+          },
+          "sharePercentage": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "Percentage of all root balances of the same type before filtering or\npagination, rounded to two decimals; null when that total is zero."
+          }
+        },
+        "required": [
+          "accountId",
+          "accountName",
+          "code",
+          "type",
+          "subType",
+          "status",
+          "amount",
+          "sharePercentage"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPaginatedResponse_IAssetLiabilityAccountParticipationDto_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IAssetLiabilityAccountParticipationDto"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/IPaginationResponseMeta"
+          }
+        },
+        "required": ["data", "meta"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetAssetLiabilityAccountParticipationQuery": {
+        "properties": {
+          "page": {
+            "type": "number",
+            "format": "double"
+          },
+          "limit": {
+            "type": "number",
+            "format": "double"
+          },
+          "search": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["asset", "liability"],
+            "description": "Omit for both asset and liability posting accounts."
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "IAssetLiabilitySectionDto": {
         "properties": {
           "total": {
@@ -7929,10 +8134,6 @@
         ],
         "type": "object",
         "additionalProperties": false
-      },
-      "ULedgerAccountStatus": {
-        "type": "string",
-        "enum": ["draft", "active", "archived"]
       },
       "IRevenueExpenseAccountDto": {
         "properties": {

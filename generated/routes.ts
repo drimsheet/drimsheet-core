@@ -417,6 +417,81 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['draft'] },
+        { dataType: 'enum', enums: ['active'] },
+        { dataType: 'enum', enums: ['archived'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAssetLiabilityAccountParticipationDto: {
+    dataType: 'refObject',
+    properties: {
+      accountId: { dataType: 'string', required: true },
+      accountName: { dataType: 'string', required: true },
+      code: { dataType: 'string', required: true },
+      type: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'enum', enums: ['asset'] },
+          { dataType: 'enum', enums: ['liability'] },
+        ],
+        required: true,
+      },
+      subType: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountStatus', required: true },
+      amount: { ref: 'IMoneyDto', required: true },
+      sharePercentage: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'double' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IPaginatedResponse_IAssetLiabilityAccountParticipationDto_: {
+    dataType: 'refObject',
+    properties: {
+      data: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IAssetLiabilityAccountParticipationDto',
+        },
+        required: true,
+      },
+      meta: { ref: 'IPaginationResponseMeta', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetAssetLiabilityAccountParticipationQuery: {
+    dataType: 'refObject',
+    properties: {
+      page: { dataType: 'double' },
+      limit: { dataType: 'double' },
+      search: { dataType: 'string' },
+      type: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'enum', enums: ['asset'] },
+          { dataType: 'enum', enums: ['liability'] },
+        ],
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IAssetLiabilitySectionDto: {
     dataType: 'refObject',
     properties: {
@@ -446,19 +521,6 @@ const models: TsoaRoute.Models = {
       netAssets: { ref: 'IAssetLiabilitySectionDto', required: true },
     },
     additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ULedgerAccountStatus: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['draft'] },
-        { dataType: 'enum', enums: ['active'] },
-        { dataType: 'enum', enums: ['archived'] },
-      ],
-      validators: {},
-    },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IRevenueExpenseAccountDto: {
@@ -3605,6 +3667,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getAccountCounterpartyParticipation',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsReportingController_getAssetLiabilityAccountParticipation: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetAssetLiabilityAccountParticipationQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/asset-liability-account-participation',
+    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      ReportingController.prototype.getAssetLiabilityAccountParticipation
+    ),
+
+    async function ReportingController_getAssetLiabilityAccountParticipation(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsReportingController_getAssetLiabilityAccountParticipation,
+          request,
+          response,
+        });
+
+        const controller = new ReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getAssetLiabilityAccountParticipation',
           controller,
           response,
           next,

@@ -15,6 +15,7 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import type { IGetAccountCashFlowQuery } from '@app/reporting/dtos/account-cash-flow/account-cash-flow.dto';
 import type { IGetAccountCounterpartyParticipationQuery } from '@app/reporting/dtos/account-counterparty-participation/account-counterparty-participation.dto';
+import type { IGetAssetLiabilityAccountParticipationQuery } from '@app/reporting/dtos/asset-liability-account-participation/asset-liability-account-participation.dto';
 import type { IDateRangeDto } from '@app/reporting/dtos/date/date-range.dto';
 import type { IGetRevenueExpenseAccountsQuery } from '@app/reporting/dtos/revenue-expense-accounts/revenue-expense-accounts.dto';
 
@@ -22,6 +23,7 @@ import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAccountCashFlowUseCase,
   getAccountCounterpartyParticipationUseCase,
+  getAssetLiabilityAccountParticipationUseCase,
   getAssetLiabilitySummaryUseCase,
   getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
@@ -92,6 +94,38 @@ export class ReportingController extends Controller {
     @Queries() query: IGetAccountCounterpartyParticipationQuery
   ) {
     return await getAccountCounterpartyParticipationUseCase(accountId, query);
+  }
+
+  /**
+   * Asset/liability posting accounts with current signed functional balances.
+   * Reads stored balances only; balances update asynchronously. Includes all
+   * statuses, zero balances and suspense. Shares use all root balances of the
+   * same type, including root posting accounts, before search/pagination.
+   * Control accounts are excluded from rows. Zero totals yield null shares;
+   * percentages round to two decimals. Search matches name or code; rows sort
+   * by code/ID. Omit type for both classes. No date range is applied.
+   * Amount magnitudes above 1 trillion major units return 400; missing balances
+   * return 404; unsafe numeric serialization returns 500. Defaults to page 1,
+   * limit 10.
+   */
+  @Get('/asset-liability-account-participation')
+  @OperationId('getAssetLiabilityAccountParticipation')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAssetLiabilityAccountParticipation(
+    @Queries() query: IGetAssetLiabilityAccountParticipationQuery
+  ) {
+    return await getAssetLiabilityAccountParticipationUseCase(query);
   }
 
   /**
