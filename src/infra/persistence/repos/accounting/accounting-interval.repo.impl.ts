@@ -68,6 +68,9 @@ const accountingIntervalRepo: IAccountingIntervalRepo = {
     });
   },
 
+  /**
+   * @deprecated: use findByFiscalYear instead
+   */
   async existsByFiscalYear(accountingEntityId, fiscalYearId, options) {
     const rows = await getDbQuery(options)
       .select({ id: accountingIntervalsInCore.id })
@@ -80,6 +83,24 @@ const accountingIntervalRepo: IAccountingIntervalRepo = {
       )
       .limit(1);
     return rows.length > 0;
+  },
+
+  async findByFiscalYear(accountingEntityId, fiscalYearId, options) {
+    const interval = await getDbQuery(
+      options
+    ).query.accountingIntervalsInCore.findFirst({
+      where: and(
+        eq(accountingIntervalsInCore.accountingEntityId, accountingEntityId),
+        eq(accountingIntervalsInCore.fiscalYearId, fiscalYearId)
+      ),
+      with: {
+        accountingPeriodsInCores: {
+          orderBy: asc(accountingPeriodsInCore.ordinal),
+        },
+      },
+    });
+
+    return interval ? accountingIntervalMapper.toDomain(interval) : null;
   },
 
   async findById(accountingEntityId, id, options) {

@@ -7,6 +7,7 @@ import makeCreateReportingContextUsecase from '@app/accounting/usecases/create-r
 import makeCreateReportingIntervalUsecase from '@app/accounting/usecases/create-reporting-interval.usecase';
 import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-accounting-entity.usecase';
 import makeGetAccountingContextUsecase from '@app/accounting/usecases/get-accounting-context.usecase';
+import makeGetAccountingIntervalUsecase from '@app/accounting/usecases/get-accounting-interval.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetFiscalYearUsecase from '@app/accounting/usecases/get-fiscal-year.usecase';
 import makeGetFiscalYearsUsecase from '@app/accounting/usecases/get-fiscal-years.usecase';
@@ -155,6 +156,15 @@ export const getAccountingContextUseCase = makeTracedUseCase(
     appContext,
     fiscalYearRepo: accountingRepos.fiscalYear,
     accountingContextRepo: accountingRepos.accountingContext,
+  })
+);
+
+export const getAccountingIntervalUseCase = makeTracedUseCase(
+  'accounting.getAccountingIntervalUseCase',
+  makeGetAccountingIntervalUsecase({
+    appContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    accountingIntervalRepo: accountingRepos.accountingInterval,
   })
 );
 

@@ -6687,6 +6687,96 @@
         ]
       }
     },
+    "/accounting/fiscal-years/{id}/accounting-interval": {
+      "get": {
+        "operationId": "getAccountingInterval",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountingInterval"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the fiscal year's accounting interval and its ordered periods.",
+        "tags": ["Accounting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/accounting/fiscal-years/{id}/reporting-context": {
       "get": {
         "operationId": "getReportingContext",
@@ -11492,6 +11582,244 @@
         "type": "object",
         "additionalProperties": false
       },
+      "UAccountingIntervalUnit": {
+        "type": "string",
+        "enum": ["day", "week", "month", "quarter", "year"]
+      },
+      "UAccountingPeriodStatus": {
+        "type": "string",
+        "enum": ["open", "closed"]
+      },
+      "IAccountingPeriod": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "intervalId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "ordinal": {
+            "type": "number",
+            "format": "double"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start instant."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end instant, shared with the following period's start."
+          },
+          "status": {
+            "$ref": "#/components/schemas/UAccountingPeriodStatus"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "intervalId",
+          "accountingEntityId",
+          "ordinal",
+          "name",
+          "startDate",
+          "endDate",
+          "status",
+          "createdBy",
+          "closedAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IPeriod": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "intervalId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "ordinal": {
+            "type": "number",
+            "format": "double"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start instant."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end instant, shared with the following period's start."
+          }
+        },
+        "required": [
+          "id",
+          "intervalId",
+          "accountingEntityId",
+          "ordinal",
+          "name",
+          "startDate",
+          "endDate"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "Pick_IInterval.Exclude_keyofIInterval.unit__": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Total number of periods, not the number of units per period."
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start instant."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end instant."
+          },
+          "currentPeriodOrdinal": {
+            "type": "number",
+            "format": "double"
+          },
+          "nextPeriodStartDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/IPeriod"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "accountingEntityId",
+          "count",
+          "startDate",
+          "endDate",
+          "currentPeriodOrdinal",
+          "nextPeriodStartDate",
+          "periods"
+        ],
+        "type": "object",
+        "description": "From T, pick a set of properties whose keys are in the union K"
+      },
+      "IAccountingInterval": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Total number of periods, not the number of units per period."
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start instant."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end instant."
+          },
+          "currentPeriodOrdinal": {
+            "type": "number",
+            "format": "double"
+          },
+          "nextPeriodStartDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/IAccountingPeriod"
+            },
+            "type": "array"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UAccountingIntervalUnit"
+          },
+          "fiscalYearId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "accountingEntityId",
+          "count",
+          "startDate",
+          "endDate",
+          "currentPeriodOrdinal",
+          "nextPeriodStartDate",
+          "periods",
+          "unit",
+          "fiscalYearId",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IReportingContext": {
         "properties": {
           "createdBy": {
@@ -11652,244 +11980,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "UAccountingIntervalUnit": {
-        "type": "string",
-        "enum": ["day", "week", "month", "quarter", "year"]
-      },
-      "UAccountingPeriodStatus": {
-        "type": "string",
-        "enum": ["open", "closed"]
-      },
-      "IAccountingPeriod": {
-        "properties": {
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "intervalId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "ordinal": {
-            "type": "number",
-            "format": "double"
-          },
-          "name": {
-            "type": "string"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Inclusive start instant."
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Exclusive end instant, shared with the following period's start."
-          },
-          "status": {
-            "$ref": "#/components/schemas/UAccountingPeriodStatus"
-          },
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "closedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "intervalId",
-          "accountingEntityId",
-          "ordinal",
-          "name",
-          "startDate",
-          "endDate",
-          "status",
-          "createdBy",
-          "closedAt",
-          "createdAt",
-          "updatedAt"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IPeriod": {
-        "properties": {
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "intervalId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "ordinal": {
-            "type": "number",
-            "format": "double"
-          },
-          "name": {
-            "type": "string"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Inclusive start instant."
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Exclusive end instant, shared with the following period's start."
-          }
-        },
-        "required": [
-          "id",
-          "intervalId",
-          "accountingEntityId",
-          "ordinal",
-          "name",
-          "startDate",
-          "endDate"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "Pick_IInterval.Exclude_keyofIInterval.unit__": {
-        "properties": {
-          "count": {
-            "type": "number",
-            "format": "double",
-            "description": "Total number of periods, not the number of units per period."
-          },
-          "periods": {
-            "items": {
-              "$ref": "#/components/schemas/IPeriod"
-            },
-            "type": "array"
-          },
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Inclusive start instant."
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Exclusive end instant."
-          },
-          "currentPeriodOrdinal": {
-            "type": "number",
-            "format": "double"
-          },
-          "nextPeriodStartDate": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "count",
-          "periods",
-          "id",
-          "accountingEntityId",
-          "startDate",
-          "endDate",
-          "currentPeriodOrdinal",
-          "nextPeriodStartDate"
-        ],
-        "type": "object",
-        "description": "From T, pick a set of properties whose keys are in the union K"
-      },
-      "IAccountingInterval": {
-        "properties": {
-          "count": {
-            "type": "number",
-            "format": "double",
-            "description": "Total number of periods, not the number of units per period."
-          },
-          "periods": {
-            "items": {
-              "$ref": "#/components/schemas/IAccountingPeriod"
-            },
-            "type": "array"
-          },
-          "id": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "accountingEntityId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Inclusive start instant."
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Exclusive end instant."
-          },
-          "currentPeriodOrdinal": {
-            "type": "number",
-            "format": "double"
-          },
-          "nextPeriodStartDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "unit": {
-            "$ref": "#/components/schemas/UAccountingIntervalUnit"
-          },
-          "fiscalYearId": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "count",
-          "periods",
-          "id",
-          "accountingEntityId",
-          "startDate",
-          "endDate",
-          "currentPeriodOrdinal",
-          "nextPeriodStartDate",
-          "unit",
-          "fiscalYearId",
-          "createdBy",
-          "createdAt",
-          "updatedAt"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IPeriodMakePayload": {
         "properties": {
           "name": {
@@ -12014,22 +12104,16 @@
       },
       "IReportingInterval": {
         "properties": {
-          "count": {
-            "type": "number",
-            "format": "double",
-            "description": "Total number of periods, not the number of units per period."
-          },
-          "periods": {
-            "items": {
-              "$ref": "#/components/schemas/IReportingPeriod"
-            },
-            "type": "array"
-          },
           "id": {
             "$ref": "#/components/schemas/TEntityId"
           },
           "accountingEntityId": {
             "$ref": "#/components/schemas/TEntityId"
+          },
+          "count": {
+            "type": "number",
+            "format": "double",
+            "description": "Total number of periods, not the number of units per period."
           },
           "startDate": {
             "type": "string",
@@ -12048,6 +12132,12 @@
           "nextPeriodStartDate": {
             "type": "string",
             "format": "date-time"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/IReportingPeriod"
+            },
+            "type": "array"
           },
           "unit": {
             "$ref": "#/components/schemas/UReportingIntervalUnit"
@@ -12068,14 +12158,14 @@
           }
         },
         "required": [
-          "count",
-          "periods",
           "id",
           "accountingEntityId",
+          "count",
           "startDate",
           "endDate",
           "currentPeriodOrdinal",
           "nextPeriodStartDate",
+          "periods",
           "unit",
           "fiscalYearId",
           "createdBy",

@@ -17,6 +17,7 @@ import {
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import { IAccountingInterval } from '@domain/accounting/types/accounting-period.types';
 import {
   IAccountingContext,
   IReportingContext,
@@ -45,6 +46,7 @@ import {
   createReportingIntervalUseCase,
   deleteAccountingEntityUseCase,
   getAccountingContextUseCase,
+  getAccountingIntervalUseCase,
   getActiveAccountingEntityUseCase,
   getFiscalYearsUseCase,
   getFiscalYearUseCase,
@@ -151,6 +153,27 @@ export class AccountingController extends Controller {
   ): Promise<IAccountingContext | null> {
     this.setHeader('Content-Type', 'application/json');
     return await getAccountingContextUseCase(id);
+  }
+
+  /** Returns the fiscal year's accounting interval and its ordered periods. */
+  @Get('/fiscal-years/{id}/accounting-interval')
+  @OperationId('getAccountingInterval')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAccountingInterval(
+    @Path() id: string
+  ): Promise<IAccountingInterval> {
+    return await getAccountingIntervalUseCase(id);
   }
 
   /** Returns the fiscal year's context, including closed contexts, or null. */

@@ -68,6 +68,9 @@ const reportingIntervalRepo: IReportingIntervalRepo = {
     });
   },
 
+  /**
+   * @deprecated: use findByFiscalYear instead
+   */
   async existsByFiscalYear(accountingEntityId, fiscalYearId, options) {
     const rows = await getDbQuery(options)
       .select({ id: reportingIntervalsInCore.id })

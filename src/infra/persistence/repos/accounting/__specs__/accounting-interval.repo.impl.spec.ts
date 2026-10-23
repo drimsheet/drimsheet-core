@@ -101,3 +101,91 @@ describe('accountingIntervalRepo.findById', () => {
     expect(accountingIntervalMapper.toDomain).not.toHaveBeenCalled();
   });
 });
+
+describe('accountingIntervalRepo.findByFiscalYear', () => {
+  const [interval] = accountingIntervalEntity.make(
+    {
+      accountingEntityId: generateUUID(),
+      fiscalYearId: generateUUID(),
+      createdBy: generateUUID(),
+      unit: 'month',
+      count: 2,
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2026-03-01'),
+      periods: [{ name: 'January' }, { name: 'February' }],
+    },
+    new Date('2026-01-15')
+  );
+  const findFirst = jest.fn();
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    jest.mocked(getDbQuery).mockReturnValue({
+      query: { accountingIntervalsInCore: { findFirst } },
+    } as unknown as ReturnType<typeof getDbQuery>);
+  });
+
+  it.each([false, true])(
+    'loads the aggregate with transaction=%s',
+    async (withTransaction) => {
+      const options = withTransaction
+        ? { correlationId: 'interval', tx: {} }
+        : { correlationId: 'interval' };
+      const row = { id: interval.id };
+      findFirst.mockResolvedValue(row);
+      jest.mocked(accountingIntervalMapper.toDomain).mockReturnValue(interval);
+
+      await expect(
+        accountingIntervalRepo.findByFiscalYear(
+          interval.accountingEntityId,
+          interval.fiscalYearId,
+          options
+        )
+      ).resolves.toBe(interval);
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(findFirst).toHaveBeenCalledTimes(1);
+      expect(accountingIntervalMapper.toDomain).toHaveBeenCalledWith(row);
+      const config = findFirst.mock.calls[0][0] as {
+        where: SQL;
+        with: { accountingPeriodsInCores: { orderBy: SQL } };
+      };
+      const dialect = new PgDialect();
+      const predicate = dialect.sqlToQuery(config.where);
+      expect(predicate.sql).toBe(
+        '("core"."accounting_intervals"."accounting_entity_id" = $1 and "core"."accounting_intervals"."fiscal_year_id" = $2)'
+      );
+      expect(predicate.params).toEqual([
+        interval.accountingEntityId,
+        interval.fiscalYearId,
+      ]);
+      expect(
+        dialect.sqlToQuery(config.with.accountingPeriodsInCores.orderBy).sql
+      ).toBe('"core"."accounting_periods"."ordinal" asc');
+    }
+  );
+
+  it('returns null when no interval matches both IDs', async () => {
+    findFirst.mockResolvedValue(undefined);
+    await expect(
+      accountingIntervalRepo.findByFiscalYear(
+        interval.accountingEntityId,
+        interval.fiscalYearId,
+        { correlationId: 'missing' }
+      )
+    ).resolves.toBeNull();
+    expect(accountingIntervalMapper.toDomain).not.toHaveBeenCalled();
+  });
+
+  it('propagates read failures', async () => {
+    const failure = new Error('read failed');
+    findFirst.mockRejectedValue(failure);
+    await expect(
+      accountingIntervalRepo.findByFiscalYear(
+        interval.accountingEntityId,
+        interval.fiscalYearId,
+        { correlationId: 'failure' }
+      )
+    ).rejects.toBe(failure);
+    expect(accountingIntervalMapper.toDomain).not.toHaveBeenCalled();
+  });
+});
