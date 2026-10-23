@@ -459,6 +459,96 @@
         ]
       }
     },
+    "/reporting/asset-liability-summary": {
+      "get": {
+        "operationId": "getAssetLiabilitySummary",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAssetLiabilitySummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Cumulative assets, liabilities and net assets in the functional currency.\nDates are inclusive, up to 366 days. Compares balances at period end with\nthe end of the immediately preceding equal-length period. Includes opening\nbalances, suspense, contra/adjunct and archived accounts. Excludes drafts,\nnever-posted entries, voided originals and reversals. Journal lines are\ncounted once without hierarchy rollups. Historical results can change after\nrectification. Percentage changes use the absolute previous balance and are\nnull when it is zero. Amount magnitudes above 1 trillion major units return\n400; unsafe numeric serialization returns 500.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/reporting/revenue-expense-accounts": {
       "get": {
         "operationId": "getRevenueExpenseAccounts",
@@ -7778,6 +7868,65 @@
             "type": "string"
           }
         },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAssetLiabilitySectionDto": {
+        "properties": {
+          "total": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Cumulative balance through period.to, inclusive."
+          },
+          "previousTotal": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Cumulative balance through comparisonPeriod.to, inclusive."
+          },
+          "change": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Total less previous total."
+          },
+          "percentageChange": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "Change divided by the absolute previous total; null when it is zero."
+          }
+        },
+        "required": ["total", "previousTotal", "change", "percentageChange"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAssetLiabilitySummaryDto": {
+        "properties": {
+          "currencyCode": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "comparisonPeriod": {
+            "$ref": "#/components/schemas/IDateRangeDto",
+            "description": "Immediately preceding equal-length period, with inclusive dates."
+          },
+          "assets": {
+            "$ref": "#/components/schemas/IAssetLiabilitySectionDto"
+          },
+          "liabilities": {
+            "$ref": "#/components/schemas/IAssetLiabilitySectionDto"
+          },
+          "netAssets": {
+            "$ref": "#/components/schemas/IAssetLiabilitySectionDto",
+            "description": "Assets less liabilities: the dashboard's total balance."
+          }
+        },
+        "required": [
+          "currencyCode",
+          "period",
+          "comparisonPeriod",
+          "assets",
+          "liabilities",
+          "netAssets"
+        ],
         "type": "object",
         "additionalProperties": false
       },

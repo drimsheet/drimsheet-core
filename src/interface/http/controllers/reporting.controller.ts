@@ -22,6 +22,7 @@ import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAccountCashFlowUseCase,
   getAccountCounterpartyParticipationUseCase,
+  getAssetLiabilitySummaryUseCase,
   getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
 } from '@infra/ioc/usecases/reporting';
@@ -91,6 +92,34 @@ export class ReportingController extends Controller {
     @Queries() query: IGetAccountCounterpartyParticipationQuery
   ) {
     return await getAccountCounterpartyParticipationUseCase(accountId, query);
+  }
+
+  /**
+   * Cumulative assets, liabilities and net assets in the functional currency.
+   * Dates are inclusive, up to 366 days. Compares balances at period end with
+   * the end of the immediately preceding equal-length period. Includes opening
+   * balances, suspense, contra/adjunct and archived accounts. Excludes drafts,
+   * never-posted entries, voided originals and reversals. Journal lines are
+   * counted once without hierarchy rollups. Historical results can change after
+   * rectification. Percentage changes use the absolute previous balance and are
+   * null when it is zero. Amount magnitudes above 1 trillion major units return
+   * 400; unsafe numeric serialization returns 500.
+   */
+  @Get('/asset-liability-summary')
+  @OperationId('getAssetLiabilitySummary')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAssetLiabilitySummary(@Queries() query: IDateRangeDto) {
+    return await getAssetLiabilitySummaryUseCase(query);
   }
 
   /**
