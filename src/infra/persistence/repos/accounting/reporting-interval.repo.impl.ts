@@ -85,6 +85,24 @@ const reportingIntervalRepo: IReportingIntervalRepo = {
     return rows.length > 0;
   },
 
+  async findByFiscalYear(accountingEntityId, fiscalYearId, options) {
+    const interval = await getDbQuery(
+      options
+    ).query.reportingIntervalsInCore.findFirst({
+      where: and(
+        eq(reportingIntervalsInCore.accountingEntityId, accountingEntityId),
+        eq(reportingIntervalsInCore.fiscalYearId, fiscalYearId)
+      ),
+      with: {
+        reportingPeriodsInCores: {
+          orderBy: asc(reportingPeriodsInCore.ordinal),
+        },
+      },
+    });
+
+    return interval ? reportingIntervalMapper.toDomain(interval) : null;
+  },
+
   async findById(accountingEntityId, id, options) {
     const interval = await getDbQuery(
       options

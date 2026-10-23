@@ -24,3 +24,6 @@ export const reportingIntervalCreationDtoSchema = z
     ),
   })
   .strict();
+
+export const getReportingIntervalParamsValidationSchema =
+  reportingIntervalCreationDtoSchema.pick({ fiscalYearId: true });

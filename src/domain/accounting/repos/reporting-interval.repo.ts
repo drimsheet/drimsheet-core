@@ -28,4 +28,10 @@ export default interface IReportingIntervalRepo {
     id: TEntityId,
     options: IReadRepoOptions
   ): Promise<IReportingInterval | null>;
+
+  findByFiscalYear(
+    accountingEntityId: TEntityId,
+    fiscalYearId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IReportingInterval | null>;
 }

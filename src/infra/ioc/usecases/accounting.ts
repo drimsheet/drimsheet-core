@@ -15,6 +15,7 @@ import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdicti
 import makeGetNextCurrentAccountingPeriodUsecase from '@app/accounting/usecases/get-next-current-accounting-period.usecase';
 import makeGetNextCurrentReportingPeriodUsecase from '@app/accounting/usecases/get-next-current-reporting-period.usecase';
 import makeGetReportingContextUsecase from '@app/accounting/usecases/get-reporting-context.usecase';
+import makeGetReportingIntervalUsecase from '@app/accounting/usecases/get-reporting-interval.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import makeSetCurrentAccountingPeriodUsecase from '@app/accounting/usecases/set-current-accounting-period.usecase';
 import makeSetCurrentReportingPeriodUsecase from '@app/accounting/usecases/set-current-reporting-period.usecase';
@@ -174,6 +175,15 @@ export const getReportingContextUseCase = makeTracedUseCase(
     appContext,
     reportingContextRepo: accountingRepos.reportingContext,
     fiscalYearRepo: accountingRepos.fiscalYear,
+  })
+);
+
+export const getReportingIntervalUseCase = makeTracedUseCase(
+  'accounting.getReportingIntervalUseCase',
+  makeGetReportingIntervalUsecase({
+    appContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    reportingIntervalRepo: accountingRepos.reportingInterval,
   })
 );
 
