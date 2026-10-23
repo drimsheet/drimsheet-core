@@ -7,6 +7,7 @@ import makeCreateReportingContextUsecase from '@app/accounting/usecases/create-r
 import makeCreateReportingIntervalUsecase from '@app/accounting/usecases/create-reporting-interval.usecase';
 import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-accounting-entity.usecase';
 import makeGetAccountingContextUsecase from '@app/accounting/usecases/get-accounting-context.usecase';
+import makeGetAccountingIntervalUsecase from '@app/accounting/usecases/get-accounting-interval.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import makeGetFiscalYearUsecase from '@app/accounting/usecases/get-fiscal-year.usecase';
 import makeGetFiscalYearsUsecase from '@app/accounting/usecases/get-fiscal-years.usecase';
@@ -14,6 +15,7 @@ import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdicti
 import makeGetNextCurrentAccountingPeriodUsecase from '@app/accounting/usecases/get-next-current-accounting-period.usecase';
 import makeGetNextCurrentReportingPeriodUsecase from '@app/accounting/usecases/get-next-current-reporting-period.usecase';
 import makeGetReportingContextUsecase from '@app/accounting/usecases/get-reporting-context.usecase';
+import makeGetReportingIntervalUsecase from '@app/accounting/usecases/get-reporting-interval.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import makeSetCurrentAccountingPeriodUsecase from '@app/accounting/usecases/set-current-accounting-period.usecase';
 import makeSetCurrentReportingPeriodUsecase from '@app/accounting/usecases/set-current-reporting-period.usecase';
@@ -158,12 +160,30 @@ export const getAccountingContextUseCase = makeTracedUseCase(
   })
 );
 
+export const getAccountingIntervalUseCase = makeTracedUseCase(
+  'accounting.getAccountingIntervalUseCase',
+  makeGetAccountingIntervalUsecase({
+    appContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    accountingIntervalRepo: accountingRepos.accountingInterval,
+  })
+);
+
 export const getReportingContextUseCase = makeTracedUseCase(
   'accounting.getReportingContextUseCase',
   makeGetReportingContextUsecase({
     appContext,
     reportingContextRepo: accountingRepos.reportingContext,
     fiscalYearRepo: accountingRepos.fiscalYear,
+  })
+);
+
+export const getReportingIntervalUseCase = makeTracedUseCase(
+  'accounting.getReportingIntervalUseCase',
+  makeGetReportingIntervalUsecase({
+    appContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    reportingIntervalRepo: accountingRepos.reportingInterval,
   })
 );
 

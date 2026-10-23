@@ -20,6 +20,7 @@ describe('accountingIntervalService.create', () => {
     update: jest.fn(),
     create: jest.fn(),
     findById: jest.fn(),
+    findByFiscalYear: jest.fn(),
     existsByFiscalYear: jest.fn(),
   };
   const service = makeAccountingIntervalService({
