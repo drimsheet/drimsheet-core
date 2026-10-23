@@ -14,10 +14,13 @@ import {
   ELedgerType,
   ENormalBalance,
 } from '@domain/ledger/types/ledger.types';
+import { ICurrency } from '@domain/money/types/currency.types';
 import moneyValue from '@domain/money/values/money.vo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IAccountCashFlowQueryRepo from '@app/reporting/contracts/account-cash-flow.query.repo.contract';
+import IAccountCashFlowQueryRepo, {
+  IAccountCashFlowAggregate,
+} from '@app/reporting/contracts/account-cash-flow.query.repo.contract';
 import {
   IAccountCashFlowDto,
   IGetAccountCashFlowQuery,
@@ -26,7 +29,7 @@ import accountCashFlowMapper from '@app/reporting/dtos/account-cash-flow/account
 import { getAccountCashFlowQueryValidationSchema } from '@app/reporting/dtos/account-cash-flow/account-cash-flow.dto.validation';
 import dateRangeMapper from '@app/reporting/dtos/date/date-range.dto.mapper';
 import reportingError from '@app/reporting/errors/reporting.error';
-import buildAccountCashFlowBucketsHelper from '@app/reporting/usecases/helpers/build-account-cash-flow-buckets.helper';
+import { IAccountCashFlowReport } from '@app/reporting/types/account-cash-flow.types';
 import reportingValidation from '@app/reporting/validations/reporting.validation';
 
 interface IDependencies {
@@ -103,7 +106,7 @@ export default function makeGetAccountCashFlowUsecase(deps: IDependencies) {
       repoOptions
     );
 
-    const buckets = buildAccountCashFlowBucketsHelper(
+    const buckets = buildAccountCashFlowBuckets(
       period.from,
       days,
       query.bucketDays,
@@ -140,4 +143,33 @@ export default function makeGetAccountCashFlowUsecase(deps: IDependencies) {
     };
     return accountCashFlowMapper.toDto(accountId, report);
   };
+}
+
+/** Builds ordered, zero-filled buckets for a validated inclusive period. */
+function buildAccountCashFlowBuckets(
+  from: Date,
+  days: number,
+  bucketDays: number,
+  aggregates: IAccountCashFlowAggregate[],
+  currency: ICurrency
+): IAccountCashFlowReport['buckets'] {
+  const aggregatesByIndex = new Map(
+    aggregates.map((bucket) => [bucket.bucketIndex, bucket])
+  );
+  const buckets: IAccountCashFlowReport['buckets'] = [];
+
+  for (let offset = 0; offset < days; offset += bucketDays) {
+    const bucketIndex = Math.floor(offset / bucketDays);
+    const aggregate = aggregatesByIndex.get(bucketIndex);
+    const lastDayOffset = Math.min(offset + bucketDays - 1, days - 1);
+
+    buckets.push({
+      from: dateUtils.addUtcCalendarUnits(from, offset, 'day'),
+      to: dateUtils.addUtcCalendarUnits(from, lastDayOffset, 'day'),
+      moneyIn: moneyValue.make(aggregate?.moneyIn ?? 0n, currency, true),
+      moneyOut: moneyValue.make(aggregate?.moneyOut ?? 0n, currency, true),
+    });
+  }
+
+  return buckets;
 }
