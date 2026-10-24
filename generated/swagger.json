@@ -667,6 +667,97 @@
         ]
       }
     },
+    "/reporting/ledger-balances-by-currency": {
+      "get": {
+        "operationId": "getLedgerBalancesByCurrency",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerBalancesByCurrencyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Current asset or liability posting balances grouped by account currency,\nwith a recorded functional balance per group and a total across groups.\nType is required input and is not returned. Accounts without a fixed\ncurrency use functional currency. Includes all statuses, suspense and zero\nbalances; excludes control rollups. Groups sort by currency code. Reads\nstored balances, which update asynchronously, without dates or FX repricing.\nEmpty reports return a zero functional total and no groups. Amount\nmagnitudes above 1 trillion major units return 400; missing balances return\n404; unsafe numeric serialization returns 500. Invalid type returns 422.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["asset", "liability"]
+            }
+          }
+        ]
+      }
+    },
     "/reporting/revenue-expense-accounts": {
       "get": {
         "operationId": "getRevenueExpenseAccounts",
@@ -8312,6 +8403,44 @@
           "liabilities",
           "netAssets"
         ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ILedgerBalancesByCurrencyDto": {
+        "properties": {
+          "totalFunctionalBalance": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Sum of the currency groups' recorded functional balances."
+          },
+          "balancesByCurrency": {
+            "items": {
+              "properties": {
+                "functionalBalance": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "balance": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                }
+              },
+              "required": ["functionalBalance", "balance"],
+              "type": "object"
+            },
+            "type": "array",
+            "description": "Current posting-account balances, ordered by currency code."
+          }
+        },
+        "required": ["totalFunctionalBalance", "balancesByCurrency"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetLedgerBalancesByCurrencyQuery": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["asset", "liability"]
+          }
+        },
+        "required": ["type"],
         "type": "object",
         "additionalProperties": false
       },

@@ -17,6 +17,7 @@ import type { IGetAccountCashFlowQuery } from '@app/reporting/dtos/account-cash-
 import type { IGetAccountCounterpartyParticipationQuery } from '@app/reporting/dtos/account-counterparty-participation/account-counterparty-participation.dto';
 import type { IGetAssetLiabilityAccountParticipationQuery } from '@app/reporting/dtos/asset-liability-account-participation/asset-liability-account-participation.dto';
 import type { IDateRangeDto } from '@app/reporting/dtos/date/date-range.dto';
+import type { IGetLedgerBalancesByCurrencyQuery } from '@app/reporting/dtos/ledger-balances-by-currency/ledger-balances-by-currency.dto';
 import type { IGetRevenueExpenseAccountsQuery } from '@app/reporting/dtos/revenue-expense-accounts/revenue-expense-accounts.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
@@ -25,6 +26,7 @@ import {
   getAccountCounterpartyParticipationUseCase,
   getAssetLiabilityAccountParticipationUseCase,
   getAssetLiabilitySummaryUseCase,
+  getLedgerBalancesByCurrencyUseCase,
   getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
 } from '@infra/ioc/usecases/reporting';
@@ -154,6 +156,37 @@ export class ReportingController extends Controller {
   )
   public async getAssetLiabilitySummary(@Queries() query: IDateRangeDto) {
     return await getAssetLiabilitySummaryUseCase(query);
+  }
+
+  /**
+   * Current asset or liability posting balances grouped by account currency,
+   * with a recorded functional balance per group and a total across groups.
+   * Type is required input and is not returned. Accounts without a fixed
+   * currency use functional currency. Includes all statuses, suspense and zero
+   * balances; excludes control rollups. Groups sort by currency code. Reads
+   * stored balances, which update asynchronously, without dates or FX repricing.
+   * Empty reports return a zero functional total and no groups. Amount
+   * magnitudes above 1 trillion major units return 400; missing balances return
+   * 404; unsafe numeric serialization returns 500. Invalid type returns 422.
+   */
+  @Get('/ledger-balances-by-currency')
+  @OperationId('getLedgerBalancesByCurrency')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getLedgerBalancesByCurrency(
+    @Queries() query: IGetLedgerBalancesByCurrencyQuery
+  ) {
+    return await getLedgerBalancesByCurrencyUseCase(query.type);
   }
 
   /**
