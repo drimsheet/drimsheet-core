@@ -15,6 +15,12 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import type { IGetAccountCashFlowQuery } from '@app/reporting/dtos/account-cash-flow/account-cash-flow.dto';
 import type { IGetAccountCounterpartyParticipationQuery } from '@app/reporting/dtos/account-counterparty-participation/account-counterparty-participation.dto';
+import type {
+  IGetBalancesByAccountQuery,
+  IGetBalancesByBehaviorQuery,
+  IGetBalancesBySubTypeQuery,
+  IGetBalancesByTypeQuery,
+} from '@app/reporting/dtos/balance-series/balance-series.dto';
 import type { IDateRangeDto } from '@app/reporting/dtos/date/date-range.dto';
 import type { IGetLedgerBalancesByCurrencyQuery } from '@app/reporting/dtos/ledger-balances-by-currency/ledger-balances-by-currency.dto';
 import type { IGetRevenueExpenseAccountsQuery } from '@app/reporting/dtos/revenue-expense-accounts/revenue-expense-accounts.dto';
@@ -23,6 +29,10 @@ import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAccountCashFlowUseCase,
   getAccountCounterpartyParticipationUseCase,
+  getBalancesByAccountUseCase,
+  getBalancesByBehaviorUseCase,
+  getBalancesBySubTypeUseCase,
+  getBalancesByTypeUseCase,
   getLedgerBalancesByCurrencyUseCase,
   getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
@@ -93,6 +103,132 @@ export class ReportingController extends Controller {
     @Queries() query: IGetAccountCounterpartyParticipationQuery
   ) {
     return await getAccountCounterpartyParticipationUseCase(accountId, query);
+  }
+
+  /**
+   * Closing balances in functional currency, grouped by accounts and closing date.
+   * Inclusive periods up to 366 days; bucketDays is anchored at from. Includes
+   * opening balances and archived history; carries balances across empty buckets.
+   * Reads corrected journals directly, excluding drafts, voided originals and
+   * reversals. Classification groups select their topmost matching accounts and
+   * include each root's full subtree, using the root's normal balance. Explicit
+   * IDs support posting and control accounts as independent series. Selected
+   * roots without activity return zero; absent roots produce no series.
+   * Account IDs must belong to the current entity. Amounts above 1 trillion
+   * major units return 400; unsafe numeric serialization returns 500.
+   */
+  @Get('/balances/accounts')
+  @OperationId('getBalancesByAccount')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getBalancesByAccount(
+    @Queries() query: IGetBalancesByAccountQuery
+  ) {
+    return await getBalancesByAccountUseCase(query);
+  }
+
+  /**
+   * Closing balances in functional currency, grouped by behaviors and closing date.
+   * Inclusive periods up to 366 days; bucketDays is anchored at from. Includes
+   * opening balances and archived history; carries balances across empty buckets.
+   * Reads corrected journals directly, excluding drafts, voided originals and
+   * reversals. Classification groups select their topmost matching accounts and
+   * include each root's full subtree, using the root's normal balance. Explicit
+   * IDs support posting and control accounts as independent series. Selected
+   * roots without activity return zero; absent roots produce no series.
+   * Account IDs must belong to the current entity. Amounts above 1 trillion
+   * major units return 400; unsafe numeric serialization returns 500.
+   */
+  @Get('/balances/behaviors')
+  @OperationId('getBalancesByBehavior')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getBalancesByBehavior(
+    @Queries() query: IGetBalancesByBehaviorQuery
+  ) {
+    return await getBalancesByBehaviorUseCase(query);
+  }
+
+  /**
+   * Closing balances in functional currency, grouped by sub-types and closing date.
+   * Inclusive periods up to 366 days; bucketDays is anchored at from. Includes
+   * opening balances and archived history; carries balances across empty buckets.
+   * Reads corrected journals directly, excluding drafts, voided originals and
+   * reversals. Classification groups select their topmost matching accounts and
+   * include each root's full subtree, using the root's normal balance. Explicit
+   * IDs support posting and control accounts as independent series. Selected
+   * roots without activity return zero; absent roots produce no series.
+   * Account IDs must belong to the current entity. Amounts above 1 trillion
+   * major units return 400; unsafe numeric serialization returns 500.
+   */
+  @Get('/balances/sub-types')
+  @OperationId('getBalancesBySubType')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getBalancesBySubType(
+    @Queries() query: IGetBalancesBySubTypeQuery
+  ) {
+    return await getBalancesBySubTypeUseCase(query);
+  }
+
+  /**
+   * Closing balances in functional currency, grouped by types and closing date.
+   * Inclusive periods up to 366 days; bucketDays is anchored at from. Includes
+   * opening balances and archived history; carries balances across empty buckets.
+   * Reads corrected journals directly, excluding drafts, voided originals and
+   * reversals. Classification groups select their topmost matching accounts and
+   * include each root's full subtree, using the root's normal balance. Explicit
+   * IDs support posting and control accounts as independent series. Selected
+   * roots without activity return zero; absent roots produce no series.
+   * Account IDs must belong to the current entity. Amounts above 1 trillion
+   * major units return 400; unsafe numeric serialization returns 500.
+   */
+  @Get('/balances/types')
+  @OperationId('getBalancesByType')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getBalancesByType(@Queries() query: IGetBalancesByTypeQuery) {
+    return await getBalancesByTypeUseCase(query);
   }
 
   /**

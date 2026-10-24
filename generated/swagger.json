@@ -459,6 +459,490 @@
         ]
       }
     },
+    "/reporting/balances/accounts": {
+      "get": {
+        "operationId": "getBalancesByAccount",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IBalancesByAccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Closing balances in functional currency, grouped by accounts and closing date.\nInclusive periods up to 366 days; bucketDays is anchored at from. Includes\nopening balances and archived history; carries balances across empty buckets.\nReads corrected journals directly, excluding drafts, voided originals and\nreversals. Classification groups select their topmost matching accounts and\ninclude each root's full subtree, using the root's normal balance. Explicit\nIDs support posting and control accounts as independent series. Selected\nroots without activity return zero; absent roots produce no series.\nAccount IDs must belong to the current entity. Amounts above 1 trillion\nmajor units return 400; unsafe numeric serialization returns 500.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Positive calendar-day bucket size, anchored at from.",
+            "in": "query",
+            "name": "bucketDays",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "accountIds",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/balances/behaviors": {
+      "get": {
+        "operationId": "getBalancesByBehavior",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IBalancesByBehaviorDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Closing balances in functional currency, grouped by behaviors and closing date.\nInclusive periods up to 366 days; bucketDays is anchored at from. Includes\nopening balances and archived history; carries balances across empty buckets.\nReads corrected journals directly, excluding drafts, voided originals and\nreversals. Classification groups select their topmost matching accounts and\ninclude each root's full subtree, using the root's normal balance. Explicit\nIDs support posting and control accounts as independent series. Selected\nroots without activity return zero; absent roots produce no series.\nAccount IDs must belong to the current entity. Amounts above 1 trillion\nmajor units return 400; unsafe numeric serialization returns 500.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Positive calendar-day bucket size, anchored at from.",
+            "in": "query",
+            "name": "bucketDays",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "behaviors",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerAccountBehavior"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/balances/sub-types": {
+      "get": {
+        "operationId": "getBalancesBySubType",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IBalancesBySubTypeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Closing balances in functional currency, grouped by sub-types and closing date.\nInclusive periods up to 366 days; bucketDays is anchored at from. Includes\nopening balances and archived history; carries balances across empty buckets.\nReads corrected journals directly, excluding drafts, voided originals and\nreversals. Classification groups select their topmost matching accounts and\ninclude each root's full subtree, using the root's normal balance. Explicit\nIDs support posting and control accounts as independent series. Selected\nroots without activity return zero; absent roots produce no series.\nAccount IDs must belong to the current entity. Amounts above 1 trillion\nmajor units return 400; unsafe numeric serialization returns 500.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Positive calendar-day bucket size, anchored at from.",
+            "in": "query",
+            "name": "bucketDays",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subTypes",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerAccountSubType"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/balances/types": {
+      "get": {
+        "operationId": "getBalancesByType",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IBalancesByTypeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Closing balances in functional currency, grouped by types and closing date.\nInclusive periods up to 366 days; bucketDays is anchored at from. Includes\nopening balances and archived history; carries balances across empty buckets.\nReads corrected journals directly, excluding drafts, voided originals and\nreversals. Classification groups select their topmost matching accounts and\ninclude each root's full subtree, using the root's normal balance. Explicit\nIDs support posting and control accounts as independent series. Selected\nroots without activity return zero; absent roots produce no series.\nAccount IDs must belong to the current entity. Amounts above 1 trillion\nmajor units return 400; unsafe numeric serialization returns 500.",
+        "tags": ["Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Positive calendar-day bucket size, anchored at from.",
+            "in": "query",
+            "name": "bucketDays",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "types",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerType"
+              }
+            }
+          }
+        ]
+      }
+    },
     "/reporting/ledger-balances-by-currency": {
       "get": {
         "operationId": "getLedgerBalancesByCurrency",
@@ -8052,6 +8536,383 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IBalancesByAccountDto": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "buckets": {
+            "items": {
+              "properties": {
+                "balances": {
+                  "items": {
+                    "properties": {
+                      "closingBalance": {
+                        "$ref": "#/components/schemas/IMoneyDto"
+                      },
+                      "accountId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["closingBalance", "accountId"],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "date": {
+                  "type": "string"
+                }
+              },
+              "required": ["balances", "date"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["period", "buckets"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetBalancesByAccountQuery": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "bucketDays": {
+            "type": "number",
+            "format": "double",
+            "description": "Positive calendar-day bucket size, anchored at from."
+          },
+          "accountIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["from", "to", "bucketDays", "accountIds"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ULedgerType": {
+        "type": "string",
+        "enum": ["asset", "liability", "revenue", "expense", "equity"]
+      },
+      "IBalancesByBehaviorDto": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "buckets": {
+            "items": {
+              "properties": {
+                "balances": {
+                  "items": {
+                    "properties": {
+                      "closingBalance": {
+                        "$ref": "#/components/schemas/IMoneyDto"
+                      },
+                      "behavior": {
+                        "type": "string"
+                      },
+                      "subType": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "$ref": "#/components/schemas/ULedgerType"
+                      }
+                    },
+                    "required": [
+                      "closingBalance",
+                      "behavior",
+                      "subType",
+                      "type"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "date": {
+                  "type": "string"
+                }
+              },
+              "required": ["balances", "date"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["period", "buckets"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ULedgerAccountBehavior": {
+        "type": "string",
+        "enum": [
+          "bank",
+          "petty_cash",
+          "default_cash",
+          "stock_and_etfs",
+          "bonds",
+          "statutory_receivable",
+          "trade_receivable",
+          "default_receivables",
+          "default",
+          "credit_card",
+          "overdraft",
+          "short_term_loan",
+          "default_short_term_debt",
+          "tax_payable",
+          "trade_payable",
+          "default_payable",
+          "mortgage",
+          "other_long_term_loan",
+          "owner_capital",
+          "retained_earnings",
+          "revaluation_reserve",
+          "opening_balance_equity",
+          "sales",
+          "services",
+          "subscriptions",
+          "employment_income",
+          "interest_income",
+          "gain_on_asset_sale",
+          "unrealized_gains",
+          "grants",
+          "gifts",
+          "cogs",
+          "cost_of_services",
+          "cost_of_revenue",
+          "default_direct_cost",
+          "payroll_and_personnel",
+          "rent_and_utilities",
+          "admin_and_general",
+          "marketing_and_selling",
+          "research_and_development",
+          "depreciation_and_amortization",
+          "bank_charge",
+          "finance_cost",
+          "interest",
+          "tax_expense",
+          "unrealized_loss",
+          "asset_disposal_loss",
+          "impairment_loss",
+          "other_loss"
+        ]
+      },
+      "IGetBalancesByBehaviorQuery": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "bucketDays": {
+            "type": "number",
+            "format": "double",
+            "description": "Positive calendar-day bucket size, anchored at from."
+          },
+          "behaviors": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerAccountBehavior"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["from", "to", "bucketDays", "behaviors"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IBalancesBySubTypeDto": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "buckets": {
+            "items": {
+              "properties": {
+                "balances": {
+                  "items": {
+                    "properties": {
+                      "closingBalance": {
+                        "$ref": "#/components/schemas/IMoneyDto"
+                      },
+                      "subType": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "$ref": "#/components/schemas/ULedgerType"
+                      }
+                    },
+                    "required": ["closingBalance", "subType", "type"],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "date": {
+                  "type": "string"
+                }
+              },
+              "required": ["balances", "date"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["period", "buckets"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ULedgerAccountSubType": {
+        "type": "string",
+        "enum": [
+          "retained_earnings",
+          "sales",
+          "services",
+          "subscriptions",
+          "employment_income",
+          "interest_income",
+          "gain_on_asset_sale",
+          "unrealized_gains",
+          "grants",
+          "gifts",
+          "payroll_and_personnel",
+          "rent_and_utilities",
+          "admin_and_general",
+          "marketing_and_selling",
+          "research_and_development",
+          "depreciation_and_amortization",
+          "bank_charge",
+          "finance_cost",
+          "interest",
+          "unrealized_loss",
+          "impairment_loss",
+          "other_loss",
+          "cash_and_cash_equivalent",
+          "short_term_investment",
+          "receivables",
+          "inventory",
+          "accrued_income",
+          "prepayments",
+          "long_term_investment",
+          "property_plant_and_equipment",
+          "intangible_assets",
+          "right_of_use_assets",
+          "goodwill",
+          "suspense",
+          "short_term_debt",
+          "payable",
+          "accrued_expense",
+          "deferred_revenue",
+          "long_term_loan",
+          "lease_liability",
+          "provision",
+          "capital",
+          "reserve",
+          "opening_balance",
+          "direct_costs",
+          "income_tax_expense",
+          "loss_on_asset_disposal"
+        ]
+      },
+      "IGetBalancesBySubTypeQuery": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "bucketDays": {
+            "type": "number",
+            "format": "double",
+            "description": "Positive calendar-day bucket size, anchored at from."
+          },
+          "subTypes": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerAccountSubType"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["from", "to", "bucketDays", "subTypes"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IBalancesByTypeDto": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "buckets": {
+            "items": {
+              "properties": {
+                "balances": {
+                  "items": {
+                    "properties": {
+                      "closingBalance": {
+                        "$ref": "#/components/schemas/IMoneyDto"
+                      },
+                      "type": {
+                        "$ref": "#/components/schemas/ULedgerType"
+                      }
+                    },
+                    "required": ["closingBalance", "type"],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Inclusive closing date, in YYYY-MM-DD format."
+                }
+              },
+              "required": ["balances", "date"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["period", "buckets"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetBalancesByTypeQuery": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "bucketDays": {
+            "type": "number",
+            "format": "double",
+            "description": "Positive calendar-day bucket size, anchored at from."
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerType"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["from", "to", "bucketDays", "types"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "ILedgerBalancesByCurrencyDto": {
         "properties": {
           "totalFunctionalBalance": {
@@ -8278,119 +9139,9 @@
         "type": "object",
         "additionalProperties": false
       },
-      "ULedgerType": {
-        "type": "string",
-        "enum": ["asset", "liability", "revenue", "expense", "equity"]
-      },
       "UNormalBalance": {
         "type": "string",
         "enum": ["debit", "credit"]
-      },
-      "ULedgerAccountSubType": {
-        "type": "string",
-        "enum": [
-          "cash_and_cash_equivalent",
-          "short_term_investment",
-          "receivables",
-          "inventory",
-          "accrued_income",
-          "prepayments",
-          "long_term_investment",
-          "property_plant_and_equipment",
-          "intangible_assets",
-          "right_of_use_assets",
-          "goodwill",
-          "suspense",
-          "short_term_debt",
-          "payable",
-          "accrued_expense",
-          "deferred_revenue",
-          "long_term_loan",
-          "lease_liability",
-          "provision",
-          "capital",
-          "retained_earnings",
-          "reserve",
-          "opening_balance",
-          "sales",
-          "services",
-          "subscriptions",
-          "employment_income",
-          "interest_income",
-          "gain_on_asset_sale",
-          "unrealized_gains",
-          "grants",
-          "gifts",
-          "direct_costs",
-          "payroll_and_personnel",
-          "rent_and_utilities",
-          "admin_and_general",
-          "marketing_and_selling",
-          "research_and_development",
-          "depreciation_and_amortization",
-          "bank_charge",
-          "finance_cost",
-          "interest",
-          "income_tax_expense",
-          "unrealized_loss",
-          "loss_on_asset_disposal",
-          "impairment_loss",
-          "other_loss"
-        ]
-      },
-      "ULedgerAccountBehavior": {
-        "type": "string",
-        "enum": [
-          "retained_earnings",
-          "sales",
-          "services",
-          "subscriptions",
-          "employment_income",
-          "interest_income",
-          "gain_on_asset_sale",
-          "unrealized_gains",
-          "grants",
-          "gifts",
-          "payroll_and_personnel",
-          "rent_and_utilities",
-          "admin_and_general",
-          "marketing_and_selling",
-          "research_and_development",
-          "depreciation_and_amortization",
-          "bank_charge",
-          "finance_cost",
-          "interest",
-          "unrealized_loss",
-          "impairment_loss",
-          "other_loss",
-          "bank",
-          "petty_cash",
-          "default_cash",
-          "stock_and_etfs",
-          "bonds",
-          "statutory_receivable",
-          "trade_receivable",
-          "default_receivables",
-          "default",
-          "credit_card",
-          "overdraft",
-          "short_term_loan",
-          "default_short_term_debt",
-          "tax_payable",
-          "trade_payable",
-          "default_payable",
-          "mortgage",
-          "other_long_term_loan",
-          "owner_capital",
-          "revaluation_reserve",
-          "opening_balance_equity",
-          "cogs",
-          "cost_of_services",
-          "cost_of_revenue",
-          "default_direct_cost",
-          "tax_expense",
-          "asset_disposal_loss"
-        ]
       },
       "UContraAccountRule": {
         "type": "string",

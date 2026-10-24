@@ -417,6 +417,316 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IBalancesByAccountDto: {
+    dataType: 'refObject',
+    properties: {
+      period: { ref: 'IDateRangeDto', required: true },
+      buckets: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            balances: {
+              dataType: 'array',
+              array: {
+                dataType: 'nestedObjectLiteral',
+                nestedProperties: {
+                  closingBalance: { ref: 'IMoneyDto', required: true },
+                  accountId: { dataType: 'string', required: true },
+                },
+              },
+              required: true,
+            },
+            date: { dataType: 'string', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetBalancesByAccountQuery: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      bucketDays: { dataType: 'double', required: true },
+      accountIds: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['asset'] },
+        { dataType: 'enum', enums: ['liability'] },
+        { dataType: 'enum', enums: ['revenue'] },
+        { dataType: 'enum', enums: ['expense'] },
+        { dataType: 'enum', enums: ['equity'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IBalancesByBehaviorDto: {
+    dataType: 'refObject',
+    properties: {
+      period: { ref: 'IDateRangeDto', required: true },
+      buckets: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            balances: {
+              dataType: 'array',
+              array: {
+                dataType: 'nestedObjectLiteral',
+                nestedProperties: {
+                  closingBalance: { ref: 'IMoneyDto', required: true },
+                  behavior: { dataType: 'string', required: true },
+                  subType: { dataType: 'string', required: true },
+                  type: { ref: 'ULedgerType', required: true },
+                },
+              },
+              required: true,
+            },
+            date: { dataType: 'string', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountBehavior: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['bank'] },
+        { dataType: 'enum', enums: ['petty_cash'] },
+        { dataType: 'enum', enums: ['default_cash'] },
+        { dataType: 'enum', enums: ['stock_and_etfs'] },
+        { dataType: 'enum', enums: ['bonds'] },
+        { dataType: 'enum', enums: ['statutory_receivable'] },
+        { dataType: 'enum', enums: ['trade_receivable'] },
+        { dataType: 'enum', enums: ['default_receivables'] },
+        { dataType: 'enum', enums: ['default'] },
+        { dataType: 'enum', enums: ['credit_card'] },
+        { dataType: 'enum', enums: ['overdraft'] },
+        { dataType: 'enum', enums: ['short_term_loan'] },
+        { dataType: 'enum', enums: ['default_short_term_debt'] },
+        { dataType: 'enum', enums: ['tax_payable'] },
+        { dataType: 'enum', enums: ['trade_payable'] },
+        { dataType: 'enum', enums: ['default_payable'] },
+        { dataType: 'enum', enums: ['mortgage'] },
+        { dataType: 'enum', enums: ['other_long_term_loan'] },
+        { dataType: 'enum', enums: ['owner_capital'] },
+        { dataType: 'enum', enums: ['retained_earnings'] },
+        { dataType: 'enum', enums: ['revaluation_reserve'] },
+        { dataType: 'enum', enums: ['opening_balance_equity'] },
+        { dataType: 'enum', enums: ['sales'] },
+        { dataType: 'enum', enums: ['services'] },
+        { dataType: 'enum', enums: ['subscriptions'] },
+        { dataType: 'enum', enums: ['employment_income'] },
+        { dataType: 'enum', enums: ['interest_income'] },
+        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
+        { dataType: 'enum', enums: ['unrealized_gains'] },
+        { dataType: 'enum', enums: ['grants'] },
+        { dataType: 'enum', enums: ['gifts'] },
+        { dataType: 'enum', enums: ['cogs'] },
+        { dataType: 'enum', enums: ['cost_of_services'] },
+        { dataType: 'enum', enums: ['cost_of_revenue'] },
+        { dataType: 'enum', enums: ['default_direct_cost'] },
+        { dataType: 'enum', enums: ['payroll_and_personnel'] },
+        { dataType: 'enum', enums: ['rent_and_utilities'] },
+        { dataType: 'enum', enums: ['admin_and_general'] },
+        { dataType: 'enum', enums: ['marketing_and_selling'] },
+        { dataType: 'enum', enums: ['research_and_development'] },
+        { dataType: 'enum', enums: ['depreciation_and_amortization'] },
+        { dataType: 'enum', enums: ['bank_charge'] },
+        { dataType: 'enum', enums: ['finance_cost'] },
+        { dataType: 'enum', enums: ['interest'] },
+        { dataType: 'enum', enums: ['tax_expense'] },
+        { dataType: 'enum', enums: ['unrealized_loss'] },
+        { dataType: 'enum', enums: ['asset_disposal_loss'] },
+        { dataType: 'enum', enums: ['impairment_loss'] },
+        { dataType: 'enum', enums: ['other_loss'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetBalancesByBehaviorQuery: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      bucketDays: { dataType: 'double', required: true },
+      behaviors: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerAccountBehavior' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IBalancesBySubTypeDto: {
+    dataType: 'refObject',
+    properties: {
+      period: { ref: 'IDateRangeDto', required: true },
+      buckets: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            balances: {
+              dataType: 'array',
+              array: {
+                dataType: 'nestedObjectLiteral',
+                nestedProperties: {
+                  closingBalance: { ref: 'IMoneyDto', required: true },
+                  subType: { dataType: 'string', required: true },
+                  type: { ref: 'ULedgerType', required: true },
+                },
+              },
+              required: true,
+            },
+            date: { dataType: 'string', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountSubType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['retained_earnings'] },
+        { dataType: 'enum', enums: ['sales'] },
+        { dataType: 'enum', enums: ['services'] },
+        { dataType: 'enum', enums: ['subscriptions'] },
+        { dataType: 'enum', enums: ['employment_income'] },
+        { dataType: 'enum', enums: ['interest_income'] },
+        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
+        { dataType: 'enum', enums: ['unrealized_gains'] },
+        { dataType: 'enum', enums: ['grants'] },
+        { dataType: 'enum', enums: ['gifts'] },
+        { dataType: 'enum', enums: ['payroll_and_personnel'] },
+        { dataType: 'enum', enums: ['rent_and_utilities'] },
+        { dataType: 'enum', enums: ['admin_and_general'] },
+        { dataType: 'enum', enums: ['marketing_and_selling'] },
+        { dataType: 'enum', enums: ['research_and_development'] },
+        { dataType: 'enum', enums: ['depreciation_and_amortization'] },
+        { dataType: 'enum', enums: ['bank_charge'] },
+        { dataType: 'enum', enums: ['finance_cost'] },
+        { dataType: 'enum', enums: ['interest'] },
+        { dataType: 'enum', enums: ['unrealized_loss'] },
+        { dataType: 'enum', enums: ['impairment_loss'] },
+        { dataType: 'enum', enums: ['other_loss'] },
+        { dataType: 'enum', enums: ['cash_and_cash_equivalent'] },
+        { dataType: 'enum', enums: ['short_term_investment'] },
+        { dataType: 'enum', enums: ['receivables'] },
+        { dataType: 'enum', enums: ['inventory'] },
+        { dataType: 'enum', enums: ['accrued_income'] },
+        { dataType: 'enum', enums: ['prepayments'] },
+        { dataType: 'enum', enums: ['long_term_investment'] },
+        { dataType: 'enum', enums: ['property_plant_and_equipment'] },
+        { dataType: 'enum', enums: ['intangible_assets'] },
+        { dataType: 'enum', enums: ['right_of_use_assets'] },
+        { dataType: 'enum', enums: ['goodwill'] },
+        { dataType: 'enum', enums: ['suspense'] },
+        { dataType: 'enum', enums: ['short_term_debt'] },
+        { dataType: 'enum', enums: ['payable'] },
+        { dataType: 'enum', enums: ['accrued_expense'] },
+        { dataType: 'enum', enums: ['deferred_revenue'] },
+        { dataType: 'enum', enums: ['long_term_loan'] },
+        { dataType: 'enum', enums: ['lease_liability'] },
+        { dataType: 'enum', enums: ['provision'] },
+        { dataType: 'enum', enums: ['capital'] },
+        { dataType: 'enum', enums: ['reserve'] },
+        { dataType: 'enum', enums: ['opening_balance'] },
+        { dataType: 'enum', enums: ['direct_costs'] },
+        { dataType: 'enum', enums: ['income_tax_expense'] },
+        { dataType: 'enum', enums: ['loss_on_asset_disposal'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetBalancesBySubTypeQuery: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      bucketDays: { dataType: 'double', required: true },
+      subTypes: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerAccountSubType' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IBalancesByTypeDto: {
+    dataType: 'refObject',
+    properties: {
+      period: { ref: 'IDateRangeDto', required: true },
+      buckets: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            balances: {
+              dataType: 'array',
+              array: {
+                dataType: 'nestedObjectLiteral',
+                nestedProperties: {
+                  closingBalance: { ref: 'IMoneyDto', required: true },
+                  type: { ref: 'ULedgerType', required: true },
+                },
+              },
+              required: true,
+            },
+            date: { dataType: 'string', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetBalancesByTypeQuery: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      bucketDays: { dataType: 'double', required: true },
+      types: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerType' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ILedgerBalancesByCurrencyDto: {
     dataType: 'refObject',
     properties: {
@@ -583,21 +893,6 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ULedgerType: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['asset'] },
-        { dataType: 'enum', enums: ['liability'] },
-        { dataType: 'enum', enums: ['revenue'] },
-        { dataType: 'enum', enums: ['expense'] },
-        { dataType: 'enum', enums: ['equity'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UNormalBalance: {
     dataType: 'refAlias',
     type: {
@@ -605,122 +900,6 @@ const models: TsoaRoute.Models = {
       subSchemas: [
         { dataType: 'enum', enums: ['debit'] },
         { dataType: 'enum', enums: ['credit'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ULedgerAccountSubType: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['cash_and_cash_equivalent'] },
-        { dataType: 'enum', enums: ['short_term_investment'] },
-        { dataType: 'enum', enums: ['receivables'] },
-        { dataType: 'enum', enums: ['inventory'] },
-        { dataType: 'enum', enums: ['accrued_income'] },
-        { dataType: 'enum', enums: ['prepayments'] },
-        { dataType: 'enum', enums: ['long_term_investment'] },
-        { dataType: 'enum', enums: ['property_plant_and_equipment'] },
-        { dataType: 'enum', enums: ['intangible_assets'] },
-        { dataType: 'enum', enums: ['right_of_use_assets'] },
-        { dataType: 'enum', enums: ['goodwill'] },
-        { dataType: 'enum', enums: ['suspense'] },
-        { dataType: 'enum', enums: ['short_term_debt'] },
-        { dataType: 'enum', enums: ['payable'] },
-        { dataType: 'enum', enums: ['accrued_expense'] },
-        { dataType: 'enum', enums: ['deferred_revenue'] },
-        { dataType: 'enum', enums: ['long_term_loan'] },
-        { dataType: 'enum', enums: ['lease_liability'] },
-        { dataType: 'enum', enums: ['provision'] },
-        { dataType: 'enum', enums: ['capital'] },
-        { dataType: 'enum', enums: ['retained_earnings'] },
-        { dataType: 'enum', enums: ['reserve'] },
-        { dataType: 'enum', enums: ['opening_balance'] },
-        { dataType: 'enum', enums: ['sales'] },
-        { dataType: 'enum', enums: ['services'] },
-        { dataType: 'enum', enums: ['subscriptions'] },
-        { dataType: 'enum', enums: ['employment_income'] },
-        { dataType: 'enum', enums: ['interest_income'] },
-        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
-        { dataType: 'enum', enums: ['unrealized_gains'] },
-        { dataType: 'enum', enums: ['grants'] },
-        { dataType: 'enum', enums: ['gifts'] },
-        { dataType: 'enum', enums: ['direct_costs'] },
-        { dataType: 'enum', enums: ['payroll_and_personnel'] },
-        { dataType: 'enum', enums: ['rent_and_utilities'] },
-        { dataType: 'enum', enums: ['admin_and_general'] },
-        { dataType: 'enum', enums: ['marketing_and_selling'] },
-        { dataType: 'enum', enums: ['research_and_development'] },
-        { dataType: 'enum', enums: ['depreciation_and_amortization'] },
-        { dataType: 'enum', enums: ['bank_charge'] },
-        { dataType: 'enum', enums: ['finance_cost'] },
-        { dataType: 'enum', enums: ['interest'] },
-        { dataType: 'enum', enums: ['income_tax_expense'] },
-        { dataType: 'enum', enums: ['unrealized_loss'] },
-        { dataType: 'enum', enums: ['loss_on_asset_disposal'] },
-        { dataType: 'enum', enums: ['impairment_loss'] },
-        { dataType: 'enum', enums: ['other_loss'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ULedgerAccountBehavior: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['retained_earnings'] },
-        { dataType: 'enum', enums: ['sales'] },
-        { dataType: 'enum', enums: ['services'] },
-        { dataType: 'enum', enums: ['subscriptions'] },
-        { dataType: 'enum', enums: ['employment_income'] },
-        { dataType: 'enum', enums: ['interest_income'] },
-        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
-        { dataType: 'enum', enums: ['unrealized_gains'] },
-        { dataType: 'enum', enums: ['grants'] },
-        { dataType: 'enum', enums: ['gifts'] },
-        { dataType: 'enum', enums: ['payroll_and_personnel'] },
-        { dataType: 'enum', enums: ['rent_and_utilities'] },
-        { dataType: 'enum', enums: ['admin_and_general'] },
-        { dataType: 'enum', enums: ['marketing_and_selling'] },
-        { dataType: 'enum', enums: ['research_and_development'] },
-        { dataType: 'enum', enums: ['depreciation_and_amortization'] },
-        { dataType: 'enum', enums: ['bank_charge'] },
-        { dataType: 'enum', enums: ['finance_cost'] },
-        { dataType: 'enum', enums: ['interest'] },
-        { dataType: 'enum', enums: ['unrealized_loss'] },
-        { dataType: 'enum', enums: ['impairment_loss'] },
-        { dataType: 'enum', enums: ['other_loss'] },
-        { dataType: 'enum', enums: ['bank'] },
-        { dataType: 'enum', enums: ['petty_cash'] },
-        { dataType: 'enum', enums: ['default_cash'] },
-        { dataType: 'enum', enums: ['stock_and_etfs'] },
-        { dataType: 'enum', enums: ['bonds'] },
-        { dataType: 'enum', enums: ['statutory_receivable'] },
-        { dataType: 'enum', enums: ['trade_receivable'] },
-        { dataType: 'enum', enums: ['default_receivables'] },
-        { dataType: 'enum', enums: ['default'] },
-        { dataType: 'enum', enums: ['credit_card'] },
-        { dataType: 'enum', enums: ['overdraft'] },
-        { dataType: 'enum', enums: ['short_term_loan'] },
-        { dataType: 'enum', enums: ['default_short_term_debt'] },
-        { dataType: 'enum', enums: ['tax_payable'] },
-        { dataType: 'enum', enums: ['trade_payable'] },
-        { dataType: 'enum', enums: ['default_payable'] },
-        { dataType: 'enum', enums: ['mortgage'] },
-        { dataType: 'enum', enums: ['other_long_term_loan'] },
-        { dataType: 'enum', enums: ['owner_capital'] },
-        { dataType: 'enum', enums: ['revaluation_reserve'] },
-        { dataType: 'enum', enums: ['opening_balance_equity'] },
-        { dataType: 'enum', enums: ['cogs'] },
-        { dataType: 'enum', enums: ['cost_of_services'] },
-        { dataType: 'enum', enums: ['cost_of_revenue'] },
-        { dataType: 'enum', enums: ['default_direct_cost'] },
-        { dataType: 'enum', enums: ['tax_expense'] },
-        { dataType: 'enum', enums: ['asset_disposal_loss'] },
       ],
       validators: {},
     },
@@ -3608,6 +3787,202 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getAccountCounterpartyParticipation',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsReportingController_getBalancesByAccount: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetBalancesByAccountQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/balances/accounts',
+    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      ReportingController.prototype.getBalancesByAccount
+    ),
+
+    async function ReportingController_getBalancesByAccount(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsReportingController_getBalancesByAccount,
+          request,
+          response,
+        });
+
+        const controller = new ReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getBalancesByAccount',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsReportingController_getBalancesByBehavior: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetBalancesByBehaviorQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/balances/behaviors',
+    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      ReportingController.prototype.getBalancesByBehavior
+    ),
+
+    async function ReportingController_getBalancesByBehavior(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsReportingController_getBalancesByBehavior,
+          request,
+          response,
+        });
+
+        const controller = new ReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getBalancesByBehavior',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsReportingController_getBalancesBySubType: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetBalancesBySubTypeQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/balances/sub-types',
+    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      ReportingController.prototype.getBalancesBySubType
+    ),
+
+    async function ReportingController_getBalancesBySubType(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsReportingController_getBalancesBySubType,
+          request,
+          response,
+        });
+
+        const controller = new ReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getBalancesBySubType',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsReportingController_getBalancesByType: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetBalancesByTypeQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/balances/types',
+    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      ReportingController.prototype.getBalancesByType
+    ),
+
+    async function ReportingController_getBalancesByType(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsReportingController_getBalancesByType,
+          request,
+          response,
+        });
+
+        const controller = new ReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getBalancesByType',
           controller,
           response,
           next,
