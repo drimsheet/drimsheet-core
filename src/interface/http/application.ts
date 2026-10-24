@@ -16,6 +16,7 @@ import { RegisterRoutes } from '../../../generated/routes';
 export default function createApplication() {
   const app = express();
   app.set('trust proxy', false);
+  app.set('query parser', 'extended');
 
   app.use(healthRoute);
 

@@ -185,6 +185,41 @@ for (const endpoint of endpoints) {
         .set('x-accounting-entity-id', entityId);
 
     describe('200 Response', () => {
+      it.each(['[]', '[0]'])(
+        'accepts array query keys ending in %s',
+        async (suffix) => {
+          const query = new URLSearchParams({
+            from: period.from,
+            to: period.to,
+            bucketDays: String(period.bucketDays),
+          });
+          for (const filterEntry of Object.entries(endpoint.filter)) {
+            const [key, values] = filterEntry;
+            query.append(`${key}${suffix}`, values[0]);
+          }
+
+          const response = await request(server)
+            .get(`/api/v1/reporting/balances/${endpoint.path}`)
+            .query(query.toString())
+            .set('Authorization', 'Bearer test-token')
+            .set('x-accounting-entity-id', entityId);
+
+          expect(response.status).toBe(200);
+          expect(response.body.buckets[0].balances[0]).toEqual({
+            ...endpoint.identity,
+            closingBalance: {
+              amount: 900,
+              currencyCode: 'NGN',
+              isMinorUnit: true,
+            },
+          });
+          expect(mockBalanceSeriesQueryRepo.aggregate).toHaveBeenCalledWith(
+            expect.objectContaining({ filter: endpoint.filter }),
+            expect.any(Object)
+          );
+        }
+      );
+
       if (endpoint.path === 'accounts') {
         it('accepts a control account and returns its subtree balance', async () => {
           mockLedgerAccountRepo.findById.mockResolvedValue({
