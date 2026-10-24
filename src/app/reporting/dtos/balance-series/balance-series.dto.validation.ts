@@ -19,16 +19,19 @@ const seriesSchema = dateRangeValidationSchema.extend({
 export const getBalancesByTypeQueryValidationSchema = seriesSchema.extend({
   types: z.array(z.enum(ELedgerType, typeKey), typeKey).min(1, typeKey),
 });
+
 export const getBalancesBySubTypeQueryValidationSchema = seriesSchema.extend({
   subTypes: z
     .array(z.enum(ELedgerAccountSubType, subTypeKey), subTypeKey)
     .min(1, subTypeKey),
 });
+
 export const getBalancesByBehaviorQueryValidationSchema = seriesSchema.extend({
   behaviors: z
     .array(z.enum(ELedgerAccountBehavior, behaviorKey), behaviorKey)
     .min(1, behaviorKey),
 });
+
 export const getBalancesByAccountQueryValidationSchema = seriesSchema.extend({
   accountIds: z.array(z.uuid(accountKey), accountKey).min(1, accountKey),
 });
