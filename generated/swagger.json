@@ -1034,6 +1034,124 @@
         ]
       }
     },
+    "/reporting/ledger/ledger-total-debits-and-credits-by-currency": {
+      "get": {
+        "operationId": "getLedgerTotalDebitsAndCreditsByCurrency",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerTotalDebitsAndCreditsByCurrencyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Totals debits and credits by journal-line currency for a selected fiscal\nyear and ledger class. Equity accounts are not supported.\nInclusive dates default to fiscal year start and\nmin(today UTC, fiscal year end). Out-of-year or reversed ranges return 400.\nExcludes draft and voided entries; includes every source type.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "fiscalYearId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Equity accounts are not supported by this report.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["asset", "liability", "revenue", "expense"]
+            }
+          },
+          {
+            "description": "Inclusive YYYY-MM-DD date; defaults to the fiscal year's start.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive YYYY-MM-DD date; defaults to min(today UTC, fiscal year end).",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/reporting/ledger/revenue-expense-accounts": {
       "get": {
         "operationId": "getRevenueExpenseAccounts",
@@ -8948,6 +9066,58 @@
           }
         },
         "required": ["type"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ILedgerTotalDebitsAndCreditsByCurrencyDto": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "totalsByCurrency": {
+            "items": {
+              "properties": {
+                "totalCredits": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "totalDebits": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                }
+              },
+              "required": ["totalCredits", "totalDebits"],
+              "type": "object"
+            },
+            "type": "array",
+            "description": "Original-currency totals, sorted by currency code; empty without activity."
+          }
+        },
+        "required": ["fiscalYearId", "period", "totalsByCurrency"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetLedgerTotalDebitsAndCreditsByCurrencyQuery": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["asset", "liability", "revenue", "expense"],
+            "description": "Equity accounts are not supported by this report."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Inclusive YYYY-MM-DD date; defaults to the fiscal year's start."
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Inclusive YYYY-MM-DD date; defaults to min(today UTC, fiscal year end)."
+          }
+        },
+        "required": ["fiscalYearId", "type"],
         "type": "object",
         "additionalProperties": false
       },

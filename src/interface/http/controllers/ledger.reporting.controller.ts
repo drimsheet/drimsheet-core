@@ -20,6 +20,7 @@ import type { IGetBalancesByAccountQuery } from '@app/ledger/usecases/reporting/
 import type { IGetBalancesByBehaviorQuery } from '@app/ledger/usecases/reporting/balances-by-behavior/dto';
 import type { IGetBalancesBySubTypeQuery } from '@app/ledger/usecases/reporting/balances-by-sub-type/dto';
 import type { IGetBalancesByTypeQuery } from '@app/ledger/usecases/reporting/balances-by-type/dto';
+import type { IGetLedgerTotalDebitsAndCreditsByCurrencyQuery } from '@app/ledger/usecases/reporting/ledger-total-debits-and-credits-by-currency/dto';
 import type { IGetRevenueExpenseAccountsQuery } from '@app/ledger/usecases/reporting/revenue-expense-accounts/dto';
 import type { IDateRangeDto } from '@app/ledger/usecases/reporting/shared/date-range';
 
@@ -32,6 +33,7 @@ import {
   getBalancesByBehaviorUseCase,
   getBalancesBySubTypeUseCase,
   getBalancesByTypeUseCase,
+  getLedgerTotalDebitsAndCreditsByCurrencyUseCase,
   getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
 } from '@infra/ioc/usecases/ledger.reporting';
@@ -214,6 +216,33 @@ export class LedgerReportingController extends Controller {
     @Queries() query: IGetAssetAndLiabilityBalancesByCurrencyQuery
   ) {
     return await getAssetAndLiabilityBalancesByCurrencyUseCase(query.type);
+  }
+
+  /**
+   * Totals debits and credits by journal-line currency for a selected fiscal
+   * year and ledger class. Equity accounts are not supported.
+   * Inclusive dates default to fiscal year start and
+   * min(today UTC, fiscal year end). Out-of-year or reversed ranges return 400.
+   * Excludes draft and voided entries; includes every source type.
+   */
+  @Get('/ledger-total-debits-and-credits-by-currency')
+  @OperationId('getLedgerTotalDebitsAndCreditsByCurrency')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getLedgerTotalDebitsAndCreditsByCurrency(
+    @Queries() query: IGetLedgerTotalDebitsAndCreditsByCurrencyQuery
+  ) {
+    return await getLedgerTotalDebitsAndCreditsByCurrencyUseCase(query);
   }
 
   /**

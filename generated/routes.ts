@@ -761,6 +761,46 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ILedgerTotalDebitsAndCreditsByCurrencyDto: {
+    dataType: 'refObject',
+    properties: {
+      fiscalYearId: { dataType: 'string', required: true },
+      period: { ref: 'IDateRangeDto', required: true },
+      totalsByCurrency: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            totalCredits: { ref: 'IMoneyDto', required: true },
+            totalDebits: { ref: 'IMoneyDto', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetLedgerTotalDebitsAndCreditsByCurrencyQuery: {
+    dataType: 'refObject',
+    properties: {
+      fiscalYearId: { dataType: 'string', required: true },
+      type: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'enum', enums: ['asset'] },
+          { dataType: 'enum', enums: ['liability'] },
+          { dataType: 'enum', enums: ['revenue'] },
+          { dataType: 'enum', enums: ['expense'] },
+        ],
+        required: true,
+      },
+      startDate: { dataType: 'string' },
+      endDate: { dataType: 'string' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   ULedgerAccountStatus: {
     dataType: 'refAlias',
     type: {
@@ -4032,6 +4072,56 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getLedgerBalancesByCurrency',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerReportingController_getLedgerTotalDebitsAndCreditsByCurrency: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetLedgerTotalDebitsAndCreditsByCurrencyQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/ledger/ledger-total-debits-and-credits-by-currency',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerReportingController.prototype
+        .getLedgerTotalDebitsAndCreditsByCurrency
+    ),
+
+    async function LedgerReportingController_getLedgerTotalDebitsAndCreditsByCurrency(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerReportingController_getLedgerTotalDebitsAndCreditsByCurrency,
+          request,
+          response,
+        });
+
+        const controller = new LedgerReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getLedgerTotalDebitsAndCreditsByCurrency',
           controller,
           response,
           next,

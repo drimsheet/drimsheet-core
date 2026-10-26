@@ -5,15 +5,18 @@ import makeGetBalancesByAccountUsecase from '@app/ledger/usecases/reporting/bala
 import makeGetBalancesByBehaviorUsecase from '@app/ledger/usecases/reporting/balances-by-behavior/balances-by-behavior.usecase';
 import makeGetBalancesBySubTypeUsecase from '@app/ledger/usecases/reporting/balances-by-sub-type/balances-by-sub-type.usecase';
 import makeGetBalancesByTypeUsecase from '@app/ledger/usecases/reporting/balances-by-type/balances-by-type.usecase';
+import makeGetLedgerTotalDebitsAndCreditsByCurrencyUsecase from '@app/ledger/usecases/reporting/ledger-total-debits-and-credits-by-currency/ledger-total-debits-and-credits-by-currency.usecase';
 import makeGetRevenueExpenseAccountsUsecase from '@app/ledger/usecases/reporting/revenue-expense-accounts/revenue-expense-accounts.usecase';
 import makeGetRevenueExpenseSummaryUsecase from '@app/ledger/usecases/reporting/revenue-expense-summary/revenue-expense-summary.usecase';
 
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
+import accountingRepos from '@infra/persistence/repos/accounting';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import accountCashFlowRepoQuery from '@infra/persistence/repos/ledger/queries/account-cash-flow.reporting';
 import accountCounterpartyParticipationRepoQuery from '@infra/persistence/repos/ledger/queries/account-counterparty-participation.reporting';
 import assetAndLiabilityBalancesByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/asset-and-liability-balances-by-currency.reporting';
 import balanceSeriesRepoQuery from '@infra/persistence/repos/ledger/queries/balance-series.reporting';
+import ledgerTotalDebitsAndCreditsByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/ledger-total-debits-and-credits-by-currency.reporting';
 import revenueExpenseAccountsRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-expense-accounts.reporting';
 import revenueExpenseSummaryRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-expense-summary.reporting';
 import appContext from '@infra/services/app-context.service';
@@ -93,3 +96,13 @@ export const getBalancesByAccountUseCase = makeTracedUseCase(
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
   })
 );
+
+export const getLedgerTotalDebitsAndCreditsByCurrencyUseCase =
+  makeTracedUseCase(
+    'reporting.getLedgerTotalDebitsAndCreditsByCurrencyUseCase',
+    makeGetLedgerTotalDebitsAndCreditsByCurrencyUsecase({
+      appContext,
+      fiscalYearRepo: accountingRepos.fiscalYear,
+      repoQuery: ledgerTotalDebitsAndCreditsByCurrencyRepoQuery,
+    })
+  );
