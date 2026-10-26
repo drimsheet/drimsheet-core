@@ -78,6 +78,9 @@ interface IDependencies {
   repoQuery: TGetRevenueExpenseAccountsRepoQuery;
 }
 
+/**
+ * @deprecated
+ */
 export default function makeGetRevenueExpenseAccountsUsecase(
   deps: IDependencies
 ) {
