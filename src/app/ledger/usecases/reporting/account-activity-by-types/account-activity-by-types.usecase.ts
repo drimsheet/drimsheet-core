@@ -91,7 +91,9 @@ export default function makeGetAccountActivityByTypesUsecase(
     const currency = currencyEntity.getByCode(
       accountingEntity.functionalCurrencyCode
     );
-    const types = [...new Set(query.types)].sort();
+    const types = [...new Set(query.types)].sort((first, second) =>
+      first.localeCompare(second)
+    );
     const aggregates = await deps.repoQuery(
       {
         accountingEntityId: accountingEntity.id,
