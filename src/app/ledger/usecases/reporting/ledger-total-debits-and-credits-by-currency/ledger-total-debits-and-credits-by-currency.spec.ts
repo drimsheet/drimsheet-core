@@ -133,7 +133,7 @@ describe('ledger-total-debits-and-credits-by-currency', () => {
       period: { from: '2026-04-01', to: '2026-04-30' },
     });
   });
-  it('returns separately validated original-currency totals in code order without netting', async () => {
+  it('returns separately validated original-currency totals and deltas in code order', async () => {
     repoQuery.mockResolvedValue([
       { currencyCode: 'USD', debits: 7500n, credits: 44000n },
       { currencyCode: 'JPY', debits: 0n, credits: 20n },
@@ -142,13 +142,39 @@ describe('ledger-total-debits-and-credits-by-currency', () => {
       {
         totalDebits: { amount: 0, currencyCode: 'JPY', isMinorUnit: true },
         totalCredits: { amount: 20, currencyCode: 'JPY', isMinorUnit: true },
+        delta: { amount: 20, currencyCode: 'JPY', isMinorUnit: true },
       },
       {
         totalDebits: { amount: 7500, currencyCode: 'USD', isMinorUnit: true },
         totalCredits: { amount: 44000, currencyCode: 'USD', isMinorUnit: true },
+        delta: { amount: 36500, currencyCode: 'USD', isMinorUnit: true },
       },
     ]);
   });
+  it.each([
+    ['asset', 250, -250],
+    ['expense', 250, -250],
+    ['liability', -250, 250],
+    ['revenue', -250, 250],
+  ] as const)(
+    'returns signed and zero deltas for %s',
+    async (type, debitHeavyDelta, creditHeavyDelta) => {
+      for (const [debits, credits, expected] of [
+        [350n, 100n, debitHeavyDelta],
+        [100n, 350n, creditHeavyDelta],
+        [100n, 100n, 0],
+      ] as const) {
+        repoQuery.mockResolvedValue([{ currencyCode: 'USD', debits, credits }]);
+        expect(
+          (await execute({ ...query, type })).totalsByCurrency[0].delta
+        ).toEqual({
+          amount: expected,
+          currencyCode: 'USD',
+          isMinorUnit: true,
+        });
+      }
+    }
+  );
   it.each([
     ['debits', { debits: -1n, credits: 0n }],
     ['credits', { debits: 0n, credits: -1n }],

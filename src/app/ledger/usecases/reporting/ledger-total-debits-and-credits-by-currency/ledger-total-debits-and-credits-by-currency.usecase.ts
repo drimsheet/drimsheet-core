@@ -21,6 +21,8 @@ import dateUtils from '@shared/utils/date';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
+import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import { UNormalBalance } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 import moneyValue from '@domain/money/values/money.vo';
 
@@ -108,24 +110,26 @@ export default function makeGetLedgerTotalDebitsAndCreditsByCurrencyUsecase(
       { correlationId }
     );
 
+    const normalBalance = getLedgerAccountNormalBalance(query.type);
+    totals.sort((left, right) =>
+      left.currencyCode.localeCompare(right.currencyCode)
+    );
+
     return {
       fiscalYearId: fiscalYear.id,
       period: dateRangeMapper.toDto(period),
-      totalsByCurrency: totals
-        .sort((left, right) =>
-          left.currencyCode.localeCompare(right.currencyCode)
-        )
-        .map(buildCurrencyTotals),
+      totalsByCurrency: totals.map((total) =>
+        buildCurrencyTotals(total, normalBalance)
+      ),
     };
   };
 }
 
 /** Checks exact totals before converting them to the numeric minor-unit DTO. */
-function buildCurrencyTotals(total: {
-  currencyCode: string;
-  debits: bigint;
-  credits: bigint;
-}) {
+function buildCurrencyTotals(
+  total: { currencyCode: string; debits: bigint; credits: bigint },
+  normalBalance: UNormalBalance
+) {
   const currency = currencyEntity.getByCode(total.currencyCode);
   const debits = moneyValue.make(total.debits, currency, true);
   const credits = moneyValue.make(total.credits, currency, true);
@@ -137,8 +141,14 @@ function buildCurrencyTotals(total: {
     reportingValidation.validateAmountLimit(amount);
     reportingValidation.validateSafeAmount(amount);
   }
+  const delta =
+    normalBalance === 'debit'
+      ? moneyValue.subtract(debits, credits)
+      : moneyValue.subtract(credits, debits);
+
   return {
     totalDebits: moneyMapper.toDto(debits),
     totalCredits: moneyMapper.toDto(credits),
+    delta: moneyMapper.toDto(delta),
   };
 }

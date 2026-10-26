@@ -128,9 +128,14 @@ describe('GET /reporting/ledger/ledger-total-debits-and-credits-by-currency', ()
       .set('x-accounting-entity-id', entityId);
 
   describe('200 Response', () => {
-    it.each(['asset', 'liability', 'revenue', 'expense'])(
+    it.each([
+      ['asset', -250],
+      ['liability', 250],
+      ['revenue', 250],
+      ['expense', -250],
+    ] as const)(
       'returns original-currency debit/credit totals for %s',
-      async (type) => {
+      async (type, delta) => {
         mockLedgerTotalDebitsAndCreditsByCurrencyRepoQuery.mockResolvedValue([
           { currencyCode: 'USD', debits: 100n, credits: 350n },
         ]);
@@ -141,6 +146,7 @@ describe('GET /reporting/ledger/ledger-total-debits-and-credits-by-currency', ()
           period: { from: '2025-04-01', to: '2026-03-31' },
           totalsByCurrency: [
             {
+              delta: { amount: delta, currencyCode: 'USD', isMinorUnit: true },
               totalDebits: {
                 amount: 100,
                 currencyCode: 'USD',

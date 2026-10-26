@@ -771,6 +771,7 @@ const models: TsoaRoute.Models = {
         array: {
           dataType: 'nestedObjectLiteral',
           nestedProperties: {
+            delta: { ref: 'IMoneyDto', required: true },
             totalCredits: { ref: 'IMoneyDto', required: true },
             totalDebits: { ref: 'IMoneyDto', required: true },
           },

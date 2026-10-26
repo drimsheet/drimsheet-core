@@ -9321,6 +9321,10 @@
           "totalsByCurrency": {
             "items": {
               "properties": {
+                "delta": {
+                  "$ref": "#/components/schemas/IMoneyDto",
+                  "description": "Normal-side total minus opposite-side total for the requested type."
+                },
                 "totalCredits": {
                   "$ref": "#/components/schemas/IMoneyDto"
                 },
@@ -9328,7 +9332,7 @@
                   "$ref": "#/components/schemas/IMoneyDto"
                 }
               },
-              "required": ["totalCredits", "totalDebits"],
+              "required": ["delta", "totalCredits", "totalDebits"],
               "type": "object"
             },
             "type": "array",

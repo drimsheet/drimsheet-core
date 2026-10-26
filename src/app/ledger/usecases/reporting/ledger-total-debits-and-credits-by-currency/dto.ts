@@ -26,6 +26,8 @@ export interface ILedgerTotalDebitsAndCreditsByCurrencyDto {
   totalsByCurrency: {
     totalDebits: IMoneyDto;
     totalCredits: IMoneyDto;
+    /** Normal-side total minus opposite-side total for the requested type. */
+    delta: IMoneyDto;
   }[];
 }
 
