@@ -147,7 +147,7 @@ We enforce a specific commit message format to generate clean changelogs and tra
 
 - **Format**:
   ```text
-  <type>(<domain>): <short description> <optional-id>
+  <type>(<domain | ticket-id>): <short lower-case description>
   ```
 - **Rules**:
   - Pull request titles should also have the commit message structure.

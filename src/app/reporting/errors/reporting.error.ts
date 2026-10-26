@@ -3,6 +3,9 @@ import errorUtils from '@shared/utils/error';
 import appError from '@shared/values/errors/app.error';
 
 const EErrorKeys = {
+  InvalidTypes: 'app_error_reporting_types_invalid',
+  InvalidSubTypes: 'app_error_reporting_sub_types_invalid',
+  InvalidBehaviors: 'app_error_reporting_behaviors_invalid',
   InvalidAccountId: 'app_error_reporting_account_id_invalid',
   InvalidFromDate: 'app_error_reporting_from_date_invalid',
   InvalidToDate: 'app_error_reporting_to_date_invalid',
