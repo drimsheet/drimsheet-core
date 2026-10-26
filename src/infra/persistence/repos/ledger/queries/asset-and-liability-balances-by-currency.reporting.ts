@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 
-import type { TGetLedgerBalancesByCurrencyRepoQuery } from '@app/ledger/usecases/reporting/ledger-balances-by-currency/ledger-balances-by-currency.usecase';
+import type { TGetAssetAndLiabilityBalancesByCurrencyRepoQuery } from '@app/ledger/usecases/reporting/asset-and-liability-balances-by-currency/asset-and-liability-balances-by-currency.usecase';
 
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 
@@ -11,7 +11,7 @@ interface IAccountRow extends Record<string, unknown> {
   functional_amount: string | null;
 }
 
-const ledgerBalancesByCurrencyRepoQuery: TGetLedgerBalancesByCurrencyRepoQuery =
+const assetAndLiabilityBalancesByCurrencyRepoQuery: TGetAssetAndLiabilityBalancesByCurrencyRepoQuery =
   async ({ accountingEntityId, type, functionalCurrencyCode }, options) => {
     const accounts = await getDbQuery(options).execute<IAccountRow>(sql`
       SELECT account.id::text,
@@ -41,4 +41,4 @@ const ledgerBalancesByCurrencyRepoQuery: TGetLedgerBalancesByCurrencyRepoQuery =
     }));
   };
 
-export default ledgerBalancesByCurrencyRepoQuery;
+export default assetAndLiabilityBalancesByCurrencyRepoQuery;

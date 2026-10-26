@@ -12,7 +12,7 @@ import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-
 import { tokenAppService } from '@infra/ioc/services/auth';
 import observability from '@infra/observability';
 import accountingRepos from '@infra/persistence/repos/accounting';
-import ledgerBalancesByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/ledger-balances-by-currency.reporting';
+import assetAndLiabilityBalancesByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/asset-and-liability-balances-by-currency.reporting';
 import userRepos from '@infra/persistence/repos/user';
 
 import createApplication from '@interface/http/application';
@@ -20,11 +20,11 @@ import createApplication from '@interface/http/application';
 import { closeTestServer, startTestServer } from '../../../setup/http-listener';
 
 jest.mock(
-  '@infra/persistence/repos/ledger/queries/ledger-balances-by-currency.reporting',
+  '@infra/persistence/repos/ledger/queries/asset-and-liability-balances-by-currency.reporting',
   () => ({ __esModule: true, default: jest.fn() })
 );
-const mockLedgerBalancesByCurrencyRepoQuery = jest.mocked(
-  ledgerBalancesByCurrencyRepoQuery
+const mockAssetAndLiabilityBalancesByCurrencyRepoQuery = jest.mocked(
+  assetAndLiabilityBalancesByCurrencyRepoQuery
 );
 
 jest.mock('@infra/ioc/services/user', () => ({
@@ -60,15 +60,15 @@ jest.mock('@infra/persistence/repos/user', () => ({
 }));
 // Exercise the real controller and use case with only read ports mocked.
 jest.mock('@infra/ioc/usecases/ledger.reporting', () => ({
-  getLedgerBalancesByCurrencyUseCase: jest
+  getAssetAndLiabilityBalancesByCurrencyUseCase: jest
     .requireActual(
-      '@app/ledger/usecases/reporting/ledger-balances-by-currency/ledger-balances-by-currency.usecase'
+      '@app/ledger/usecases/reporting/asset-and-liability-balances-by-currency/asset-and-liability-balances-by-currency.usecase'
     )
     .default({
       appContext: jest.requireActual('@infra/services/app-context.service')
         .default,
       repoQuery: jest.requireMock(
-        '@infra/persistence/repos/ledger/queries/ledger-balances-by-currency.reporting'
+        '@infra/persistence/repos/ledger/queries/asset-and-liability-balances-by-currency.reporting'
       ).default,
     }),
 }));
@@ -101,7 +101,7 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
       .mocked(accountingRepos.accountingEntity.findByIdAndUserId)
       .mockResolvedValue(entity);
     mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(true);
-    mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([]);
+    mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([]);
     server = await startTestServer(createApplication());
   });
 
@@ -122,7 +122,7 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
     it.each(['asset', 'liability'])(
       'returns the %s currency summary without type in the response',
       async (type) => {
-        mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+        mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
           account,
           {
             accountId: 'local-bank',
@@ -167,7 +167,9 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
             },
           ],
         });
-        expect(mockLedgerBalancesByCurrencyRepoQuery).toHaveBeenCalledWith(
+        expect(
+          mockAssetAndLiabilityBalancesByCurrencyRepoQuery
+        ).toHaveBeenCalledWith(
           {
             accountingEntityId: entityId,
             type: type,
@@ -194,7 +196,7 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
 
   describe('400 Response', () => {
     it('enforces the reporting amount ceiling', async () => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, amount: 100_000_000_000_001n },
       ]);
       const response = await getReport();
@@ -212,7 +214,9 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
         .query({ type: 'asset' })
         .set('x-accounting-entity-id', entityId);
       expect(response.status).toBe(401);
-      expect(mockLedgerBalancesByCurrencyRepoQuery).not.toHaveBeenCalled();
+      expect(
+        mockAssetAndLiabilityBalancesByCurrencyRepoQuery
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -220,7 +224,9 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
     it('requires feature access', async () => {
       mockFeatureFlagAppService.canAccessAlpha1.mockResolvedValue(false);
       expect((await getReport()).status).toBe(403);
-      expect(mockLedgerBalancesByCurrencyRepoQuery).not.toHaveBeenCalled();
+      expect(
+        mockAssetAndLiabilityBalancesByCurrencyRepoQuery
+      ).not.toHaveBeenCalled();
     });
 
     it('requires accounting entity ownership', async () => {
@@ -228,13 +234,15 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
         .mocked(accountingRepos.accountingEntity.findByIdAndUserId)
         .mockResolvedValue({ ...entity, ownerId: entityId });
       expect((await getReport()).status).toBe(403);
-      expect(mockLedgerBalancesByCurrencyRepoQuery).not.toHaveBeenCalled();
+      expect(
+        mockAssetAndLiabilityBalancesByCurrencyRepoQuery
+      ).not.toHaveBeenCalled();
     });
   });
 
   describe('404 Response', () => {
     it('reports missing stored balances', async () => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, amount: null, functionalAmount: null },
       ]);
       const response = await getReport();
@@ -254,7 +262,9 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
       { type: ['asset', 'liability'] },
     ])('rejects missing or invalid type %j before storage', async (query) => {
       expect((await getReport(query)).status).toBe(422);
-      expect(mockLedgerBalancesByCurrencyRepoQuery).not.toHaveBeenCalled();
+      expect(
+        mockAssetAndLiabilityBalancesByCurrencyRepoQuery
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -263,7 +273,7 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
       const reporter = jest
         .spyOn(observability.reporter, 'report')
         .mockImplementation(() => {});
-      mockLedgerBalancesByCurrencyRepoQuery.mockRejectedValue(
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockRejectedValue(
         new Error('private database failure')
       );
       try {

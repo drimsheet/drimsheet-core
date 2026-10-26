@@ -727,7 +727,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ILedgerBalancesByCurrencyDto: {
+  IAssetAndLiabilityBalancesByCurrencyDto: {
     dataType: 'refObject',
     properties: {
       totalFunctionalBalance: { ref: 'IMoneyDto', required: true },
@@ -746,7 +746,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetLedgerBalancesByCurrencyQuery: {
+  IGetAssetAndLiabilityBalancesByCurrencyQuery: {
     dataType: 'refObject',
     properties: {
       type: {
@@ -4003,7 +4003,7 @@ export function RegisterRoutes(app: Router) {
       in: 'queries',
       name: 'query',
       required: true,
-      ref: 'IGetLedgerBalancesByCurrencyQuery',
+      ref: 'IGetAssetAndLiabilityBalancesByCurrencyQuery',
     },
   };
   app.get(

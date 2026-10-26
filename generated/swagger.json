@@ -952,7 +952,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ILedgerBalancesByCurrencyDto"
+                  "$ref": "#/components/schemas/IAssetAndLiabilityBalancesByCurrencyDto"
                 }
               }
             }
@@ -8913,7 +8913,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "ILedgerBalancesByCurrencyDto": {
+      "IAssetAndLiabilityBalancesByCurrencyDto": {
         "properties": {
           "totalFunctionalBalance": {
             "$ref": "#/components/schemas/IMoneyDto",
@@ -8940,7 +8940,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IGetLedgerBalancesByCurrencyQuery": {
+      "IGetAssetAndLiabilityBalancesByCurrencyQuery": {
         "properties": {
           "type": {
             "type": "string",

@@ -4,11 +4,11 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { TEntityId } from '@shared/types/uuid';
 
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
-import ledgerBalancesByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/ledger-balances-by-currency.reporting';
+import assetAndLiabilityBalancesByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/asset-and-liability-balances-by-currency.reporting';
 
 jest.mock('@infra/persistence/helpers/get-db-query');
 
-describe('ledgerBalancesByCurrencyRepoQuery', () => {
+describe('assetAndLiabilityBalancesByCurrencyRepoQuery', () => {
   const entityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
   const options = { correlationId: 'currency-balances-spec' };
   const execute = jest.fn<
@@ -28,7 +28,7 @@ describe('ledgerBalancesByCurrencyRepoQuery', () => {
     'reads only %s posting accounts for the entity without double counting controls',
     async (type) => {
       expect(
-        await ledgerBalancesByCurrencyRepoQuery(
+        await assetAndLiabilityBalancesByCurrencyRepoQuery(
           {
             accountingEntityId: entityId,
             type: type,
@@ -92,7 +92,7 @@ describe('ledgerBalancesByCurrencyRepoQuery', () => {
       ],
     });
     expect(
-      await ledgerBalancesByCurrencyRepoQuery(
+      await assetAndLiabilityBalancesByCurrencyRepoQuery(
         {
           accountingEntityId: entityId,
           type: 'asset',
@@ -126,7 +126,7 @@ describe('ledgerBalancesByCurrencyRepoQuery', () => {
     const failure = new Error('read failed');
     execute.mockRejectedValue(failure);
     await expect(
-      ledgerBalancesByCurrencyRepoQuery(
+      assetAndLiabilityBalancesByCurrencyRepoQuery(
         {
           accountingEntityId: entityId,
           type: 'asset',

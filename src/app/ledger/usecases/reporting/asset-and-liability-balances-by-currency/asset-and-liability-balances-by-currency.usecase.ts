@@ -31,19 +31,19 @@ import reportingValidation from '@app/ledger/usecases/reporting/shared/reporting
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
 
 import {
-  getLedgerBalancesByCurrencyQueryValidationSchema,
-  IGetLedgerBalancesByCurrencyQuery,
-  ILedgerBalancesByCurrencyDto,
+  getAssetAndLiabilityBalancesByCurrencyQueryValidationSchema,
+  IAssetAndLiabilityBalancesByCurrencyDto,
+  IGetAssetAndLiabilityBalancesByCurrencyQuery,
 } from './dto';
 
-export interface IGetLedgerBalancesByCurrencyRepoQueryOutput {
+export interface IGetAssetAndLiabilityBalancesByCurrencyRepoQueryOutput {
   accountId: string;
   currencyCode: string;
   amount: bigint | null;
   functionalAmount: bigint | null;
 }
 
-export interface IGetLedgerBalancesByCurrencyRepoQueryInput {
+export interface IGetAssetAndLiabilityBalancesByCurrencyRepoQueryInput {
   accountingEntityId: TEntityId;
   type: 'asset' | 'liability';
   functionalCurrencyCode: UCurrencyCode;
@@ -55,25 +55,28 @@ export interface IGetLedgerBalancesByCurrencyRepoQueryInput {
  * a fixed currency use functional currency. Missing balances remain null.
  * Stored balances are eventually consistent; journals and rollups are not read.
  */
-export type TGetLedgerBalancesByCurrencyRepoQuery = (
-  input: IGetLedgerBalancesByCurrencyRepoQueryInput,
+export type TGetAssetAndLiabilityBalancesByCurrencyRepoQuery = (
+  input: IGetAssetAndLiabilityBalancesByCurrencyRepoQueryInput,
   options: IReadRepoOptions
-) => Promise<IGetLedgerBalancesByCurrencyRepoQueryOutput[]>;
+) => Promise<IGetAssetAndLiabilityBalancesByCurrencyRepoQueryOutput[]>;
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
-  repoQuery: TGetLedgerBalancesByCurrencyRepoQuery;
+  repoQuery: TGetAssetAndLiabilityBalancesByCurrencyRepoQuery;
 }
 
-export default function makeGetLedgerBalancesByCurrencyUsecase(
+export default function makeGetAssetAndLiabilityBalancesByCurrencyUsecase(
   deps: IDependencies
 ) {
   return async (
-    type: IGetLedgerBalancesByCurrencyQuery['type']
-  ): Promise<ILedgerBalancesByCurrencyDto> => {
-    zodValidationRunner(getLedgerBalancesByCurrencyQueryValidationSchema, {
-      type,
-    });
+    type: IGetAssetAndLiabilityBalancesByCurrencyQuery['type']
+  ): Promise<IAssetAndLiabilityBalancesByCurrencyDto> => {
+    zodValidationRunner(
+      getAssetAndLiabilityBalancesByCurrencyQueryValidationSchema,
+      {
+        type,
+      }
+    );
 
     const { accountingEntity, correlationId } = deps.appContext.get([
       'accountingEntity',
@@ -100,9 +103,9 @@ export default function makeGetLedgerBalancesByCurrencyUsecase(
  * groups and the final total.
  */
 function buildCurrencyBalances(
-  accounts: IGetLedgerBalancesByCurrencyRepoQueryOutput[],
+  accounts: IGetAssetAndLiabilityBalancesByCurrencyRepoQueryOutput[],
   functionalCurrency: ICurrency
-): ILedgerBalancesByCurrencyDto {
+): IAssetAndLiabilityBalancesByCurrencyDto {
   const groups = new Map<
     string,
     { balance: IMoney; functionalBalance: IMoney }

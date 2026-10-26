@@ -15,11 +15,11 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import type { IGetAccountCashFlowQuery } from '@app/ledger/usecases/reporting/account-cash-flow/dto';
 import type { IGetAccountCounterpartyParticipationQuery } from '@app/ledger/usecases/reporting/account-counterparty-participation/dto';
+import type { IGetAssetAndLiabilityBalancesByCurrencyQuery } from '@app/ledger/usecases/reporting/asset-and-liability-balances-by-currency/dto';
 import type { IGetBalancesByAccountQuery } from '@app/ledger/usecases/reporting/balances-by-account/dto';
 import type { IGetBalancesByBehaviorQuery } from '@app/ledger/usecases/reporting/balances-by-behavior/dto';
 import type { IGetBalancesBySubTypeQuery } from '@app/ledger/usecases/reporting/balances-by-sub-type/dto';
 import type { IGetBalancesByTypeQuery } from '@app/ledger/usecases/reporting/balances-by-type/dto';
-import type { IGetLedgerBalancesByCurrencyQuery } from '@app/ledger/usecases/reporting/ledger-balances-by-currency/dto';
 import type { IGetRevenueExpenseAccountsQuery } from '@app/ledger/usecases/reporting/revenue-expense-accounts/dto';
 import type { IDateRangeDto } from '@app/ledger/usecases/reporting/shared/date-range';
 
@@ -27,11 +27,11 @@ import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAccountCashFlowUseCase,
   getAccountCounterpartyParticipationUseCase,
+  getAssetAndLiabilityBalancesByCurrencyUseCase,
   getBalancesByAccountUseCase,
   getBalancesByBehaviorUseCase,
   getBalancesBySubTypeUseCase,
   getBalancesByTypeUseCase,
-  getLedgerBalancesByCurrencyUseCase,
   getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
 } from '@infra/ioc/usecases/ledger.reporting';
@@ -211,9 +211,9 @@ export class LedgerReportingController extends Controller {
     middlewares.accountingEntityAccess
   )
   public async getLedgerBalancesByCurrency(
-    @Queries() query: IGetLedgerBalancesByCurrencyQuery
+    @Queries() query: IGetAssetAndLiabilityBalancesByCurrencyQuery
   ) {
-    return await getLedgerBalancesByCurrencyUseCase(query.type);
+    return await getAssetAndLiabilityBalancesByCurrencyUseCase(query.type);
   }
 
   /**

@@ -9,29 +9,28 @@ import mockAppContext, {
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import reportingError from '@app/ledger/errors/reporting.error';
+import type { TGetAssetAndLiabilityBalancesByCurrencyRepoQuery } from '@app/ledger/usecases/reporting/asset-and-liability-balances-by-currency/asset-and-liability-balances-by-currency.usecase';
+import makeGetAssetAndLiabilityBalancesByCurrencyUsecase, {
+  IGetAssetAndLiabilityBalancesByCurrencyRepoQueryOutput,
+} from '@app/ledger/usecases/reporting/asset-and-liability-balances-by-currency/asset-and-liability-balances-by-currency.usecase';
+import { getAssetAndLiabilityBalancesByCurrencyQueryValidationSchema } from '@app/ledger/usecases/reporting/asset-and-liability-balances-by-currency/dto';
 
-import { getLedgerBalancesByCurrencyQueryValidationSchema } from './dto';
-import type { TGetLedgerBalancesByCurrencyRepoQuery } from './ledger-balances-by-currency.usecase';
-import makeGetLedgerBalancesByCurrencyUsecase, {
-  IGetLedgerBalancesByCurrencyRepoQueryOutput,
-} from './ledger-balances-by-currency.usecase';
-
-const mockLedgerBalancesByCurrencyRepoQuery: jest.MockedFunction<TGetLedgerBalancesByCurrencyRepoQuery> =
+const mockAssetAndLiabilityBalancesByCurrencyRepoQuery: jest.MockedFunction<TGetAssetAndLiabilityBalancesByCurrencyRepoQuery> =
   jest.fn();
 
-describe('get-ledger-balances-by-currency.usecase.spec', () => {
+describe('get-asset-and-liability-balances-by-currency.usecase.spec', () => {
   const entityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
-  const account: IGetLedgerBalancesByCurrencyRepoQueryOutput = {
+  const account: IGetAssetAndLiabilityBalancesByCurrencyRepoQueryOutput = {
     accountId: 'bank',
     currencyCode: 'USD',
     amount: 100_000n,
     functionalAmount: 150_000_000n,
   };
 
-  describe('getLedgerBalancesByCurrencyUsecase', () => {
-    const usecase = makeGetLedgerBalancesByCurrencyUsecase({
+  describe('getAssetAndLiabilityBalancesByCurrencyUsecase', () => {
+    const usecase = makeGetAssetAndLiabilityBalancesByCurrencyUsecase({
       appContext: mockAppContext,
-      repoQuery: mockLedgerBalancesByCurrencyRepoQuery,
+      repoQuery: mockAssetAndLiabilityBalancesByCurrencyRepoQuery,
     });
 
     beforeEach(() => {
@@ -45,7 +44,7 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
         idempotencyKey: '',
         clientSession: mockClientSession,
       });
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([]);
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([]);
     });
 
     it.each(['asset', 'liability'] as const)(
@@ -60,8 +59,12 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
           balancesByCurrency: [],
         });
         expect(mockAppContext.get).toHaveBeenCalledWith(['accountingEntity']);
-        expect(mockLedgerBalancesByCurrencyRepoQuery).toHaveBeenCalledTimes(1);
-        expect(mockLedgerBalancesByCurrencyRepoQuery).toHaveBeenCalledWith(
+        expect(
+          mockAssetAndLiabilityBalancesByCurrencyRepoQuery
+        ).toHaveBeenCalledTimes(1);
+        expect(
+          mockAssetAndLiabilityBalancesByCurrencyRepoQuery
+        ).toHaveBeenCalledWith(
           {
             accountingEntityId: entityId,
             type: type,
@@ -75,7 +78,7 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
     );
 
     it('groups repeated currencies, preserves recorded valuations and reconciles the total', async () => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         account,
         {
           accountId: 'local-bank',
@@ -127,7 +130,7 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
     });
 
     it('keeps zero currency groups and signed balances without applying FX rates', async () => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, amount: 30n, functionalAmount: 400n },
         {
           ...account,
@@ -165,7 +168,7 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
     });
 
     it('returns signed native and functional minor-unit DTOs without extra fields', async () => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, amount: -100n, functionalAmount: -1500n },
       ]);
 
@@ -224,7 +227,9 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
           usecase(type as Parameters<typeof usecase>[0])
         ).rejects.toThrow(appError.UnprocessableEntity);
         expect(mockAppContext.get).not.toHaveBeenCalled();
-        expect(mockLedgerBalancesByCurrencyRepoQuery).not.toHaveBeenCalled();
+        expect(
+          mockAssetAndLiabilityBalancesByCurrencyRepoQuery
+        ).not.toHaveBeenCalled();
       }
     );
 
@@ -233,7 +238,7 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
       { amount: null, functionalAmount: 10n },
       { amount: 10n, functionalAmount: null },
     ])('rejects an incomplete stored balance %p', async (amounts) => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, ...amounts },
       ]);
       await expect(usecase('asset')).rejects.toThrow(
@@ -248,7 +253,7 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
       { functionalAmount: -100_000_000_000_001n },
       { currencyCode: 'JPY', amount: 1_000_000_000_001n },
     ])('enforces each currency amount ceiling for %p', async (amounts) => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, ...amounts },
       ]);
       await expect(usecase('asset')).rejects.toThrow(
@@ -260,7 +265,7 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
       { amount: 60_000_000_000_000n, functionalAmount: 1n },
       { amount: 1n, functionalAmount: 60_000_000_000_000n },
     ])('checks grouped balances after aggregation %p', async (amounts) => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, ...amounts },
         { ...account, accountId: 'second', ...amounts },
       ]);
@@ -270,7 +275,7 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
     });
 
     it('checks the total across currencies even when individual groups are within limits', async () => {
-      mockLedgerBalancesByCurrencyRepoQuery.mockResolvedValue([
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, functionalAmount: 60_000_000_000_000n },
         {
           ...account,
@@ -286,17 +291,21 @@ describe('get-ledger-balances-by-currency.usecase.spec', () => {
 
     it('propagates storage failures', async () => {
       const failure = new Error('read failed');
-      mockLedgerBalancesByCurrencyRepoQuery.mockRejectedValue(failure);
+      mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockRejectedValue(
+        failure
+      );
       await expect(usecase('asset')).rejects.toBe(failure);
     });
   });
 });
 
-describe('ledger-balances-by-currency.dto.validation.test', () => {
-  describe('getLedgerBalancesByCurrencyQueryValidationSchema', () => {
+describe('asset-and-liability-balances-by-currency.dto.validation.test', () => {
+  describe('getAssetAndLiabilityBalancesByCurrencyQueryValidationSchema', () => {
     it.each(['asset', 'liability'])('accepts %s', (type) => {
       expect(
-        getLedgerBalancesByCurrencyQueryValidationSchema.parse({ type })
+        getAssetAndLiabilityBalancesByCurrencyQueryValidationSchema.parse({
+          type,
+        })
       ).toEqual({ type });
     });
 
@@ -311,11 +320,10 @@ describe('ledger-balances-by-currency.dto.validation.test', () => {
       1,
       ['asset'],
     ])('rejects %j with the ledger type field error', (type) => {
-      const result = getLedgerBalancesByCurrencyQueryValidationSchema.safeParse(
-        {
+      const result =
+        getAssetAndLiabilityBalancesByCurrencyQueryValidationSchema.safeParse({
           type,
-        }
-      );
+        });
       expect(result.success).toBe(false);
       expect(result.error?.issues).toEqual([
         expect.objectContaining({
