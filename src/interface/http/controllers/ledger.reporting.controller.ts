@@ -23,6 +23,7 @@ import type { IGetBalancesByTypeQuery } from '@app/ledger/usecases/reporting/bal
 import type { IGetLedgerTotalDebitsAndCreditsByCurrencyQuery } from '@app/ledger/usecases/reporting/ledger-total-debits-and-credits-by-currency/dto';
 import type { IGetRevenueExpenseAccountsQuery } from '@app/ledger/usecases/reporting/revenue-expense-accounts/dto';
 import type { IDateRangeDto } from '@app/ledger/usecases/reporting/shared/date-range';
+import type { IGetTotalBalanceByTypeQuery } from '@app/ledger/usecases/reporting/total-balance-by-type/dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
@@ -36,6 +37,7 @@ import {
   getLedgerTotalDebitsAndCreditsByCurrencyUseCase,
   getRevenueExpenseAccountsUseCase,
   getRevenueExpenseSummaryUseCase,
+  getTotalBalanceByTypeUseCase,
 } from '@infra/ioc/usecases/ledger.reporting';
 
 @Route('reporting/ledger')
@@ -291,5 +293,30 @@ export class LedgerReportingController extends Controller {
   )
   public async getRevenueExpenseSummary(@Queries() query: IDateRangeDto) {
     return await getRevenueExpenseSummaryUseCase(query);
+  }
+
+  /**
+   * Returns the current sum of top-level account balances for one type in
+   * functional currency. Empty totals are zero. Balances update asynchronously;
+   * no date filter or FX conversion applies.
+   */
+  @Get('/total-balance-by-type')
+  @OperationId('getTotalBalanceByType')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getTotalBalanceByType(
+    @Queries() query: IGetTotalBalanceByTypeQuery
+  ) {
+    return await getTotalBalanceByTypeUseCase(query.type);
   }
 }

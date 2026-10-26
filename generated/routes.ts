@@ -933,6 +933,22 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ITotalBalanceByTypeDto: {
+    dataType: 'refObject',
+    properties: {
+      totalFunctionalBalance: { ref: 'IMoneyDto', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetTotalBalanceByTypeQuery: {
+    dataType: 'refObject',
+    properties: {
+      type: { ref: 'ULedgerType', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UNormalBalance: {
     dataType: 'refAlias',
     type: {
@@ -4254,6 +4270,55 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getRevenueExpenseSummary',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerReportingController_getTotalBalanceByType: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetTotalBalanceByTypeQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/ledger/total-balance-by-type',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerReportingController.prototype.getTotalBalanceByType
+    ),
+
+    async function LedgerReportingController_getTotalBalanceByType(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerReportingController_getTotalBalanceByType,
+          request,
+          response,
+        });
+
+        const controller = new LedgerReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getTotalBalanceByType',
           controller,
           response,
           next,

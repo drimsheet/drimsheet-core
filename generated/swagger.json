@@ -1350,6 +1350,96 @@
         ]
       }
     },
+    "/reporting/ledger/total-balance-by-type": {
+      "get": {
+        "operationId": "getTotalBalanceByType",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ITotalBalanceByTypeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the current sum of top-level account balances for one type in\nfunctional currency. Empty totals are zero. Balances update asynchronously;\nno date filter or FX conversion applies.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ULedgerType"
+            }
+          }
+        ]
+      }
+    },
     "/ledger": {
       "get": {
         "operationId": "getLedgerAccounts",
@@ -9457,6 +9547,26 @@
           "expenses",
           "suspense"
         ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ITotalBalanceByTypeDto": {
+        "properties": {
+          "totalFunctionalBalance": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          }
+        },
+        "required": ["totalFunctionalBalance"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetTotalBalanceByTypeQuery": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ULedgerType"
+          }
+        },
+        "required": ["type"],
         "type": "object",
         "additionalProperties": false
       },

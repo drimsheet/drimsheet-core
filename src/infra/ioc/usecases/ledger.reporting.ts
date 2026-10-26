@@ -8,6 +8,7 @@ import makeGetBalancesByTypeUsecase from '@app/ledger/usecases/reporting/balance
 import makeGetLedgerTotalDebitsAndCreditsByCurrencyUsecase from '@app/ledger/usecases/reporting/ledger-total-debits-and-credits-by-currency/ledger-total-debits-and-credits-by-currency.usecase';
 import makeGetRevenueExpenseAccountsUsecase from '@app/ledger/usecases/reporting/revenue-expense-accounts/revenue-expense-accounts.usecase';
 import makeGetRevenueExpenseSummaryUsecase from '@app/ledger/usecases/reporting/revenue-expense-summary/revenue-expense-summary.usecase';
+import makeGetTotalBalanceByTypeUsecase from '@app/ledger/usecases/reporting/total-balance-by-type/total-balance-by-type.usecase';
 
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import accountingRepos from '@infra/persistence/repos/accounting';
@@ -19,6 +20,7 @@ import balanceSeriesRepoQuery from '@infra/persistence/repos/ledger/queries/bala
 import ledgerTotalDebitsAndCreditsByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/ledger-total-debits-and-credits-by-currency.reporting';
 import revenueExpenseAccountsRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-expense-accounts.reporting';
 import revenueExpenseSummaryRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-expense-summary.reporting';
+import totalBalanceByTypeRepoQuery from '@infra/persistence/repos/ledger/queries/total-balance-by-type.reporting';
 import appContext from '@infra/services/app-context.service';
 
 export const getAccountCounterpartyParticipationUseCase = makeTracedUseCase(
@@ -106,3 +108,11 @@ export const getLedgerTotalDebitsAndCreditsByCurrencyUseCase =
       repoQuery: ledgerTotalDebitsAndCreditsByCurrencyRepoQuery,
     })
   );
+
+export const getTotalBalanceByTypeUseCase = makeTracedUseCase(
+  'reporting.getTotalBalanceByTypeUseCase',
+  makeGetTotalBalanceByTypeUsecase({
+    appContext,
+    repoQuery: totalBalanceByTypeRepoQuery,
+  })
+);
