@@ -225,7 +225,7 @@
         }
       }
     },
-    "/reporting/accounts/{accountId}/cash-flow": {
+    "/reporting/ledger/accounts/{accountId}/cash-flow": {
       "get": {
         "operationId": "getAccountCashFlow",
         "responses": {
@@ -300,8 +300,8 @@
             }
           }
         },
-        "description": "Money in/out for a bank or petty-cash posting account, in its own currency.\nDates are inclusive; periods longer than 366 days return 400. Buckets start\nat from and include zero-activity intervals. Corrected originals, reversals,\ndrafts, never-posted entries and opening balances are excluded. Historical\nresults can change after rectification. Either gross total above 1 trillion\nmajor currency units returns 400. Unsafe numeric serialization returns 500.",
-        "tags": ["Reporting"],
+        "description": "Returns daily money in and out for a bank or petty-cash posting account\nin its own currency. Dates are inclusive, up to 366 days; empty days\nreturn zero flows. Opening balances and reversed activity are excluded.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -343,7 +343,7 @@
         ]
       }
     },
-    "/reporting/accounts/{accountId}/counterparty-participation": {
+    "/reporting/ledger/accounts/{accountId}/counterparty-participation": {
       "get": {
         "operationId": "getAccountCounterpartyParticipation",
         "responses": {
@@ -418,8 +418,8 @@
             }
           }
         },
-        "description": "Counterparty contributions to the current balance of a posting or control\naccount, including descendants. Reads journals through only the requested\naccount's adjustments, excluding drafts, never-posted entries, voided\noriginals and reversals. Archived records and opening balances remain included.\nAmounts use account currency, falling back to functional currency. Shares\nuse the stored account balance before search/pagination, rounded to two\ndecimals; zero balances yield null. Balances update asynchronously.\nCounterparty-less transfers have isSelf=true and search by entity name;\nother unattributed lines have isSelf=false. Counterparties sort by name/ID,\nfollowed by self and unattributed rows. Defaults to page 1, limit 10.\nAmount magnitudes above 1 trillion major units return 400; missing accounts\nor balances return 404; unsafe numeric serialization returns 500.",
-        "tags": ["Reporting"],
+        "description": "Returns counterparty contributions to an account balance, including\ndescendants. Shares use the full account balance before filtering and\npagination; zero balances yield null shares. Self-transfers and\nunattributed activity remain separate.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -459,7 +459,7 @@
         ]
       }
     },
-    "/reporting/balances/accounts": {
+    "/reporting/ledger/balances/accounts": {
       "get": {
         "operationId": "getBalancesByAccount",
         "responses": {
@@ -534,8 +534,8 @@
             }
           }
         },
-        "description": "Closing balances in functional currency, grouped by accounts and closing date.\nInclusive periods up to 366 days; bucketDays is anchored at from. Includes\nopening balances and archived history; carries balances across empty buckets.\nReads corrected journals directly, excluding drafts, voided originals and\nreversals. Classification groups select their topmost matching accounts and\ninclude each root's full subtree, using the root's normal balance. Explicit\nIDs support posting and control accounts as independent series. Selected\nroots without activity return zero; absent roots produce no series.\nAccount IDs must belong to the current entity. Amounts above 1 trillion\nmajor units return 400; unsafe numeric serialization returns 500.",
-        "tags": ["Reporting"],
+        "description": "Returns closing-balance series for selected accounts and their descendants\nin functional currency. Each account forms an independent series.\nDates are inclusive, up to 366 days; balances carry across empty buckets.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -580,7 +580,7 @@
         ]
       }
     },
-    "/reporting/balances/behaviors": {
+    "/reporting/ledger/balances/behaviors": {
       "get": {
         "operationId": "getBalancesByBehavior",
         "responses": {
@@ -655,8 +655,8 @@
             }
           }
         },
-        "description": "Closing balances in functional currency, grouped by behaviors and closing date.\nInclusive periods up to 366 days; bucketDays is anchored at from. Includes\nopening balances and archived history; carries balances across empty buckets.\nReads corrected journals directly, excluding drafts, voided originals and\nreversals. Classification groups select their topmost matching accounts and\ninclude each root's full subtree, using the root's normal balance. Explicit\nIDs support posting and control accounts as independent series. Selected\nroots without activity return zero; absent roots produce no series.\nAccount IDs must belong to the current entity. Amounts above 1 trillion\nmajor units return 400; unsafe numeric serialization returns 500.",
-        "tags": ["Reporting"],
+        "description": "Returns closing-balance series grouped by account behavior in functional\ncurrency, including descendant activity. Dates are inclusive, up to\n366 days; balances carry across empty buckets.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -701,7 +701,7 @@
         ]
       }
     },
-    "/reporting/balances/sub-types": {
+    "/reporting/ledger/balances/sub-types": {
       "get": {
         "operationId": "getBalancesBySubType",
         "responses": {
@@ -776,8 +776,8 @@
             }
           }
         },
-        "description": "Closing balances in functional currency, grouped by sub-types and closing date.\nInclusive periods up to 366 days; bucketDays is anchored at from. Includes\nopening balances and archived history; carries balances across empty buckets.\nReads corrected journals directly, excluding drafts, voided originals and\nreversals. Classification groups select their topmost matching accounts and\ninclude each root's full subtree, using the root's normal balance. Explicit\nIDs support posting and control accounts as independent series. Selected\nroots without activity return zero; absent roots produce no series.\nAccount IDs must belong to the current entity. Amounts above 1 trillion\nmajor units return 400; unsafe numeric serialization returns 500.",
-        "tags": ["Reporting"],
+        "description": "Returns closing-balance series grouped by account sub-type in functional\ncurrency, including descendant activity. Dates are inclusive, up to\n366 days; balances carry across empty buckets.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -822,7 +822,7 @@
         ]
       }
     },
-    "/reporting/balances/types": {
+    "/reporting/ledger/balances/types": {
       "get": {
         "operationId": "getBalancesByType",
         "responses": {
@@ -897,8 +897,8 @@
             }
           }
         },
-        "description": "Closing balances in functional currency, grouped by types and closing date.\nInclusive periods up to 366 days; bucketDays is anchored at from. Includes\nopening balances and archived history; carries balances across empty buckets.\nReads corrected journals directly, excluding drafts, voided originals and\nreversals. Classification groups select their topmost matching accounts and\ninclude each root's full subtree, using the root's normal balance. Explicit\nIDs support posting and control accounts as independent series. Selected\nroots without activity return zero; absent roots produce no series.\nAccount IDs must belong to the current entity. Amounts above 1 trillion\nmajor units return 400; unsafe numeric serialization returns 500.",
-        "tags": ["Reporting"],
+        "description": "Returns closing-balance series grouped by account type in functional\ncurrency, including descendant activity. Dates are inclusive, up to\n366 days; balances carry across empty buckets.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -943,7 +943,7 @@
         ]
       }
     },
-    "/reporting/ledger-balances-by-currency": {
+    "/reporting/ledger/ledger-balances-by-currency": {
       "get": {
         "operationId": "getLedgerBalancesByCurrency",
         "responses": {
@@ -1018,8 +1018,8 @@
             }
           }
         },
-        "description": "Current asset or liability posting balances grouped by account currency,\nwith a recorded functional balance per group and a total across groups.\nType is required input and is not returned. Accounts without a fixed\ncurrency use functional currency. Includes all statuses, suspense and zero\nbalances; excludes control rollups. Groups sort by currency code. Reads\nstored balances, which update asynchronously, without dates or FX repricing.\nEmpty reports return a zero functional total and no groups. Amount\nmagnitudes above 1 trillion major units return 400; missing balances return\n404; unsafe numeric serialization returns 500. Invalid type returns 422.",
-        "tags": ["Reporting"],
+        "description": "Returns current asset or liability posting balances grouped by currency,\nwith recorded functional balances and a combined functional total.\nAccounts without a fixed currency use functional currency. Stored\nbalances update asynchronously; no date filter or FX repricing applies.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -1034,7 +1034,7 @@
         ]
       }
     },
-    "/reporting/revenue-expense-accounts": {
+    "/reporting/ledger/revenue-expense-accounts": {
       "get": {
         "operationId": "getRevenueExpenseAccounts",
         "responses": {
@@ -1099,8 +1099,8 @@
             }
           }
         },
-        "description": "Revenue/expense and suspense posting accounts (isControlAccount=false) with\ncurrent accumulated functional balances. Balances update asynchronously;\ncounts read each posting account's own live journal lines in all states.\nAll account statuses and zero balances remain visible. Shares use the summed\nbalances of root revenue/expense headers (controlAccountId=null) of the same\ntype before search/pagination; headers are never included as table rows;\nsuspense and zero totals have null shares. Omit type for All. Search matches\naccount name or code; rows sort by code then ID. No date range is applied.\nAmount magnitudes above 1 trillion major units return 400; missing balances\nor unsafe numeric serialization return 500.",
-        "tags": ["Reporting"],
+        "description": "Lists revenue, expense, and suspense posting accounts with current\nfunctional balances. Shares use full revenue or expense totals before\nfiltering and pagination; suspense and zero totals yield null shares.\nBalances update asynchronously; no date filter applies.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -1142,7 +1142,7 @@
         ]
       }
     },
-    "/reporting/revenue-expense-summary": {
+    "/reporting/ledger/revenue-expense-summary": {
       "get": {
         "operationId": "getRevenueExpenseSummary",
         "responses": {
@@ -1207,8 +1207,8 @@
             }
           }
         },
-        "description": "Revenue, expenses and suspense activity in the entity's functional currency.\nDates are inclusive, up to 366 days, compared with the immediately preceding\nequal-length period. Revenue is credits less debits; expenses are debits less\ncredits. Suspense counts distinct entries and sums suspense-line amounts.\nDrafts, never-posted entries, voided originals, reversals and opening balances\nare excluded. Archived account activity remains included. Historical results\ncan change after rectification. Zero denominators produce null percentages.\nAmount magnitudes above 1 trillion major units return 400; unsafe numeric\nserialization returns 500. Returns posting-account breakdowns, not rollups.",
-        "tags": ["Reporting"],
+        "description": "Summarizes revenue, expense, and suspense activity in functional currency\nwith account breakdowns. Dates are inclusive, up to 366 days, compared\nwith the preceding equal-length period. Opening balances and reversed\nactivity are excluded; zero denominators yield null percentages.",
+        "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
           {
@@ -4689,7 +4689,7 @@
             }
           }
         },
-        "description": "Posts only the associated draft opening balance, preserving the ledger account's status. Requires a draft opening-balance journal and an active posting account. No request body is required.",
+        "description": "Posts only the associated draft opening balance, preserving the ledger account's status. Requires a draft opening-balance journal and an active posting account.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -4772,7 +4772,7 @@
             }
           }
         },
-        "description": "Posts a draft payment while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. No request body is required.",
+        "description": "Posts a draft payment while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -4855,7 +4855,7 @@
             }
           }
         },
-        "description": "Posts a draft receipt while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. No request body is required.",
+        "description": "Posts a draft receipt while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -4938,7 +4938,7 @@
             }
           }
         },
-        "description": "Posts a draft transfer while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. No request body is required.",
+        "description": "Posts a draft transfer while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [

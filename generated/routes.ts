@@ -29,7 +29,7 @@ import { JournalEntryController } from './../src/interface/http/controllers/jour
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { LedgerController } from './../src/interface/http/controllers/ledger.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-import { ReportingController } from './../src/interface/http/controllers/reporting.controller';
+import { LedgerReportingController } from './../src/interface/http/controllers/ledger.reporting.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { UserController } from './../src/interface/http/controllers/user.controller';
 
@@ -3689,7 +3689,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getAccountCashFlow: Record<
+  const argsLedgerReportingController_getAccountCashFlow: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3707,13 +3707,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/accounts/:accountId/cash-flow',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/accounts/:accountId/cash-flow',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getAccountCashFlow
+      LedgerReportingController.prototype.getAccountCashFlow
     ),
 
-    async function ReportingController_getAccountCashFlow(
+    async function LedgerReportingController_getAccountCashFlow(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3723,12 +3723,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getAccountCashFlow,
+          args: argsLedgerReportingController_getAccountCashFlow,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getAccountCashFlow',
@@ -3744,7 +3744,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getAccountCounterpartyParticipation: Record<
+  const argsLedgerReportingController_getAccountCounterpartyParticipation: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3762,13 +3762,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/accounts/:accountId/counterparty-participation',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/accounts/:accountId/counterparty-participation',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getAccountCounterpartyParticipation
+      LedgerReportingController.prototype.getAccountCounterpartyParticipation
     ),
 
-    async function ReportingController_getAccountCounterpartyParticipation(
+    async function LedgerReportingController_getAccountCounterpartyParticipation(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3778,12 +3778,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getAccountCounterpartyParticipation,
+          args: argsLedgerReportingController_getAccountCounterpartyParticipation,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getAccountCounterpartyParticipation',
@@ -3799,7 +3799,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getBalancesByAccount: Record<
+  const argsLedgerReportingController_getBalancesByAccount: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3811,13 +3811,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/balances/accounts',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/balances/accounts',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getBalancesByAccount
+      LedgerReportingController.prototype.getBalancesByAccount
     ),
 
-    async function ReportingController_getBalancesByAccount(
+    async function LedgerReportingController_getBalancesByAccount(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3827,12 +3827,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getBalancesByAccount,
+          args: argsLedgerReportingController_getBalancesByAccount,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getBalancesByAccount',
@@ -3848,7 +3848,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getBalancesByBehavior: Record<
+  const argsLedgerReportingController_getBalancesByBehavior: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3860,13 +3860,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/balances/behaviors',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/balances/behaviors',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getBalancesByBehavior
+      LedgerReportingController.prototype.getBalancesByBehavior
     ),
 
-    async function ReportingController_getBalancesByBehavior(
+    async function LedgerReportingController_getBalancesByBehavior(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3876,12 +3876,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getBalancesByBehavior,
+          args: argsLedgerReportingController_getBalancesByBehavior,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getBalancesByBehavior',
@@ -3897,7 +3897,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getBalancesBySubType: Record<
+  const argsLedgerReportingController_getBalancesBySubType: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3909,13 +3909,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/balances/sub-types',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/balances/sub-types',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getBalancesBySubType
+      LedgerReportingController.prototype.getBalancesBySubType
     ),
 
-    async function ReportingController_getBalancesBySubType(
+    async function LedgerReportingController_getBalancesBySubType(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3925,12 +3925,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getBalancesBySubType,
+          args: argsLedgerReportingController_getBalancesBySubType,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getBalancesBySubType',
@@ -3946,7 +3946,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getBalancesByType: Record<
+  const argsLedgerReportingController_getBalancesByType: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3958,13 +3958,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/balances/types',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/balances/types',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getBalancesByType
+      LedgerReportingController.prototype.getBalancesByType
     ),
 
-    async function ReportingController_getBalancesByType(
+    async function LedgerReportingController_getBalancesByType(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3974,12 +3974,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getBalancesByType,
+          args: argsLedgerReportingController_getBalancesByType,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getBalancesByType',
@@ -3995,7 +3995,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getLedgerBalancesByCurrency: Record<
+  const argsLedgerReportingController_getLedgerBalancesByCurrency: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -4007,13 +4007,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/ledger-balances-by-currency',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/ledger-balances-by-currency',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getLedgerBalancesByCurrency
+      LedgerReportingController.prototype.getLedgerBalancesByCurrency
     ),
 
-    async function ReportingController_getLedgerBalancesByCurrency(
+    async function LedgerReportingController_getLedgerBalancesByCurrency(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -4023,12 +4023,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getLedgerBalancesByCurrency,
+          args: argsLedgerReportingController_getLedgerBalancesByCurrency,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getLedgerBalancesByCurrency',
@@ -4044,7 +4044,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getRevenueExpenseAccounts: Record<
+  const argsLedgerReportingController_getRevenueExpenseAccounts: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -4056,13 +4056,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/revenue-expense-accounts',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/revenue-expense-accounts',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getRevenueExpenseAccounts
+      LedgerReportingController.prototype.getRevenueExpenseAccounts
     ),
 
-    async function ReportingController_getRevenueExpenseAccounts(
+    async function LedgerReportingController_getRevenueExpenseAccounts(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -4072,12 +4072,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getRevenueExpenseAccounts,
+          args: argsLedgerReportingController_getRevenueExpenseAccounts,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getRevenueExpenseAccounts',
@@ -4093,7 +4093,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getRevenueExpenseSummary: Record<
+  const argsLedgerReportingController_getRevenueExpenseSummary: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -4105,13 +4105,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/revenue-expense-summary',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/revenue-expense-summary',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getRevenueExpenseSummary
+      LedgerReportingController.prototype.getRevenueExpenseSummary
     ),
 
-    async function ReportingController_getRevenueExpenseSummary(
+    async function LedgerReportingController_getRevenueExpenseSummary(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -4121,12 +4121,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getRevenueExpenseSummary,
+          args: argsLedgerReportingController_getRevenueExpenseSummary,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getRevenueExpenseSummary',
