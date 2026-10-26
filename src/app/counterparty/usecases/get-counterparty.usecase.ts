@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Retrieves a counterparty by ID within the selected accounting entity. Returns
+ * its details, status, roles, and metadata, or rejects when the counterparty
+ * cannot be found in that entity.
+ *
+ * WHEN TO USE
+ * Use to display or inspect one existing counterparty before working with its
+ * details.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Refreshes a reporting calendar's current period using today's date. Reloads
+ * the interval and derives the current period rather than blindly advancing one
+ * period. Saves changes with audit history and publishes events; an unchanged
+ * period produces no writes, audit, or events. Requires an actor, rejects a
+ * missing interval, and returns no value.
+ *
+ * WHEN TO USE
+ * Use in background processing with a discovered entity and interval
+ * descriptor.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

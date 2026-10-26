@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Posts an existing draft receipt in the selected accounting entity using the
+ * current posting date. Revalidates its accounts, counterparties, and posting
+ * eligibility. Saves the posting, audit history, applicable foreign-exchange
+ * acquisition, and pending balance work together, then publishes events and
+ * requests balance processing. Rejects entries that are not draft receipts.
+ * Returns no value; derived balances update separately.
+ *
+ * WHEN TO USE
+ * Use to finalize a saved receipt draft with its existing financial content.
+ * Use rectify-journal-entry when the requested entry content must also change.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/post-draft-receipt.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

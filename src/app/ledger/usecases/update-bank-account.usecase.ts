@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Updates a bank account's name, currency, bank details, or opening balance in
+ * the selected entity. Currency changes and opening-journal changes undergo
+ * their own eligibility checks. Creates or revises an eligible opening journal
+ * when requested. Saves account, bank-detail, balance-denomination, journal,
+ * audit, and applicable FX changes together. Publishes events, requests any
+ * balance propagation, and returns the account with opening-journal or balance
+ * information.
+ *
+ * WHEN TO USE
+ * Use to maintain bank-account setup. A currency eligibility preview is
+ * advisory; this operation also checks journal references and hierarchy
+ * compatibility.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/update-bank-account.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

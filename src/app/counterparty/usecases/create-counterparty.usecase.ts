@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Creates a counterparty for the selected accounting entity using the current
+ * actor. Accepts a name, type, initial status, and optional employer, vendor,
+ * or contractor details. Saves the counterparty and creation history, publishes
+ * creation and role events, and returns the counterparty with its roles and
+ * metadata.
+ *
+ * WHEN TO USE
+ * Use to register a counterparty directly for later use in the entity's
+ * transactions.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

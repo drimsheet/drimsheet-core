@@ -1,3 +1,21 @@
+/**
+ * SUMMARY
+ * Creates a bank posting account in the selected entity with its currency and
+ * bank details. May promote an existing posting parent into a control hierarchy
+ * while preserving that original account's identity. An optional opening
+ * balance adds a draft or posted opening journal according to account status.
+ * Saves account setup, bank details, audits, applicable foreign-exchange
+ * acquisition, and pending balance work together. Publishes events, requests
+ * any balance processing, and returns the created account.
+ *
+ * WHEN TO USE
+ * Use to register a bank account, optionally with its opening amount, date, and
+ * exchange rate. Required parent/header setup must already exist.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/create-bank-account.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

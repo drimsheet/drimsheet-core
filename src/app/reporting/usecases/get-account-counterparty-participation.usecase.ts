@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Reports counterparties' signed contributions to an account in the selected
+ * entity, combining activity across descendants and preserving separate self-
+ * transfer and unattributed groups. Returns contributions in the stored balance
+ * currency and functional currency. Share percentages use the stored account
+ * balance, not the returned rows; a zero denominator yields null. Name search
+ * and pagination apply after shares are calculated. Rejects missing accounts or
+ * balances and invalid amounts.
+ *
+ * WHEN TO USE
+ * Use to inspect who contributes to an account balance. This is a balance-
+ * participation view without a date-range filter; filtered or paginated shares
+ * need not sum to 100 percent.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this read-only aggregation workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

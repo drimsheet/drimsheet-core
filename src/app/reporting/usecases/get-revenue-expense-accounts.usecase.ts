@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Lists posting-account rows with functional-currency balances, transaction
+ * counts, and revenue or expense share percentages for the selected entity.
+ * Revenue and expense shares use the corresponding root-header totals before
+ * type filtering, name/code search, and pagination; a zero total yields null.
+ * Control accounts contribute to totals but are omitted from the rows. Returns
+ * minor-unit amounts and pagination metadata; missing balances or invalid
+ * amounts/counts reject.
+ *
+ * WHEN TO USE
+ * Use to browse revenue and expense account balances and their contributions.
+ * Use get-revenue-expense-summary for activity within a date range and
+ * comparison with the preceding period.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this read-only aggregation workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';

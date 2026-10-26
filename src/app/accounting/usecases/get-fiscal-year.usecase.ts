@@ -1,3 +1,15 @@
+/**
+ * SUMMARY
+ * Retrieves a fiscal year by ID within the selected accounting entity. Returns
+ * the fiscal year or rejects when it is not found for that entity.
+ *
+ * WHEN TO USE
+ * Use to inspect an existing year's configuration.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

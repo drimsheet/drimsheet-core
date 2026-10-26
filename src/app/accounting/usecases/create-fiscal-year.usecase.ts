@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Creates a fiscal year for the selected accounting entity. Enforces fiscal-
+ * year rules, including overlap checks, saves the year with audit history,
+ * publishes events, and returns it. Does not create intervals or contexts.
+ *
+ * WHEN TO USE
+ * Use to establish the dated year before configuring its accounting and
+ * reporting calendars.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

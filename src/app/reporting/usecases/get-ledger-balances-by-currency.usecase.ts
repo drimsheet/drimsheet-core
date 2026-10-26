@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Groups signed posting-account balances for the requested ledger type in the
+ * selected entity by denomination. Returns each currency balance, its recorded
+ * functional balance, and the combined functional total, in minor units and
+ * sorted by currency code. Uses stored functional values rather than converting
+ * at current exchange rates. Missing balances and out-of-range amounts reject.
+ *
+ * WHEN TO USE
+ * Use to inspect the denomination breakdown of a ledger type and its total in
+ * the entity's functional currency.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this read-only aggregation workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 

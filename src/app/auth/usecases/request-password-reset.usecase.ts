@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Requests password recovery for a normalized email address. Returns without
+ * sending when the user or authentication record is absent. Otherwise generates
+ * a reset link, sends it, and publishes the request event. Returns no value in
+ * either case; delivery and publication failures propagate. Does not replace
+ * the password or establish a session.
+ *
+ * WHEN TO USE
+ * Use when a user requests a password-reset email. The reset-password use case
+ * consumes the resulting token.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import IVarsConfig from '@shared/contracts/vars-config.contract';

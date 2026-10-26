@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Creates a revenue account for the selected supported behavior in the selected
+ * entity. Supports posting or control accounts and optional parent promotion: a
+ * new control groups the original posting account without changing its identity
+ * or journal references. Saves promotion, the new account, initial balance, and
+ * audits together, then publishes events and returns the account.
+ *
+ * WHEN TO USE
+ * Use to add a revenue category or grouping beneath an eligible existing parent
+ * after baseline account setup.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/create-revenue-account.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

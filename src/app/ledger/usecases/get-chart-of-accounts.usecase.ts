@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Returns a balance-enriched account tree for the selected entity and requested
+ * account class. Omitting headers promotes their children to the result roots.
+ * Name search selects the first matching node on each branch and retains its
+ * full subtree, including descendants whose names do not match.
+ *
+ * WHEN TO USE
+ * Use to browse the chart as a hierarchy. Use get-ledger-accounts when a flat
+ * paginated list is needed.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 

@@ -1,3 +1,24 @@
+/**
+ * SUMMARY
+ * Summarizes revenue, expenses, and suspense activity in the selected entity's
+ * functional currency over an inclusive UTC date range of at most 366 days.
+ * Compares revenue and expenses with the immediately preceding period of equal
+ * length. Revenue nets credits against debits; expenses net debits against
+ * credits. Excludes drafts, voided originals, reversals, and opening balances.
+ * Returns minor-unit totals, nonzero current account contributions and shares,
+ * percentage changes, and suspense amount/count. Percentage change divides the
+ * change by the magnitude of the previous total; zero denominators yield null.
+ * Invalid periods or amounts reject.
+ *
+ * WHEN TO USE
+ * Use for a period performance summary and comparison, including the current
+ * period's suspense activity. Use get-revenue-expense-accounts for the account-
+ * balance listing.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this read-only aggregation workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { IDateRange } from '@shared/types/date.types';
 import dateUtils from '@shared/utils/date';

@@ -1,3 +1,15 @@
+/**
+ * SUMMARY
+ * Retrieves one account in the selected entity with its balance and functional
+ * balance. Rejects a missing account.
+ *
+ * WHEN TO USE
+ * Use to inspect an existing ledger account and its current derived balances.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

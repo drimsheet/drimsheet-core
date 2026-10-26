@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Removes an eligible journal entry from the selected accounting entity.
+ * Unposted drafts, including archived unposted entries, are physically deleted.
+ * Posted entries, including archived posted entries, are retained and voided
+ * with a reversing journal; applicable foreign-exchange reversals and pending
+ * balance work are saved with that change. Reversal entries, voided entries,
+ * and inconsistent posting states are rejected. Requests balance processing for
+ * reversals, publishes events, and returns no value.
+ *
+ * WHEN TO USE
+ * Use to discard an unposted entry or cancel the effect of a posted entry
+ * without a replacement. Use archive-journal-entry to retain an entry without
+ * cancelling its financial effect.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/delete-journal-entry.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

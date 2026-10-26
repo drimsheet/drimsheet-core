@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Completes Google sign-in for an already resolved local user. Replaces the
+ * presented client session and sets its refresh token, then returns the web
+ * application OAuth confirmation URL. Does not return an access token or
+ * publish a login event.
+ *
+ * WHEN TO USE
+ * Use after Google profile resolution succeeds to establish the client session
+ * and obtain the redirect destination.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/oauth.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
 import IActorService from '@domain/user/types/actor.service.types';

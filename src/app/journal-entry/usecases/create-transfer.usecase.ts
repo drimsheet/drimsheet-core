@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Creates a transfer journal between source and destination accounts in the
+ * selected accounting entity, including any charge lines. Supports draft
+ * creation through a null postedAt or posting through a supplied date. Resolves
+ * charge counterparties and claims the user's attachment uploads. Saves the
+ * journal, new counterparties, audits, applicable foreign-exchange disposition
+ * and acquisition, and pending balance work together. Requests balance
+ * processing for posted entries, publishes events, and returns the journal.
+ *
+ * WHEN TO USE
+ * Use to record a new transfer between accounts, including associated charges.
+ * Use post-draft-transfer for an existing draft; derived balances update after
+ * posting through separate processing.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/create-transfer.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

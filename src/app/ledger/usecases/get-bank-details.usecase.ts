@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Retrieves bank details for an account in the selected entity. Rejects a
+ * missing account, a non-bank account, or missing bank details. Returns the
+ * bank-details record.
+ *
+ * WHEN TO USE
+ * Use when displaying or editing the banking information associated with a
+ * ledger bank account.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

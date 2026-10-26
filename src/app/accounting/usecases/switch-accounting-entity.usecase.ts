@@ -1,3 +1,16 @@
+/**
+ * SUMMARY
+ * Selects an accounting entity accessible to the signed-in user. Saves the
+ * entity as the user's last active selection, updates the current application
+ * context, and returns it. Rejects a missing or inaccessible entity.
+ *
+ * WHEN TO USE
+ * Use when changing which entity the user works in.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Creates an accounting entity owned by the signed-in user. Enforces entity
+ * creation rules, saves the entity with audit history, publishes its events,
+ * and returns it. Fiscal years, intervals, contexts, ledger setup, and active
+ * selection are separate operations.
+ *
+ * WHEN TO USE
+ * Use to start a new set of books with a jurisdiction and functional currency.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

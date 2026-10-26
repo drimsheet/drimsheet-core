@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Claims a signup token, verifies its user email when needed, and establishes a
+ * client session. Saves verification and session replacement together, then
+ * sets the refresh token, publishes any verification events, finalizes the
+ * signup token, and returns an access token. An already verified user still
+ * receives a session without another verification audit or event. Failures
+ * after a successful claim attempt to release it, including failures after
+ * commit; committed verification and session changes are not undone by later
+ * failures.
+ *
+ * WHEN TO USE
+ * Use when the user follows an email-verification link, with the signup token
+ * and client-session context available.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/verify-email.sequence.md
+ */
+
 import { z } from 'zod';
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';

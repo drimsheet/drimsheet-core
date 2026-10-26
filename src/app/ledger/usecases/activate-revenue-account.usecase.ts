@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Activates an eligible revenue account in the selected entity. Saves the
+ * account and audit together, then publishes activation events. An unchanged
+ * activation performs no writes, audit, or events. Rejects missing or
+ * ineligible accounts and returns no value.
+ *
+ * WHEN TO USE
+ * Use when a saved revenue account is ready for active use.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { TEntityId } from '@shared/types/uuid';

@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Lists paginated transactions for an account in the selected entity and
+ * includes each transaction's balance effect according to the account's normal
+ * balance. Returns transaction rows and pagination metadata; rejects a missing
+ * account.
+ *
+ * WHEN TO USE
+ * Use to inspect account activity and whether each transaction increases or
+ * decreases its balance.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

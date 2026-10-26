@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Lists supported currencies with their code, symbol, name, and minor-unit
+ * precision. Returns an array from the currency catalogue without requiring a
+ * selected accounting entity.
+ *
+ * WHEN TO USE
+ * Use to populate currency choices or obtain currency metadata for monetary
+ * input and display.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
 import ICurrencyRepo from '@domain/money/repos/currency.repo';
@@ -11,13 +25,6 @@ interface IDependencies {
 }
 
 export default function makeGetCurrenciesUseCase(deps: IDependencies) {
-  /**
-   * ========= USECASE EXECUTOR =========
-   *
-   * DOMAIN: global
-   *
-   * This usecase is used to get all supported currencies
-   */
   return async (): Promise<ICurrencyDto[]> => {
     const { correlationId } = deps.appContext.get();
 

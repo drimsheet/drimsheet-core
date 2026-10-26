@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Reports money in and money out for one eligible bank or petty-cash posting
+ * account in the selected entity, using its own currency. Requires a non-draft,
+ * non-deleted, debit-normal cash account with a fixed currency; control and
+ * adjustment accounts are excluded. Uses an inclusive UTC date range of at most
+ * 366 days, grouped into day buckets with zero-filled gaps. Excludes drafts,
+ * voided originals, reversals, and opening balances. Returns period totals and
+ * bucket amounts in minor units; missing or unsupported accounts and invalid
+ * amounts reject.
+ *
+ * WHEN TO USE
+ * Use to chart cash movement for a particular cash account over a period. This
+ * reports flows, not running or closing balances.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this read-only aggregation workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';

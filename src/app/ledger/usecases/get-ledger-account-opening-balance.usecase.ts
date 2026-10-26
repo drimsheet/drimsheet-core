@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Retrieves the current opening-balance amount, date, and exchange rate for an
+ * account in the selected entity. Considers current draft or posted opening
+ * journals, excluding voided originals. Returns openingBalance as null if no
+ * matching opening line exists; rejects a missing account.
+ *
+ * WHEN TO USE
+ * Use to display opening-balance setup separately from the account's current
+ * running balance.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

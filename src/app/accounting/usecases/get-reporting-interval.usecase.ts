@@ -1,3 +1,16 @@
+/**
+ * SUMMARY
+ * Retrieves the reporting calendar for a fiscal year in the selected entity.
+ * Accepts a fiscal-year ID, not an interval ID, and returns the interval with
+ * its periods. Rejects a missing fiscal year or reporting interval.
+ *
+ * WHEN TO USE
+ * Use to inspect that year's reporting periods.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

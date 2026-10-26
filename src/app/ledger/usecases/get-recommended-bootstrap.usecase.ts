@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Returns the static recommended setup choices for receivables, payables,
+ * revenue, expenses, and suspense accounts. Does not create accounts or require
+ * a selected accounting entity.
+ *
+ * WHEN TO USE
+ * Use to present optional account setup choices during onboarding, alongside
+ * the separate baseline hierarchy setup.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
 

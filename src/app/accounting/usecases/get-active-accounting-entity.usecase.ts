@@ -1,3 +1,16 @@
+/**
+ * SUMMARY
+ * Resolves the signed-in user's last saved accounting entity selection. Returns
+ * the accessible entity or rejects when no selection exists or the selected
+ * entity cannot be found for that user.
+ *
+ * WHEN TO USE
+ * Use to restore the user's working entity.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';

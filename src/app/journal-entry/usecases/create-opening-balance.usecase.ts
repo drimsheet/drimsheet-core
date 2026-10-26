@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Creates an opening-balance journal for an existing account in the selected
+ * accounting entity and updates its opening-balance date. Requires an eligible
+ * account and opening-balance equity account. The account's draft status
+ * produces a draft journal; otherwise the opening date is used for posting.
+ * Saves the journal, changed account date, audits, applicable foreign-exchange
+ * acquisition, and pending balance work together. Requests any required balance
+ * processing and publishes events. Returns no value.
+ *
+ * WHEN TO USE
+ * Use to establish an existing account's opening balance from an amount, date,
+ * and applicable exchange rate. Use post-draft-opening-balance to post an
+ * already saved draft opening journal.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/create-opening-balance.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

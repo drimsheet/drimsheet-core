@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Updates the signed-in user’s first and last names and returns the resulting
+ * profile. Saves actual changes with audit history, refreshes the user in the
+ * application context, and publishes the resulting events. Unchanged names
+ * produce no write, audit history, or events.
+ *
+ * WHEN TO USE
+ * Use when the current user edits their name in profile settings.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

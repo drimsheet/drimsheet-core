@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Creates a posting or control account for statutory receivables in the
+ * selected entity. Accepts the account currency. May promote an existing
+ * posting parent into a control hierarchy while preserving its identity and
+ * references. Saves promotion, the new account, initial balance, and audits
+ * together, then publishes events and returns the account.
+ *
+ * WHEN TO USE
+ * Use to add an account for statutory receivables beneath an eligible parent
+ * after baseline setup. This creates the account, not a journal recording the
+ * obligation or receivable.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/create-statutory-receivable-account.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

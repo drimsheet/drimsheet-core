@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Prepares uploads for the signed-in user from file names, content types,
+ * sizes, and purposes. Enforces upload count, type, and size limits per
+ * purpose.
+ * Returns an upload URL, required headers, file metadata, and an opaque
+ * reference for each file. Preparing uploads does not transfer file contents
+ * or attach files to an application record; validation and signing failures
+ * reject the request.
+ *
+ * WHEN TO USE
+ * Use before uploading files directly to storage. Send the file contents using
+ * the returned upload instructions, then include the opaque references in the
+ * application request that claims the completed uploads as attachments.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 

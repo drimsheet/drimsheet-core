@@ -1,3 +1,23 @@
+/**
+ * SUMMARY
+ * Corrects an eligible payment, receipt, or transfer in the selected accounting
+ * entity. Updates drafts in place and permits metadata-only changes to posted
+ * entries; financial corrections void the original and create a reversal and
+ * replacement. Saves journal changes, new counterparties, audits, applicable
+ * foreign-exchange reversal and replacement effects, and pending balance work
+ * together. Requests required balance processing and publishes events. Returns
+ * the correction mode, current entry, and original/current/reversing entry IDs.
+ * Valid unchanged requests produce no writes, audit, events, or balance work.
+ *
+ * WHEN TO USE
+ * Use to revise a saved entry while preserving its posting history. Use the
+ * source-specific post-draft operation to post unchanged draft content, or
+ * delete-journal-entry to remove an entry without replacing it.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/rectify-journal-entry.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

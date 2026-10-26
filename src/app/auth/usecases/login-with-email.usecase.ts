@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Authenticates an email/password user and returns an access token. Rejects
+ * missing credentials or auth records and users with five or more failed
+ * attempts. Records failed password or email-strategy attempts and resets the
+ * count after valid credentials. Replaces the presented client session, sets
+ * its refresh token, and publishes the login event before returning.
+ *
+ * WHEN TO USE
+ * Use for password-based sign-in with a client session available in request
+ * context.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/login-with-email.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

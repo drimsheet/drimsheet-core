@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Permanently removes the selected accounting entity and its related setup.
+ * Removes eligible setup and saved selections together while retaining audit
+ * history, then clears the current selection and publishes the deletion event.
+ * Rejects an entity with any journal reference. Returns no value.
+ *
+ * WHEN TO USE
+ * Use to discard an entity that has no journal entries; use archival to retain
+ * its books.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/delete-accounting-entity.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

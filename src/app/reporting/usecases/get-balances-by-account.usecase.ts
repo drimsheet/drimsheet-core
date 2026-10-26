@@ -1,3 +1,24 @@
+/**
+ * SUMMARY
+ * Returns signed closing-balance series grouped by account ID in the selected
+ * entity's functional currency. Deduplicates the requested filters and uses an
+ * inclusive UTC date range of at most 366 days with the requested day-bucket
+ * size. Includes prior activity in opening balances, accumulates movements
+ * through each bucket, and carries balances across gaps. Selected account roots
+ * include descendant activity; signs follow each root's normal balance.
+ * Excludes drafts, voided originals, and reversals. Returns bucket-end dates
+ * and minor-unit closing balances; invalid periods or amounts reject. Rejects
+ * any requested account absent from the selected entity.
+ *
+ * WHEN TO USE
+ * Use to compare selected accounts, including the activity of their
+ * descendants. These are cumulative balances at each bucket end, not the
+ * movement within that bucket.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this read-only aggregation workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';

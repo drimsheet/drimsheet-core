@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Deletes an eligible account and its descendants within the selected
+ * accounting entity. Rejects root accounts and ineligible referenced accounts.
+ * Any associated journals must be unposted drafts and cannot be reversals.
+ * Removes eligible journals and accounts together, then publishes account-
+ * deletion events. Returns no value; any failed eligibility or write rejects
+ * the whole removal.
+ *
+ * WHEN TO USE
+ * Use to discard unused accounts or draft setup, including related draft
+ * journals. Use archival to preserve accounts with accepted financial activity.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/delete-ledger-account.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

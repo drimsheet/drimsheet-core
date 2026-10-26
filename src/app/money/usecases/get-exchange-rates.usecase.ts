@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Retrieves stored exchange-rate observations for a currency pair, with
+ * optional rate-type and as-of filters. Returns the matching rate array without
+ * fetching new observations from the external provider. Does not require a
+ * selected accounting entity.
+ *
+ * WHEN TO USE
+ * Use to inspect available stored rates for a currency pair. Use ingest-
+ * exchange-rate to import provider observations.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 

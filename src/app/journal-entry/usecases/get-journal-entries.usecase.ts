@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Lists journals within the selected accounting entity using status, account,
+ * counterparty, search, ordering, and pagination options. Returns journal
+ * details with account and counterparty information plus pagination metadata; a
+ * result page may be empty.
+ *
+ * WHEN TO USE
+ * Use to browse and filter the entity's journal activity. Use get-journal-entry
+ * for a single entry lookup.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

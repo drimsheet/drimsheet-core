@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Creates a fiscal year's reporting calendar and its constituent periods.
+ * Requires an existing year in the selected entity and enforces calendar
+ * creation rules. Saves the interval, periods, and their audits together, then
+ * publishes events and returns the interval including its periods.
+ *
+ * WHEN TO USE
+ * Use to establish reporting periods separately from the accounting calendar.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {
