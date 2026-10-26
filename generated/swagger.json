@@ -225,6 +225,117 @@
         }
       }
     },
+    "/reporting/ledger/account-activity-by-types": {
+      "get": {
+        "operationId": "getAccountActivityByTypes",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountActivityByTypesDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns activity by type in functional currency with signed normal-side\ndeltas. Dates are inclusive, up to 366 days; empty buckets return zeros.\nOpening balances and reversed activity are excluded.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Positive calendar-day bucket size, anchored at from.",
+            "in": "query",
+            "name": "bucketDays",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "types",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerType"
+              }
+            }
+          }
+        ]
+      }
+    },
     "/reporting/ledger/accounts/{accountId}/balance-contributions-by-counterparty": {
       "get": {
         "operationId": "getAccountBalanceContributionsByCounterparty",
@@ -8560,6 +8671,126 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IDateRangeDto": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          }
+        },
+        "required": ["from", "to"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ULedgerType": {
+        "type": "string",
+        "enum": ["asset", "liability", "revenue", "expense", "equity"]
+      },
+      "IMoneyDto": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "isMinorUnit": {
+            "type": "boolean"
+          }
+        },
+        "required": ["amount", "currencyCode", "isMinorUnit"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountActivityByTypesDto": {
+        "properties": {
+          "currencyCode": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "buckets": {
+            "items": {
+              "properties": {
+                "activity": {
+                  "items": {
+                    "properties": {
+                      "delta": {
+                        "$ref": "#/components/schemas/IMoneyDto",
+                        "description": "Signed movement on the type's normal side, including contra activity."
+                      },
+                      "totalCredits": {
+                        "$ref": "#/components/schemas/IMoneyDto"
+                      },
+                      "totalDebits": {
+                        "$ref": "#/components/schemas/IMoneyDto"
+                      },
+                      "type": {
+                        "$ref": "#/components/schemas/ULedgerType"
+                      }
+                    },
+                    "required": [
+                      "delta",
+                      "totalCredits",
+                      "totalDebits",
+                      "type"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Inclusive last calendar date, clipped to the requested period."
+                },
+                "from": {
+                  "type": "string",
+                  "description": "Inclusive first calendar date."
+                }
+              },
+              "required": ["activity", "to", "from"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["currencyCode", "period", "buckets"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetAccountActivityByTypesQuery": {
+        "description": "Inclusive calendar dates spanning at most 366 days.",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "bucketDays": {
+            "type": "number",
+            "format": "double",
+            "description": "Positive calendar-day bucket size, anchored at from."
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerType"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["from", "to", "bucketDays", "types"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "UCounterpartyStatus": {
         "type": "string",
         "enum": ["draft", "active", "archived"]
@@ -8692,23 +8923,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IMoneyDto": {
-        "properties": {
-          "amount": {
-            "type": "number",
-            "format": "double"
-          },
-          "currencyCode": {
-            "type": "string"
-          },
-          "isMinorUnit": {
-            "type": "boolean"
-          }
-        },
-        "required": ["amount", "currencyCode", "isMinorUnit"],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IAccountBalanceContributionsByCounterpartyDto": {
         "properties": {
           "counterparty": {
@@ -8800,21 +9014,6 @@
             "type": "string"
           }
         },
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IDateRangeDto": {
-        "properties": {
-          "from": {
-            "type": "string",
-            "description": "Inclusive calendar date in YYYY-MM-DD format."
-          },
-          "to": {
-            "type": "string",
-            "description": "Inclusive calendar date in YYYY-MM-DD format."
-          }
-        },
-        "required": ["from", "to"],
         "type": "object",
         "additionalProperties": false
       },
@@ -8957,10 +9156,6 @@
         "required": ["from", "to", "bucketDays", "accountIds"],
         "type": "object",
         "additionalProperties": false
-      },
-      "ULedgerType": {
-        "type": "string",
-        "enum": ["asset", "liability", "revenue", "expense", "equity"]
       },
       "IBalanceHistoryByBehaviorDto": {
         "properties": {

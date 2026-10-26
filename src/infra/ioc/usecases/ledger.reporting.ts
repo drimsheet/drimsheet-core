@@ -1,3 +1,4 @@
+import makeGetAccountActivityByTypesUsecase from '@app/ledger/usecases/reporting/account-activity-by-types/account-activity-by-types.usecase';
 import makeGetAccountBalanceContributionsByCounterpartyUsecase from '@app/ledger/usecases/reporting/account-balance-contributions-by-counterparty/account-balance-contributions-by-counterparty.usecase';
 import makeGetAccountCashFlowUsecase from '@app/ledger/usecases/reporting/account-cash-flow/account-cash-flow.usecase';
 import makeGetBalanceHistoryByAccountUsecase from '@app/ledger/usecases/reporting/balance-history-by-account/balance-history-by-account.usecase';
@@ -13,6 +14,7 @@ import makeGetRevenueExpenseAndSuspenseAccountBalancesUsecase from '@app/ledger/
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import ledgerRepos from '@infra/persistence/repos/ledger';
+import accountActivityByTypesRepoQuery from '@infra/persistence/repos/ledger/queries/account-activity-by-types.reporting';
 import accountBalanceContributionsByCounterpartyRepoQuery from '@infra/persistence/repos/ledger/queries/account-balance-contributions-by-counterparty.reporting';
 import accountCashFlowRepoQuery from '@infra/persistence/repos/ledger/queries/account-cash-flow.reporting';
 import balanceHistoryRepoQuery from '@infra/persistence/repos/ledger/queries/balance-history.reporting';
@@ -117,5 +119,13 @@ export const getCurrentTotalBalanceByTypeUseCase = makeTracedUseCase(
   makeGetCurrentTotalBalanceByTypeUsecase({
     appContext,
     repoQuery: currentTotalBalanceByTypeRepoQuery,
+  })
+);
+
+export const getAccountActivityByTypesUseCase = makeTracedUseCase(
+  'reporting.getAccountActivityByTypesUseCase',
+  makeGetAccountActivityByTypesUsecase({
+    appContext,
+    repoQuery: accountActivityByTypesRepoQuery,
   })
 );
