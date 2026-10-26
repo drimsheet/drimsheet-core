@@ -8,6 +8,9 @@
 
 Journal entries are the authoritative accounting record. Ledger balances are
 eventually consistent values used primarily for reads and UI display.
+Every ledger account has an initial balance created in the same transaction as
+its account. A missing balance is an integrity failure: account enrichment
+rejects with `BalanceNotFound` rather than substituting zero amounts.
 
 - An **adjustment** changes one ledger account's balance.
 - **Propagation** creates the corresponding adjustments for that account's

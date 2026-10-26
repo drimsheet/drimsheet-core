@@ -7,8 +7,8 @@ import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-accoun
 
 export default interface ILedgerAccountBalanceEnrichmentAppService {
   /**
-   * Returns one DTO per input account in the same order. Missing balances are
-   * reported and mapped as zero balances. Unexpected failures reject unchanged.
+   * Returns one DTO per input account in the same order. Missing balances
+   * reject with BalanceNotFound. Unexpected failures reject unchanged.
    */
   enrich(
     accounts: ILedgerAccount[],

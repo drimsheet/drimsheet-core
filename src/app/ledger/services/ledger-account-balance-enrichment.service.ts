@@ -1,8 +1,4 @@
-import IReporter from '@shared/contracts/reporter.contract';
-
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
-import currencyEntity from '@domain/money/entities/currency.entity';
-import moneyValue from '@domain/money/values/money.vo';
 
 import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ledgerAccountMapper from '@app/ledger/dtos/ledger-account/ledger-account.dto.mapper';
@@ -10,9 +6,11 @@ import ledgerAppError from '@app/ledger/errors/ledger.error';
 
 interface IDependencies {
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
-  reporter: IReporter;
 }
 
+/**
+ * Maps stored balances onto accounts; rejects if any account has no balance.
+ */
 function makeEnrich(
   deps: IDependencies
 ): ILedgerAccountBalanceEnrichmentAppService['enrich'] {
@@ -33,32 +31,14 @@ function makeEnrich(
     return accounts.map((account) => {
       const balance = balancesByAccountId.get(account.id);
 
-      if (balance) {
-        return ledgerAccountMapper.toDto(
-          account,
-          balance.amount,
-          balance.functionalAmount
-        );
+      if (!balance) {
+        throw new ledgerAppError.BalanceNotFound({ accountId: account.id });
       }
-
-      deps.reporter.report(
-        'ledger.balance_enrichment.failed',
-        new ledgerAppError.BalanceNotFound({ accountId: account.id })
-      );
-
-      const functionalCurrency = currencyEntity.getByCode(
-        accountingEntity.functionalCurrencyCode
-      );
-      const zeroBalance = moneyValue.makeZeroAmount(
-        account.currency ?? functionalCurrency
-      );
-      const zeroFunctionalBalance =
-        moneyValue.makeZeroAmount(functionalCurrency);
 
       return ledgerAccountMapper.toDto(
         account,
-        zeroBalance,
-        zeroFunctionalBalance
+        balance.amount,
+        balance.functionalAmount
       );
     });
   };
