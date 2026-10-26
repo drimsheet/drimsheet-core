@@ -150,18 +150,18 @@ describe('ledger-total-debits-and-credits-by-currency', () => {
     ]);
   });
   it.each([
-    { debits: -1n, credits: 0n },
-    { debits: 0n, credits: -1n },
-  ])('rejects negative aggregates %j', async (amounts) => {
+    ['debits', { debits: -1n, credits: 0n }],
+    ['credits', { debits: 0n, credits: -1n }],
+  ])('rejects negative %s', async (_field, amounts) => {
     repoQuery.mockResolvedValue([{ currencyCode: 'USD', ...amounts }]);
     await expect(execute(query)).rejects.toBeInstanceOf(
       reportingError.AmountOutOfRange
     );
   });
   it.each([
-    { debits: 100000000000001n, credits: 0n },
-    { debits: 0n, credits: 100000000000001n },
-  ])('checks each total against the report ceiling %j', async (amounts) => {
+    ['debits', { debits: 100000000000001n, credits: 0n }],
+    ['credits', { debits: 0n, credits: 100000000000001n }],
+  ])('checks %s against the report ceiling', async (_field, amounts) => {
     repoQuery.mockResolvedValue([{ currencyCode: 'USD', ...amounts }]);
     await expect(execute(query)).rejects.toBeInstanceOf(
       reportingError.ReportAmountLimitExceeded
