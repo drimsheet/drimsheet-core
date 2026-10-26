@@ -240,14 +240,14 @@ describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
     });
   });
 
-  describe('404 Response', () => {
+  describe('500 Response', () => {
     it('reports missing stored balances', async () => {
       mockAssetAndLiabilityBalancesByCurrencyRepoQuery.mockResolvedValue([
         { ...account, amount: null, functionalAmount: null },
       ]);
       const response = await getReport();
-      expect(response.status).toBe(404);
-      expect(response.body.errorKey).toBe('app_error_ledger_balance_not_found');
+      expect(response.status).toBe(500);
+      expect(response.body.errorKey).toBe('app_error_unexpected');
     });
   });
 

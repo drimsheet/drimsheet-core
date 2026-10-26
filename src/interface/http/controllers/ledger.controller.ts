@@ -73,6 +73,7 @@ import {
   getAccountTransactionsUseCase,
   getBankDetailsUseCase,
   getChartOfAccountsUseCase,
+  getLedgerAccountBalanceUseCase,
   getLedgerAccountCurrencyUpdateEligibilityUseCase,
   getLedgerAccountDeletionEligibilityUseCase,
   getLedgerAccountOpeningBalanceUseCase,
@@ -129,6 +130,26 @@ export class LedgerController extends Controller {
   )
   public async getChartOfAccounts(@Queries() query: IGetChartOfAccountsQuery) {
     return getChartOfAccountsUseCase(query);
+  }
+
+  /**
+   * Get current stored balances by ledger code in the selected entity.
+   * Balances are eventually consistent with posted journal entries.
+   */
+  @Get('/code/{code}/balance')
+  @OperationId('getLedgerAccountBalance')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1
+  )
+  public async getLedgerAccountBalance(@Path() code: string) {
+    return await getLedgerAccountBalanceUseCase(code);
   }
 
   /**

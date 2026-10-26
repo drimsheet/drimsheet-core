@@ -292,6 +292,18 @@ describe('GET /reporting/ledger/accounts/{accountId}/counterparty-participation'
     });
   });
 
+  describe('500 Response', () => {
+    it('reports an unexpected missing-balance error without fabricating shares', async () => {
+      mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(null);
+      const response = await getReport();
+      expect(response.status).toBe(500);
+      expect(response.body.errorKey).toBe('app_error_unexpected');
+      expect(
+        mockAccountCounterpartyParticipationRepoQuery
+      ).not.toHaveBeenCalled();
+    });
+  });
+
   describe('404 Response', () => {
     it('does not reveal missing or foreign accounts', async () => {
       mockLedgerAccountRepo.findById.mockResolvedValue(null);
@@ -300,16 +312,6 @@ describe('GET /reporting/ledger/accounts/{accountId}/counterparty-participation'
       expect(response.body.errorKey).toBe(
         'app_error_reporting_account_not_found'
       );
-      expect(
-        mockAccountCounterpartyParticipationRepoQuery
-      ).not.toHaveBeenCalled();
-    });
-
-    it('returns the existing missing-balance error without fabricating shares', async () => {
-      mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(null);
-      const response = await getReport();
-      expect(response.status).toBe(404);
-      expect(response.body.errorKey).toBe('app_error_ledger_balance_not_found');
       expect(
         mockAccountCounterpartyParticipationRepoQuery
       ).not.toHaveBeenCalled();

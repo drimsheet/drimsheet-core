@@ -215,7 +215,7 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
       1,
       'ledger.balance_enrichment.failed',
       expect.objectContaining({
-        errorKey: 'app_error_ledger_balance_not_found',
+        errorKey: 'app_error_ledger_balance_missing_unexpected',
         cause: { accountId: secondAccount.id },
       })
     );
@@ -223,7 +223,7 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
       2,
       'ledger.balance_enrichment.failed',
       expect.objectContaining({
-        errorKey: 'app_error_ledger_balance_not_found',
+        errorKey: 'app_error_ledger_balance_missing_unexpected',
         cause: { accountId: currencyNeutralAccount.id },
       })
     );

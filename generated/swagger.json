@@ -1583,6 +1583,86 @@
         ]
       }
     },
+    "/ledger/code/{code}/balance": {
+      "get": {
+        "operationId": "getLedgerAccountBalance",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ILedgerAccountBalanceDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get current stored balances by ledger code in the selected entity.\nBalances are eventually consistent with posted journal entries.",
+        "tags": ["Ledger"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/ledger/posting-accounts": {
       "get": {
         "operationId": "getPermittedPostingAccounts",
@@ -9627,6 +9707,92 @@
         "type": "object",
         "additionalProperties": false
       },
+      "Pick_ILedgerAccountBalance.Exclude_keyofILedgerAccountBalance.amount-or-functionalAmount__": {
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "ledgerAccountId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountMaterializedPath": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number",
+            "format": "double"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "createdAt",
+          "createdBy",
+          "ledgerAccountId",
+          "accountingEntityId",
+          "accountMaterializedPath",
+          "version",
+          "updatedAt"
+        ],
+        "type": "object",
+        "description": "From T, pick a set of properties whose keys are in the union K"
+      },
+      "ILedgerAccountBalanceDto": {
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "ledgerAccountId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountingEntityId": {
+            "$ref": "#/components/schemas/TEntityId"
+          },
+          "accountMaterializedPath": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number",
+            "format": "double"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "functionalAmount": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          }
+        },
+        "required": [
+          "createdAt",
+          "createdBy",
+          "ledgerAccountId",
+          "accountingEntityId",
+          "accountMaterializedPath",
+          "version",
+          "updatedAt",
+          "amount",
+          "functionalAmount"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "UJournalEntrySourceType": {
         "type": "string",
         "enum": [
@@ -12488,10 +12654,10 @@
       },
       "Pick_IInterval.Exclude_keyofIInterval.unit__": {
         "properties": {
-          "id": {
+          "accountingEntityId": {
             "$ref": "#/components/schemas/TEntityId"
           },
-          "accountingEntityId": {
+          "id": {
             "$ref": "#/components/schemas/TEntityId"
           },
           "count": {
@@ -12525,8 +12691,8 @@
           }
         },
         "required": [
-          "id",
           "accountingEntityId",
+          "id",
           "count",
           "startDate",
           "endDate",
@@ -12539,10 +12705,10 @@
       },
       "IAccountingInterval": {
         "properties": {
-          "id": {
+          "accountingEntityId": {
             "$ref": "#/components/schemas/TEntityId"
           },
-          "accountingEntityId": {
+          "id": {
             "$ref": "#/components/schemas/TEntityId"
           },
           "count": {
@@ -12593,8 +12759,8 @@
           }
         },
         "required": [
-          "id",
           "accountingEntityId",
+          "id",
           "count",
           "startDate",
           "endDate",
@@ -12728,10 +12894,10 @@
       },
       "IReportingInterval": {
         "properties": {
-          "id": {
+          "accountingEntityId": {
             "$ref": "#/components/schemas/TEntityId"
           },
-          "accountingEntityId": {
+          "id": {
             "$ref": "#/components/schemas/TEntityId"
           },
           "count": {
@@ -12782,8 +12948,8 @@
           }
         },
         "required": [
-          "id",
           "accountingEntityId",
+          "id",
           "count",
           "startDate",
           "endDate",

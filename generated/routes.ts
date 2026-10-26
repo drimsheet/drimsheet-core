@@ -1127,6 +1127,40 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  'Pick_ILedgerAccountBalance.Exclude_keyofILedgerAccountBalance.amount-or-functionalAmount__':
+    {
+      dataType: 'refAlias',
+      type: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          createdAt: { dataType: 'datetime', required: true },
+          createdBy: { ref: 'TEntityId', required: true },
+          ledgerAccountId: { ref: 'TEntityId', required: true },
+          accountingEntityId: { ref: 'TEntityId', required: true },
+          accountMaterializedPath: { dataType: 'string', required: true },
+          version: { dataType: 'double', required: true },
+          updatedAt: { dataType: 'datetime', required: true },
+        },
+        validators: {},
+      },
+    },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ILedgerAccountBalanceDto: {
+    dataType: 'refObject',
+    properties: {
+      createdAt: { dataType: 'datetime', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      ledgerAccountId: { ref: 'TEntityId', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
+      accountMaterializedPath: { dataType: 'string', required: true },
+      version: { dataType: 'double', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+      amount: { ref: 'IMoneyDto', required: true },
+      functionalAmount: { ref: 'IMoneyDto', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UJournalEntrySourceType: {
     dataType: 'refAlias',
     type: {
@@ -3246,8 +3280,8 @@ const models: TsoaRoute.Models = {
     type: {
       dataType: 'nestedObjectLiteral',
       nestedProperties: {
-        id: { ref: 'TEntityId', required: true },
         accountingEntityId: { ref: 'TEntityId', required: true },
+        id: { ref: 'TEntityId', required: true },
         count: { dataType: 'double', required: true },
         startDate: { dataType: 'datetime', required: true },
         endDate: { dataType: 'datetime', required: true },
@@ -3266,8 +3300,8 @@ const models: TsoaRoute.Models = {
   IAccountingInterval: {
     dataType: 'refObject',
     properties: {
-      id: { ref: 'TEntityId', required: true },
       accountingEntityId: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       count: { dataType: 'double', required: true },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
@@ -3354,8 +3388,8 @@ const models: TsoaRoute.Models = {
   IReportingInterval: {
     dataType: 'refObject',
     properties: {
-      id: { ref: 'TEntityId', required: true },
       accountingEntityId: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       count: { dataType: 'double', required: true },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
@@ -4318,6 +4352,50 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getChartOfAccounts',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_getLedgerAccountBalance: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    code: { in: 'path', name: 'code', required: true, dataType: 'string' },
+  };
+  app.get(
+    '/api/v1/ledger/code/:code/balance',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.getLedgerAccountBalance
+    ),
+
+    async function LedgerController_getLedgerAccountBalance(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_getLedgerAccountBalance,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'getLedgerAccountBalance',
           controller,
           response,
           next,
