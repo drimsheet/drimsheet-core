@@ -19,6 +19,9 @@ Read this before changing the repository.
 11. Follow `.agents/rules/controller-ordering.md` when adding, changing, or
     reviewing controller endpoints.
 
+For reporting use-case work, load
+`.agents/skills/reporting-usecase-creation/SKILL.md`.
+
 ## Planning
 
 - Whenever the user asks for a plan or the agent decides to create or present

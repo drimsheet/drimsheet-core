@@ -1,5 +1,8 @@
 # Testing
 
+Reporting specs and query-function mocks follow the exceptions in
+[Reporting Use Cases](../reporting-usecases.md).
+
 ## General Rules
 
 - All tests in this repository are unit or integration tests that run without

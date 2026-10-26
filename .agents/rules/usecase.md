@@ -1,5 +1,8 @@
 # Use Cases
 
+Reporting use cases follow the naming and layout in
+[Reporting Use Cases](reporting-usecases.md).
+
 ## Naming
 
 - File: `<action>-<resource>.usecase.ts`.
