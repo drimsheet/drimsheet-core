@@ -219,7 +219,7 @@ describe('getLedgerBalancesByCurrencyUsecase', () => {
     { amount: null, functionalAmount: null },
     { amount: null, functionalAmount: 10n },
     { amount: 10n, functionalAmount: null },
-  ])('rejects an incomplete stored balance %j', async (amounts) => {
+  ])('rejects an incomplete stored balance %p', async (amounts) => {
     mockLedgerBalancesByCurrencyQueryRepo.findAll.mockResolvedValue([
       { ...account, ...amounts },
     ]);
@@ -234,7 +234,7 @@ describe('getLedgerBalancesByCurrencyUsecase', () => {
     { functionalAmount: 100_000_000_000_001n },
     { functionalAmount: -100_000_000_000_001n },
     { currencyCode: 'JPY', amount: 1_000_000_000_001n },
-  ])('enforces each currency amount ceiling for %j', async (amounts) => {
+  ])('enforces each currency amount ceiling for %p', async (amounts) => {
     mockLedgerBalancesByCurrencyQueryRepo.findAll.mockResolvedValue([
       { ...account, ...amounts },
     ]);
@@ -246,7 +246,7 @@ describe('getLedgerBalancesByCurrencyUsecase', () => {
   it.each([
     { amount: 60_000_000_000_000n, functionalAmount: 1n },
     { amount: 1n, functionalAmount: 60_000_000_000_000n },
-  ])('checks grouped balances after aggregation %j', async (amounts) => {
+  ])('checks grouped balances after aggregation %p', async (amounts) => {
     mockLedgerBalancesByCurrencyQueryRepo.findAll.mockResolvedValue([
       { ...account, ...amounts },
       { ...account, accountId: 'second', ...amounts },
