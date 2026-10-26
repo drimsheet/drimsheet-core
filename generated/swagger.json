@@ -225,6 +225,122 @@
         }
       }
     },
+    "/reporting/ledger/accounts/{accountId}/balance-contributions-by-counterparty": {
+      "get": {
+        "operationId": "getAccountBalanceContributionsByCounterparty",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IPaginatedResponse_IAccountBalanceContributionsByCounterpartyDto_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns counterparty contributions to an account balance, including\ndescendants. Shares use the full account balance before filtering and\npagination; zero balances yield null shares. Self-transfers and\nunattributed activity remain separate.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/reporting/ledger/accounts/{accountId}/cash-flow": {
       "get": {
         "operationId": "getAccountCashFlow",
@@ -343,223 +459,16 @@
         ]
       }
     },
-    "/reporting/ledger/accounts/{accountId}/counterparty-participation": {
+    "/reporting/ledger/balance-history-by-account": {
       "get": {
-        "operationId": "getAccountCounterpartyParticipation",
+        "operationId": "getBalanceHistoryByAccount",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IPaginatedResponse_IAccountCounterpartyParticipationDto_"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Returns counterparty contributions to an account balance, including\ndescendants. Shares use the full account balance before filtering and\npagination; zero balances yield null shares. Self-transfers and\nunattributed activity remain separate.",
-        "tags": ["Reporting", "Ledger Reporting"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "accountId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "format": "double",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "format": "double",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/reporting/ledger/asset-and-liability-balances-by-currency": {
-      "get": {
-        "operationId": "getAssetAndLiabilityBalancesByCurrency",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IAssetAndLiabilityBalancesByCurrencyDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Returns current asset or liability posting balances grouped by currency,\nwith recorded functional balances and a combined functional total.\nAccounts without a fixed currency use functional currency. Stored\nbalances update asynchronously; no date filter or FX repricing applies.",
-        "tags": ["Reporting", "Ledger Reporting"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "type",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": ["asset", "liability"]
-            }
-          }
-        ]
-      }
-    },
-    "/reporting/ledger/balances-by-account": {
-      "get": {
-        "operationId": "getBalancesByAccount",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IBalancesByAccountDto"
+                  "$ref": "#/components/schemas/IBalanceHistoryByAccountDto"
                 }
               }
             }
@@ -671,16 +580,16 @@
         ]
       }
     },
-    "/reporting/ledger/balances-by-behavior": {
+    "/reporting/ledger/balance-history-by-behavior": {
       "get": {
-        "operationId": "getBalancesByBehavior",
+        "operationId": "getBalanceHistoryByBehavior",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IBalancesByBehaviorDto"
+                  "$ref": "#/components/schemas/IBalanceHistoryByBehaviorDto"
                 }
               }
             }
@@ -792,16 +701,16 @@
         ]
       }
     },
-    "/reporting/ledger/balances-by-sub-type": {
+    "/reporting/ledger/balance-history-by-sub-type": {
       "get": {
-        "operationId": "getBalancesBySubType",
+        "operationId": "getBalanceHistoryBySubType",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IBalancesBySubTypeDto"
+                  "$ref": "#/components/schemas/IBalanceHistoryBySubTypeDto"
                 }
               }
             }
@@ -913,16 +822,16 @@
         ]
       }
     },
-    "/reporting/ledger/balances-by-type": {
+    "/reporting/ledger/balance-history-by-type": {
       "get": {
-        "operationId": "getBalancesByType",
+        "operationId": "getBalanceHistoryByType",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IBalancesByTypeDto"
+                  "$ref": "#/components/schemas/IBalanceHistoryByTypeDto"
                 }
               }
             }
@@ -1029,6 +938,187 @@
               "items": {
                 "$ref": "#/components/schemas/ULedgerType"
               }
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/ledger/current-asset-and-liability-balances-by-currency": {
+      "get": {
+        "operationId": "getCurrentAssetAndLiabilityBalancesByCurrency",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICurrentAssetAndLiabilityBalancesByCurrencyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns current asset or liability posting balances grouped by currency,\nwith recorded functional balances and a combined functional total.\nAccounts without a fixed currency use functional currency. Stored\nbalances update asynchronously; no date filter or FX repricing applies.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["asset", "liability"]
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/ledger/current-total-balance-by-type": {
+      "get": {
+        "operationId": "getCurrentTotalBalanceByType",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICurrentTotalBalanceByTypeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the current sum of top-level account balances for one type in\nfunctional currency. Empty totals are zero. Balances update asynchronously;\nno date filter or FX conversion applies.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ULedgerType"
             }
           }
         ]
@@ -1152,16 +1242,106 @@
         ]
       }
     },
-    "/reporting/ledger/revenue-expense-accounts": {
+    "/reporting/ledger/revenue-and-expense-activity-summary": {
       "get": {
-        "operationId": "getRevenueExpenseAccounts",
+        "operationId": "getRevenueAndExpenseActivitySummary",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IPaginatedResponse_IRevenueExpenseAccountDto_"
+                  "$ref": "#/components/schemas/IRevenueAndExpenseActivitySummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Summarizes revenue, expense, and suspense activity in functional currency\nwith account breakdowns. Dates are inclusive, up to 366 days, compared\nwith the preceding equal-length period. Opening balances and reversed\nactivity are excluded; zero denominators yield null percentages.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/ledger/revenue-expense-and-suspense-account-balances": {
+      "get": {
+        "operationId": "getRevenueExpenseAndSuspenseAccountBalances",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IPaginatedResponse_IRevenueExpenseAndSuspenseAccountBalanceDto_"
                 }
               }
             }
@@ -1255,186 +1435,6 @@
             "schema": {
               "type": "string",
               "enum": ["revenue", "expense"]
-            }
-          }
-        ]
-      }
-    },
-    "/reporting/ledger/revenue-expense-summary": {
-      "get": {
-        "operationId": "getRevenueExpenseSummary",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IRevenueExpenseSummaryDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Summarizes revenue, expense, and suspense activity in functional currency\nwith account breakdowns. Dates are inclusive, up to 366 days, compared\nwith the preceding equal-length period. Opening balances and reversed\nactivity are excluded; zero denominators yield null percentages.",
-        "tags": ["Reporting", "Ledger Reporting"],
-        "security": [],
-        "parameters": [
-          {
-            "description": "Inclusive calendar date in YYYY-MM-DD format.",
-            "in": "query",
-            "name": "from",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Inclusive calendar date in YYYY-MM-DD format.",
-            "in": "query",
-            "name": "to",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/reporting/ledger/total-balance-by-type": {
-      "get": {
-        "operationId": "getTotalBalanceByType",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ITotalBalanceByTypeDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Returns the current sum of top-level account balances for one type in\nfunctional currency. Empty totals are zero. Balances update asynchronously;\nno date filter or FX conversion applies.",
-        "tags": ["Reporting", "Ledger Reporting"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "type",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ULedgerType"
             }
           }
         ]
@@ -8560,115 +8560,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IDateRangeDto": {
-        "properties": {
-          "from": {
-            "type": "string",
-            "description": "Inclusive calendar date in YYYY-MM-DD format."
-          },
-          "to": {
-            "type": "string",
-            "description": "Inclusive calendar date in YYYY-MM-DD format."
-          }
-        },
-        "required": ["from", "to"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IMoneyDto": {
-        "properties": {
-          "amount": {
-            "type": "number",
-            "format": "double"
-          },
-          "currencyCode": {
-            "type": "string"
-          },
-          "isMinorUnit": {
-            "type": "boolean"
-          }
-        },
-        "required": ["amount", "currencyCode", "isMinorUnit"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IAccountCashFlowBucketDto": {
-        "properties": {
-          "from": {
-            "type": "string",
-            "description": "Inclusive calendar date in YYYY-MM-DD format."
-          },
-          "to": {
-            "type": "string",
-            "description": "Inclusive calendar date in YYYY-MM-DD format."
-          },
-          "moneyIn": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          },
-          "moneyOut": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          }
-        },
-        "required": ["from", "to", "moneyIn", "moneyOut"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IAccountCashFlowDto": {
-        "properties": {
-          "accountId": {
-            "type": "string"
-          },
-          "currencyCode": {
-            "type": "string"
-          },
-          "period": {
-            "$ref": "#/components/schemas/IDateRangeDto"
-          },
-          "totalMoneyIn": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          },
-          "totalMoneyOut": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          },
-          "buckets": {
-            "items": {
-              "$ref": "#/components/schemas/IAccountCashFlowBucketDto"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "accountId",
-          "currencyCode",
-          "period",
-          "totalMoneyIn",
-          "totalMoneyOut",
-          "buckets"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IGetAccountCashFlowQuery": {
-        "description": "The requested period may span at most 366 days.",
-        "properties": {
-          "from": {
-            "type": "string",
-            "description": "Inclusive calendar date in YYYY-MM-DD format."
-          },
-          "to": {
-            "type": "string",
-            "description": "Inclusive calendar date in YYYY-MM-DD format."
-          },
-          "bucketDays": {
-            "type": "number",
-            "format": "double",
-            "description": "Positive integer number of calendar days per bucket, anchored at from."
-          }
-        },
-        "required": ["from", "to", "bucketDays"],
-        "type": "object",
-        "additionalProperties": false
-      },
       "UCounterpartyStatus": {
         "type": "string",
         "enum": ["draft", "active", "archived"]
@@ -8801,7 +8692,24 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IAccountCounterpartyParticipationDto": {
+      "IMoneyDto": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "isMinorUnit": {
+            "type": "boolean"
+          }
+        },
+        "required": ["amount", "currencyCode", "isMinorUnit"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountBalanceContributionsByCounterpartyDto": {
         "properties": {
           "counterparty": {
             "allOf": [
@@ -8862,11 +8770,11 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IPaginatedResponse_IAccountCounterpartyParticipationDto_": {
+      "IPaginatedResponse_IAccountBalanceContributionsByCounterpartyDto_": {
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/IAccountCounterpartyParticipationDto"
+              "$ref": "#/components/schemas/IAccountBalanceContributionsByCounterpartyDto"
             },
             "type": "array"
           },
@@ -8878,7 +8786,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IGetAccountCounterpartyParticipationQuery": {
+      "IGetAccountBalanceContributionsByCounterpartyQuery": {
         "properties": {
           "page": {
             "type": "number",
@@ -8895,45 +8803,99 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IAssetAndLiabilityBalancesByCurrencyDto": {
+      "IDateRangeDto": {
         "properties": {
-          "totalFunctionalBalance": {
-            "$ref": "#/components/schemas/IMoneyDto",
-            "description": "Sum of the currency groups' recorded functional balances."
-          },
-          "balancesByCurrency": {
-            "items": {
-              "properties": {
-                "functionalBalance": {
-                  "$ref": "#/components/schemas/IMoneyDto"
-                },
-                "balance": {
-                  "$ref": "#/components/schemas/IMoneyDto"
-                }
-              },
-              "required": ["functionalBalance", "balance"],
-              "type": "object"
-            },
-            "type": "array",
-            "description": "Current posting-account balances, ordered by currency code."
-          }
-        },
-        "required": ["totalFunctionalBalance", "balancesByCurrency"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IGetAssetAndLiabilityBalancesByCurrencyQuery": {
-        "properties": {
-          "type": {
+          "from": {
             "type": "string",
-            "enum": ["asset", "liability"]
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
           }
         },
-        "required": ["type"],
+        "required": ["from", "to"],
         "type": "object",
         "additionalProperties": false
       },
-      "IBalancesByAccountDto": {
+      "IAccountCashFlowBucketDto": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "moneyIn": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "moneyOut": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          }
+        },
+        "required": ["from", "to", "moneyIn", "moneyOut"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IAccountCashFlowDto": {
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "totalMoneyIn": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "totalMoneyOut": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/IAccountCashFlowBucketDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "accountId",
+          "currencyCode",
+          "period",
+          "totalMoneyIn",
+          "totalMoneyOut",
+          "buckets"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetAccountCashFlowQuery": {
+        "description": "The requested period may span at most 366 days.",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "bucketDays": {
+            "type": "number",
+            "format": "double",
+            "description": "Positive integer number of calendar days per bucket, anchored at from."
+          }
+        },
+        "required": ["from", "to", "bucketDays"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IBalanceHistoryByAccountDto": {
         "properties": {
           "period": {
             "$ref": "#/components/schemas/IDateRangeDto"
@@ -8970,7 +8932,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IGetBalancesByAccountQuery": {
+      "IGetBalanceHistoryByAccountQuery": {
         "properties": {
           "from": {
             "type": "string",
@@ -9000,7 +8962,7 @@
         "type": "string",
         "enum": ["asset", "liability", "revenue", "expense", "equity"]
       },
-      "IBalancesByBehaviorDto": {
+      "IBalanceHistoryByBehaviorDto": {
         "properties": {
           "period": {
             "$ref": "#/components/schemas/IDateRangeDto"
@@ -9102,7 +9064,7 @@
           "other_loss"
         ]
       },
-      "IGetBalancesByBehaviorQuery": {
+      "IGetBalanceHistoryByBehaviorQuery": {
         "properties": {
           "from": {
             "type": "string",
@@ -9128,7 +9090,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IBalancesBySubTypeDto": {
+      "IBalanceHistoryBySubTypeDto": {
         "properties": {
           "period": {
             "$ref": "#/components/schemas/IDateRangeDto"
@@ -9220,7 +9182,7 @@
           "loss_on_asset_disposal"
         ]
       },
-      "IGetBalancesBySubTypeQuery": {
+      "IGetBalanceHistoryBySubTypeQuery": {
         "properties": {
           "from": {
             "type": "string",
@@ -9246,7 +9208,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IBalancesByTypeDto": {
+      "IBalanceHistoryByTypeDto": {
         "properties": {
           "period": {
             "$ref": "#/components/schemas/IDateRangeDto"
@@ -9284,7 +9246,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IGetBalancesByTypeQuery": {
+      "IGetBalanceHistoryByTypeQuery": {
         "properties": {
           "from": {
             "type": "string",
@@ -9307,6 +9269,64 @@
           }
         },
         "required": ["from", "to", "bucketDays", "types"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICurrentAssetAndLiabilityBalancesByCurrencyDto": {
+        "properties": {
+          "totalFunctionalBalance": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Sum of the currency groups' recorded functional balances."
+          },
+          "balancesByCurrency": {
+            "items": {
+              "properties": {
+                "functionalBalance": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "balance": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                }
+              },
+              "required": ["functionalBalance", "balance"],
+              "type": "object"
+            },
+            "type": "array",
+            "description": "Current posting-account balances, ordered by currency code."
+          }
+        },
+        "required": ["totalFunctionalBalance", "balancesByCurrency"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetCurrentAssetAndLiabilityBalancesByCurrencyQuery": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["asset", "liability"]
+          }
+        },
+        "required": ["type"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICurrentTotalBalanceByTypeDto": {
+        "properties": {
+          "totalFunctionalBalance": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          }
+        },
+        "required": ["totalFunctionalBalance"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetCurrentTotalBalanceByTypeQuery": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ULedgerType"
+          }
+        },
+        "required": ["type"],
         "type": "object",
         "additionalProperties": false
       },
@@ -9366,11 +9386,105 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IRevenueExpenseSectionDto": {
+        "properties": {
+          "total": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "previousTotal": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "percentageChange": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "Percentage change using the absolute previous total; null when it is zero."
+          },
+          "accounts": {
+            "items": {
+              "properties": {
+                "sharePercentage": {
+                  "type": "number",
+                  "format": "double",
+                  "nullable": true,
+                  "description": "Signed share of the total, rounded to two decimals; null when total is zero."
+                },
+                "amount": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "accountName": {
+                  "type": "string"
+                },
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sharePercentage",
+                "amount",
+                "accountName",
+                "accountId"
+              ],
+              "type": "object"
+            },
+            "type": "array",
+            "description": "Nonzero net amounts, descending by amount, with account ID as a tie-breaker."
+          }
+        },
+        "required": ["total", "previousTotal", "percentageChange", "accounts"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IRevenueAndExpenseActivitySummaryDto": {
+        "properties": {
+          "currencyCode": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "comparisonPeriod": {
+            "$ref": "#/components/schemas/IDateRangeDto",
+            "description": "Immediately preceding equal-length period, with inclusive dates."
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/IRevenueExpenseSectionDto"
+          },
+          "expenses": {
+            "$ref": "#/components/schemas/IRevenueExpenseSectionDto"
+          },
+          "suspense": {
+            "properties": {
+              "amount": {
+                "$ref": "#/components/schemas/IMoneyDto",
+                "description": "Sum of suspense-line amounts; debit and credit activity do not cancel."
+              },
+              "transactionCount": {
+                "type": "number",
+                "format": "double",
+                "description": "Distinct journal entries with a suspense line in the selected period."
+              }
+            },
+            "required": ["amount", "transactionCount"],
+            "type": "object"
+          }
+        },
+        "required": [
+          "currencyCode",
+          "period",
+          "comparisonPeriod",
+          "revenue",
+          "expenses",
+          "suspense"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "ULedgerAccountStatus": {
         "type": "string",
         "enum": ["draft", "active", "archived"]
       },
-      "IRevenueExpenseAccountDto": {
+      "IRevenueExpenseAndSuspenseAccountBalanceDto": {
         "properties": {
           "accountId": {
             "type": "string"
@@ -9422,11 +9536,11 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IPaginatedResponse_IRevenueExpenseAccountDto_": {
+      "IPaginatedResponse_IRevenueExpenseAndSuspenseAccountBalanceDto_": {
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/IRevenueExpenseAccountDto"
+              "$ref": "#/components/schemas/IRevenueExpenseAndSuspenseAccountBalanceDto"
             },
             "type": "array"
           },
@@ -9438,7 +9552,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IGetRevenueExpenseAccountsQuery": {
+      "IGetRevenueExpenseAndSuspenseAccountBalancesQuery": {
         "properties": {
           "page": {
             "type": "number",
@@ -9457,120 +9571,6 @@
             "description": "Omit for all revenue, expense and suspense posting accounts."
           }
         },
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IRevenueExpenseSectionDto": {
-        "properties": {
-          "total": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          },
-          "previousTotal": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          },
-          "percentageChange": {
-            "type": "number",
-            "format": "double",
-            "nullable": true,
-            "description": "Percentage change using the absolute previous total; null when it is zero."
-          },
-          "accounts": {
-            "items": {
-              "properties": {
-                "sharePercentage": {
-                  "type": "number",
-                  "format": "double",
-                  "nullable": true,
-                  "description": "Signed share of the total, rounded to two decimals; null when total is zero."
-                },
-                "amount": {
-                  "$ref": "#/components/schemas/IMoneyDto"
-                },
-                "accountName": {
-                  "type": "string"
-                },
-                "accountId": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "sharePercentage",
-                "amount",
-                "accountName",
-                "accountId"
-              ],
-              "type": "object"
-            },
-            "type": "array",
-            "description": "Nonzero net amounts, descending by amount, with account ID as a tie-breaker."
-          }
-        },
-        "required": ["total", "previousTotal", "percentageChange", "accounts"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IRevenueExpenseSummaryDto": {
-        "properties": {
-          "currencyCode": {
-            "type": "string"
-          },
-          "period": {
-            "$ref": "#/components/schemas/IDateRangeDto"
-          },
-          "comparisonPeriod": {
-            "$ref": "#/components/schemas/IDateRangeDto",
-            "description": "Immediately preceding equal-length period, with inclusive dates."
-          },
-          "revenue": {
-            "$ref": "#/components/schemas/IRevenueExpenseSectionDto"
-          },
-          "expenses": {
-            "$ref": "#/components/schemas/IRevenueExpenseSectionDto"
-          },
-          "suspense": {
-            "properties": {
-              "amount": {
-                "$ref": "#/components/schemas/IMoneyDto",
-                "description": "Sum of suspense-line amounts; debit and credit activity do not cancel."
-              },
-              "transactionCount": {
-                "type": "number",
-                "format": "double",
-                "description": "Distinct journal entries with a suspense line in the selected period."
-              }
-            },
-            "required": ["amount", "transactionCount"],
-            "type": "object"
-          }
-        },
-        "required": [
-          "currencyCode",
-          "period",
-          "comparisonPeriod",
-          "revenue",
-          "expenses",
-          "suspense"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "ITotalBalanceByTypeDto": {
-        "properties": {
-          "totalFunctionalBalance": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          }
-        },
-        "required": ["totalFunctionalBalance"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IGetTotalBalanceByTypeQuery": {
-        "properties": {
-          "type": {
-            "$ref": "#/components/schemas/ULedgerType"
-          }
-        },
-        "required": ["type"],
         "type": "object",
         "additionalProperties": false
       },

@@ -17,7 +17,7 @@ src/app/<namespace>/usecases/reporting/<report>/
 
 - Omit `get-` and `.reporting` from report folder and use-case filenames. Keep
   action names in factory and operation symbols, such as
-  `makeGetBalancesByAccountUsecase`.
+  `makeGetBalanceHistoryByAccountUsecase`.
 - `dto.ts` owns that report's named request/response types, validation schema,
   and named mapper when needed. Do not combine distinct reports into one DTO
   module or add a grouping folder solely to house their shared declarations.
@@ -52,7 +52,7 @@ layer and behavior rules still apply; see [Use Cases](usecase.md),
   `src/infra/ioc/usecases/<namespace>.reporting.ts`.
 - When multiple reports consume the same query, keep one capability-named
   function contract under `app/<namespace>/contracts/`, as with
-  `TBalanceSeriesRepoQuery`. Do not duplicate the query or make one use case
+  `TBalanceHistoryRepoQuery`. Do not duplicate the query or make one use case
   own its peers' shared contract.
 - Define typed query-function mocks directly in the owning specs. Do not add
   a standalone file that only exports `jest.fn()`. Continue using existing
@@ -72,6 +72,6 @@ layer and behavior rules still apply; see [Use Cases](usecase.md),
 
 ## Current Examples
 
-- [Account participation](../../src/app/ledger/usecases/reporting/account-counterparty-participation/account-counterparty-participation.usecase.ts): consumer-owned query contract.
-- [Balances by account](../../src/app/ledger/usecases/reporting/balances-by-account/dto.ts): report-specific DTO and validation.
-- [Balance helper](../../src/app/ledger/usecases/helpers/reporting/build-balance-series.helper.ts): shared helper placement.
+- [Account balance contributions](../../src/app/ledger/usecases/reporting/account-balance-contributions-by-counterparty/account-balance-contributions-by-counterparty.usecase.ts): consumer-owned query contract.
+- [Balance history by account](../../src/app/ledger/usecases/reporting/balance-history-by-account/dto.ts): report-specific DTO and validation.
+- [Balance helper](../../src/app/ledger/usecases/helpers/reporting/build-balance-history.helper.ts): shared helper placement.

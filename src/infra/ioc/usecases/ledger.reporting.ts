@@ -1,53 +1,56 @@
+import makeGetAccountBalanceContributionsByCounterpartyUsecase from '@app/ledger/usecases/reporting/account-balance-contributions-by-counterparty/account-balance-contributions-by-counterparty.usecase';
 import makeGetAccountCashFlowUsecase from '@app/ledger/usecases/reporting/account-cash-flow/account-cash-flow.usecase';
-import makeGetAccountCounterpartyParticipationUsecase from '@app/ledger/usecases/reporting/account-counterparty-participation/account-counterparty-participation.usecase';
-import makeGetAssetAndLiabilityBalancesByCurrencyUsecase from '@app/ledger/usecases/reporting/asset-and-liability-balances-by-currency/asset-and-liability-balances-by-currency.usecase';
-import makeGetBalancesByAccountUsecase from '@app/ledger/usecases/reporting/balances-by-account/balances-by-account.usecase';
-import makeGetBalancesByBehaviorUsecase from '@app/ledger/usecases/reporting/balances-by-behavior/balances-by-behavior.usecase';
-import makeGetBalancesBySubTypeUsecase from '@app/ledger/usecases/reporting/balances-by-sub-type/balances-by-sub-type.usecase';
-import makeGetBalancesByTypeUsecase from '@app/ledger/usecases/reporting/balances-by-type/balances-by-type.usecase';
+import makeGetBalanceHistoryByAccountUsecase from '@app/ledger/usecases/reporting/balance-history-by-account/balance-history-by-account.usecase';
+import makeGetBalanceHistoryByBehaviorUsecase from '@app/ledger/usecases/reporting/balance-history-by-behavior/balance-history-by-behavior.usecase';
+import makeGetBalanceHistoryBySubTypeUsecase from '@app/ledger/usecases/reporting/balance-history-by-sub-type/balance-history-by-sub-type.usecase';
+import makeGetBalanceHistoryByTypeUsecase from '@app/ledger/usecases/reporting/balance-history-by-type/balance-history-by-type.usecase';
+import makeGetCurrentAssetAndLiabilityBalancesByCurrencyUsecase from '@app/ledger/usecases/reporting/current-asset-and-liability-balances-by-currency/current-asset-and-liability-balances-by-currency.usecase';
+import makeGetCurrentTotalBalanceByTypeUsecase from '@app/ledger/usecases/reporting/current-total-balance-by-type/current-total-balance-by-type.usecase';
 import makeGetLedgerTotalDebitsAndCreditsByCurrencyUsecase from '@app/ledger/usecases/reporting/ledger-total-debits-and-credits-by-currency/ledger-total-debits-and-credits-by-currency.usecase';
-import makeGetRevenueExpenseAccountsUsecase from '@app/ledger/usecases/reporting/revenue-expense-accounts/revenue-expense-accounts.usecase';
-import makeGetRevenueExpenseSummaryUsecase from '@app/ledger/usecases/reporting/revenue-expense-summary/revenue-expense-summary.usecase';
-import makeGetTotalBalanceByTypeUsecase from '@app/ledger/usecases/reporting/total-balance-by-type/total-balance-by-type.usecase';
+import makeGetRevenueAndExpenseActivitySummaryUsecase from '@app/ledger/usecases/reporting/revenue-and-expense-activity-summary/revenue-and-expense-activity-summary.usecase';
+import makeGetRevenueExpenseAndSuspenseAccountBalancesUsecase from '@app/ledger/usecases/reporting/revenue-expense-and-suspense-account-balances/revenue-expense-and-suspense-account-balances.usecase';
 
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import ledgerRepos from '@infra/persistence/repos/ledger';
+import accountBalanceContributionsByCounterpartyRepoQuery from '@infra/persistence/repos/ledger/queries/account-balance-contributions-by-counterparty.reporting';
 import accountCashFlowRepoQuery from '@infra/persistence/repos/ledger/queries/account-cash-flow.reporting';
-import accountCounterpartyParticipationRepoQuery from '@infra/persistence/repos/ledger/queries/account-counterparty-participation.reporting';
-import assetAndLiabilityBalancesByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/asset-and-liability-balances-by-currency.reporting';
-import balanceSeriesRepoQuery from '@infra/persistence/repos/ledger/queries/balance-series.reporting';
+import balanceHistoryRepoQuery from '@infra/persistence/repos/ledger/queries/balance-history.reporting';
+import currentAssetAndLiabilityBalancesByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/current-asset-and-liability-balances-by-currency.reporting';
+import currentTotalBalanceByTypeRepoQuery from '@infra/persistence/repos/ledger/queries/current-total-balance-by-type.reporting';
 import ledgerTotalDebitsAndCreditsByCurrencyRepoQuery from '@infra/persistence/repos/ledger/queries/ledger-total-debits-and-credits-by-currency.reporting';
-import revenueExpenseAccountsRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-expense-accounts.reporting';
-import revenueExpenseSummaryRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-expense-summary.reporting';
-import totalBalanceByTypeRepoQuery from '@infra/persistence/repos/ledger/queries/total-balance-by-type.reporting';
+import revenueAndExpenseActivitySummaryRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-and-expense-activity-summary.reporting';
+import revenueExpenseAndSuspenseAccountBalancesRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-expense-and-suspense-account-balances.reporting';
 import appContext from '@infra/services/app-context.service';
 
-export const getAccountCounterpartyParticipationUseCase = makeTracedUseCase(
-  'reporting.getAccountCounterpartyParticipationUseCase',
-  makeGetAccountCounterpartyParticipationUsecase({
-    appContext,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
-    repoQuery: accountCounterpartyParticipationRepoQuery,
-  })
-);
+export const getAccountBalanceContributionsByCounterpartyUseCase =
+  makeTracedUseCase(
+    'reporting.getAccountBalanceContributionsByCounterpartyUseCase',
+    makeGetAccountBalanceContributionsByCounterpartyUsecase({
+      appContext,
+      ledgerAccountRepo: ledgerRepos.ledgerAccount,
+      ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
+      repoQuery: accountBalanceContributionsByCounterpartyRepoQuery,
+    })
+  );
 
-export const getAssetAndLiabilityBalancesByCurrencyUseCase = makeTracedUseCase(
-  'reporting.getAssetAndLiabilityBalancesByCurrencyUseCase',
-  makeGetAssetAndLiabilityBalancesByCurrencyUsecase({
-    appContext,
-    repoQuery: assetAndLiabilityBalancesByCurrencyRepoQuery,
-  })
-);
+export const getCurrentAssetAndLiabilityBalancesByCurrencyUseCase =
+  makeTracedUseCase(
+    'reporting.getCurrentAssetAndLiabilityBalancesByCurrencyUseCase',
+    makeGetCurrentAssetAndLiabilityBalancesByCurrencyUsecase({
+      appContext,
+      repoQuery: currentAssetAndLiabilityBalancesByCurrencyRepoQuery,
+    })
+  );
 
-export const getRevenueExpenseAccountsUseCase = makeTracedUseCase(
-  'reporting.getRevenueExpenseAccountsUseCase',
-  makeGetRevenueExpenseAccountsUsecase({
-    appContext,
-    repoQuery: revenueExpenseAccountsRepoQuery,
-  })
-);
+export const getRevenueExpenseAndSuspenseAccountBalancesUseCase =
+  makeTracedUseCase(
+    'reporting.getRevenueExpenseAndSuspenseAccountBalancesUseCase',
+    makeGetRevenueExpenseAndSuspenseAccountBalancesUsecase({
+      appContext,
+      repoQuery: revenueExpenseAndSuspenseAccountBalancesRepoQuery,
+    })
+  );
 
 export const getAccountCashFlowUseCase = makeTracedUseCase(
   'reporting.getAccountCashFlowUseCase',
@@ -58,43 +61,43 @@ export const getAccountCashFlowUseCase = makeTracedUseCase(
   })
 );
 
-export const getRevenueExpenseSummaryUseCase = makeTracedUseCase(
-  'reporting.getRevenueExpenseSummaryUseCase',
-  makeGetRevenueExpenseSummaryUsecase({
+export const getRevenueAndExpenseActivitySummaryUseCase = makeTracedUseCase(
+  'reporting.getRevenueAndExpenseActivitySummaryUseCase',
+  makeGetRevenueAndExpenseActivitySummaryUsecase({
     appContext,
-    repoQuery: revenueExpenseSummaryRepoQuery,
+    repoQuery: revenueAndExpenseActivitySummaryRepoQuery,
   })
 );
 
-export const getBalancesByTypeUseCase = makeTracedUseCase(
-  'reporting.getBalancesByTypeUseCase',
-  makeGetBalancesByTypeUsecase({
+export const getBalanceHistoryByTypeUseCase = makeTracedUseCase(
+  'reporting.getBalanceHistoryByTypeUseCase',
+  makeGetBalanceHistoryByTypeUsecase({
     appContext,
-    repoQuery: balanceSeriesRepoQuery,
+    repoQuery: balanceHistoryRepoQuery,
   })
 );
 
-export const getBalancesBySubTypeUseCase = makeTracedUseCase(
-  'reporting.getBalancesBySubTypeUseCase',
-  makeGetBalancesBySubTypeUsecase({
+export const getBalanceHistoryBySubTypeUseCase = makeTracedUseCase(
+  'reporting.getBalanceHistoryBySubTypeUseCase',
+  makeGetBalanceHistoryBySubTypeUsecase({
     appContext,
-    repoQuery: balanceSeriesRepoQuery,
+    repoQuery: balanceHistoryRepoQuery,
   })
 );
 
-export const getBalancesByBehaviorUseCase = makeTracedUseCase(
-  'reporting.getBalancesByBehaviorUseCase',
-  makeGetBalancesByBehaviorUsecase({
+export const getBalanceHistoryByBehaviorUseCase = makeTracedUseCase(
+  'reporting.getBalanceHistoryByBehaviorUseCase',
+  makeGetBalanceHistoryByBehaviorUsecase({
     appContext,
-    repoQuery: balanceSeriesRepoQuery,
+    repoQuery: balanceHistoryRepoQuery,
   })
 );
 
-export const getBalancesByAccountUseCase = makeTracedUseCase(
-  'reporting.getBalancesByAccountUseCase',
-  makeGetBalancesByAccountUsecase({
+export const getBalanceHistoryByAccountUseCase = makeTracedUseCase(
+  'reporting.getBalanceHistoryByAccountUseCase',
+  makeGetBalanceHistoryByAccountUsecase({
     appContext,
-    repoQuery: balanceSeriesRepoQuery,
+    repoQuery: balanceHistoryRepoQuery,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
   })
 );
@@ -109,10 +112,10 @@ export const getLedgerTotalDebitsAndCreditsByCurrencyUseCase =
     })
   );
 
-export const getTotalBalanceByTypeUseCase = makeTracedUseCase(
-  'reporting.getTotalBalanceByTypeUseCase',
-  makeGetTotalBalanceByTypeUsecase({
+export const getCurrentTotalBalanceByTypeUseCase = makeTracedUseCase(
+  'reporting.getCurrentTotalBalanceByTypeUseCase',
+  makeGetCurrentTotalBalanceByTypeUsecase({
     appContext,
-    repoQuery: totalBalanceByTypeRepoQuery,
+    repoQuery: currentTotalBalanceByTypeRepoQuery,
   })
 );
