@@ -49,6 +49,7 @@ import {
   getAccountingContextUseCase,
   getAccountingIntervalUseCase,
   getActiveAccountingEntityUseCase,
+  getCurrentFiscalYearUseCase,
   getFiscalYearsUseCase,
   getFiscalYearUseCase,
   getJurisdictionsUseCase,
@@ -114,6 +115,27 @@ export class AccountingController extends Controller {
   )
   public async getFiscalYears(): Promise<IFiscalYear[]> {
     return await getFiscalYearsUseCase();
+  }
+
+  /**
+   * Returns the fiscal year containing today UTC, including both boundary dates.
+   * Reports overlaps and returns the first match by start date then ID.
+   */
+  @Get('/fiscal-years/current')
+  @OperationId('getCurrentFiscalYear')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getCurrentFiscalYear() {
+    return getCurrentFiscalYearUseCase();
   }
 
   /** Returns one fiscal year belonging to x-accounting-entity-id. */

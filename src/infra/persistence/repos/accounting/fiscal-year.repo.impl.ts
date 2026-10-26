@@ -1,4 +1,4 @@
-import { and, eq, gte, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, lte } from 'drizzle-orm';
 
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
 
@@ -18,6 +18,23 @@ const fiscalYearRepoImpl: IFiscalYearRepo = {
       .select()
       .from(fiscalYearsInCore)
       .where(eq(fiscalYearsInCore.accountingEntityId, accountingEntityId));
+
+    return years.map(fiscalYearMapper.toDomain);
+  },
+
+  findByDate: async (accountingEntityId, date, options) => {
+    const calendarDate = toRepoDateOnly(date);
+    const years = await getDbQuery(options)
+      .select()
+      .from(fiscalYearsInCore)
+      .where(
+        and(
+          eq(fiscalYearsInCore.accountingEntityId, accountingEntityId),
+          lte(fiscalYearsInCore.startDate, calendarDate),
+          gte(fiscalYearsInCore.endDate, calendarDate)
+        )
+      )
+      .orderBy(asc(fiscalYearsInCore.startDate), asc(fiscalYearsInCore.id));
 
     return years.map(fiscalYearMapper.toDomain);
   },

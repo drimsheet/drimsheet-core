@@ -9,6 +9,7 @@ import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-a
 import makeGetAccountingContextUsecase from '@app/accounting/usecases/get-accounting-context.usecase';
 import makeGetAccountingIntervalUsecase from '@app/accounting/usecases/get-accounting-interval.usecase';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
+import makeGetCurrentFiscalYearUsecase from '@app/accounting/usecases/get-current-fiscal-year.usecase';
 import makeGetFiscalYearUsecase from '@app/accounting/usecases/get-fiscal-year.usecase';
 import makeGetFiscalYearsUsecase from '@app/accounting/usecases/get-fiscal-years.usecase';
 import makeGetJurisdictionsUseCase from '@app/accounting/usecases/get-jurisdictions.usecase';
@@ -33,6 +34,7 @@ import {
 import { repoService } from '@infra/ioc/services/repo';
 import { userPreferencesAppService } from '@infra/ioc/services/user';
 import messaging from '@infra/messaging';
+import observability from '@infra/observability';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import counterpartyRepos from '@infra/persistence/repos/counterparty';
@@ -264,5 +266,14 @@ export const archiveAccountingEntityUseCase = makeTracedUseCase(
     userPreferencesRepo: userRepos.userPreferences,
     repoService,
     eventBus: messaging.eventBus,
+  })
+);
+
+export const getCurrentFiscalYearUseCase = makeTracedUseCase(
+  'accounting.getCurrentFiscalYearUseCase',
+  makeGetCurrentFiscalYearUsecase({
+    appContext,
+    fiscalYearRepo: accountingRepos.fiscalYear,
+    reporter: observability.reporter,
   })
 );
