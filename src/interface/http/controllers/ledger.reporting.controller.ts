@@ -15,12 +15,10 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import type { IGetAccountCashFlowQuery } from '@app/ledger/usecases/reporting/account-cash-flow/dto';
 import type { IGetAccountCounterpartyParticipationQuery } from '@app/ledger/usecases/reporting/account-counterparty-participation/dto';
-import type {
-  IGetBalancesByAccountQuery,
-  IGetBalancesByBehaviorQuery,
-  IGetBalancesBySubTypeQuery,
-  IGetBalancesByTypeQuery,
-} from '@app/ledger/usecases/reporting/balance-series/dto';
+import type { IGetBalancesByAccountQuery } from '@app/ledger/usecases/reporting/balances-by-account/dto';
+import type { IGetBalancesByBehaviorQuery } from '@app/ledger/usecases/reporting/balances-by-behavior/dto';
+import type { IGetBalancesBySubTypeQuery } from '@app/ledger/usecases/reporting/balances-by-sub-type/dto';
+import type { IGetBalancesByTypeQuery } from '@app/ledger/usecases/reporting/balances-by-type/dto';
 import type { IGetLedgerBalancesByCurrencyQuery } from '@app/ledger/usecases/reporting/ledger-balances-by-currency/dto';
 import type { IGetRevenueExpenseAccountsQuery } from '@app/ledger/usecases/reporting/revenue-expense-accounts/dto';
 import type { IDateRangeDto } from '@app/ledger/usecases/reporting/shared/date-range';

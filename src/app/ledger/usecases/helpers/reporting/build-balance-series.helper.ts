@@ -7,16 +7,13 @@ import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 
 import { IBalanceSeriesRepoQueryOutput } from '@app/ledger/contracts/balance-series.repo-query.contract';
+import { IBalancesByAccountDto } from '@app/ledger/usecases/reporting/balances-by-account/dto';
+import { IBalancesByBehaviorDto } from '@app/ledger/usecases/reporting/balances-by-behavior/dto';
+import { IBalancesBySubTypeDto } from '@app/ledger/usecases/reporting/balances-by-sub-type/dto';
+import { IBalancesByTypeDto } from '@app/ledger/usecases/reporting/balances-by-type/dto';
 import { dateRangeMapper } from '@app/ledger/usecases/reporting/shared/date-range';
 import reportingValidation from '@app/ledger/usecases/reporting/shared/reporting.validation';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-
-import {
-  IBalancesByAccountDto,
-  IBalancesByBehaviorDto,
-  IBalancesBySubTypeDto,
-  IBalancesByTypeDto,
-} from './dto';
 
 function buildBalanceSeriesHelper(
   period: IDateRange,

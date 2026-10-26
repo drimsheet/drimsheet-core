@@ -25,14 +25,15 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import type { TBalanceSeriesRepoQuery } from '@app/ledger/contracts/balance-series.repo-query.contract';
-import buildBalanceSeriesHelper from '@app/ledger/usecases/reporting/balance-series/build-balance-series.helper';
+import buildBalanceSeriesHelper from '@app/ledger/usecases/helpers/reporting/build-balance-series.helper';
+import { dateRangeMapper } from '@app/ledger/usecases/reporting/shared/date-range';
+import reportingValidation from '@app/ledger/usecases/reporting/shared/reporting.validation';
+
 import {
   getBalancesBySubTypeQueryValidationSchema,
   IBalancesBySubTypeDto,
   IGetBalancesBySubTypeQuery,
-} from '@app/ledger/usecases/reporting/balance-series/dto';
-import { dateRangeMapper } from '@app/ledger/usecases/reporting/shared/date-range';
-import reportingValidation from '@app/ledger/usecases/reporting/shared/reporting.validation';
+} from './dto';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
