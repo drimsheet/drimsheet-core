@@ -459,7 +459,98 @@
         ]
       }
     },
-    "/reporting/ledger/balances/accounts": {
+    "/reporting/ledger/asset-and-liability-balances-by-currency": {
+      "get": {
+        "operationId": "getAssetAndLiabilityBalancesByCurrency",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAssetAndLiabilityBalancesByCurrencyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns current asset or liability posting balances grouped by currency,\nwith recorded functional balances and a combined functional total.\nAccounts without a fixed currency use functional currency. Stored\nbalances update asynchronously; no date filter or FX repricing applies.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["asset", "liability"]
+            }
+          }
+        ]
+      }
+    },
+    "/reporting/ledger/balances-by-account": {
       "get": {
         "operationId": "getBalancesByAccount",
         "responses": {
@@ -580,7 +671,7 @@
         ]
       }
     },
-    "/reporting/ledger/balances/behaviors": {
+    "/reporting/ledger/balances-by-behavior": {
       "get": {
         "operationId": "getBalancesByBehavior",
         "responses": {
@@ -701,7 +792,7 @@
         ]
       }
     },
-    "/reporting/ledger/balances/sub-types": {
+    "/reporting/ledger/balances-by-sub-type": {
       "get": {
         "operationId": "getBalancesBySubType",
         "responses": {
@@ -822,7 +913,7 @@
         ]
       }
     },
-    "/reporting/ledger/balances/types": {
+    "/reporting/ledger/balances-by-type": {
       "get": {
         "operationId": "getBalancesByType",
         "responses": {
@@ -938,97 +1029,6 @@
               "items": {
                 "$ref": "#/components/schemas/ULedgerType"
               }
-            }
-          }
-        ]
-      }
-    },
-    "/reporting/ledger/ledger-balances-by-currency": {
-      "get": {
-        "operationId": "getLedgerBalancesByCurrency",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IAssetAndLiabilityBalancesByCurrencyDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IHttpErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "description": "Returns current asset or liability posting balances grouped by currency,\nwith recorded functional balances and a combined functional total.\nAccounts without a fixed currency use functional currency. Stored\nbalances update asynchronously; no date filter or FX repricing applies.",
-        "tags": ["Reporting", "Ledger Reporting"],
-        "security": [],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "type",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": ["asset", "liability"]
             }
           }
         ]
@@ -8805,6 +8805,44 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IAssetAndLiabilityBalancesByCurrencyDto": {
+        "properties": {
+          "totalFunctionalBalance": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Sum of the currency groups' recorded functional balances."
+          },
+          "balancesByCurrency": {
+            "items": {
+              "properties": {
+                "functionalBalance": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "balance": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                }
+              },
+              "required": ["functionalBalance", "balance"],
+              "type": "object"
+            },
+            "type": "array",
+            "description": "Current posting-account balances, ordered by currency code."
+          }
+        },
+        "required": ["totalFunctionalBalance", "balancesByCurrency"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetAssetAndLiabilityBalancesByCurrencyQuery": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["asset", "liability"]
+          }
+        },
+        "required": ["type"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IBalancesByAccountDto": {
         "properties": {
           "period": {
@@ -9179,44 +9217,6 @@
           }
         },
         "required": ["from", "to", "bucketDays", "types"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IAssetAndLiabilityBalancesByCurrencyDto": {
-        "properties": {
-          "totalFunctionalBalance": {
-            "$ref": "#/components/schemas/IMoneyDto",
-            "description": "Sum of the currency groups' recorded functional balances."
-          },
-          "balancesByCurrency": {
-            "items": {
-              "properties": {
-                "functionalBalance": {
-                  "$ref": "#/components/schemas/IMoneyDto"
-                },
-                "balance": {
-                  "$ref": "#/components/schemas/IMoneyDto"
-                }
-              },
-              "required": ["functionalBalance", "balance"],
-              "type": "object"
-            },
-            "type": "array",
-            "description": "Current posting-account balances, ordered by currency code."
-          }
-        },
-        "required": ["totalFunctionalBalance", "balancesByCurrency"],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IGetAssetAndLiabilityBalancesByCurrencyQuery": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["asset", "liability"]
-          }
-        },
-        "required": ["type"],
         "type": "object",
         "additionalProperties": false
       },

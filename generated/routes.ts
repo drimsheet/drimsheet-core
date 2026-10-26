@@ -417,6 +417,40 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAssetAndLiabilityBalancesByCurrencyDto: {
+    dataType: 'refObject',
+    properties: {
+      totalFunctionalBalance: { ref: 'IMoneyDto', required: true },
+      balancesByCurrency: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            functionalBalance: { ref: 'IMoneyDto', required: true },
+            balance: { ref: 'IMoneyDto', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetAssetAndLiabilityBalancesByCurrencyQuery: {
+    dataType: 'refObject',
+    properties: {
+      type: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'enum', enums: ['asset'] },
+          { dataType: 'enum', enums: ['liability'] },
+        ],
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IBalancesByAccountDto: {
     dataType: 'refObject',
     properties: {
@@ -721,40 +755,6 @@ const models: TsoaRoute.Models = {
       types: {
         dataType: 'array',
         array: { dataType: 'refAlias', ref: 'ULedgerType' },
-        required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAssetAndLiabilityBalancesByCurrencyDto: {
-    dataType: 'refObject',
-    properties: {
-      totalFunctionalBalance: { ref: 'IMoneyDto', required: true },
-      balancesByCurrency: {
-        dataType: 'array',
-        array: {
-          dataType: 'nestedObjectLiteral',
-          nestedProperties: {
-            functionalBalance: { ref: 'IMoneyDto', required: true },
-            balance: { ref: 'IMoneyDto', required: true },
-          },
-        },
-        required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetAssetAndLiabilityBalancesByCurrencyQuery: {
-    dataType: 'refObject',
-    properties: {
-      type: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'enum', enums: ['asset'] },
-          { dataType: 'enum', enums: ['liability'] },
-        ],
         required: true,
       },
     },
@@ -3873,6 +3873,55 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerReportingController_getAssetAndLiabilityBalancesByCurrency: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetAssetAndLiabilityBalancesByCurrencyQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/ledger/asset-and-liability-balances-by-currency',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerReportingController.prototype.getAssetAndLiabilityBalancesByCurrency
+    ),
+
+    async function LedgerReportingController_getAssetAndLiabilityBalancesByCurrency(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerReportingController_getAssetAndLiabilityBalancesByCurrency,
+          request,
+          response,
+        });
+
+        const controller = new LedgerReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getAssetAndLiabilityBalancesByCurrency',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsLedgerReportingController_getBalancesByAccount: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -3885,7 +3934,7 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/ledger/balances/accounts',
+    '/api/v1/reporting/ledger/balances-by-account',
     ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
       LedgerReportingController.prototype.getBalancesByAccount
@@ -3934,7 +3983,7 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/ledger/balances/behaviors',
+    '/api/v1/reporting/ledger/balances-by-behavior',
     ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
       LedgerReportingController.prototype.getBalancesByBehavior
@@ -3983,7 +4032,7 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/ledger/balances/sub-types',
+    '/api/v1/reporting/ledger/balances-by-sub-type',
     ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
       LedgerReportingController.prototype.getBalancesBySubType
@@ -4032,7 +4081,7 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/ledger/balances/types',
+    '/api/v1/reporting/ledger/balances-by-type',
     ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
       LedgerReportingController.prototype.getBalancesByType
@@ -4057,55 +4106,6 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getBalancesByType',
-          controller,
-          response,
-          next,
-          validatedArgs,
-          successStatus: 200,
-        });
-      } catch (err) {
-        return next(err);
-      }
-    }
-  );
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsLedgerReportingController_getLedgerBalancesByCurrency: Record<
-    string,
-    TsoaRoute.ParameterSchema
-  > = {
-    query: {
-      in: 'queries',
-      name: 'query',
-      required: true,
-      ref: 'IGetAssetAndLiabilityBalancesByCurrencyQuery',
-    },
-  };
-  app.get(
-    '/api/v1/reporting/ledger/ledger-balances-by-currency',
-    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
-    ...fetchMiddlewares<RequestHandler>(
-      LedgerReportingController.prototype.getLedgerBalancesByCurrency
-    ),
-
-    async function LedgerReportingController_getLedgerBalancesByCurrency(
-      request: ExRequest,
-      response: ExResponse,
-      next: any
-    ) {
-      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-      let validatedArgs: any[] = [];
-      try {
-        validatedArgs = templateService.getValidatedArgs({
-          args: argsLedgerReportingController_getLedgerBalancesByCurrency,
-          request,
-          response,
-        });
-
-        const controller = new LedgerReportingController();
-
-        await templateService.apiHandler({
-          methodName: 'getLedgerBalancesByCurrency',
           controller,
           response,
           next,

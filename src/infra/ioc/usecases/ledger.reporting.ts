@@ -32,7 +32,7 @@ export const getAccountCounterpartyParticipationUseCase = makeTracedUseCase(
 );
 
 export const getAssetAndLiabilityBalancesByCurrencyUseCase = makeTracedUseCase(
-  'reporting.getLedgerBalancesByCurrencyUseCase',
+  'reporting.getAssetAndLiabilityBalancesByCurrencyUseCase',
   makeGetAssetAndLiabilityBalancesByCurrencyUsecase({
     appContext,
     repoQuery: assetAndLiabilityBalancesByCurrencyRepoQuery,

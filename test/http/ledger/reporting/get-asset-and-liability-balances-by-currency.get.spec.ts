@@ -75,7 +75,8 @@ jest.mock('@infra/ioc/usecases/ledger.reporting', () => ({
 
 const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
 const entityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
-const endpoint = '/api/v1/reporting/ledger/ledger-balances-by-currency';
+const endpoint =
+  '/api/v1/reporting/ledger/asset-and-liability-balances-by-currency';
 const entity = {
   id: entityId,
   ownerId: userId,
@@ -89,7 +90,7 @@ const account = {
   functionalAmount: 150_000_000n,
 };
 
-describe('GET /reporting/ledger/ledger-balances-by-currency', () => {
+describe('GET /reporting/ledger/asset-and-liability-balances-by-currency', () => {
   let server: Server;
   beforeEach(async () => {
     jest.resetAllMocks();

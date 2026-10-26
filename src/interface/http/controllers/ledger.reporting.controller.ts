@@ -95,11 +95,37 @@ export class LedgerReportingController extends Controller {
   }
 
   /**
+   * Returns current asset or liability posting balances grouped by currency,
+   * with recorded functional balances and a combined functional total.
+   * Accounts without a fixed currency use functional currency. Stored
+   * balances update asynchronously; no date filter or FX repricing applies.
+   */
+  @Get('/asset-and-liability-balances-by-currency')
+  @OperationId('getAssetAndLiabilityBalancesByCurrency')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAssetAndLiabilityBalancesByCurrency(
+    @Queries() query: IGetAssetAndLiabilityBalancesByCurrencyQuery
+  ) {
+    return await getAssetAndLiabilityBalancesByCurrencyUseCase(query.type);
+  }
+
+  /**
    * Returns closing-balance series for selected accounts and their descendants
    * in functional currency. Each account forms an independent series.
    * Dates are inclusive, up to 366 days; balances carry across empty buckets.
    */
-  @Get('/balances/accounts')
+  @Get('/balances-by-account')
   @OperationId('getBalancesByAccount')
   @SuccessResponse('200')
   @Response<IHttpErrorDto>('400')
@@ -124,7 +150,7 @@ export class LedgerReportingController extends Controller {
    * currency, including descendant activity. Dates are inclusive, up to
    * 366 days; balances carry across empty buckets.
    */
-  @Get('/balances/behaviors')
+  @Get('/balances-by-behavior')
   @OperationId('getBalancesByBehavior')
   @SuccessResponse('200')
   @Response<IHttpErrorDto>('400')
@@ -149,7 +175,7 @@ export class LedgerReportingController extends Controller {
    * currency, including descendant activity. Dates are inclusive, up to
    * 366 days; balances carry across empty buckets.
    */
-  @Get('/balances/sub-types')
+  @Get('/balances-by-sub-type')
   @OperationId('getBalancesBySubType')
   @SuccessResponse('200')
   @Response<IHttpErrorDto>('400')
@@ -174,7 +200,7 @@ export class LedgerReportingController extends Controller {
    * currency, including descendant activity. Dates are inclusive, up to
    * 366 days; balances carry across empty buckets.
    */
-  @Get('/balances/types')
+  @Get('/balances-by-type')
   @OperationId('getBalancesByType')
   @SuccessResponse('200')
   @Response<IHttpErrorDto>('400')
@@ -190,32 +216,6 @@ export class LedgerReportingController extends Controller {
   )
   public async getBalancesByType(@Queries() query: IGetBalancesByTypeQuery) {
     return await getBalancesByTypeUseCase(query);
-  }
-
-  /**
-   * Returns current asset or liability posting balances grouped by currency,
-   * with recorded functional balances and a combined functional total.
-   * Accounts without a fixed currency use functional currency. Stored
-   * balances update asynchronously; no date filter or FX repricing applies.
-   */
-  @Get('/ledger-balances-by-currency')
-  @OperationId('getLedgerBalancesByCurrency')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('404')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async getLedgerBalancesByCurrency(
-    @Queries() query: IGetAssetAndLiabilityBalancesByCurrencyQuery
-  ) {
-    return await getAssetAndLiabilityBalancesByCurrencyUseCase(query.type);
   }
 
   /**

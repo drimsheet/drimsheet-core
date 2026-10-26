@@ -134,14 +134,18 @@ const account = {
   deletedAt: null,
 } as ILedgerAccount;
 const endpoints = [
-  { path: 'types', filter: { types: ['asset'] }, identity: { type: 'asset' } },
   {
-    path: 'sub-types',
+    path: 'balances-by-type',
+    filter: { types: ['asset'] },
+    identity: { type: 'asset' },
+  },
+  {
+    path: 'balances-by-sub-type',
     filter: { subTypes: ['cash_and_cash_equivalent'] },
     identity: { type: 'asset', subType: 'cash_and_cash_equivalent' },
   },
   {
-    path: 'behaviors',
+    path: 'balances-by-behavior',
     filter: { behaviors: ['bank'] },
     identity: {
       type: 'asset',
@@ -150,14 +154,14 @@ const endpoints = [
     },
   },
   {
-    path: 'accounts',
+    path: 'balances-by-account',
     filter: { accountIds: [accountId] },
     identity: { accountId },
   },
 ];
 
 for (const endpoint of endpoints) {
-  describe(`GET /reporting/ledger/balances/${endpoint.path}`, () => {
+  describe(`GET /reporting/ledger/${endpoint.path}`, () => {
     let app: Express;
     let server: Server;
     beforeEach(async () => {
@@ -193,7 +197,7 @@ for (const endpoint of endpoints) {
     });
     const getReport = (changes: Record<string, unknown> = {}) =>
       request(server)
-        .get(`/api/v1/reporting/ledger/balances/${endpoint.path}`)
+        .get(`/api/v1/reporting/ledger/${endpoint.path}`)
         .query({ ...period, ...endpoint.filter, ...changes })
         .set('Authorization', 'Bearer test-token')
         .set('x-accounting-entity-id', entityId);
@@ -213,7 +217,7 @@ for (const endpoint of endpoints) {
           }
 
           const response = await request(server)
-            .get(`/api/v1/reporting/ledger/balances/${endpoint.path}`)
+            .get(`/api/v1/reporting/ledger/${endpoint.path}`)
             .query(query.toString())
             .set('Authorization', 'Bearer test-token')
             .set('x-accounting-entity-id', entityId);
@@ -234,7 +238,7 @@ for (const endpoint of endpoints) {
         }
       );
 
-      if (endpoint.path === 'accounts') {
+      if (endpoint.path === 'balances-by-account') {
         it('accepts a control account and returns its subtree balance', async () => {
           mockLedgerAccountRepo.findById.mockResolvedValue({
             ...account,
@@ -255,7 +259,7 @@ for (const endpoint of endpoints) {
         });
       }
 
-      if (endpoint.path !== 'accounts') {
+      if (endpoint.path !== 'balances-by-account') {
         it('returns no series when the chart has no matching hierarchy roots', async () => {
           mockBalanceSeriesRepoQuery.mockResolvedValue([]);
           const response = await getReport();
@@ -312,7 +316,7 @@ for (const endpoint of endpoints) {
     describe('401 Response', () => {
       it('requires authentication', async () => {
         const response = await request(server)
-          .get(`/api/v1/reporting/ledger/balances/${endpoint.path}`)
+          .get(`/api/v1/reporting/ledger/${endpoint.path}`)
           .query({ ...period, ...endpoint.filter })
           .set('x-accounting-entity-id', entityId);
         expect(response.status).toBe(401);
@@ -343,7 +347,7 @@ for (const endpoint of endpoints) {
       );
       it('requires the endpoint-specific filter', async () => {
         const response = await request(server)
-          .get(`/api/v1/reporting/ledger/balances/${endpoint.path}`)
+          .get(`/api/v1/reporting/ledger/${endpoint.path}`)
           .query(period)
           .set('Authorization', 'Bearer test-token')
           .set('x-accounting-entity-id', entityId);
@@ -351,7 +355,7 @@ for (const endpoint of endpoints) {
         expect(mockBalanceSeriesRepoQuery).not.toHaveBeenCalled();
       });
     });
-    if (endpoint.path === 'accounts') {
+    if (endpoint.path === 'balances-by-account') {
       describe('404 Response', () => {
         it('does not expose foreign or absent accounts', async () => {
           mockLedgerAccountRepo.findById.mockResolvedValue(null);
