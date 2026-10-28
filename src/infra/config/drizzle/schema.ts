@@ -128,6 +128,26 @@ export const subledgerFxCostBasisLotStatusInCore = core.enum(
   ['open', 'closed']
 );
 
+export const waitlistMembersInCore = core.table(
+  'waitlist_members',
+  {
+    id: serial().primaryKey().notNull(),
+    firstName: varchar('first_name', { length: 100 }),
+    lastName: varchar('last_name', { length: 100 }),
+    email: varchar({ length: 254 }).notNull(),
+    feature: varchar({ length: 100 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique('waitlist_members_email_feature_key').on(table.email, table.feature),
+  ]
+);
+
 export const actorsInCore = core.table(
   'actors',
   {

@@ -5,6 +5,7 @@ import {
   Middlewares,
   OperationId,
   Patch,
+  Post,
   Response,
   Route,
   Security,
@@ -18,11 +19,13 @@ import {
   IUserPreferencesUpdateDto,
   IUserProfileUpdateDto,
 } from '@app/user/dtos/user/user.dto';
+import { IJoinWaitListDto } from '@app/user/dtos/waitlist-member/waitlist-member.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAuthUserProfileUseCase,
   getUserPreferencesUseCase,
+  joinWaitListUseCase,
   updateAuthUserProfileUseCase,
   updateUserPreferencesUseCase,
 } from '@infra/ioc/usecases/user';
@@ -55,6 +58,17 @@ export class UserController extends Controller {
   @Middlewares(middlewares.isAuthenticatedUser)
   public async getAuthUserProfile() {
     return getAuthUserProfileUseCase();
+  }
+
+  /** Join the waitlist for a feature. Repeated submissions succeed. */
+  @Post('/waitlist')
+  @OperationId('joinWaitList')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  public async joinWaitList(@Body() body: IJoinWaitListDto): Promise<void> {
+    await joinWaitListUseCase(body);
+    this.setStatus(204);
   }
 
   /**

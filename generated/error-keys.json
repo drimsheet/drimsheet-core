@@ -433,5 +433,6 @@
   "user_error_user_value_object_format_invalid",
   "user_error_user_value_object_too_long_invalid",
   "user_error_user_value_object_too_short_invalid",
-  "user_error_user_value_object_type_invalid"
+  "user_error_user_value_object_type_invalid",
+  "user_error_waitlist_feature_invalid"
 ]

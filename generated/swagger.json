@@ -225,6 +225,50 @@
         }
       }
     },
+    "/users/waitlist": {
+      "post": {
+        "operationId": "joinWaitList",
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Join the waitlist for a feature. Repeated submissions succeed.",
+        "tags": ["User"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IJoinWaitListDto"
+              }
+            }
+          }
+        }
+      }
+    },
     "/reporting/ledger/account-activity-by-types": {
       "get": {
         "operationId": "getAccountActivityByTypes",
@@ -8644,6 +8688,32 @@
           "createdAt",
           "updatedAt"
         ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "UWaitListFeature": {
+        "type": "string",
+        "enum": ["mvp"],
+        "nullable": false
+      },
+      "IJoinWaitListDto": {
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string"
+          },
+          "feature": {
+            "$ref": "#/components/schemas/UWaitListFeature"
+          }
+        },
+        "required": ["email", "feature"],
         "type": "object",
         "additionalProperties": false
       },

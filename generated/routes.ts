@@ -163,6 +163,34 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UWaitListFeature: {
+    dataType: 'refAlias',
+    type: { dataType: 'enum', enums: ['mvp'], validators: {} },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJoinWaitListDto: {
+    dataType: 'refObject',
+    properties: {
+      firstName: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      lastName: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      email: { dataType: 'string', required: true },
+      feature: { ref: 'UWaitListFeature', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IUserPreferencesUpdateDto: {
     dataType: 'refObject',
     properties: {
@@ -3724,6 +3752,48 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsUserController_joinWaitList: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: { in: 'body', name: 'body', required: true, ref: 'IJoinWaitListDto' },
+  };
+  app.post(
+    '/api/v1/users/waitlist',
+    ...fetchMiddlewares<RequestHandler>(UserController),
+    ...fetchMiddlewares<RequestHandler>(UserController.prototype.joinWaitList),
+
+    async function UserController_joinWaitList(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsUserController_joinWaitList,
+          request,
+          response,
+        });
+
+        const controller = new UserController();
+
+        await templateService.apiHandler({
+          methodName: 'joinWaitList',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 204,
         });
       } catch (err) {
         return next(err);

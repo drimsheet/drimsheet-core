@@ -1,5 +1,6 @@
 import makeGetUserPreferencesUseCase from '@app/user/usecases/get-preferences.usecase';
 import makeGetAuthUserProfileUseCase from '@app/user/usecases/get-profile.usecase';
+import makeJoinWaitListUsecase from '@app/user/usecases/join-waitlist.usecase';
 import makeUpdateUserPreferencesUsecase from '@app/user/usecases/update-preferences.usecase';
 import makeUpdateAuthUserProfileUsecase from '@app/user/usecases/update-profile.usecase';
 
@@ -37,6 +38,15 @@ export const updateAuthUserProfileUseCase = makeTracedUseCase(
   makeUpdateAuthUserProfileUsecase({
     appContext,
     userRepo: userRepos.user,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const joinWaitListUseCase = makeTracedUseCase(
+  'user.joinWaitListUseCase',
+  makeJoinWaitListUsecase({
+    appContext,
+    waitListMemberRepo: userRepos.waitListMember,
     eventBus: messaging.eventBus,
   })
 );

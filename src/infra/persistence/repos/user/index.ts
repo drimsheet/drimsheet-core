@@ -5,8 +5,10 @@ import userHistoryRepo from './user-history.repo.impl';
 import userPreferencesRepo from './user-preferences.repo.impl';
 import userSessionRepo from './user-session.repo.impl';
 import userRepo from './user.repo.impl';
+import waitListMemberRepo from './waitlist-member.repo.impl';
 
 const userRepos = {
+  waitListMember: waitListMemberRepo,
   actor: actorRepo,
   actorHistory: actorHistoryRepo,
   user: userRepo,

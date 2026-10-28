@@ -2,6 +2,7 @@ import IActorHistoryRepo from '@domain/user/repos/actor-history.repo';
 import IActorRepo from '@domain/user/repos/actor.repo';
 import IUserHistoryRepo from '@domain/user/repos/user-history.repo';
 import IUserRepo from '@domain/user/repos/user.repo';
+import IWaitListMemberRepo from '@domain/user/repos/waitlist-member.repo';
 
 import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
 
@@ -30,4 +31,9 @@ export const mockActorRepo: jest.Mocked<IActorRepo> = {
 };
 export const mockActorHistoryRepo: jest.Mocked<IActorHistoryRepo> = {
   save: jest.fn(),
+};
+
+export const mockWaitListMemberRepo: jest.Mocked<IWaitListMemberRepo> = {
+  create: jest.fn(),
+  findByEmailAndFeature: jest.fn(),
 };
