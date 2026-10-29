@@ -1,3 +1,5 @@
+// TODO: separate fiscal years from interval errors https://drimsheet-app.atlassian.net/browse/ENG-242
+
 import { TErrorCause, TErrorKeys } from '@shared/types/error.types';
 import errorUtils from '@shared/utils/error';
 

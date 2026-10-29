@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Archives the selected accounting entity while retaining its accounting
+ * records. Saves archival and clears saved entity selections together, then
+ * clears the current selection and publishes events. An already archived entity
+ * only clears the current selection. Returns no value.
+ *
+ * WHEN TO USE
+ * Use when the entity should leave active use without deleting its history.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/archive-accounting-entity.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

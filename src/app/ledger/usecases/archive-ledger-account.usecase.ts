@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Archives a non-root account in the selected accounting entity and, for a
+ * control account, its descendants. Saves changed account states and audits
+ * together, then publishes archival events. Preserves balances and journal
+ * references. Root accounts are rejected; an already archived target requires
+ * no account changes. Returns no value.
+ *
+ * WHEN TO USE
+ * Use to retire an account or account subtree while retaining its financial
+ * history. Use deletion only for an eligible account and its eligible
+ * descendants.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/archive-ledger-account.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

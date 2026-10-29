@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Lists accounts in the selected entity using filters, ordering, and
+ * pagination, enriching each with balances. Defaults the status filter to
+ * active when omitted. Returns account rows and pagination metadata; a result
+ * page may be empty.
+ *
+ * WHEN TO USE
+ * Use for flat account browsing or selection. Supply a status when draft or
+ * archived accounts are needed.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';

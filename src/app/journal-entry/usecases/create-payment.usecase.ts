@@ -1,3 +1,21 @@
+/**
+ * SUMMARY
+ * Creates a payment journal for the selected accounting entity, with one source
+ * and one or more destination lines. A null postedAt creates a draft; a posting
+ * date requests a posted entry. Resolves counterparties and claims the user's
+ * attachment uploads. Saves the journal, new counterparties, audit history,
+ * applicable foreign-exchange disposition, and pending balance work together.
+ * Requests balance processing for posted entries, publishes events, and returns
+ * the journal; derived balances are updated separately.
+ *
+ * WHEN TO USE
+ * Use to record a new outgoing payment. Use post-draft-payment to post an
+ * existing draft without changing its financial content.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/create-payment.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

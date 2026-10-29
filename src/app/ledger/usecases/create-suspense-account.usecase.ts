@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Creates an asset or liability suspense account in the selected entity and
+ * requested currency. Enforces suspense-account creation rules and allocates
+ * its account code. Saves the account, audit history, and initial balance
+ * together, then publishes events and returns the account.
+ *
+ * WHEN TO USE
+ * Use when activity needs an asset or liability suspense classification pending
+ * its final allocation.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

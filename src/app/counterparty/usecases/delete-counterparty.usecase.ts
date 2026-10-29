@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Permanently removes an unreferenced counterparty from the selected accounting
+ * entity while retaining its existing audit history. Rejects missing
+ * counterparties and any remaining journal-line reference, regardless of
+ * journal status. Keeps deletion eligibility valid through removal, then
+ * publishes the deletion event after commit. Returns no value.
+ *
+ * WHEN TO USE
+ * Use to remove an unused counterparty. Use archive-counterparty when
+ * transaction references must be retained; a previous eligibility result does
+ * not replace the checks performed here.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

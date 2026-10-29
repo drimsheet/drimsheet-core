@@ -1,4 +1,3 @@
-import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
@@ -17,6 +16,7 @@ import { ICurrency } from '@domain/money/types/currency.types';
 import moneyValue from '@domain/money/values/money.vo';
 
 import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import ledgerAppError from '@app/ledger/errors/ledger.error';
 import makeLedgerAccountBalanceEnrichmentAppService from '@app/ledger/services/ledger-account-balance-enrichment.service';
 
 describe('ledgerAccountBalanceEnrichmentAppService', () => {
@@ -106,11 +106,10 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
   );
   const service = makeLedgerAccountBalanceEnrichmentAppService({
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
-    reporter: mockReporter,
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   it('returns an empty array without reading balances for empty input', async () => {
@@ -155,7 +154,6 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
         isMinorUnit: true,
       },
     });
-    expect(mockReporter.report).not.toHaveBeenCalled();
   });
 
   it('associates out-of-order balance rows while preserving input order', async () => {
@@ -193,61 +191,33 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
     expect(result.map(({ balance }) => balance.amount)).toEqual([10000, 20000]);
   });
 
-  it('reports every missing balance and maps fixed and functional-currency zero fallbacks', async () => {
-    const firstBalance = makeBalance(firstAccount, 100, SYSTEM_CURRENCIES.USD);
-    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
-      firstBalance,
-    ]);
+  it.each([secondAccount, currencyNeutralAccount])(
+    'rejects the whole result when account $code has no balance',
+    async (missingAccount) => {
+      const firstBalance = makeBalance(
+        firstAccount,
+        100,
+        SYSTEM_CURRENCIES.USD
+      );
+      mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+        firstBalance,
+      ]);
 
-    const result = await service.enrich(
-      [firstAccount, secondAccount, currencyNeutralAccount],
-      accountingEntity,
-      repoOptions
-    );
+      const result = service.enrich(
+        [firstAccount, missingAccount],
+        accountingEntity,
+        repoOptions
+      );
 
-    expect(result.map(({ id }) => id)).toEqual([
-      firstAccount.id,
-      secondAccount.id,
-      currencyNeutralAccount.id,
-    ]);
-    expect(mockReporter.report).toHaveBeenCalledTimes(2);
-    expect(mockReporter.report).toHaveBeenNthCalledWith(
-      1,
-      'ledger.balance_enrichment.failed',
-      expect.objectContaining({
-        errorKey: 'app_error_ledger_balance_not_found',
-        cause: { accountId: secondAccount.id },
-      })
-    );
-    expect(mockReporter.report).toHaveBeenNthCalledWith(
-      2,
-      'ledger.balance_enrichment.failed',
-      expect.objectContaining({
-        errorKey: 'app_error_ledger_balance_not_found',
-        cause: { accountId: currencyNeutralAccount.id },
-      })
-    );
-    expect(result[1].balance).toEqual({
-      amount: 0,
-      currencyCode: SYSTEM_CURRENCIES.EUR.code,
-      isMinorUnit: true,
-    });
-    expect(result[1].functionalBalance).toEqual({
-      amount: 0,
-      currencyCode: SYSTEM_CURRENCIES.USD.code,
-      isMinorUnit: true,
-    });
-    expect(result[2].balance).toEqual({
-      amount: 0,
-      currencyCode: SYSTEM_CURRENCIES.USD.code,
-      isMinorUnit: true,
-    });
-    expect(result[2].functionalBalance).toEqual({
-      amount: 0,
-      currencyCode: SYSTEM_CURRENCIES.USD.code,
-      isMinorUnit: true,
-    });
-  });
+      await expect(result).rejects.toBeInstanceOf(
+        ledgerAppError.BalanceNotFound
+      );
+      await expect(result).rejects.toMatchObject({
+        errorKey: 'app_error_ledger_balance_missing_unexpected',
+        cause: { accountId: missingAccount.id },
+      });
+    }
+  );
 
   it('rejects an unexpected balance repository failure unchanged', async () => {
     const failure = new Error('balance repository unavailable');
@@ -256,7 +226,5 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
     await expect(
       service.enrich([firstAccount], accountingEntity, repoOptions)
     ).rejects.toBe(failure);
-
-    expect(mockReporter.report).not.toHaveBeenCalled();
   });
 });

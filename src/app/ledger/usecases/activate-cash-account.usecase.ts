@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Activates a cash account in the selected accounting entity and optionally
+ * posts its existing draft opening journal. Saves account activation, any
+ * opening posting, audits, applicable foreign-exchange acquisition, and pending
+ * balance work together. Publishes events and requests balance processing after
+ * commit. Returns no value; when neither account nor journal needs a change,
+ * produces no new effects.
+ *
+ * WHEN TO USE
+ * Use when a bank or petty-cash account is ready for active use. Set
+ * activateOpeningBalance to also post its draft opening journal if one exists.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/activate-cash-account.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

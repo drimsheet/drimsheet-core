@@ -1,3 +1,21 @@
+/**
+ * SUMMARY
+ * Resolves a Google profile to a local user through a callback. Requires a
+ * provider subject and verified email. Matches existing users by normalized
+ * email and adds the Google strategy when absent; missing auth records are
+ * rejected. For new users, saves a verified identity and Google authentication
+ * together, then publishes creation events. Calls back with the user or an
+ * error; session establishment is handled separately by the OAuth callback use
+ * case.
+ *
+ * WHEN TO USE
+ * Use when the Google authentication adapter supplies a provider profile,
+ * before completing the client login.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/login-with-google.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

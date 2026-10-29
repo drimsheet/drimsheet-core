@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Updates the selected entity's name, type, or functional currency. A
+ * functional-currency change requires no journal entries and updates eligible
+ * functional balance denominations together with the entity and audit history.
+ * Refreshes the current entity context and returns the entity; unchanged
+ * requests produce no writes, audit, or events. Events are published after the
+ * changes commit.
+ *
+ * WHEN TO USE
+ * Use to revise entity settings.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/update-accounting-entity.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

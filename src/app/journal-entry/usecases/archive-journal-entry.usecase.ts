@@ -1,3 +1,21 @@
+/**
+ * SUMMARY
+ * Archives a draft or posted journal in the selected accounting entity while
+ * retaining its lines, attachments, and posting history. Saves the status
+ * change with audit history, publishes the archival event, and returns the
+ * journal. An already archived entry is returned without writes, audit, or
+ * events. Archival does not reverse the entry or request balance changes;
+ * missing or foreign entries and unsupported status transitions are rejected.
+ *
+ * WHEN TO USE
+ * Use to retire an entry from ordinary active use while preserving its
+ * financial effect. Use delete-journal-entry to discard an unposted entry or
+ * cancel a posted entry.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { TEntityId } from '@shared/types/uuid';

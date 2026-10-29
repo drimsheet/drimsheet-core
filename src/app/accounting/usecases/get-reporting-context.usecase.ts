@@ -1,3 +1,16 @@
+/**
+ * SUMMARY
+ * Retrieves the reporting context for a fiscal year in the selected entity.
+ * Returns null when the year exists but its context is absent; rejects a
+ * missing fiscal year.
+ *
+ * WHEN TO USE
+ * Use to inspect reporting configuration or determine whether setup is needed.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';

@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Lists counterparties within the selected accounting entity using the
+ * requested role, type, status, ordering, and pagination options. Returns
+ * counterparty details with pagination metadata; the result page may be empty.
+ *
+ * WHEN TO USE
+ * Use to browse or select counterparties, or to filter the entity's
+ * counterparty directory.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';

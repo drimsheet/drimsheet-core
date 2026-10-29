@@ -1,3 +1,23 @@
+/**
+ * SUMMARY
+ * Imports exchange-rate observations from the configured provider for a date
+ * range. Omitted start and end dates default independently to two years before
+ * now and now. Validates observations and selects those at or after the latest
+ * stored date for each pair, or all observations for a previously unseen pair.
+ * Saves selected observations together, attributed to the current actor, and
+ * returns processedCount. The count measures selected observations, not
+ * necessarily newly inserted rows. If none qualify, returns zero without
+ * writes. Failures propagate; no domain events are published.
+ *
+ * WHEN TO USE
+ * Use in background rate ingestion with an actor in application context. Older
+ * observations for an already populated pair are filtered out, so this is not a
+ * historical-gap backfill operation.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/ingest-exchange-rate.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import {
   IRepoService,

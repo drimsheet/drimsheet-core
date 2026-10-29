@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Creates the selected entity's baseline account hierarchy, including header
+ * accounts, retained earnings, opening-balance equity, and trade/statutory
+ * receivable and payable controls. Accepts optional name aliases, using default
+ * English names otherwise. Saves accounts, initial balances, and audits
+ * together, then publishes events and returns the created accounts. Existing-
+ * account constraints still apply on repeated calls.
+ *
+ * WHEN TO USE
+ * Use during initial chart-of-accounts setup before creating operational
+ * subaccounts. Use get-recommended-bootstrap for additional setup suggestions.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/setup-header-accounts.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

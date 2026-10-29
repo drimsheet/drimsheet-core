@@ -96,7 +96,7 @@
   "app_error_ledger_account_not_found",
   "app_error_ledger_activate_opening_balance_invalid",
   "app_error_ledger_balance_hierarchy_changed_conflict",
-  "app_error_ledger_balance_not_found",
+  "app_error_ledger_balance_missing_unexpected",
   "app_error_ledger_balance_propagation_outbox_not_found",
   "app_error_ledger_exchange_rate_required_invalid",
   "app_error_ledger_sub_type_invalid",
@@ -433,5 +433,6 @@
   "user_error_user_value_object_format_invalid",
   "user_error_user_value_object_too_long_invalid",
   "user_error_user_value_object_too_short_invalid",
-  "user_error_user_value_object_type_invalid"
+  "user_error_user_value_object_type_invalid",
+  "user_error_waitlist_feature_invalid"
 ]

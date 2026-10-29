@@ -29,7 +29,7 @@ import { JournalEntryController } from './../src/interface/http/controllers/jour
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { LedgerController } from './../src/interface/http/controllers/ledger.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-import { ReportingController } from './../src/interface/http/controllers/reporting.controller';
+import { LedgerReportingController } from './../src/interface/http/controllers/ledger.reporting.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { UserController } from './../src/interface/http/controllers/user.controller';
 
@@ -163,6 +163,34 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UWaitListFeature: {
+    dataType: 'refAlias',
+    type: { dataType: 'enum', enums: ['mvp'], validators: {} },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJoinWaitListDto: {
+    dataType: 'refObject',
+    properties: {
+      firstName: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      lastName: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      email: { dataType: 'string', required: true },
+      feature: { ref: 'UWaitListFeature', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IUserPreferencesUpdateDto: {
     dataType: 'refObject',
     properties: {
@@ -190,6 +218,21 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['asset'] },
+        { dataType: 'enum', enums: ['liability'] },
+        { dataType: 'enum', enums: ['revenue'] },
+        { dataType: 'enum', enums: ['expense'] },
+        { dataType: 'enum', enums: ['equity'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IMoneyDto: {
     dataType: 'refObject',
     properties: {
@@ -200,40 +243,50 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountCashFlowBucketDto: {
+  IAccountActivityByTypesDto: {
     dataType: 'refObject',
     properties: {
-      from: { dataType: 'string', required: true },
-      to: { dataType: 'string', required: true },
-      moneyIn: { ref: 'IMoneyDto', required: true },
-      moneyOut: { ref: 'IMoneyDto', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountCashFlowDto: {
-    dataType: 'refObject',
-    properties: {
-      accountId: { dataType: 'string', required: true },
       currencyCode: { dataType: 'string', required: true },
       period: { ref: 'IDateRangeDto', required: true },
-      totalMoneyIn: { ref: 'IMoneyDto', required: true },
-      totalMoneyOut: { ref: 'IMoneyDto', required: true },
       buckets: {
         dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IAccountCashFlowBucketDto' },
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            activity: {
+              dataType: 'array',
+              array: {
+                dataType: 'nestedObjectLiteral',
+                nestedProperties: {
+                  delta: { ref: 'IMoneyDto', required: true },
+                  totalCredits: { ref: 'IMoneyDto', required: true },
+                  totalDebits: { ref: 'IMoneyDto', required: true },
+                  type: { ref: 'ULedgerType', required: true },
+                },
+              },
+              required: true,
+            },
+            to: { dataType: 'string', required: true },
+            from: { dataType: 'string', required: true },
+          },
+        },
         required: true,
       },
     },
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetAccountCashFlowQuery: {
+  IGetAccountActivityByTypesQuery: {
     dataType: 'refObject',
     properties: {
       from: { dataType: 'string', required: true },
       to: { dataType: 'string', required: true },
       bucketDays: { dataType: 'double', required: true },
+      types: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerType' },
+        required: true,
+      },
     },
     additionalProperties: false,
   },
@@ -348,7 +401,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IAccountCounterpartyParticipationDto: {
+  IAccountBalanceContributionsByCounterpartyDto: {
     dataType: 'refObject',
     properties: {
       counterparty: {
@@ -391,14 +444,14 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IPaginatedResponse_IAccountCounterpartyParticipationDto_: {
+  IPaginatedResponse_IAccountBalanceContributionsByCounterpartyDto_: {
     dataType: 'refObject',
     properties: {
       data: {
         dataType: 'array',
         array: {
           dataType: 'refObject',
-          ref: 'IAccountCounterpartyParticipationDto',
+          ref: 'IAccountBalanceContributionsByCounterpartyDto',
         },
         required: true,
       },
@@ -407,7 +460,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetAccountCounterpartyParticipationQuery: {
+  IGetAccountBalanceContributionsByCounterpartyQuery: {
     dataType: 'refObject',
     properties: {
       page: { dataType: 'double' },
@@ -417,7 +470,45 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IBalancesByAccountDto: {
+  IAccountCashFlowBucketDto: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      moneyIn: { ref: 'IMoneyDto', required: true },
+      moneyOut: { ref: 'IMoneyDto', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountCashFlowDto: {
+    dataType: 'refObject',
+    properties: {
+      accountId: { dataType: 'string', required: true },
+      currencyCode: { dataType: 'string', required: true },
+      period: { ref: 'IDateRangeDto', required: true },
+      totalMoneyIn: { ref: 'IMoneyDto', required: true },
+      totalMoneyOut: { ref: 'IMoneyDto', required: true },
+      buckets: {
+        dataType: 'array',
+        array: { dataType: 'refObject', ref: 'IAccountCashFlowBucketDto' },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetAccountCashFlowQuery: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      bucketDays: { dataType: 'double', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IBalanceHistoryByAccountDto: {
     dataType: 'refObject',
     properties: {
       period: { ref: 'IDateRangeDto', required: true },
@@ -446,7 +537,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetBalancesByAccountQuery: {
+  IGetBalanceHistoryByAccountQuery: {
     dataType: 'refObject',
     properties: {
       from: { dataType: 'string', required: true },
@@ -461,22 +552,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ULedgerType: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['asset'] },
-        { dataType: 'enum', enums: ['liability'] },
-        { dataType: 'enum', enums: ['revenue'] },
-        { dataType: 'enum', enums: ['expense'] },
-        { dataType: 'enum', enums: ['equity'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IBalancesByBehaviorDto: {
+  IBalanceHistoryByBehaviorDto: {
     dataType: 'refObject',
     properties: {
       period: { ref: 'IDateRangeDto', required: true },
@@ -566,7 +642,7 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetBalancesByBehaviorQuery: {
+  IGetBalanceHistoryByBehaviorQuery: {
     dataType: 'refObject',
     properties: {
       from: { dataType: 'string', required: true },
@@ -581,7 +657,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IBalancesBySubTypeDto: {
+  IBalanceHistoryBySubTypeDto: {
     dataType: 'refObject',
     properties: {
       period: { ref: 'IDateRangeDto', required: true },
@@ -668,7 +744,7 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetBalancesBySubTypeQuery: {
+  IGetBalanceHistoryBySubTypeQuery: {
     dataType: 'refObject',
     properties: {
       from: { dataType: 'string', required: true },
@@ -683,7 +759,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IBalancesByTypeDto: {
+  IBalanceHistoryByTypeDto: {
     dataType: 'refObject',
     properties: {
       period: { ref: 'IDateRangeDto', required: true },
@@ -712,7 +788,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetBalancesByTypeQuery: {
+  IGetBalanceHistoryByTypeQuery: {
     dataType: 'refObject',
     properties: {
       from: { dataType: 'string', required: true },
@@ -727,7 +803,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ILedgerBalancesByCurrencyDto: {
+  ICurrentAssetAndLiabilityBalancesByCurrencyDto: {
     dataType: 'refObject',
     properties: {
       totalFunctionalBalance: { ref: 'IMoneyDto', required: true },
@@ -746,7 +822,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetLedgerBalancesByCurrencyQuery: {
+  IGetCurrentAssetAndLiabilityBalancesByCurrencyQuery: {
     dataType: 'refObject',
     properties: {
       type: {
@@ -761,77 +837,59 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ULedgerAccountStatus: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['draft'] },
-        { dataType: 'enum', enums: ['active'] },
-        { dataType: 'enum', enums: ['archived'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IRevenueExpenseAccountDto: {
+  ICurrentTotalBalanceByTypeDto: {
     dataType: 'refObject',
     properties: {
-      accountId: { dataType: 'string', required: true },
-      accountName: { dataType: 'string', required: true },
-      code: { dataType: 'string', required: true },
-      type: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'enum', enums: ['revenue'] },
-          { dataType: 'enum', enums: ['expense'] },
-          { dataType: 'enum', enums: ['asset'] },
-          { dataType: 'enum', enums: ['liability'] },
-        ],
-        required: true,
-      },
-      subType: { dataType: 'string', required: true },
-      status: { ref: 'ULedgerAccountStatus', required: true },
-      amount: { ref: 'IMoneyDto', required: true },
-      sharePercentage: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'double' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      transactionCount: { dataType: 'double', required: true },
+      totalFunctionalBalance: { ref: 'IMoneyDto', required: true },
     },
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IPaginatedResponse_IRevenueExpenseAccountDto_: {
+  IGetCurrentTotalBalanceByTypeQuery: {
     dataType: 'refObject',
     properties: {
-      data: {
+      type: { ref: 'ULedgerType', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ILedgerTotalDebitsAndCreditsByCurrencyDto: {
+    dataType: 'refObject',
+    properties: {
+      fiscalYearId: { dataType: 'string', required: true },
+      period: { ref: 'IDateRangeDto', required: true },
+      totalsByCurrency: {
         dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IRevenueExpenseAccountDto' },
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            delta: { ref: 'IMoneyDto', required: true },
+            totalCredits: { ref: 'IMoneyDto', required: true },
+            totalDebits: { ref: 'IMoneyDto', required: true },
+          },
+        },
         required: true,
       },
-      meta: { ref: 'IPaginationResponseMeta', required: true },
     },
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IGetRevenueExpenseAccountsQuery: {
+  IGetLedgerTotalDebitsAndCreditsByCurrencyQuery: {
     dataType: 'refObject',
     properties: {
-      page: { dataType: 'double' },
-      limit: { dataType: 'double' },
-      search: { dataType: 'string' },
+      fiscalYearId: { dataType: 'string', required: true },
       type: {
         dataType: 'union',
         subSchemas: [
+          { dataType: 'enum', enums: ['asset'] },
+          { dataType: 'enum', enums: ['liability'] },
           { dataType: 'enum', enums: ['revenue'] },
           { dataType: 'enum', enums: ['expense'] },
         ],
+        required: true,
       },
+      startDate: { dataType: 'string' },
+      endDate: { dataType: 'string' },
     },
     additionalProperties: false,
   },
@@ -873,7 +931,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IRevenueExpenseSummaryDto: {
+  IRevenueAndExpenseActivitySummaryDto: {
     dataType: 'refObject',
     properties: {
       currencyCode: { dataType: 'string', required: true },
@@ -888,6 +946,84 @@ const models: TsoaRoute.Models = {
           transactionCount: { dataType: 'double', required: true },
         },
         required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountStatus: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['draft'] },
+        { dataType: 'enum', enums: ['active'] },
+        { dataType: 'enum', enums: ['archived'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IRevenueExpenseAndSuspenseAccountBalanceDto: {
+    dataType: 'refObject',
+    properties: {
+      accountId: { dataType: 'string', required: true },
+      accountName: { dataType: 'string', required: true },
+      code: { dataType: 'string', required: true },
+      type: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'enum', enums: ['revenue'] },
+          { dataType: 'enum', enums: ['expense'] },
+          { dataType: 'enum', enums: ['asset'] },
+          { dataType: 'enum', enums: ['liability'] },
+        ],
+        required: true,
+      },
+      subType: { dataType: 'string', required: true },
+      status: { ref: 'ULedgerAccountStatus', required: true },
+      amount: { ref: 'IMoneyDto', required: true },
+      sharePercentage: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'double' },
+          { dataType: 'enum', enums: [null] },
+        ],
+        required: true,
+      },
+      transactionCount: { dataType: 'double', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IPaginatedResponse_IRevenueExpenseAndSuspenseAccountBalanceDto_: {
+    dataType: 'refObject',
+    properties: {
+      data: {
+        dataType: 'array',
+        array: {
+          dataType: 'refObject',
+          ref: 'IRevenueExpenseAndSuspenseAccountBalanceDto',
+        },
+        required: true,
+      },
+      meta: { ref: 'IPaginationResponseMeta', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetRevenueExpenseAndSuspenseAccountBalancesQuery: {
+    dataType: 'refObject',
+    properties: {
+      page: { dataType: 'double' },
+      limit: { dataType: 'double' },
+      search: { dataType: 'string' },
+      type: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'enum', enums: ['revenue'] },
+          { dataType: 'enum', enums: ['expense'] },
+        ],
       },
     },
     additionalProperties: false,
@@ -1083,6 +1219,40 @@ const models: TsoaRoute.Models = {
       class: { ref: 'ULedgerType', required: true },
       omitHeaderAccounts: { dataType: 'boolean' },
       search: { dataType: 'string' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  'Pick_ILedgerAccountBalance.Exclude_keyofILedgerAccountBalance.amount-or-functionalAmount__':
+    {
+      dataType: 'refAlias',
+      type: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          createdAt: { dataType: 'datetime', required: true },
+          createdBy: { ref: 'TEntityId', required: true },
+          ledgerAccountId: { ref: 'TEntityId', required: true },
+          accountingEntityId: { ref: 'TEntityId', required: true },
+          accountMaterializedPath: { dataType: 'string', required: true },
+          version: { dataType: 'double', required: true },
+          updatedAt: { dataType: 'datetime', required: true },
+        },
+        validators: {},
+      },
+    },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ILedgerAccountBalanceDto: {
+    dataType: 'refObject',
+    properties: {
+      createdAt: { dataType: 'datetime', required: true },
+      createdBy: { ref: 'TEntityId', required: true },
+      ledgerAccountId: { ref: 'TEntityId', required: true },
+      accountingEntityId: { ref: 'TEntityId', required: true },
+      accountMaterializedPath: { dataType: 'string', required: true },
+      version: { dataType: 'double', required: true },
+      updatedAt: { dataType: 'datetime', required: true },
+      amount: { ref: 'IMoneyDto', required: true },
+      functionalAmount: { ref: 'IMoneyDto', required: true },
     },
     additionalProperties: false,
   },
@@ -1960,6 +2130,26 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  'Exclude_UJournalEntrySourceType.reversal_': {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['expense'] },
+        { dataType: 'enum', enums: ['opening_balance'] },
+        { dataType: 'enum', enums: ['sale'] },
+        { dataType: 'enum', enums: ['purchase'] },
+        { dataType: 'enum', enums: ['credit_note'] },
+        { dataType: 'enum', enums: ['debit_note'] },
+        { dataType: 'enum', enums: ['transfer'] },
+        { dataType: 'enum', enums: ['payment'] },
+        { dataType: 'enum', enums: ['receipt'] },
+        { dataType: 'enum', enums: ['adjustment'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IGetJournalEntriesQuery: {
     dataType: 'refObject',
     properties: {
@@ -1968,6 +2158,14 @@ const models: TsoaRoute.Models = {
       orderBy: { ref: 'UJournalEntrySortBy' },
       sortDirection: { ref: 'UPaginationSortDirection' },
       page: { dataType: 'double' },
+      createdAtFrom: { dataType: 'string' },
+      createdAtTo: { dataType: 'string' },
+      effectiveDateFrom: { dataType: 'string' },
+      effectiveDateTo: { dataType: 'string' },
+      updatedAtFrom: { dataType: 'string' },
+      updatedAtTo: { dataType: 'string' },
+      currencyCode: { dataType: 'string' },
+      accountType: { ref: 'ULedgerType' },
       accountId: { dataType: 'string' },
       counterpartyId: { dataType: 'string' },
       status: {
@@ -1977,6 +2175,7 @@ const models: TsoaRoute.Models = {
           { dataType: 'enum', enums: ['archived'] },
         ],
       },
+      sourceType: { ref: 'Exclude_UJournalEntrySourceType.reversal_' },
     },
     additionalProperties: false,
   },
@@ -3206,8 +3405,8 @@ const models: TsoaRoute.Models = {
     type: {
       dataType: 'nestedObjectLiteral',
       nestedProperties: {
-        id: { ref: 'TEntityId', required: true },
         accountingEntityId: { ref: 'TEntityId', required: true },
+        id: { ref: 'TEntityId', required: true },
         count: { dataType: 'double', required: true },
         startDate: { dataType: 'datetime', required: true },
         endDate: { dataType: 'datetime', required: true },
@@ -3226,8 +3425,8 @@ const models: TsoaRoute.Models = {
   IAccountingInterval: {
     dataType: 'refObject',
     properties: {
-      id: { ref: 'TEntityId', required: true },
       accountingEntityId: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       count: { dataType: 'double', required: true },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
@@ -3314,8 +3513,8 @@ const models: TsoaRoute.Models = {
   IReportingInterval: {
     dataType: 'refObject',
     properties: {
-      id: { ref: 'TEntityId', required: true },
       accountingEntityId: { ref: 'TEntityId', required: true },
+      id: { ref: 'TEntityId', required: true },
       count: { dataType: 'double', required: true },
       startDate: { dataType: 'datetime', required: true },
       endDate: { dataType: 'datetime', required: true },
@@ -3589,6 +3788,48 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsUserController_joinWaitList: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: { in: 'body', name: 'body', required: true, ref: 'IJoinWaitListDto' },
+  };
+  app.post(
+    '/api/v1/users/waitlist',
+    ...fetchMiddlewares<RequestHandler>(UserController),
+    ...fetchMiddlewares<RequestHandler>(UserController.prototype.joinWaitList),
+
+    async function UserController_joinWaitList(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsUserController_joinWaitList,
+          request,
+          response,
+        });
+
+        const controller = new UserController();
+
+        await templateService.apiHandler({
+          methodName: 'joinWaitList',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 204,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsUserController_updateUserPreferences: Record<
     string,
     TsoaRoute.ParameterSchema
@@ -3689,7 +3930,112 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getAccountCashFlow: Record<
+  const argsLedgerReportingController_getAccountActivityByTypes: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetAccountActivityByTypesQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/ledger/account-activity-by-types',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerReportingController.prototype.getAccountActivityByTypes
+    ),
+
+    async function LedgerReportingController_getAccountActivityByTypes(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerReportingController_getAccountActivityByTypes,
+          request,
+          response,
+        });
+
+        const controller = new LedgerReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getAccountActivityByTypes',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerReportingController_getAccountBalanceContributionsByCounterparty: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetAccountBalanceContributionsByCounterpartyQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/ledger/accounts/:accountId/balance-contributions-by-counterparty',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerReportingController.prototype
+        .getAccountBalanceContributionsByCounterparty
+    ),
+
+    async function LedgerReportingController_getAccountBalanceContributionsByCounterparty(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerReportingController_getAccountBalanceContributionsByCounterparty,
+          request,
+          response,
+        });
+
+        const controller = new LedgerReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getAccountBalanceContributionsByCounterparty',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerReportingController_getAccountCashFlow: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3707,13 +4053,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/accounts/:accountId/cash-flow',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/accounts/:accountId/cash-flow',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getAccountCashFlow
+      LedgerReportingController.prototype.getAccountCashFlow
     ),
 
-    async function ReportingController_getAccountCashFlow(
+    async function LedgerReportingController_getAccountCashFlow(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3723,12 +4069,12 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getAccountCashFlow,
+          args: argsLedgerReportingController_getAccountCashFlow,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
           methodName: 'getAccountCashFlow',
@@ -3744,31 +4090,25 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getAccountCounterpartyParticipation: Record<
+  const argsLedgerReportingController_getBalanceHistoryByAccount: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
-    accountId: {
-      in: 'path',
-      name: 'accountId',
-      required: true,
-      dataType: 'string',
-    },
     query: {
       in: 'queries',
       name: 'query',
       required: true,
-      ref: 'IGetAccountCounterpartyParticipationQuery',
+      ref: 'IGetBalanceHistoryByAccountQuery',
     },
   };
   app.get(
-    '/api/v1/reporting/accounts/:accountId/counterparty-participation',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/balance-history-by-account',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getAccountCounterpartyParticipation
+      LedgerReportingController.prototype.getBalanceHistoryByAccount
     ),
 
-    async function ReportingController_getAccountCounterpartyParticipation(
+    async function LedgerReportingController_getBalanceHistoryByAccount(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3778,15 +4118,15 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getAccountCounterpartyParticipation,
+          args: argsLedgerReportingController_getBalanceHistoryByAccount,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
-          methodName: 'getAccountCounterpartyParticipation',
+          methodName: 'getBalanceHistoryByAccount',
           controller,
           response,
           next,
@@ -3799,7 +4139,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getBalancesByAccount: Record<
+  const argsLedgerReportingController_getBalanceHistoryByBehavior: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3807,17 +4147,17 @@ export function RegisterRoutes(app: Router) {
       in: 'queries',
       name: 'query',
       required: true,
-      ref: 'IGetBalancesByAccountQuery',
+      ref: 'IGetBalanceHistoryByBehaviorQuery',
     },
   };
   app.get(
-    '/api/v1/reporting/balances/accounts',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/balance-history-by-behavior',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getBalancesByAccount
+      LedgerReportingController.prototype.getBalanceHistoryByBehavior
     ),
 
-    async function ReportingController_getBalancesByAccount(
+    async function LedgerReportingController_getBalanceHistoryByBehavior(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3827,15 +4167,15 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getBalancesByAccount,
+          args: argsLedgerReportingController_getBalanceHistoryByBehavior,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
-          methodName: 'getBalancesByAccount',
+          methodName: 'getBalanceHistoryByBehavior',
           controller,
           response,
           next,
@@ -3848,7 +4188,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getBalancesByBehavior: Record<
+  const argsLedgerReportingController_getBalanceHistoryBySubType: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3856,17 +4196,17 @@ export function RegisterRoutes(app: Router) {
       in: 'queries',
       name: 'query',
       required: true,
-      ref: 'IGetBalancesByBehaviorQuery',
+      ref: 'IGetBalanceHistoryBySubTypeQuery',
     },
   };
   app.get(
-    '/api/v1/reporting/balances/behaviors',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/balance-history-by-sub-type',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getBalancesByBehavior
+      LedgerReportingController.prototype.getBalanceHistoryBySubType
     ),
 
-    async function ReportingController_getBalancesByBehavior(
+    async function LedgerReportingController_getBalanceHistoryBySubType(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3876,15 +4216,15 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getBalancesByBehavior,
+          args: argsLedgerReportingController_getBalanceHistoryBySubType,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
-          methodName: 'getBalancesByBehavior',
+          methodName: 'getBalanceHistoryBySubType',
           controller,
           response,
           next,
@@ -3897,7 +4237,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getBalancesBySubType: Record<
+  const argsLedgerReportingController_getBalanceHistoryByType: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3905,17 +4245,17 @@ export function RegisterRoutes(app: Router) {
       in: 'queries',
       name: 'query',
       required: true,
-      ref: 'IGetBalancesBySubTypeQuery',
+      ref: 'IGetBalanceHistoryByTypeQuery',
     },
   };
   app.get(
-    '/api/v1/reporting/balances/sub-types',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/balance-history-by-type',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getBalancesBySubType
+      LedgerReportingController.prototype.getBalanceHistoryByType
     ),
 
-    async function ReportingController_getBalancesBySubType(
+    async function LedgerReportingController_getBalanceHistoryByType(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3925,15 +4265,15 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getBalancesBySubType,
+          args: argsLedgerReportingController_getBalanceHistoryByType,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
-          methodName: 'getBalancesBySubType',
+          methodName: 'getBalanceHistoryByType',
           controller,
           response,
           next,
@@ -3946,7 +4286,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getBalancesByType: Record<
+  const argsLedgerReportingController_getCurrentAssetAndLiabilityBalancesByCurrency: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -3954,17 +4294,18 @@ export function RegisterRoutes(app: Router) {
       in: 'queries',
       name: 'query',
       required: true,
-      ref: 'IGetBalancesByTypeQuery',
+      ref: 'IGetCurrentAssetAndLiabilityBalancesByCurrencyQuery',
     },
   };
   app.get(
-    '/api/v1/reporting/balances/types',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/current-asset-and-liability-balances-by-currency',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getBalancesByType
+      LedgerReportingController.prototype
+        .getCurrentAssetAndLiabilityBalancesByCurrency
     ),
 
-    async function ReportingController_getBalancesByType(
+    async function LedgerReportingController_getCurrentAssetAndLiabilityBalancesByCurrency(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -3974,15 +4315,15 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getBalancesByType,
+          args: argsLedgerReportingController_getCurrentAssetAndLiabilityBalancesByCurrency,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
-          methodName: 'getBalancesByType',
+          methodName: 'getCurrentAssetAndLiabilityBalancesByCurrency',
           controller,
           response,
           next,
@@ -3995,7 +4336,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getLedgerBalancesByCurrency: Record<
+  const argsLedgerReportingController_getCurrentTotalBalanceByType: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -4003,17 +4344,17 @@ export function RegisterRoutes(app: Router) {
       in: 'queries',
       name: 'query',
       required: true,
-      ref: 'IGetLedgerBalancesByCurrencyQuery',
+      ref: 'IGetCurrentTotalBalanceByTypeQuery',
     },
   };
   app.get(
-    '/api/v1/reporting/ledger-balances-by-currency',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/current-total-balance-by-type',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getLedgerBalancesByCurrency
+      LedgerReportingController.prototype.getCurrentTotalBalanceByType
     ),
 
-    async function ReportingController_getLedgerBalancesByCurrency(
+    async function LedgerReportingController_getCurrentTotalBalanceByType(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -4023,15 +4364,15 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getLedgerBalancesByCurrency,
+          args: argsLedgerReportingController_getCurrentTotalBalanceByType,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
-          methodName: 'getLedgerBalancesByCurrency',
+          methodName: 'getCurrentTotalBalanceByType',
           controller,
           response,
           next,
@@ -4044,7 +4385,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getRevenueExpenseAccounts: Record<
+  const argsLedgerReportingController_getLedgerTotalDebitsAndCreditsByCurrency: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -4052,17 +4393,18 @@ export function RegisterRoutes(app: Router) {
       in: 'queries',
       name: 'query',
       required: true,
-      ref: 'IGetRevenueExpenseAccountsQuery',
+      ref: 'IGetLedgerTotalDebitsAndCreditsByCurrencyQuery',
     },
   };
   app.get(
-    '/api/v1/reporting/revenue-expense-accounts',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/ledger-total-debits-and-credits-by-currency',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getRevenueExpenseAccounts
+      LedgerReportingController.prototype
+        .getLedgerTotalDebitsAndCreditsByCurrency
     ),
 
-    async function ReportingController_getRevenueExpenseAccounts(
+    async function LedgerReportingController_getLedgerTotalDebitsAndCreditsByCurrency(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -4072,15 +4414,15 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getRevenueExpenseAccounts,
+          args: argsLedgerReportingController_getLedgerTotalDebitsAndCreditsByCurrency,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
-          methodName: 'getRevenueExpenseAccounts',
+          methodName: 'getLedgerTotalDebitsAndCreditsByCurrency',
           controller,
           response,
           next,
@@ -4093,7 +4435,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsReportingController_getRevenueExpenseSummary: Record<
+  const argsLedgerReportingController_getRevenueAndExpenseActivitySummary: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -4105,13 +4447,13 @@ export function RegisterRoutes(app: Router) {
     },
   };
   app.get(
-    '/api/v1/reporting/revenue-expense-summary',
-    ...fetchMiddlewares<RequestHandler>(ReportingController),
+    '/api/v1/reporting/ledger/revenue-and-expense-activity-summary',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
     ...fetchMiddlewares<RequestHandler>(
-      ReportingController.prototype.getRevenueExpenseSummary
+      LedgerReportingController.prototype.getRevenueAndExpenseActivitySummary
     ),
 
-    async function ReportingController_getRevenueExpenseSummary(
+    async function LedgerReportingController_getRevenueAndExpenseActivitySummary(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -4121,15 +4463,65 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsReportingController_getRevenueExpenseSummary,
+          args: argsLedgerReportingController_getRevenueAndExpenseActivitySummary,
           request,
           response,
         });
 
-        const controller = new ReportingController();
+        const controller = new LedgerReportingController();
 
         await templateService.apiHandler({
-          methodName: 'getRevenueExpenseSummary',
+          methodName: 'getRevenueAndExpenseActivitySummary',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerReportingController_getRevenueExpenseAndSuspenseAccountBalances: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetRevenueExpenseAndSuspenseAccountBalancesQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/ledger/revenue-expense-and-suspense-account-balances',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerReportingController.prototype
+        .getRevenueExpenseAndSuspenseAccountBalances
+    ),
+
+    async function LedgerReportingController_getRevenueExpenseAndSuspenseAccountBalances(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerReportingController_getRevenueExpenseAndSuspenseAccountBalances,
+          request,
+          response,
+        });
+
+        const controller = new LedgerReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getRevenueExpenseAndSuspenseAccountBalances',
           controller,
           response,
           next,
@@ -4228,6 +4620,50 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getChartOfAccounts',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerController_getLedgerAccountBalance: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    code: { in: 'path', name: 'code', required: true, dataType: 'string' },
+  };
+  app.get(
+    '/api/v1/ledger/code/:code/balance',
+    ...fetchMiddlewares<RequestHandler>(LedgerController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerController.prototype.getLedgerAccountBalance
+    ),
+
+    async function LedgerController_getLedgerAccountBalance(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerController_getLedgerAccountBalance,
+          request,
+          response,
+        });
+
+        const controller = new LedgerController();
+
+        await templateService.apiHandler({
+          methodName: 'getLedgerAccountBalance',
           controller,
           response,
           next,
@@ -7199,6 +7635,48 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getFiscalYears',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsAccountingController_getCurrentFiscalYear: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {};
+  app.get(
+    '/api/v1/accounting/fiscal-years/current',
+    ...fetchMiddlewares<RequestHandler>(AccountingController),
+    ...fetchMiddlewares<RequestHandler>(
+      AccountingController.prototype.getCurrentFiscalYear
+    ),
+
+    async function AccountingController_getCurrentFiscalYear(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsAccountingController_getCurrentFiscalYear,
+          request,
+          response,
+        });
+
+        const controller = new AccountingController();
+
+        await templateService.apiHandler({
+          methodName: 'getCurrentFiscalYear',
           controller,
           response,
           next,

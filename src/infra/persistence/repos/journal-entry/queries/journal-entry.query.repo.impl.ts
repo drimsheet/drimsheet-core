@@ -1,4 +1,14 @@
-import { and, eq, ilike, inArray, isNotNull, ne, sql } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  lte,
+  ne,
+  sql,
+} from 'drizzle-orm';
 
 import drizzleFilters from '@shared/helpers/drizzle-filters';
 import paginationValue from '@shared/values/pagination/pagination.vo';
@@ -15,6 +25,7 @@ import IJournalEntryQueryRepo, {
 import {
   journalEntriesInCore,
   journalLinesInCore,
+  ledgerAccountsInCore,
 } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import journalEntryDetailsMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-details.mapper';
@@ -123,6 +134,85 @@ const journalEntryQueryRepo: IJournalEntryQueryRepo = {
         .where(eq(journalLinesInCore.counterpartyId, options.counterpartyId));
 
       conditions.push(inArray(journalEntriesInCore.id, counterpartyEntryIds));
+    }
+
+    if (options.createdAtRange?.from) {
+      conditions.push(
+        gte(
+          journalEntriesInCore.createdAt,
+          options.createdAtRange.from.toISOString()
+        )
+      );
+    }
+
+    if (options.createdAtRange?.to) {
+      conditions.push(
+        lte(
+          journalEntriesInCore.createdAt,
+          options.createdAtRange.to.toISOString()
+        )
+      );
+    }
+
+    if (options.effectiveDateRange?.from) {
+      conditions.push(
+        gte(
+          journalEntriesInCore.effectiveDate,
+          options.effectiveDateRange.from.toISOString().slice(0, 10)
+        )
+      );
+    }
+
+    if (options.effectiveDateRange?.to) {
+      conditions.push(
+        lte(
+          journalEntriesInCore.effectiveDate,
+          options.effectiveDateRange.to.toISOString().slice(0, 10)
+        )
+      );
+    }
+
+    if (options.updatedAtRange?.from) {
+      conditions.push(
+        gte(
+          journalEntriesInCore.updatedAt,
+          options.updatedAtRange.from.toISOString()
+        )
+      );
+    }
+
+    if (options.updatedAtRange?.to) {
+      conditions.push(
+        lte(
+          journalEntriesInCore.updatedAt,
+          options.updatedAtRange.to.toISOString()
+        )
+      );
+    }
+
+    if (options.currencyCode) {
+      const currencyEntryIds = dbQuery
+        .select({ entryId: journalLinesInCore.entryId })
+        .from(journalLinesInCore)
+        .where(eq(journalLinesInCore.currencyCode, options.currencyCode));
+      conditions.push(inArray(journalEntriesInCore.id, currencyEntryIds));
+    }
+
+    if (options.accountType) {
+      const accountTypeEntryIds = dbQuery
+        .select({ entryId: journalLinesInCore.entryId })
+        .from(journalLinesInCore)
+        .innerJoin(
+          ledgerAccountsInCore,
+          eq(ledgerAccountsInCore.id, journalLinesInCore.accountId)
+        )
+        .where(
+          and(
+            eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId),
+            eq(ledgerAccountsInCore.type, options.accountType)
+          )
+        );
+      conditions.push(inArray(journalEntriesInCore.id, accountTypeEntryIds));
     }
 
     if (options.search) {

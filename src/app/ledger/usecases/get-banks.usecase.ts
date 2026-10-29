@@ -1,3 +1,16 @@
+/**
+ * SUMMARY
+ * Returns the temporary static bank directory for a country code, normalized to
+ * uppercase. Results are sorted by bank name; an unsupported country returns an
+ * empty array. This does not query a live banking provider.
+ *
+ * WHEN TO USE
+ * Use to populate bank choices during bank-account setup.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import {

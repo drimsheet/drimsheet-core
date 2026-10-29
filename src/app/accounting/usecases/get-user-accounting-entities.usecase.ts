@@ -1,3 +1,15 @@
+/**
+ * SUMMARY
+ * Lists active accounting entities belonging to the signed-in user. Returns an
+ * array, which may be empty; archived entities are excluded.
+ *
+ * WHEN TO USE
+ * Use to populate entity selection.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';

@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Updates the name of an eligible expense account in the selected entity. Saves
+ * a changed name with audit history and publishes events; an unchanged name
+ * produces no writes, audit, or events. Returns the account enriched with
+ * balances and rejects missing or ineligible accounts.
+ *
+ * WHEN TO USE
+ * Use to rename a expense account while retaining its identity, classification,
+ * and financial history.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { TEntityId } from '@shared/types/uuid';

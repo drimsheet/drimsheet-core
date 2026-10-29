@@ -145,6 +145,56 @@ describe('fiscalYearRepo', () => {
     }
   );
 
+  it.each([false, true])(
+    'reads inclusive date matches across statuses with stable ordering: %j',
+    async (found) => {
+      const years = ['pending', 'open', 'closing', 'closed'].map((status) => ({
+        ...year,
+        status: status as typeof year.status,
+      }));
+      const rows = found ? years.map(fiscalYearMapper.toRepo) : [];
+      const orderBy = jest
+        .fn<Promise<typeof rows>, SQL[]>()
+        .mockResolvedValue(rows);
+      const where = jest
+        .fn<{ orderBy: typeof orderBy }, [SQL]>()
+        .mockReturnValue({ orderBy });
+      const from = jest.fn().mockReturnValue({ where });
+      const select = jest.fn().mockReturnValue({ from });
+      jest
+        .mocked(getDbQuery)
+        .mockReturnValue({ select } as unknown as ReturnType<
+          typeof getDbQuery
+        >);
+
+      await expect(
+        fiscalYearRepo.findByDate(
+          accountingEntityId,
+          new Date('2090-12-31T23:59:59.999Z'),
+          options
+        )
+      ).resolves.toEqual(found ? years : []);
+      expect(from).toHaveBeenCalledWith(fiscalYearsInCore);
+      const dialect = new PgDialect();
+      const query = dialect.sqlToQuery(where.mock.calls[0][0]);
+      expect(query.params).toEqual([
+        accountingEntityId,
+        '2090-12-31',
+        '2090-12-31',
+      ]);
+      expect(query.sql).toBe(
+        '("core"."fiscal_years"."accounting_entity_id" = $1 and "core"."fiscal_years"."start_date" <= $2 and "core"."fiscal_years"."end_date" >= $3)'
+      );
+      expect(
+        orderBy.mock.calls[0].map((clause) => dialect.sqlToQuery(clause).sql)
+      ).toEqual([
+        '"core"."fiscal_years"."start_date" asc',
+        '"core"."fiscal_years"."id" asc',
+      ]);
+      expect(getDbQuery).toHaveBeenCalledWith(options);
+    }
+  );
+
   function fakeTransaction() {
     const committed: unknown[] = [];
     const staged: unknown[] = [];

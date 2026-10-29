@@ -166,7 +166,7 @@ export class JournalEntryController extends Controller {
     return rectifyJournalEntryUseCase(id, body);
   }
 
-  /** Posts only the associated draft opening balance, preserving the ledger account's status. Requires a draft opening-balance journal and an active posting account. No request body is required. */
+  /** Posts only the associated draft opening balance, preserving the ledger account's status. Requires a draft opening-balance journal and an active posting account. */
   @Post('/opening-balance/{id}/post')
   @OperationId('postOpeningBalance')
   @SuccessResponse('204')
@@ -185,7 +185,7 @@ export class JournalEntryController extends Controller {
     return postDraftOpeningBalanceUseCase(id);
   }
 
-  /** Posts a draft payment while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. No request body is required. */
+  /** Posts a draft payment while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. */
   @Post('/payment/{id}/post')
   @OperationId('postPayment')
   @SuccessResponse('204')
@@ -204,7 +204,7 @@ export class JournalEntryController extends Controller {
     return postDraftPaymentUseCase(id);
   }
 
-  /** Posts a draft receipt while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. No request body is required. */
+  /** Posts a draft receipt while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. */
   @Post('/receipt/{id}/post')
   @OperationId('postReceipt')
   @SuccessResponse('204')
@@ -223,7 +223,7 @@ export class JournalEntryController extends Controller {
     return postDraftReceiptUseCase(id);
   }
 
-  /** Posts a draft transfer while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. No request body is required. */
+  /** Posts a draft transfer while preserving its financial content. Revalidates accounts, counterparties, and the effective accounting period. */
   @Post('/transfer/{id}/post')
   @OperationId('postTransfer')
   @SuccessResponse('204')

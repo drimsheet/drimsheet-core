@@ -5,6 +5,7 @@ import DomainError from '@shared/values/errors/domain.error';
 type TErrorPrefix = TErrorKey<'user_error'>;
 
 const EErrorKeys = {
+  InvalidWaitListFeature: 'user_error_waitlist_feature_invalid',
   InvalidActorId: 'user_error_actor_id_invalid',
   InvalidCreatedBy: 'user_error_created_by_invalid',
   InvalidAction: 'user_error_action_invalid',

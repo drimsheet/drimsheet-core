@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Retrieves subaccounts of an existing account in the selected entity and
+ * enriches them with balances. Returns an array, which may be empty; rejects a
+ * missing parent account.
+ *
+ * WHEN TO USE
+ * Use to inspect the accounts under a selected parent. Use get-chart-of-
+ * accounts for a structured tree.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

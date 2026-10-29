@@ -1,3 +1,21 @@
+/**
+ * SUMMARY
+ * Posts an existing draft opening-balance journal in the selected accounting
+ * entity. Validates its account association, opening date, accounts, and
+ * current posting period. Saves the posting, audit history, applicable foreign-
+ * exchange acquisition, and pending balance work together, then publishes
+ * events and requests balance processing. Returns no value; derived balances
+ * update separately.
+ *
+ * WHEN TO USE
+ * Use when an opening-balance draft is ready to post for an eligible account.
+ * This operation does not activate the account; use cash-account activation
+ * when both account activation and opening-journal posting are needed.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/post-draft-opening-balance.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

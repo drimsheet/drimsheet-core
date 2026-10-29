@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Returns an account's deletion eligibility and a reason when denied. Root
+ * accounts are denied; drafts pass this preview; other accounts must have no
+ * journal references. Rejects a missing account in the selected entity. Does
+ * not validate the full subtree or the associated journals that deletion will
+ * inspect.
+ *
+ * WHEN TO USE
+ * Use to guide deletion controls. Invoke delete-ledger-account for fresh checks
+ * of the complete removal; a positive preview does not guarantee success.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

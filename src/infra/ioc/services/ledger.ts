@@ -166,7 +166,6 @@ export const ledgerBalancePropagationPreparationAppService =
 export const ledgerAccountBalanceEnrichmentAppService =
   makeLedgerAccountBalanceEnrichmentAppService({
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
-    reporter: observability.reporter,
   });
 
 export const ledgerAccountBalanceService = makeLedgerAccountBalanceService();

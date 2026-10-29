@@ -1,3 +1,21 @@
+/**
+ * SUMMARY
+ * Creates a receipt journal for the selected accounting entity, with one or
+ * more source lines and one destination. A null postedAt creates a draft; a
+ * posting date requests a posted entry. Resolves counterparties and claims the
+ * user's attachment uploads. Saves the journal, new counterparties, audit
+ * history, applicable foreign-exchange acquisition, and pending balance work
+ * together. Requests balance processing for posted entries, publishes events,
+ * and returns the journal; derived balances are updated separately.
+ *
+ * WHEN TO USE
+ * Use to record a new incoming receipt. Use post-draft-receipt to post an
+ * existing draft without changing its financial content.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/create-receipt.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

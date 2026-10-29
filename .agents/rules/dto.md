@@ -2,6 +2,9 @@
 
 DTOs define application input/output shapes.
 
+For reporting DTO placement and colocation, use the exception in
+[Reporting Use Cases](reporting-usecases.md).
+
 ## Rules
 
 - Place DTOs under `src/app/<domain>/dtos`.

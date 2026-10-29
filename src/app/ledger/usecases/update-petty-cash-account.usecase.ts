@@ -1,3 +1,21 @@
+/**
+ * SUMMARY
+ * Updates a petty-cash account's name, currency, or opening balance in the
+ * selected entity. Currency changes and opening-journal changes undergo their
+ * own eligibility checks. Creates or revises an eligible opening journal when
+ * requested. Saves account, balance-denomination, journal, audit, and
+ * applicable FX changes together. Publishes events, requests any balance
+ * propagation, and returns the account with opening-journal or balance
+ * information.
+ *
+ * WHEN TO USE
+ * Use to maintain petty-cash setup. A currency eligibility preview is advisory;
+ * this operation also checks journal references and hierarchy compatibility.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/update-petty-cash-account.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';

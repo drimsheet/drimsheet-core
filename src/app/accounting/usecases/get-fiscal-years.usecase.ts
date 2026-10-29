@@ -1,3 +1,15 @@
+/**
+ * SUMMARY
+ * Lists fiscal years configured for the selected accounting entity. Returns an
+ * array, which may be empty.
+ *
+ * WHEN TO USE
+ * Use to populate year selection or inspect the entity's configured years.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';

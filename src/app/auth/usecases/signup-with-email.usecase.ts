@@ -1,3 +1,21 @@
+/**
+ * SUMMARY
+ * Registers an email/password identity and requests email verification. Saves a
+ * new actor, unverified user, authentication details, and audit history
+ * together, then publishes creation events and requests verification delivery.
+ * An existing email only resolves the user actor and requests verification,
+ * without replacing credentials. Verification delivery is subject to cooldown.
+ * Returns no value and establishes no session; publication or delivery failures
+ * can reject after registration has committed.
+ *
+ * WHEN TO USE
+ * Use to begin email registration with a name, email, and password. Email
+ * verification and authenticated session creation happen in verify-email.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/signup-with-email.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

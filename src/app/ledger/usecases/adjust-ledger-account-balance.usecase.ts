@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Applies a journal's effects to derived balances for affected accounts and
+ * their ancestors. Requires pending balance-propagation work; missing work is
+ * reported and returns without adjustment. Saves prepared adjustments and
+ * removes the pending work together. Invalid journals, missing balances, and
+ * conflicting state reject. Returns no value and publishes no domain events.
+ *
+ * WHEN TO USE
+ * Use in the background balance worker after a journal workflow requests
+ * propagation. The input is a journal-entry ID, not a requested account
+ * balance.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/adjust-ledger-account-balance.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import {
   IRepoService,

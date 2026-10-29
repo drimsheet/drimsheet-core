@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Requests a verification email for an existing unverified user. Rejects an
+ * unknown email and skips users whose email is already verified. Delivery is
+ * subject to the verification cooldown and may be suppressed; delivery failures
+ * propagate. Returns no value, including when delivery is skipped.
+ *
+ * WHEN TO USE
+ * Use to resend verification instructions for an existing account before the
+ * user completes email verification.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import { z } from 'zod';
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';

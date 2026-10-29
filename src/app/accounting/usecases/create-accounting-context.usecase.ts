@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Creates the accounting configuration linking a fiscal year, accounting
+ * calendar, and accounting standard for the selected entity. Validates their
+ * compatibility and context uniqueness, saves the context with audit history,
+ * publishes events, and returns it. Does not select or create a reporting
+ * context.
+ *
+ * WHEN TO USE
+ * Use after the year and accounting interval exist.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { TEntityId } from '@shared/types/uuid';

@@ -11,7 +11,7 @@ const spec = JSON.parse(
   readFileSync(path.join(root, 'generated/swagger.json'), 'utf8')
 );
 
-it('generates the checked-in UUID string schema directly through TSOA', (t) => {
+it('reproduces the checked-in specification through the generation pipeline', (t) => {
   const outputDirectory = mkdtempSync(path.join(tmpdir(), 'tsoa-openapi-'));
   t.after(() => rmSync(outputDirectory, { recursive: true, force: true }));
   const config = JSON.parse(readFileSync(path.join(root, 'tsoa.json'), 'utf8'));
@@ -56,4 +56,25 @@ it('preserves existing schema references and security definitions', () => {
     name: 'Authorization',
     bearerFormat: 'JWT',
   });
+});
+
+it('documents optional flat journal date boundaries without post-processing', () => {
+  const operation = Object.values(spec.paths)
+    .map((path) => path.get)
+    .find((get) => get?.operationId === 'getJournalEntries');
+  for (const field of ['createdAt', 'effectiveDate', 'updatedAt']) {
+    for (const side of ['From', 'To']) {
+      const parameter = operation.parameters.find(
+        (item) => item.name === `${field}${side}`
+      );
+      assert.equal(parameter.in, 'query');
+      assert.equal(parameter.required, false);
+      assert.equal(parameter.schema.type, 'string');
+      assert.notEqual(parameter.style, 'deepObject');
+    }
+    assert.equal(
+      operation.parameters.some((item) => item.name === `${field}Range`),
+      false
+    );
+  }
 });

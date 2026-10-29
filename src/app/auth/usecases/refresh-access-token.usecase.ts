@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Exchanges the presented refresh token for a new access token and refresh
+ * session. Requires a valid token, an existing user, and successful rotation of
+ * the stored session. Sets the replacement client refresh token only after
+ * rotation succeeds. Missing tokens, authentication errors, and unauthorized
+ * results clear the client token and reject; other failures propagate without
+ * that cleanup.
+ *
+ * WHEN TO USE
+ * Use to renew access for an existing client session without asking the user to
+ * sign in again.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/refresh-access-token.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import appError from '@shared/values/errors/app.error';
 

@@ -30,6 +30,123 @@ describe('Journal Entry DTO Validation', () => {
       expect(result.success).toBe(true);
     });
 
+    it.each([
+      { createdAtFrom: '2026-09-01T00:00:00Z' },
+      { createdAtTo: '2026-10-01T00:00:00Z' },
+      { effectiveDateFrom: '2026-09-01' },
+      { effectiveDateTo: '2026-09-30' },
+      { updatedAtFrom: '2026-09-01T00:00:00+01:00' },
+      { updatedAtTo: '2026-10-01T00:00:00+01:00' },
+      { currencyCode: 'NGN' },
+      { accountType: 'asset' },
+    ])('accepts individual filters and open-ended ranges: %j', (query) => {
+      expect(
+        getJournalEntriesQueryValidationSchema.safeParse(query).success
+      ).toBe(true);
+    });
+
+    it.each([
+      ['createdAt', 'From'],
+      ['createdAt', 'To'],
+      ['updatedAt', 'From'],
+      ['updatedAt', 'To'],
+    ] as const)(
+      'accepts up to milliseconds and rejects excess precision for %s.%s',
+      (field, side) => {
+        for (const timezone of ['Z', '+01:00', '-05:30']) {
+          for (const fraction of ['', '.1', '.12', '.123']) {
+            const query = {
+              [`${field}${side}`]: `2026-09-01T12:30:00${fraction}${timezone}`,
+            };
+            expect(
+              getJournalEntriesQueryValidationSchema.safeParse(query).success
+            ).toBe(true);
+          }
+          for (const fraction of ['.1234', '.000999', '.000000000']) {
+            const query = {
+              [`${field}${side}`]: `2026-09-01T12:30:00${fraction}${timezone}`,
+            };
+            const parsed =
+              getJournalEntriesQueryValidationSchema.safeParse(query);
+            expect(parsed.success).toBe(false);
+            expect(parsed.error?.issues).toEqual(
+              expect.arrayContaining([
+                expect.objectContaining({
+                  path: [`${field}${side}`],
+                  message: 'date_error_date_invalid',
+                }),
+              ])
+            );
+          }
+        }
+      }
+    );
+
+    it.each(['createdAt', 'updatedAt'] as const)(
+      'rejects reversed sub-millisecond %s bounds before truncation',
+      (field) => {
+        expect(
+          getJournalEntriesQueryValidationSchema.safeParse({
+            [`${field}From`]: '2026-09-01T00:00:00.000999Z',
+            [`${field}To`]: '2026-09-01T00:00:00.000001Z',
+          }).success
+        ).toBe(false);
+      }
+    );
+
+    it.each(['createdAt', 'updatedAt'] as const)(
+      'compares %s bounds as instants across timezone offsets',
+      (field) => {
+        expect(
+          getJournalEntriesQueryValidationSchema.safeParse({
+            [`${field}From`]: '2026-09-01T10:00:00+02:00',
+            [`${field}To`]: '2026-09-01T09:00:00Z',
+          }).success
+        ).toBe(true);
+        expect(
+          getJournalEntriesQueryValidationSchema.safeParse({
+            [`${field}From`]: '2026-09-01T09:00:00Z',
+            [`${field}To`]: '2026-09-01T10:00:00+02:00',
+          }).success
+        ).toBe(false);
+      }
+    );
+
+    it.each([
+      ['createdAt', '2026-09-01T00:00:00Z', '2026-08-01T00:00:00Z'],
+      ['updatedAt', '2026-09-01T00:00:00Z', '2026-08-01T00:00:00Z'],
+      ['effectiveDate', '2026-09-01', '2026-08-01'],
+    ])('validates ordered inclusive %s bounds', (field, from, to) => {
+      expect(
+        getJournalEntriesQueryValidationSchema.safeParse({
+          [`${field}From`]: from,
+          [`${field}To`]: from,
+        }).success
+      ).toBe(true);
+      const result = getJournalEntriesQueryValidationSchema.safeParse({
+        [`${field}From`]: from,
+        [`${field}To`]: to,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error?.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: [`${field}To`] }),
+        ])
+      );
+    });
+
+    it.each(Object.values(EJournalEntrySourceType))(
+      'accepts only listable source types: %s',
+      (sourceType) => {
+        const result = getJournalEntriesQueryValidationSchema.safeParse({
+          sourceType,
+        });
+        expect(result.success).toBe(
+          sourceType !== EJournalEntrySourceType.Reversal
+        );
+      }
+    );
+
     it('validates an empty query', () => {
       expect(getJournalEntriesQueryValidationSchema.safeParse({}).success).toBe(
         true
@@ -46,6 +163,28 @@ describe('Journal Entry DTO Validation', () => {
 
     it.each([
       [{ accountId: 'invalid-account-id' }],
+      [{ sourceType: 'invalid-source' }],
+      [{ sourceType: '' }],
+      [{ createdAtRange: { from: '2026-09-01T00:00:00Z' } }],
+      [{ effectiveDateRange: '2026-09-01' }],
+      [{ effectiveDateRange: { from: ['2026-09-01'] } }],
+      [{ effectiveDateRange: { until: '2026-09-01' } }],
+      [{ effectiveDateFrom: '' }],
+
+      [{ createdAtFrom: 'invalid' }],
+      [{ createdAtTo: 'invalid' }],
+      [{ effectiveDateFrom: 'invalid' }],
+      [{ effectiveDateTo: 'invalid' }],
+      [{ updatedAtFrom: 'invalid' }],
+      [{ updatedAtTo: 'invalid' }],
+      [{ currencyCode: 'invalid' }],
+      [{ accountType: 'invalid' }],
+      [{ createdAtFrom: '2026-09-01' }],
+      [{ createdAtFrom: '0000-01-01T00:00:00Z' }],
+      [{ updatedAtTo: '2026-09-01T10:00:00' }],
+      [{ effectiveDateFrom: '2026-02-30' }],
+      [{ effectiveDateTo: '0000-01-01' }],
+
       [{ counterpartyId: 'invalid-counterparty-id' }],
       [{ page: 0 }],
       [{ limit: 0 }],

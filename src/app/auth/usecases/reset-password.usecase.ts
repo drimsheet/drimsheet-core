@@ -1,3 +1,22 @@
+/**
+ * SUMMARY
+ * Replaces a password using a claimed reset token and returns a new access
+ * token. Saves the password and replaces all user sessions together, then sets
+ * the client refresh token and publishes the password-reset event. Failures
+ * before commit attempt to release the token claim; cleanup failures are
+ * reported. Token finalization failures after commit are reported without
+ * undoing the reset or blocking subsequent steps. Later client-session or event
+ * failures still propagate.
+ *
+ * WHEN TO USE
+ * Use after the user follows a password-reset link and submits the token with a
+ * new password and confirmation. Requires client-session context to expose the
+ * new refresh token.
+ *
+ * SEQUENCE DIAGRAM
+ * @see ./__docs__/reset-password.sequence.md
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import {

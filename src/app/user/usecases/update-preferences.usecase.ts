@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Updates the signed-in user’s theme and application usage mode and returns the
+ * saved preferences. Preserves omitted settings and the last active accounting
+ * entity. An application usage mode must be supplied or already saved.
+ *
+ * WHEN TO USE
+ * Use when the user changes application appearance or usage mode, or saves
+ * these preferences for the first time.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 

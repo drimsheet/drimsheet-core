@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Returns whether an account in the selected entity passes the asset-type and
+ * posted-journal checks for currency changes, with a reason when denied.
+ * Rejects a missing account. This read-only preview does not evaluate a
+ * proposed currency, all journal references, or hierarchy compatibility.
+ *
+ * WHEN TO USE
+ * Use to guide currency-edit controls. The actual update performs additional
+ * checks and may reject even after a positive preview.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

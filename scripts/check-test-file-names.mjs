@@ -61,7 +61,12 @@ const isDependencyFreePath = (normalizedPath) => {
 };
 
 const expectedNamingFor = (normalizedPath) => {
-  if (normalizedPath.startsWith('test/')) {
+  const isColocatedReportingSpec =
+    /^src\/app\/[^/]+\/usecases\/reporting\/([^/]+)\/\1\.spec\.ts$/.test(
+      normalizedPath
+    );
+
+  if (normalizedPath.startsWith('test/') || isColocatedReportingSpec) {
     return { directory: null, suffix: '.spec.ts' };
   }
 

@@ -24,3 +24,8 @@ export const userProfileHistoryTable = {
   schema: auditSchema,
   name: 'user_profile_history',
 };
+
+export const waitListMembersTable = {
+  schema: coreSchema,
+  name: 'waitlist_members',
+};

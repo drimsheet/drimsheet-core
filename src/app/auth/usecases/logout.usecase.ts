@@ -1,3 +1,18 @@
+/**
+ * SUMMARY
+ * Ends the session identified by the client refresh token and clears that
+ * token. Missing tokens and authentication errors during token verification are
+ * tolerated and still clear the client token. Other verification failures and
+ * session-deletion failures propagate. Returns no value; other user sessions
+ * are unaffected.
+ *
+ * WHEN TO USE
+ * Use to sign out the current client session.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
 import ITokenAppService from '@app/auth/contracts/token-service.contract';

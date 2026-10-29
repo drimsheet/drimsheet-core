@@ -10,6 +10,13 @@ export default interface IFiscalYearRepo {
     options: IReadRepoOptions
   ): Promise<IFiscalYear[]>;
 
+  /** Inclusive UTC date lookup across statuses, ordered by start date then ID. */
+  findByDate(
+    accountingEntityId: TEntityId,
+    date: Date,
+    options: IReadRepoOptions
+  ): Promise<IFiscalYear[]>;
+
   findById(
     accountingEntityId: TEntityId,
     id: TEntityId,

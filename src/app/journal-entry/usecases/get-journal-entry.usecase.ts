@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Retrieves a journal by ID within the selected accounting entity. Returns its
+ * details with account and counterparty information on its lines. Rejects when
+ * the entry cannot be found for that entity.
+ *
+ * WHEN TO USE
+ * Use to inspect one saved journal entry and its associated parties and
+ * accounts.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';

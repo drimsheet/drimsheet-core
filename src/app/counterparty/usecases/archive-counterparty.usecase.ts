@@ -1,3 +1,19 @@
+/**
+ * SUMMARY
+ * Archives a counterparty within the selected accounting entity while
+ * preserving its identity, roles, details, and journal references. Saves the
+ * status change with audit history, publishes the archival event, and returns
+ * the archived counterparty. An already archived counterparty is returned
+ * without writes, audit, or events. Rejects a missing counterparty.
+ *
+ * WHEN TO USE
+ * Use to retire a counterparty from active use while retaining its transaction
+ * attribution, including when references prevent deletion.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { TEntityId } from '@shared/types/uuid';

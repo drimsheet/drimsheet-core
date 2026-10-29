@@ -1,3 +1,17 @@
+/**
+ * SUMMARY
+ * Loads the signed-in user’s saved preferences, including application settings
+ * and the last active accounting entity. Requires an authenticated user and
+ * reports a missing resource when no preferences have been saved.
+ *
+ * WHEN TO USE
+ * Use to restore the user’s saved application settings and accounting entity
+ * selection.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import appError from '@shared/values/errors/app.error';
 

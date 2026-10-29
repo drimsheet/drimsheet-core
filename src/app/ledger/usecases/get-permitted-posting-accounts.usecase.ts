@@ -1,3 +1,20 @@
+/**
+ * SUMMARY
+ * Lists posting-account candidates for a journal source type and side in the
+ * selected entity. Includes active and draft accounts, excludes control
+ * accounts, and applies the permitted types, subtypes, and behaviors. Optional
+ * currency matching includes accounts without a fixed currency; suspense
+ * subtypes can be excluded. Returns balance-enriched paginated results, or an
+ * empty page when no source rule exists.
+ *
+ * WHEN TO USE
+ * Use to populate account choices while composing a journal. Posting still
+ * validates the selected accounts and their current eligibility.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';

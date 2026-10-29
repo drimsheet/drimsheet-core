@@ -1,3 +1,23 @@
+/**
+ * SUMMARY
+ * Updates a counterparty within the selected accounting entity while retaining
+ * its identity. Accepts name, type, role details, or an explicit active status
+ * for draft activation. Type changes are rejected while any journal lines
+ * reference the counterparty. Supplied metadata replaces all roles; omitted
+ * metadata preserves them, and an empty metadata object clears them. Saves
+ * changes with audit history, publishes events after commit, and returns the
+ * counterparty. Valid unchanged requests produce no writes, audit, or events;
+ * an empty update request is rejected.
+ *
+ * WHEN TO USE
+ * Use to maintain counterparty details or activate a draft. Use archive-
+ * counterparty for archival and create-counterparty when a referenced party
+ * requires a different type.
+ *
+ * SEQUENCE DIAGRAM
+ * Not required for this straightforward workflow.
+ */
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
