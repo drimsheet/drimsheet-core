@@ -135,6 +135,18 @@ describe('Journal Entry DTO Validation', () => {
       );
     });
 
+    it.each(Object.values(EJournalEntrySourceType))(
+      'accepts only listable source types: %s',
+      (sourceType) => {
+        const result = getJournalEntriesQueryValidationSchema.safeParse({
+          sourceType,
+        });
+        expect(result.success).toBe(
+          sourceType !== EJournalEntrySourceType.Reversal
+        );
+      }
+    );
+
     it('validates an empty query', () => {
       expect(getJournalEntriesQueryValidationSchema.safeParse({}).success).toBe(
         true
@@ -151,6 +163,8 @@ describe('Journal Entry DTO Validation', () => {
 
     it.each([
       [{ accountId: 'invalid-account-id' }],
+      [{ sourceType: 'invalid-source' }],
+      [{ sourceType: '' }],
       [{ createdAtRange: { from: '2026-09-01T00:00:00Z' } }],
       [{ effectiveDateRange: '2026-09-01' }],
       [{ effectiveDateRange: { from: ['2026-09-01'] } }],

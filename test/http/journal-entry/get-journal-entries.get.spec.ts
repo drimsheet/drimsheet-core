@@ -206,6 +206,7 @@ describe('GET /journal-entries', () => {
         limit: 5,
         orderBy: 'effectiveDate',
         status: 'archived',
+        sourceType: 'receipt',
         sortDirection: 'asc',
         search: 'receipt',
         createdAtFrom: '2026-09-01T00:00:00Z',
@@ -249,6 +250,7 @@ describe('GET /journal-entries', () => {
         limit: 5,
         orderBy: 'effectiveDate',
         status: 'archived',
+        sourceType: 'receipt',
         sortDirection: 'asc',
         search: 'receipt',
         createdAtFrom: '2026-09-01T00:00:00Z',
@@ -286,6 +288,15 @@ describe('GET /journal-entries', () => {
   });
 
   describe('422 Response', () => {
+    it.each(['reversal', 'invalid-source'])(
+      'rejects unsupported source type %s',
+      async (sourceType) => {
+        const response = await makeRequest({ sourceType });
+        expect(response.status).toBe(422);
+        expect(mockGetJournalEntries).not.toHaveBeenCalled();
+      }
+    );
+
     it.each([
       'effectiveDateRange[from]=2026-09-01',
       'effectiveDateRange=2026-09-01',

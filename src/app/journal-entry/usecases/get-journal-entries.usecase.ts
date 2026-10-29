@@ -48,6 +48,7 @@ export default function makeGetJournalEntriesUsecase(deps: IDependencies) {
 
     const repoOptions: IFindAllJournalEntriesOptions = {
       status: query.status,
+      sourceType: query.sourceType,
       createdAtRange: dateRangeValue.make({
         from: query.createdAtFrom ? new Date(query.createdAtFrom) : undefined,
         to: query.createdAtTo ? new Date(query.createdAtTo) : undefined,

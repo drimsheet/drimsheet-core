@@ -39,6 +39,8 @@ export interface IGetJournalEntriesQuery extends IPaginationDto {
   counterpartyId?: string;
   orderBy?: UJournalEntrySortBy;
   status?: 'posted' | 'archived';
+  /** Reversal entries are excluded from this listing. */
+  sourceType?: Exclude<UJournalEntrySourceType, 'reversal'>;
 }
 
 export interface IJournalLineReq {

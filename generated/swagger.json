@@ -4618,6 +4618,15 @@
               "type": "string",
               "enum": ["posted", "archived"]
             }
+          },
+          {
+            "description": "Reversal entries are excluded from this listing.",
+            "in": "query",
+            "name": "sourceType",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Exclude_UJournalEntrySourceType.reversal_"
+            }
           }
         ]
       }
@@ -11539,6 +11548,22 @@
         "type": "string",
         "enum": ["createdAt", "effectiveDate"]
       },
+      "Exclude_UJournalEntrySourceType.reversal_": {
+        "type": "string",
+        "enum": [
+          "expense",
+          "opening_balance",
+          "sale",
+          "purchase",
+          "credit_note",
+          "debit_note",
+          "transfer",
+          "payment",
+          "receipt",
+          "adjustment"
+        ],
+        "description": "Exclude from T those types that are assignable to U"
+      },
       "IGetJournalEntriesQuery": {
         "properties": {
           "limit": {
@@ -11599,6 +11624,10 @@
           "status": {
             "type": "string",
             "enum": ["posted", "archived"]
+          },
+          "sourceType": {
+            "$ref": "#/components/schemas/Exclude_UJournalEntrySourceType.reversal_",
+            "description": "Reversal entries are excluded from this listing."
           }
         },
         "type": "object",

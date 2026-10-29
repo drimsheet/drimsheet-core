@@ -109,6 +109,7 @@ describe('makeGetJournalEntriesUsecase', () => {
       limit: 25,
       orderBy: 'effectiveDate' as const,
       status: 'archived' as const,
+      sourceType: 'receipt' as const,
       sortDirection: 'asc' as const,
       search: 'receipt',
       createdAtFrom: '2026-09-01T00:00:00Z',
@@ -132,6 +133,7 @@ describe('makeGetJournalEntriesUsecase', () => {
         offset: 25,
         orderBy: 'effectiveDate',
         status: 'archived',
+        sourceType: 'receipt',
         search: 'receipt',
         createdAtRange: {
           from: new Date('2026-09-01T00:00:00Z'),
@@ -198,6 +200,7 @@ describe('makeGetJournalEntriesUsecase', () => {
         offset: 0,
         orderBy: undefined,
         status: undefined,
+        sourceType: undefined,
         search: undefined,
         createdAtRange: { from: undefined, to: undefined },
         effectiveDateRange: { from: undefined, to: undefined },
@@ -231,6 +234,14 @@ describe('makeGetJournalEntriesUsecase', () => {
       getUseCase()({ counterpartyId: 'invalid-counterparty-id' })
     ).rejects.toThrow();
 
+    expect(mockAppContext.get).not.toHaveBeenCalled();
+    expect(mockJournalEntryQueryRepo.findAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects reversal filtering before context or storage access', async () => {
+    await expect(
+      getUseCase()({ sourceType: 'reversal' as 'receipt' })
+    ).rejects.toThrow();
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockJournalEntryQueryRepo.findAll).not.toHaveBeenCalled();
   });

@@ -2130,6 +2130,26 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  'Exclude_UJournalEntrySourceType.reversal_': {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['expense'] },
+        { dataType: 'enum', enums: ['opening_balance'] },
+        { dataType: 'enum', enums: ['sale'] },
+        { dataType: 'enum', enums: ['purchase'] },
+        { dataType: 'enum', enums: ['credit_note'] },
+        { dataType: 'enum', enums: ['debit_note'] },
+        { dataType: 'enum', enums: ['transfer'] },
+        { dataType: 'enum', enums: ['payment'] },
+        { dataType: 'enum', enums: ['receipt'] },
+        { dataType: 'enum', enums: ['adjustment'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IGetJournalEntriesQuery: {
     dataType: 'refObject',
     properties: {
@@ -2155,6 +2175,7 @@ const models: TsoaRoute.Models = {
           { dataType: 'enum', enums: ['archived'] },
         ],
       },
+      sourceType: { ref: 'Exclude_UJournalEntrySourceType.reversal_' },
     },
     additionalProperties: false,
   },

@@ -63,6 +63,17 @@ const calendarDateFilterValidation = z.iso
   .date(invalidDateKey)
   .refine((date) => date >= '0001-01-01', invalidDateKey);
 
+/**
+ * Journal entry source type validation schema
+ */
+export const journalEntrySourceTypeValidation = z.enum(
+  Object.values(EJournalEntrySourceType) as [
+    UJournalEntrySourceType,
+    ...UJournalEntrySourceType[],
+  ],
+  sourceTypeError
+);
+
 export const getJournalEntriesQueryValidationSchema = z
   .strictObject({
     ...omit(paginationDtoValidation.shape, ['orderBy']),
@@ -74,6 +85,9 @@ export const getJournalEntriesQueryValidationSchema = z
     updatedAtTo: timestampFilterValidation.optional(),
     currencyCode: currencyCodeValidation.optional(),
     accountType: ledgerAccountTypeValidation.optional(),
+    sourceType: journalEntrySourceTypeValidation
+      .exclude([EJournalEntrySourceType.Reversal], sourceTypeError)
+      .optional(),
     accountId: z.uuid(accountIdError).optional(),
     counterpartyId: z.uuid(counterpartyIdError).optional(),
     orderBy: journalEntryOrderByValidation.optional(),
@@ -116,17 +130,6 @@ export const getJournalEntriesQueryValidationSchema = z
       }
     }
   });
-
-/**
- * Journal entry source type validation schema
- */
-export const journalEntrySourceTypeValidation = z.enum(
-  Object.values(EJournalEntrySourceType) as [
-    UJournalEntrySourceType,
-    ...UJournalEntrySourceType[],
-  ],
-  sourceTypeError
-);
 
 export const journalEntrySideValidation = z.enum(
   Object.values(EJournalSide) as [UJournalSide, ...UJournalSide[]],
