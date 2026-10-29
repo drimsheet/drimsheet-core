@@ -1,6 +1,7 @@
 import { omit } from 'lodash';
 import z from 'zod';
 
+import dateError from '@shared/values/errors/date.error';
 import { paginationDtoValidation } from '@shared/values/pagination/dto/pagination.dto.validation';
 import paginationError from '@shared/values/pagination/pagination.error';
 
@@ -25,6 +26,8 @@ import {
   EJournalEntrySortBy,
   UJournalEntrySortBy,
 } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import { ledgerAccountTypeValidation } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
+import { currencyCodeValidation } from '@app/money/dtos/currency/currency.dto.validation';
 import { exchangeRateDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 import { moneyDtoValidation } from '@app/money/dtos/money/money.dto.validation';
 
@@ -47,18 +50,72 @@ const journalEntryOrderByValidation = z.enum(
   orderByError
 );
 
-export const getJournalEntriesQueryValidationSchema = z.object({
-  ...omit(paginationDtoValidation.shape, ['orderBy']),
-  accountId: z.uuid(accountIdError).optional(),
-  counterpartyId: z.uuid(counterpartyIdError).optional(),
-  orderBy: journalEntryOrderByValidation.optional(),
-  status: z
-    .enum(
-      [EJournalEntryStatus.Posted, EJournalEntryStatus.Archived],
-      journalEntryStatusError
-    )
-    .optional(),
-});
+const invalidDateKey = new dateError.InvalidDate().errorKey;
+const invalidDateRangeKey = new dateError.InvalidDates().errorKey;
+const timestampFilterValidation = z.iso
+  .datetime({
+    offset: true,
+    error: invalidDateKey,
+  })
+  .refine((date) => date >= '0001-01-01', invalidDateKey)
+  .refine((date) => !/\.\d{4}/.test(date), invalidDateKey);
+const calendarDateFilterValidation = z.iso
+  .date(invalidDateKey)
+  .refine((date) => date >= '0001-01-01', invalidDateKey);
+
+export const getJournalEntriesQueryValidationSchema = z
+  .strictObject({
+    ...omit(paginationDtoValidation.shape, ['orderBy']),
+    createdAtFrom: timestampFilterValidation.optional(),
+    createdAtTo: timestampFilterValidation.optional(),
+    effectiveDateFrom: calendarDateFilterValidation.optional(),
+    effectiveDateTo: calendarDateFilterValidation.optional(),
+    updatedAtFrom: timestampFilterValidation.optional(),
+    updatedAtTo: timestampFilterValidation.optional(),
+    currencyCode: currencyCodeValidation.optional(),
+    accountType: ledgerAccountTypeValidation.optional(),
+    accountId: z.uuid(accountIdError).optional(),
+    counterpartyId: z.uuid(counterpartyIdError).optional(),
+    orderBy: journalEntryOrderByValidation.optional(),
+    status: z
+      .enum(
+        [EJournalEntryStatus.Posted, EJournalEntryStatus.Archived],
+        journalEntryStatusError
+      )
+      .optional(),
+  })
+  .superRefine((query, ctx) => {
+    const ranges = [
+      {
+        from: query.createdAtFrom,
+        to: query.createdAtTo,
+        field: 'createdAtTo',
+      },
+      {
+        from: query.effectiveDateFrom,
+        to: query.effectiveDateTo,
+        field: 'effectiveDateTo',
+      },
+      {
+        from: query.updatedAtFrom,
+        to: query.updatedAtTo,
+        field: 'updatedAtTo',
+      },
+    ];
+    for (const range of ranges) {
+      const isReversed =
+        range.from !== undefined &&
+        range.to !== undefined &&
+        Date.parse(range.from) > Date.parse(range.to);
+      if (isReversed) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [range.field],
+          message: invalidDateRangeKey,
+        });
+      }
+    }
+  });
 
 /**
  * Journal entry source type validation schema

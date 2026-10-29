@@ -14,11 +14,12 @@
  */
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
-import { IDateRange } from '@shared/types/date.types';
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
+import dateRangeValue from '@shared/values/date-range/date-range.vo';
+import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
@@ -82,7 +83,7 @@ export default function makeGetLedgerTotalDebitsAndCreditsByCurrencyUsecase(
     const defaultEnd = dateUtils.isLessThan(today, fiscalYear.endDate)
       ? today
       : fiscalYear.endDate;
-    const period: IDateRange = {
+    const periodBounds: IDateRange = {
       from:
         query.startDate === undefined
           ? fiscalYear.startDate
@@ -91,19 +92,21 @@ export default function makeGetLedgerTotalDebitsAndCreditsByCurrencyUsecase(
     };
     const isInvalidPeriod =
       !dateUtils.isWithinRange(
-        period.from,
+        periodBounds.from,
         fiscalYear.startDate,
         fiscalYear.endDate
       ) ||
       !dateUtils.isWithinRange(
-        period.to,
+        periodBounds.to,
         fiscalYear.startDate,
         fiscalYear.endDate
       ) ||
-      dateUtils.isGreaterThan(period.from, period.to);
+      dateUtils.isGreaterThan(periodBounds.from, periodBounds.to);
     if (isInvalidPeriod) {
       throw new reportingError.InvalidPeriod();
     }
+
+    const period = dateRangeValue.make(periodBounds);
 
     const totals = await deps.repoQuery(
       { accountingEntityId: accountingEntity.id, type: query.type, period },

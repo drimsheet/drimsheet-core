@@ -15,11 +15,12 @@
  * Not required for this read-only aggregation workflow.
  */
 import IAppContextService from '@shared/contracts/app-context.service.contract';
-import { IDateRange } from '@shared/types/date.types';
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
+import dateRangeValue from '@shared/values/date-range/date-range.vo';
+import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
 import { ULedgerType } from '@domain/ledger/types/ledger.types';
 import { UCurrencyCode } from '@domain/money/config/currencies.config';
@@ -77,13 +78,14 @@ export default function makeGetAccountActivityByTypesUsecase(
     query: IGetAccountActivityByTypesQuery
   ): Promise<IAccountActivityByTypesDto> => {
     zodValidationRunner(getAccountActivityByTypesQueryValidationSchema, query);
-    const period = dateRangeMapper.fromDto(query);
+    const periodBounds = dateRangeMapper.fromDto(query);
     const days = dateUtils.getUtcCalendarDistance(
-      period.from,
-      period.to,
+      periodBounds.from,
+      periodBounds.to,
       'day'
     );
     reportingValidation.validatePeriodDays(days);
+    const period = dateRangeValue.make(periodBounds);
 
     const { accountingEntity, correlationId } = deps.appContext.get([
       'accountingEntity',
@@ -168,10 +170,11 @@ function buildAccountActivityReport(
       };
     });
     const lastOffset = Math.min(offset + bucketDays - 1, days - 1);
-    const range = dateRangeMapper.toDto({
+    const bucketRange = dateRangeValue.make({
       from: dateUtils.addUtcCalendarUnits(period.from, offset, 'day'),
       to: dateUtils.addUtcCalendarUnits(period.from, lastOffset, 'day'),
     });
+    const range = dateRangeMapper.toDto(bucketRange);
     buckets.push({ from: range.from, to: range.to, activity });
   }
   return {

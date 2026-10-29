@@ -57,6 +57,7 @@ describe('getAccountActivityByTypesUsecase', () => {
       ...query,
       types: ['revenue', 'expense', 'revenue'],
     });
+    expect(Object.isFrozen(repoQuery.mock.calls[0][0].period)).toBe(true);
     expect(repoQuery).toHaveBeenCalledWith(
       {
         accountingEntityId: entityId,

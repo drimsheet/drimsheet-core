@@ -22,6 +22,7 @@
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import dateUtils from '@shared/utils/date';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
+import dateRangeValue from '@shared/values/date-range/date-range.vo';
 
 import currencyEntity from '@domain/money/entities/currency.entity';
 
@@ -53,13 +54,14 @@ export default function makeGetBalanceHistoryByBehaviorUsecase(
       query
     );
 
-    const period = dateRangeMapper.fromDto(query);
+    const periodBounds = dateRangeMapper.fromDto(query);
     const days = dateUtils.getUtcCalendarDistance(
-      period.from,
-      period.to,
+      periodBounds.from,
+      periodBounds.to,
       'day'
     );
     reportingValidation.validatePeriodDays(days);
+    const period = dateRangeValue.make(periodBounds);
 
     const { accountingEntity, correlationId } = deps.appContext.get([
       'accountingEntity',

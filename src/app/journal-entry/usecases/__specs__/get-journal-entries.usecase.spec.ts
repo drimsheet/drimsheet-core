@@ -111,6 +111,14 @@ describe('makeGetJournalEntriesUsecase', () => {
       status: 'archived' as const,
       sortDirection: 'asc' as const,
       search: 'receipt',
+      createdAtFrom: '2026-09-01T00:00:00Z',
+      createdAtTo: '2026-10-01T00:00:00Z',
+      effectiveDateFrom: '2026-09-01',
+      effectiveDateTo: '2026-09-30',
+      updatedAtFrom: '2026-09-01T00:00:00+01:00',
+      updatedAtTo: '2026-10-01T00:00:00+01:00',
+      currencyCode: 'NGN',
+      accountType: 'asset' as const,
     };
 
     const result = await getUseCase()(query);
@@ -125,6 +133,20 @@ describe('makeGetJournalEntriesUsecase', () => {
         orderBy: 'effectiveDate',
         status: 'archived',
         search: 'receipt',
+        createdAtRange: {
+          from: new Date('2026-09-01T00:00:00Z'),
+          to: new Date('2026-10-01T00:00:00Z'),
+        },
+        effectiveDateRange: {
+          from: new Date('2026-09-01'),
+          to: new Date('2026-09-30'),
+        },
+        updatedAtRange: {
+          from: new Date('2026-09-01T00:00:00+01:00'),
+          to: new Date('2026-10-01T00:00:00+01:00'),
+        },
+        currencyCode: 'NGN',
+        accountType: 'asset' as const,
         sortDirection: 'asc',
         correlationId,
       }
@@ -134,6 +156,28 @@ describe('makeGetJournalEntriesUsecase', () => {
       meta: { page: 2, limit: 25, total: 1, totalPages: 1 },
     });
   });
+
+  it.each(['createdAt', 'effectiveDate', 'updatedAt'] as const)(
+    'maps open-ended %s filters without inventing a boundary',
+    async (field) => {
+      const boundary =
+        field === 'effectiveDate' ? '2026-09-01' : '2026-09-01T12:30:00+01:00';
+      for (const side of ['From', 'To'] as const) {
+        await getUseCase()({
+          [`${field}${side}`]: boundary,
+        });
+        expect(mockJournalEntryQueryRepo.findAll).toHaveBeenLastCalledWith(
+          accountingEntityId,
+          expect.objectContaining({
+            [`${field}Range`]: {
+              from: side === 'From' ? new Date(boundary) : undefined,
+              to: side === 'To' ? new Date(boundary) : undefined,
+            },
+          })
+        );
+      }
+    }
+  );
 
   it('supports an unfiltered empty page', async () => {
     mockJournalEntryQueryRepo.findAll.mockResolvedValue({
@@ -155,11 +199,32 @@ describe('makeGetJournalEntriesUsecase', () => {
         orderBy: undefined,
         status: undefined,
         search: undefined,
+        createdAtRange: { from: undefined, to: undefined },
+        effectiveDateRange: { from: undefined, to: undefined },
+        updatedAtRange: { from: undefined, to: undefined },
+        currencyCode: undefined,
+        accountType: undefined,
         sortDirection: undefined,
         correlationId,
       }
     );
   });
+
+  it.each([
+    ['createdAt', 'From'],
+    ['createdAt', 'To'],
+    ['updatedAt', 'From'],
+    ['updatedAt', 'To'],
+  ] as const)(
+    'rejects sub-millisecond %s.%s before context or storage access',
+    async (field, side) => {
+      await expect(
+        getUseCase()({ [`${field}${side}`]: '2026-09-01T00:00:00.000999Z' })
+      ).rejects.toThrow();
+      expect(mockAppContext.get).not.toHaveBeenCalled();
+      expect(mockJournalEntryQueryRepo.findAll).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects an invalid query before reading context', async () => {
     await expect(

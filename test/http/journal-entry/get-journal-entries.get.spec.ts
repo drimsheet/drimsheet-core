@@ -10,8 +10,11 @@ import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.t
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { IUser } from '@domain/user/types/user.types';
 
+import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
 import { IJournalEntryListDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
+import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
 import * as journalEntryUseCases from '@infra/ioc/usecases/journal-entry';
@@ -169,7 +172,7 @@ describe('GET /journal-entries', () => {
     await closeTestServer(server);
   });
 
-  const makeRequest = (query: object = {}) =>
+  const makeRequest = (query: object | string = {}) =>
     request(server)
       .get(ENDPOINT)
       .set('Authorization', 'Bearer valid-token')
@@ -177,6 +180,24 @@ describe('GET /journal-entries', () => {
       .query(query);
 
   describe('200 Response', () => {
+    it.each([
+      ['createdAt', '2026-09-01T12:30:00.123+01:00'],
+      ['effectiveDate', '2026-09-01'],
+      ['updatedAt', '2026-09-01T12:30:00Z'],
+    ])('parses flat open-ended %s filters', async (field, value) => {
+      for (const side of ['From', 'To']) {
+        const response = await makeRequest(
+          `${field}${side}=${encodeURIComponent(value)}`
+        );
+        expect(response.status).toBe(200);
+        expect(mockGetJournalEntries).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            [`${field}${side}`]: value,
+          })
+        );
+      }
+    });
+
     it('returns journal entries and forwards coerced query values', async () => {
       const response = await makeRequest({
         accountId,
@@ -187,6 +208,14 @@ describe('GET /journal-entries', () => {
         status: 'archived',
         sortDirection: 'asc',
         search: 'receipt',
+        createdAtFrom: '2026-09-01T00:00:00Z',
+        createdAtTo: '2026-10-01T00:00:00Z',
+        effectiveDateFrom: '2026-09-01',
+        effectiveDateTo: '2026-09-30',
+        updatedAtFrom: '2026-09-01T00:00:00+01:00',
+        updatedAtTo: '2026-10-01T00:00:00+01:00',
+        currencyCode: 'NGN',
+        accountType: 'asset',
       });
 
       expect(response.status).toBe(200);
@@ -222,6 +251,14 @@ describe('GET /journal-entries', () => {
         status: 'archived',
         sortDirection: 'asc',
         search: 'receipt',
+        createdAtFrom: '2026-09-01T00:00:00Z',
+        createdAtTo: '2026-10-01T00:00:00Z',
+        effectiveDateFrom: '2026-09-01',
+        effectiveDateTo: '2026-09-30',
+        updatedAtFrom: '2026-09-01T00:00:00+01:00',
+        updatedAtTo: '2026-10-01T00:00:00+01:00',
+        currencyCode: 'NGN',
+        accountType: 'asset',
       });
     });
   });
@@ -249,6 +286,43 @@ describe('GET /journal-entries', () => {
   });
 
   describe('422 Response', () => {
+    it.each([
+      'effectiveDateRange[from]=2026-09-01',
+      'effectiveDateRange=2026-09-01',
+      'effectiveDateRange[from][nested]=2026-09-01',
+      'effectiveDateRange[until]=2026-09-01',
+      'effectiveDateFrom=2026-09-01&effectiveDateFrom=2026-09-02',
+    ])('rejects unsupported or malformed range syntax: %s', async (query) => {
+      const response = await makeRequest(query);
+      expect(response.status).toBe(422);
+      expect(mockGetJournalEntries).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['effectiveDateFrom=2026-02-30', 'effectiveDateFrom'],
+      ['effectiveDateFrom=', 'effectiveDateFrom'],
+      [
+        'effectiveDateFrom=2026-09-30&effectiveDateTo=2026-09-01',
+        'effectiveDateTo',
+      ],
+      ['createdAtFrom=2026-09-01T00:00:00.000999Z', 'createdAtFrom'],
+      ['updatedAtTo=2026-09-01T00:00:00.1234Z', 'updatedAtTo'],
+    ])('returns flat validation errors for %s', async (query, field) => {
+      mockGetJournalEntries.mockImplementationOnce(
+        makeGetJournalEntriesUsecase({
+          appContext: mockAppContext,
+          journalEntryQueryRepo: mockJournalEntryQueryRepo,
+        })
+      );
+      const response = await makeRequest(query);
+      expect(response.status).toBe(422);
+      expect(response.body.validationErrors).toEqual(
+        expect.arrayContaining([expect.objectContaining({ field })])
+      );
+      expect(mockAppContext.get).not.toHaveBeenCalled();
+      expect(mockJournalEntryQueryRepo.findAll).not.toHaveBeenCalled();
+    });
+
     it('rejects unsupported journal entry statuses', async () => {
       const response = await makeRequest({ status: 'voided' });
 

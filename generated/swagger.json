@@ -4515,6 +4515,78 @@
             }
           },
           {
+            "description": "Inclusive timestamp with a timezone and at most 3 fractional digits.",
+            "in": "query",
+            "name": "createdAtFrom",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive timestamp with a timezone and at most 3 fractional digits.",
+            "in": "query",
+            "name": "createdAtTo",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "effectiveDateFrom",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "effectiveDateTo",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive timestamp with a timezone and at most 3 fractional digits.",
+            "in": "query",
+            "name": "updatedAtFrom",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive timestamp with a timezone and at most 3 fractional digits.",
+            "in": "query",
+            "name": "updatedAtTo",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Matches transaction currency on any line, independently of other filters.",
+            "in": "query",
+            "name": "currencyCode",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Matches account type on any line, independently of other filters.",
+            "in": "query",
+            "name": "accountType",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ULedgerType"
+            }
+          },
+          {
             "in": "query",
             "name": "accountId",
             "required": false,
@@ -11485,6 +11557,38 @@
           "page": {
             "type": "number",
             "format": "double"
+          },
+          "createdAtFrom": {
+            "type": "string",
+            "description": "Inclusive timestamp with a timezone and at most 3 fractional digits."
+          },
+          "createdAtTo": {
+            "type": "string",
+            "description": "Inclusive timestamp with a timezone and at most 3 fractional digits."
+          },
+          "effectiveDateFrom": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "effectiveDateTo": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "updatedAtFrom": {
+            "type": "string",
+            "description": "Inclusive timestamp with a timezone and at most 3 fractional digits."
+          },
+          "updatedAtTo": {
+            "type": "string",
+            "description": "Inclusive timestamp with a timezone and at most 3 fractional digits."
+          },
+          "currencyCode": {
+            "type": "string",
+            "description": "Matches transaction currency on any line, independently of other filters."
+          },
+          "accountType": {
+            "$ref": "#/components/schemas/ULedgerType",
+            "description": "Matches account type on any line, independently of other filters."
           },
           "accountId": {
             "type": "string"

@@ -58,6 +58,10 @@ describe('ledger-total-debits-and-credits-by-currency', () => {
         year.id,
         { correlationId: 'totals' }
       );
+      const storedPeriod = repoQuery.mock.calls[0][0].period;
+      expect(Object.isFrozen(storedPeriod)).toBe(true);
+      expect(storedPeriod.from).not.toBe(year.startDate);
+      expect(Object.isFrozen(year.startDate)).toBe(false);
       expect(repoQuery).toHaveBeenCalledWith(
         {
           accountingEntityId: entityId,
@@ -68,6 +72,21 @@ describe('ledger-total-debits-and-credits-by-currency', () => {
       );
     }
   );
+
+  it('preserves the report and fiscal year when a query mutates boundary copies', async () => {
+    repoQuery.mockImplementationOnce(async (input) => {
+      input.period.from.setUTCFullYear(2030);
+      input.period.to.setTime(NaN);
+      return [];
+    });
+
+    expect((await execute(query)).period).toEqual({
+      from: '2026-04-01',
+      to: '2026-10-26',
+    });
+    expect(year.startDate.toISOString()).toBe('2026-04-01T00:00:00.000Z');
+    expect(year.endDate.toISOString()).toBe('2027-03-31T00:00:00.000Z');
+  });
 
   it('defaults historical years to the year end', async () => {
     jest.setSystemTime(new Date('2028-01-01'));

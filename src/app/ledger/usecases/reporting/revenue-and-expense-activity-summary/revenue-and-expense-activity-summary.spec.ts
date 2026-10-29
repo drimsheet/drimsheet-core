@@ -80,6 +80,10 @@ describe('get-revenue-and-expense-activity-summary.usecase.spec', () => {
 
     it('scopes one aggregate read to the active entity, its currency and both periods', async () => {
       const response = await usecase(query);
+      const queryInput =
+        mockRevenueAndExpenseActivitySummaryRepoQuery.mock.calls[0][0];
+      expect(Object.isFrozen(queryInput.period)).toBe(true);
+      expect(Object.isFrozen(queryInput.comparisonPeriod)).toBe(true);
       expect(mockAppContext.get).toHaveBeenCalledWith(['accountingEntity']);
       expect(
         mockRevenueAndExpenseActivitySummaryRepoQuery

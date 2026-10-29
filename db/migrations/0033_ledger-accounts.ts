@@ -189,6 +189,9 @@ export function up(pgm: MigrationBuilder) {
       where: suspensePredicate,
     }
   );
+  pgm.createIndex(ledgerAccountsTable, ['accounting_entity_id', 'type', 'id'], {
+    name: 'ledger_accounts_entity_type_id_idx',
+  });
 }
 
 export function down(pgm: MigrationBuilder) {

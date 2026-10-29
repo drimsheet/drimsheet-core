@@ -1,13 +1,18 @@
 import { eq, SQL } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { PgDialect, QueryBuilder } from 'drizzle-orm/pg-core';
 
 import { TEntityId } from '@shared/types/uuid';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
+import { IFindAllJournalEntriesOptions } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+
+import * as relations from '@infra/config/drizzle/relations';
 import {
   journalEntriesInCore,
   journalLinesInCore,
 } from '@infra/config/drizzle/schema';
+import * as schema from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
 import journalEntryDetailsMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-details.mapper';
 import journalEntryQueryRepo from '@infra/persistence/repos/journal-entry/queries/journal-entry.query.repo.impl';
@@ -174,6 +179,148 @@ describe('journalEntryQueryRepo', () => {
         '"core"."journal_entries"."created_at" desc',
         '"core"."journal_entries"."id" desc',
       ]);
+    }
+  );
+
+  it('applies inclusive date bounds to both the count and page query', async () => {
+    const { countWhere } = mockPaginatedQuery(1, []);
+    const filters = {
+      createdAtRange: {
+        from: new Date('2026-09-01T00:00:00Z'),
+        to: new Date('2026-10-01T00:00:00Z'),
+      },
+      effectiveDateRange: {
+        from: new Date('2026-09-01'),
+        to: new Date('2026-09-30'),
+      },
+      updatedAtRange: {
+        from: new Date('2026-09-01T00:00:00+01:00'),
+        to: new Date('2026-10-01T00:00:00+01:00'),
+      },
+    };
+    await journalEntryQueryRepo.findAll(accountingEntityId, {
+      ...options,
+      ...filters,
+    });
+    const rowQuery = findMany.mock.calls[0][0] as { where: SQL };
+    const predicate = new PgDialect().sqlToQuery(rowQuery.where);
+    expect(countWhere).toHaveBeenCalledWith(rowQuery.where);
+    expect(predicate.params).toEqual([
+      accountingEntityId,
+      'reversal',
+      'draft',
+      'posted',
+      '2026-09-01T00:00:00.000Z',
+      '2026-10-01T00:00:00.000Z',
+      '2026-09-01',
+      '2026-09-30',
+      '2026-08-31T23:00:00.000Z',
+      '2026-09-30T23:00:00.000Z',
+    ]);
+    for (const column of ['created_at', 'effective_date', 'updated_at']) {
+      expect(predicate.sql).toContain(`"${column}" >=`);
+      expect(predicate.sql).toContain(`"${column}" <=`);
+    }
+  });
+
+  it.each([
+    ['createdAtRange', 'created_at', '2026-09-01T12:30:00.000Z'],
+    ['effectiveDateRange', 'effective_date', '2026-09-01'],
+    ['updatedAtRange', 'updated_at', '2026-09-01T12:30:00.000Z'],
+  ] as const)(
+    'supports individual bounds on %s',
+    async (field, column, expected) => {
+      for (const side of ['from', 'to'] as const) {
+        const { countWhere } = mockPaginatedQuery(1, []);
+        await journalEntryQueryRepo.findAll(accountingEntityId, {
+          ...options,
+          [field]: { [side]: new Date(expected) },
+        });
+        const predicate = new PgDialect().sqlToQuery(
+          countWhere.mock.calls[0][0] as SQL
+        );
+        expect(predicate.sql).toContain(
+          `"${column}" ${side === 'from' ? '>=' : '<='}`
+        );
+        expect(predicate.sql).not.toContain(
+          `"${column}" ${side === 'from' ? '<=' : '>='}`
+        );
+        expect(predicate.params).toEqual([
+          accountingEntityId,
+          'reversal',
+          'draft',
+          'posted',
+          expected,
+        ]);
+      }
+    }
+  );
+
+  it.each([
+    { currencyCode: 'NGN' },
+    { accountType: 'asset' },
+    { currencyCode: 'NGN', accountType: 'asset', accountId, counterpartyId },
+  ] satisfies Partial<IFindAllJournalEntriesOptions>[])(
+    'filters line participation without multiplying or trimming entry rows: %j',
+    async (filters) => {
+      const countWhere = jest.fn().mockResolvedValue([{ count: 1 }]);
+      const builder = new QueryBuilder();
+      const select = jest.fn((selection) => {
+        if ('count' in selection) {
+          return { from: jest.fn().mockReturnValue({ where: countWhere }) };
+        }
+        return builder.select(selection);
+      });
+      jest.mocked(getDbQuery).mockReturnValue({
+        select,
+        query: {
+          journalEntriesInCore: { findMany: findMany.mockResolvedValue([]) },
+        },
+      } as unknown as ReturnType<typeof getDbQuery>);
+      await journalEntryQueryRepo.findAll(accountingEntityId, {
+        ...options,
+        ...filters,
+      });
+      const rowQuery = findMany.mock.calls[0][0] as {
+        where: SQL;
+        with: { journalLinesInCores: { where?: SQL } };
+      };
+      const predicate = new PgDialect().sqlToQuery(rowQuery.where);
+      expect(countWhere).toHaveBeenCalledWith(rowQuery.where);
+      expect(predicate.sql).toContain(
+        '"journal_entries"."accounting_entity_id" = $1'
+      );
+      expect(predicate.params[0]).toBe(accountingEntityId);
+      expect(rowQuery.with.journalLinesInCores.where).toBeUndefined();
+      // Compile the actual relational query as well as the count predicate.
+      const pageSql = drizzle
+        .mock({ schema: { ...schema, ...relations } })
+        .query.journalEntriesInCore.findMany({
+          where: rowQuery.where,
+          with: { journalLinesInCores: true },
+          limit: 10,
+        })
+        .toSQL();
+      expect(pageSql.sql).toContain(
+        '"journalEntriesInCore"."accounting_entity_id" ='
+      );
+      expect(pageSql.params).toEqual([...predicate.params, 10]);
+
+      if ('currencyCode' in filters) {
+        expect(predicate.sql).toContain('"journal_lines"."currency_code" =');
+        expect(predicate.params).toContain('NGN');
+      }
+      if ('accountType' in filters) {
+        expect(predicate.sql).toContain('inner join "core"."ledger_accounts"');
+        expect(predicate.sql).toContain(
+          '"ledger_accounts"."accounting_entity_id" ='
+        );
+        expect(predicate.sql).toContain('"ledger_accounts"."type" =');
+        expect(predicate.params).toContain('asset');
+        expect(
+          predicate.params.filter((value) => value === accountingEntityId)
+        ).toHaveLength(2);
+      }
     }
   );
 

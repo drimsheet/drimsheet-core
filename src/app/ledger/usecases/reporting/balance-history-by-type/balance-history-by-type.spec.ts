@@ -63,6 +63,10 @@ describe('getBalanceHistoryByTypeUsecase', () => {
     >[0];
     it('deduplicates filters, scopes the query, and returns only its concrete DTO fields', async () => {
       const report = await usecase({ ...query, types: ['asset', 'asset'] });
+      const storedPeriod = mockBalanceHistoryRepoQuery.mock.calls[0][0].period;
+      expect(Object.isFrozen(storedPeriod)).toBe(true);
+      expect(Object.isFrozen(storedPeriod.from)).toBe(true);
+      expect(Object.isFrozen(storedPeriod.to)).toBe(true);
       expect(mockBalanceHistoryRepoQuery).toHaveBeenCalledWith(
         {
           accountingEntityId: entityId,

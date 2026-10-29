@@ -3,6 +3,7 @@ import {
   IReadRepoOptions,
 } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import { IOpenDateRange } from '@shared/values/date-range/types/date-range.types';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
 
 import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
@@ -12,7 +13,7 @@ import {
   UJournalEntrySourceType,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
-import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
+import { ILedgerAccount, ULedgerType } from '@domain/ledger/types/ledger.types';
 
 export const EJournalEntrySortBy = {
   CreatedAt: 'createdAt',
@@ -31,6 +32,14 @@ export interface IFindAllJournalEntriesOptions extends Omit<
     | typeof EJournalEntryStatus.Posted
     | typeof EJournalEntryStatus.Archived;
   sourceType?: UJournalEntrySourceType;
+  createdAtRange?: IOpenDateRange;
+  /** Calendar-date bounds normalized to UTC midnight by the caller. */
+  effectiveDateRange?: IOpenDateRange;
+  updatedAtRange?: IOpenDateRange;
+  /** Matches transaction currency on any line, independently of other filters. */
+  currencyCode?: string;
+  /** Matches account type on any line, independently of other filters. */
+  accountType?: ULedgerType;
   accountId?: TEntityId;
   counterpartyId?: TEntityId;
   orderBy?: UJournalEntrySortBy;

@@ -1,6 +1,6 @@
-import { IDateRange } from '@shared/types/date.types';
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
 import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
 import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';

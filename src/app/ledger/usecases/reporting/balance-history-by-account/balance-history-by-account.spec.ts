@@ -66,6 +66,10 @@ describe('getBalanceHistoryByAccountUsecase', () => {
         ...query,
         accountIds: [accountId, accountId],
       });
+      const storedPeriod = mockBalanceHistoryRepoQuery.mock.calls[0][0].period;
+      expect(Object.isFrozen(storedPeriod)).toBe(true);
+      expect(Object.isFrozen(storedPeriod.from)).toBe(true);
+      expect(Object.isFrozen(storedPeriod.to)).toBe(true);
       expect(mockBalanceHistoryRepoQuery).toHaveBeenCalledWith(
         {
           accountingEntityId: entityId,

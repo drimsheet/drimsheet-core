@@ -1,5 +1,5 @@
-import { IDateRange } from '@shared/types/date.types';
 import dateUtils from '@shared/utils/date';
+import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
 import { ULedgerType } from '@domain/ledger/types/ledger.types';
 import { ICurrency } from '@domain/money/types/currency.types';

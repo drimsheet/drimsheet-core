@@ -1,8 +1,8 @@
 /**
  * SUMMARY
  * Lists journals within the selected accounting entity using status, account,
- * counterparty, search, ordering, and pagination options. Returns journal
- * details with account and counterparty information plus pagination metadata; a
+ * counterparty, dates, currency, account type, search, ordering, and pagination.
+ * Returns journal details with account and counterparty information plus pagination metadata; a
  * result page may be empty.
  *
  * WHEN TO USE
@@ -16,6 +16,7 @@
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
+import dateRangeValue from '@shared/values/date-range/date-range.vo';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
 
@@ -47,6 +48,22 @@ export default function makeGetJournalEntriesUsecase(deps: IDependencies) {
 
     const repoOptions: IFindAllJournalEntriesOptions = {
       status: query.status,
+      createdAtRange: dateRangeValue.make({
+        from: query.createdAtFrom ? new Date(query.createdAtFrom) : undefined,
+        to: query.createdAtTo ? new Date(query.createdAtTo) : undefined,
+      }),
+      effectiveDateRange: dateRangeValue.make({
+        from: query.effectiveDateFrom
+          ? new Date(query.effectiveDateFrom)
+          : undefined,
+        to: query.effectiveDateTo ? new Date(query.effectiveDateTo) : undefined,
+      }),
+      updatedAtRange: dateRangeValue.make({
+        from: query.updatedAtFrom ? new Date(query.updatedAtFrom) : undefined,
+        to: query.updatedAtTo ? new Date(query.updatedAtTo) : undefined,
+      }),
+      currencyCode: query.currencyCode,
+      accountType: query.accountType,
       accountId: query.accountId as TEntityId | undefined,
       counterpartyId: query.counterpartyId as TEntityId | undefined,
       limit: query.limit,

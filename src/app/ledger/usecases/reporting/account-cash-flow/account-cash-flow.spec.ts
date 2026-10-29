@@ -69,6 +69,12 @@ describe('get-account-cash-flow.usecase.spec', () => {
         entityId,
         { correlationId: 'cash-flow-spec' }
       );
+      expect(
+        Object.isFrozen(mockAccountCashFlowRepoQuery.mock.calls[0][0].from)
+      ).toBe(true);
+      expect(
+        Object.isFrozen(mockAccountCashFlowRepoQuery.mock.calls[0][0].to)
+      ).toBe(true);
       expect(mockAccountCashFlowRepoQuery).toHaveBeenCalledWith(
         {
           accountId,

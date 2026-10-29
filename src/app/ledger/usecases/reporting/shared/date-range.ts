@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { IDateRange } from '@shared/types/date.types';
+import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
 import reportingError from '@app/ledger/errors/reporting.error';
 

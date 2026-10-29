@@ -115,6 +115,18 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createIndex(journalLinesTable, ['counterparty_id', 'entry_id'], {
     name: 'journal_lines_counterparty_entry_idx',
   });
+
+  pgm.createIndex(journalLinesTable, ['currency_code', 'entry_id'], {
+    name: 'journal_lines_currency_entry_idx',
+  });
+
+  pgm.createIndex(journalLinesTable, ['entry_id'], {
+    name: 'journal_lines_entry_idx',
+  });
+
+  pgm.createIndex(journalLinesTable, ['account_id', 'entry_id'], {
+    name: 'journal_lines_account_entry_idx',
+  });
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {

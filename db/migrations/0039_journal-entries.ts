@@ -97,6 +97,22 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       default: pgm.func('now()'),
     },
   });
+
+  pgm.createIndex(
+    journalEntriesTable,
+    ['accounting_entity_id', 'created_at', 'id'],
+    { name: 'journal_entries_entity_created_id_idx' }
+  );
+
+  pgm.createIndex(
+    journalEntriesTable,
+    ['accounting_entity_id', 'effective_date', 'id'],
+    { name: 'journal_entries_entity_effective_id_idx' }
+  );
+
+  pgm.createIndex(journalEntriesTable, ['accounting_entity_id', 'updated_at'], {
+    name: 'journal_entries_entity_updated_idx',
+  });
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {

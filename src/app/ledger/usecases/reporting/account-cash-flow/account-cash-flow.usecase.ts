@@ -18,12 +18,13 @@
  */
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
-import { IDateRange } from '@shared/types/date.types';
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 import stringUtils from '@shared/utils/string';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
+import dateRangeValue from '@shared/values/date-range/date-range.vo';
+import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import {
@@ -90,13 +91,14 @@ export default function makeGetAccountCashFlowUsecase(deps: IDependencies) {
     stringUtils.validateUUID(accountId, reportingError.InvalidAccountId);
     zodValidationRunner(getAccountCashFlowQueryValidationSchema, query);
 
-    const period = dateRangeMapper.fromDto(query);
+    const periodBounds = dateRangeMapper.fromDto(query);
     const days = dateUtils.getUtcCalendarDistance(
-      period.from,
-      period.to,
+      periodBounds.from,
+      periodBounds.to,
       'day'
     );
     reportingValidation.validatePeriodDays(days);
+    const period = dateRangeValue.make(periodBounds);
 
     const { correlationId, accountingEntity } = deps.appContext.get([
       'accountingEntity',
@@ -207,9 +209,13 @@ function buildAccountCashFlowBuckets(
     const aggregate = aggregatesByIndex.get(bucketIndex);
     const lastDayOffset = Math.min(offset + bucketDays - 1, days - 1);
 
-    buckets.push({
+    const bucketRange = dateRangeValue.make({
       from: dateUtils.addUtcCalendarUnits(from, offset, 'day'),
       to: dateUtils.addUtcCalendarUnits(from, lastDayOffset, 'day'),
+    });
+    buckets.push({
+      from: bucketRange.from,
+      to: bucketRange.to,
       moneyIn: moneyValue.make(aggregate?.moneyIn ?? 0n, currency, true),
       moneyOut: moneyValue.make(aggregate?.moneyOut ?? 0n, currency, true),
     });

@@ -1,4 +1,4 @@
-import { IDateRange } from '@shared/types/date.types';
+import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
 import { IMoney } from '@domain/money/types/money.types';
 
