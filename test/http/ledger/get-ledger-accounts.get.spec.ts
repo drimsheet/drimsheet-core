@@ -133,6 +133,61 @@ describe('GET /ledger', () => {
   });
 
   describe('200 Response', () => {
+    it.each(['subTypes[]', 'subTypes'])(
+      'preserves all 25 subtype filters encoded as %s',
+      async (subTypeParameter) => {
+        const subTypes = [
+          'suspense',
+          'sales',
+          'services',
+          'subscriptions',
+          'employment_income',
+          'interest_income',
+          'gain_on_asset_sale',
+          'unrealized_gains',
+          'grants',
+          'gifts',
+          'payroll_and_personnel',
+          'rent_and_utilities',
+          'admin_and_general',
+          'marketing_and_selling',
+          'research_and_development',
+          'depreciation_and_amortization',
+          'bank_charge',
+          'finance_cost',
+          'interest',
+          'unrealized_loss',
+          'impairment_loss',
+          'other_loss',
+          'direct_costs',
+          'income_tax_expense',
+          'loss_on_asset_disposal',
+        ];
+        const query = new URLSearchParams({
+          page: '1',
+          limit: '10',
+          isControlAccount: 'false',
+        });
+        const types = ['revenue', 'expense', 'asset'];
+
+        types.forEach((type) => query.append('types[]', type));
+        subTypes.forEach((subType) => query.append(subTypeParameter, subType));
+
+        const response = await request(server)
+          .get(`${ENDPOINT}?${query.toString()}`)
+          .set('Authorization', 'Bearer valid-token');
+
+        expect(response.status).toBe(200);
+        expect(mockGetLedgerAccounts).toHaveBeenCalledWith({
+          page: 1,
+          limit: 10,
+          types,
+          subTypes,
+          isControlAccount: false,
+        });
+      }
+    );
+
     it('returns ledger accounts and forwards coerced query values', async () => {
       const response = await request(server)
         .get(ENDPOINT)

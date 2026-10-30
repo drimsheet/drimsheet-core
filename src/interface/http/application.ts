@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
 import passport from 'passport';
+import qs from 'qs';
 
 import httpMiddlewares from '@infra/ioc/middlewares/http';
 import cors from '@infra/runtime/servers/express/cors';
@@ -16,7 +17,9 @@ import { RegisterRoutes } from '../../../generated/routes';
 export default function createApplication() {
   const app = express();
   app.set('trust proxy', false);
-  app.set('query parser', 'extended');
+  app.set('query parser', (query: string) =>
+    qs.parse(query, { arrayLimit: 250 })
+  );
 
   app.use(healthRoute);
 
