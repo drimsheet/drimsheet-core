@@ -4,31 +4,22 @@ import {
   eq,
   getTableColumns,
   getTableName,
-  ilike,
   inArray,
-  isNull,
   like,
   notExists,
-  or,
-  sql,
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import drizzleFilters from '@shared/helpers/drizzle-filters';
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
 import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
 import repoError from '@shared/values/errors/repo.error';
-import paginationValue from '@shared/values/pagination/pagination.vo';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
-import ILedgerAccountRepo, {
-  ELedgerAccountSortBy,
-} from '@domain/ledger/repos/ledger-account.repo';
+import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import {
   currenciesInCore,
   journalLinesInCore,
-  ledgerAccountBalancesInCore,
   ledgerAccountsInCore,
 } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
@@ -160,7 +151,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
     return result.map(ledgerAccountMapper.toDomain)[0] ?? null;
   },
 
-  findAllByIds: async (ids, options) => {
+  findAllByIds: async (ids, accountingEntityId, options) => {
     if (ids.length === 0) {
       return [];
     }
@@ -174,7 +165,12 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
         currenciesInCore,
         eq(ledgerAccountsInCore.currencyCode, currenciesInCore.code)
       )
-      .where(inArray(ledgerAccountsInCore.id, ids))
+      .where(
+        and(
+          inArray(ledgerAccountsInCore.id, ids),
+          eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId)
+        )
+      )
       .orderBy(ledgerAccountsInCore.materializedPath);
 
     const query = options.lock
@@ -341,146 +337,6 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
     return result as unknown as ReturnType<
       ILedgerAccountRepo['findLatestBySubType']
     >;
-  },
-
-  findAll: async (accountingEntityId, options) => {
-    const conditions = [
-      eq(ledgerAccountsInCore.accountingEntityId, accountingEntityId),
-    ];
-
-    if (options.status) {
-      conditions.push(eq(ledgerAccountsInCore.status, options.status));
-    }
-    if (options.statuses && options.statuses.length > 0) {
-      conditions.push(inArray(ledgerAccountsInCore.status, options.statuses));
-    }
-
-    if (options.ids && options.ids.length > 0) {
-      conditions.push(inArray(ledgerAccountsInCore.id, options.ids));
-    }
-
-    if (options.type) {
-      conditions.push(eq(ledgerAccountsInCore.type, options.type));
-    }
-
-    if (options.types && options.types.length > 0) {
-      conditions.push(inArray(ledgerAccountsInCore.type, options.types));
-    }
-
-    if (options.subType) {
-      conditions.push(eq(ledgerAccountsInCore.subType, options.subType));
-    }
-
-    if (options.subTypes && options.subTypes.length > 0) {
-      conditions.push(inArray(ledgerAccountsInCore.subType, options.subTypes));
-    }
-
-    if (options.behavior) {
-      conditions.push(eq(ledgerAccountsInCore.behavior, options.behavior));
-    }
-
-    if (options.behaviors && options.behaviors.length > 0) {
-      conditions.push(
-        inArray(ledgerAccountsInCore.behavior, options.behaviors)
-      );
-    }
-
-    if (options.currencyCodes && options.currencyCodes.length > 0) {
-      const fixedCurrencyCodes = options.currencyCodes.filter(
-        (currencyCode) => currencyCode !== null
-      );
-      const includesNullCurrency = options.currencyCodes.includes(null);
-
-      if (fixedCurrencyCodes.length > 0 && includesNullCurrency) {
-        conditions.push(
-          or(
-            inArray(ledgerAccountsInCore.currencyCode, fixedCurrencyCodes),
-            isNull(ledgerAccountsInCore.currencyCode)
-          )!
-        );
-      } else if (fixedCurrencyCodes.length > 0) {
-        conditions.push(
-          inArray(ledgerAccountsInCore.currencyCode, fixedCurrencyCodes)
-        );
-      } else if (includesNullCurrency) {
-        conditions.push(isNull(ledgerAccountsInCore.currencyCode));
-      }
-    }
-
-    if (options.isControlAccount !== undefined) {
-      conditions.push(
-        eq(ledgerAccountsInCore.isControlAccount, options.isControlAccount)
-      );
-    }
-    if (options.search) {
-      conditions.push(
-        or(
-          ilike(ledgerAccountsInCore.name, `%${options.search}%`),
-          ilike(ledgerAccountsInCore.code, `%${options.search}%`)
-        )!
-      );
-    }
-
-    const whereClause = and(...conditions);
-
-    const dbQuery = getDbQuery(options);
-
-    const [countResult] = await dbQuery
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(ledgerAccountsInCore)
-      .where(whereClause);
-
-    const totalCount = countResult?.count ?? 0;
-
-    if (totalCount === 0) {
-      return paginationValue.getPaginatedResponse([], 0, options);
-    }
-
-    const direction = drizzleFilters.getSortDirection(
-      paginationValue.getSortDirection(options.sortDirection)
-    );
-
-    let orderByClause;
-    if (options.orderBy === ELedgerAccountSortBy.AccountName) {
-      orderByClause = direction(ledgerAccountsInCore.name);
-    } else if (options.orderBy === ELedgerAccountSortBy.Balance) {
-      orderByClause = direction(ledgerAccountBalancesInCore.functionalAmount);
-    } else {
-      orderByClause = direction(ledgerAccountsInCore.createdAt);
-    }
-
-    const limit = paginationValue.getLimit(options.limit);
-    const offset = paginationValue.getOffset(options.offset);
-
-    let baseQuery = dbQuery
-      .select({
-        ...getTableColumns(ledgerAccountsInCore),
-        currency: getTableColumns(currenciesInCore),
-      })
-      .from(ledgerAccountsInCore)
-      .leftJoin(
-        currenciesInCore,
-        eq(ledgerAccountsInCore.currencyCode, currenciesInCore.code)
-      );
-
-    if (options.orderBy === ELedgerAccountSortBy.Balance) {
-      baseQuery = baseQuery.leftJoin(
-        ledgerAccountBalancesInCore,
-        eq(ledgerAccountsInCore.id, ledgerAccountBalancesInCore.ledgerAccountId)
-      );
-    }
-
-    const results = await baseQuery
-      .where(whereClause)
-      .orderBy(orderByClause)
-      .limit(limit)
-      .offset(offset);
-
-    return paginationValue.getPaginatedResponse(
-      results.map(ledgerAccountMapper.toDomain),
-      totalCount,
-      options
-    );
   },
 };
 

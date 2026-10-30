@@ -1164,9 +1164,18 @@ const models: TsoaRoute.Models = {
       orderBy: { ref: 'ULedgerAccountSortBy' },
       sortDirection: { ref: 'UPaginationSortDirection' },
       page: { dataType: 'double' },
-      status: { ref: 'ULedgerAccountStatus' },
-      type: { ref: 'ULedgerType' },
-      subType: { ref: 'ULedgerAccountSubType' },
+      statuses: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerAccountStatus' },
+      },
+      types: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerType' },
+      },
+      subTypes: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerAccountSubType' },
+      },
       behavior: { dataType: 'string' },
       isControlAccount: { dataType: 'boolean' },
     },

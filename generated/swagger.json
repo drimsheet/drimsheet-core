@@ -1688,26 +1688,35 @@
           },
           {
             "in": "query",
-            "name": "status",
+            "name": "statuses",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ULedgerAccountStatus"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerAccountStatus"
+              }
             }
           },
           {
             "in": "query",
-            "name": "type",
+            "name": "types",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ULedgerType"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerType"
+              }
             }
           },
           {
             "in": "query",
-            "name": "subType",
+            "name": "subTypes",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ULedgerAccountSubType"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerAccountSubType"
+              }
             }
           },
           {
@@ -10099,14 +10108,23 @@
             "type": "number",
             "format": "double"
           },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountStatus"
+          "statuses": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerAccountStatus"
+            },
+            "type": "array"
           },
-          "type": {
-            "$ref": "#/components/schemas/ULedgerType"
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerType"
+            },
+            "type": "array"
           },
-          "subType": {
-            "$ref": "#/components/schemas/ULedgerAccountSubType"
+          "subTypes": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerAccountSubType"
+            },
+            "type": "array"
           },
           "behavior": {
             "type": "string"

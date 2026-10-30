@@ -11,6 +11,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
+import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
@@ -26,7 +27,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
   const getUseCase = () =>
     makeGetLedgerAccountsUsecase({
       appContext: mockAppContext,
-      ledgerAccountRepo: mockLedgerAccountRepo,
+      ledgerAccountQueryRepo: mockLedgerAccountQueryRepo,
       balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
     });
 
@@ -106,14 +107,14 @@ describe('makeGetLedgerAccountsUsecase', () => {
     await expect(useCase(invalidQuery)).rejects.toThrow();
 
     expect(mockAppContext.get).not.toHaveBeenCalled();
-    expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
+    expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
     expect(
       mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
   });
 
   it('returns empty data when ledger account repo returns empty', async () => {
-    mockLedgerAccountRepo.findAll.mockResolvedValue({
+    mockLedgerAccountQueryRepo.findAll.mockResolvedValue({
       data: [],
       meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
     });
@@ -131,7 +132,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
   });
 
   it('enriches the selected account page and preserves pagination metadata', async () => {
-    mockLedgerAccountRepo.findAll.mockResolvedValue({
+    mockLedgerAccountQueryRepo.findAll.mockResolvedValue({
       data: [ledgerAccount, controlAccount],
       meta: { page: 1, limit: 10, total: 2, totalPages: 1 },
     });
@@ -150,13 +151,18 @@ describe('makeGetLedgerAccountsUsecase', () => {
     );
 
     const useCase = getUseCase();
-    const result = await useCase(validQuery);
+    const query: IGetLedgerAccountsQuery = {
+      ...validQuery,
+      types: ['asset', 'liability'],
+      subTypes: ['cash_and_cash_equivalent', 'receivables'],
+    };
+    const result = await useCase(query);
 
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
       accountingEntity.id,
       {
-        ...validQuery,
-        status: 'active',
+        ...query,
+        statuses: ['active'],
         offset: 0,
         correlationId,
       }
@@ -171,18 +177,26 @@ describe('makeGetLedgerAccountsUsecase', () => {
       meta: { page: 1, limit: 10, total: 2, totalPages: 1 },
     });
   });
-  it.each(['active', 'draft', 'archived'] as const)(
-    'honors explicit %s lifecycle selection',
-    async (status) => {
-      mockLedgerAccountRepo.findAll.mockResolvedValue({
-        data: [],
-        meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
-      });
-      await getUseCase()({ ...validQuery, status });
-      expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
-        accountingEntity.id,
-        expect.objectContaining({ status })
-      );
-    }
-  );
+  it.each<{ statuses: IGetLedgerAccountsQuery['statuses'] }>([
+    { statuses: ['active'] },
+    { statuses: ['draft'] },
+    { statuses: ['archived'] },
+    { statuses: ['active', 'draft'] },
+    { statuses: [] },
+  ])('honors explicit lifecycle selection: $statuses', async ({ statuses }) => {
+    mockLedgerAccountQueryRepo.findAll.mockResolvedValue({
+      data: [],
+      meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+    });
+    await getUseCase()({ ...validQuery, statuses });
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
+      accountingEntity.id,
+      {
+        ...validQuery,
+        statuses,
+        offset: 0,
+        correlationId,
+      }
+    );
+  });
 });

@@ -175,7 +175,7 @@ export const getLedgerAccountsUseCase = makeTracedUseCase(
   'ledger.getLedgerAccountsUseCase',
   makeGetLedgerAccountsUsecase({
     appContext: appContext,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
     balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
   })
 );
@@ -193,7 +193,7 @@ export const getPermittedPostingAccountsUseCase = makeTracedUseCase(
   'ledger.getPermittedPostingAccountsUseCase',
   makeGetPermittedPostingAccountsUsecase({
     appContext,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
     balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
   })
 );

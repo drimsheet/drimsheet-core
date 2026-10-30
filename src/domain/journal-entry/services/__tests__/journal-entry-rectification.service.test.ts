@@ -57,7 +57,6 @@ const ledgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
   findLatestBySubType: jest.fn(),
-  findAll: jest.fn(),
 };
 
 describe('makeJournalEntryRectificationService', () => {
@@ -232,6 +231,7 @@ describe('makeJournalEntryRectificationService', () => {
 
     expect(ledgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
       [debitAccountId, creditAccountId],
+      originalEntry.accountingEntityId,
       repoOptions
     );
     expect(originalEntry).toEqual(snapshot);
@@ -385,6 +385,7 @@ describe('makeJournalEntryRectificationService', () => {
     expect(result.currentJournalEntry.lines).toEqual(originalEntry.lines);
     expect(ledgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
       [debitAccountId, creditAccountId],
+      originalEntry.accountingEntityId,
       { correlationId: 'retained-draft-accounts' }
     );
   });

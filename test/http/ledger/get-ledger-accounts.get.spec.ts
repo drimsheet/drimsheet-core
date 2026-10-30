@@ -135,7 +135,15 @@ describe('GET /ledger', () => {
   describe('200 Response', () => {
     it('returns ledger accounts and forwards coerced query values', async () => {
       const response = await request(server)
-        .get(`${ENDPOINT}?type=asset&page=2&limit=5&isControlAccount=false`)
+        .get(ENDPOINT)
+        .query({
+          types: ['asset', 'liability'],
+          statuses: ['active', 'draft'],
+          subTypes: ['cash_and_cash_equivalent', 'receivables'],
+          page: 2,
+          limit: 5,
+          isControlAccount: false,
+        })
         .set('Authorization', 'Bearer valid-token');
 
       expect(response.status).toBe(200);
@@ -152,10 +160,30 @@ describe('GET /ledger', () => {
         meta: { page: 2, limit: 5, total: 1, totalPages: 1 },
       });
       expect(mockGetLedgerAccounts).toHaveBeenCalledWith({
-        type: 'asset',
+        types: ['asset', 'liability'],
+        statuses: ['active', 'draft'],
+        subTypes: ['cash_and_cash_equivalent', 'receivables'],
         page: 2,
         limit: 5,
         isControlAccount: false,
+      });
+    });
+
+    it('parses single filter values as arrays', async () => {
+      const response = await request(server)
+        .get(ENDPOINT)
+        .query({
+          types: 'asset',
+          subTypes: 'cash_and_cash_equivalent',
+          statuses: 'archived',
+        })
+        .set('Authorization', 'Bearer valid-token');
+
+      expect(response.status).toBe(200);
+      expect(mockGetLedgerAccounts).toHaveBeenCalledWith({
+        types: ['asset'],
+        subTypes: ['cash_and_cash_equivalent'],
+        statuses: ['archived'],
       });
     });
   });
@@ -182,6 +210,25 @@ describe('GET /ledger', () => {
         name: 'FeatureFlagError',
         errorKey: 'feature_flag_error_forbidden',
       });
+      expect(mockGetLedgerAccounts).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('422 Response', () => {
+    it.each([
+      { statuses: ['active', 'invalid_status'] },
+      { status: 'active' },
+      { types: ['asset', 'invalid_type'] },
+      { subTypes: ['cash_and_cash_equivalent', 'invalid_sub_type'] },
+      { type: 'asset' },
+      { subType: 'cash_and_cash_equivalent' },
+    ])('rejects invalid or replaced filters: %j', async (query) => {
+      const response = await request(server)
+        .get(ENDPOINT)
+        .query(query)
+        .set('Authorization', 'Bearer valid-token');
+
+      expect(response.status).toBe(422);
       expect(mockGetLedgerAccounts).not.toHaveBeenCalled();
     });
   });

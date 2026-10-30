@@ -232,6 +232,46 @@ describe('journalEntryPersistenceAppService', () => {
   });
 
   describe('currency edit serialization', () => {
+    it('scopes each account batch to its entry entity before any bundle writes', async () => {
+      const first = await makeFixture();
+      const second = await makeFixture();
+      const fixtures = [first, second];
+      mockLedgerAccountRepo.findAllByIds.mockImplementation(
+        async (ids, entityId) =>
+          fixtures
+            .flatMap((fixture) => fixture.accounts)
+            .filter(
+              (account) =>
+                account.accountingEntityId === entityId &&
+                ids.includes(account.id)
+            )
+      );
+
+      await service.rectify(
+        {
+          entriesToCreate: fixtures.map((fixture) => ({
+            entry: fixture.journalEntry,
+            headerHistory: fixture.headerHistory,
+            lineHistories: fixture.linesHistory,
+          })),
+          entryUpdate: null,
+        },
+        mockOptions
+      );
+
+      expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledTimes(2);
+      for (const fixture of fixtures) {
+        expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+          fixture.accounts.map((account) => account.id),
+          fixture.journalEntry.accountingEntityId,
+          { ...mockOptions, tx: 'mock-tx', lock: 'share' }
+        );
+      }
+      expect(
+        mockLedgerAccountRepo.findAllByIds.mock.invocationCallOrder[1]
+      ).toBeLessThan(mockJournalEntryRepo.create.mock.invocationCallOrder[0]);
+    });
+
     it('locks accounts in the journal write transaction', async () => {
       const fixture = await makeFixture([]);
       await service.create(
@@ -242,6 +282,7 @@ describe('journalEntryPersistenceAppService', () => {
       );
       expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
         fixture.journalEntry.lines.map((line) => line.accountId),
+        fixture.journalEntry.accountingEntityId,
         { ...mockOptions, tx: 'mock-tx', lock: 'share' }
       );
       expect(

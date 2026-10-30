@@ -16,7 +16,7 @@ import { EAccountingEntityType } from '@domain/accounting/types/accounting-entit
 import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 import mockBalanceEnrichment from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
 
 import { configureRateLimiter } from '@infra/config/rate-limiter.config';
@@ -154,13 +154,13 @@ describe('POST /mcp', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
-    mockLedgerAccountRepo.findAll.mockResolvedValue({ data: [], meta });
+    mockLedgerAccountQueryRepo.findAll.mockResolvedValue({ data: [], meta });
     mockJournalEntryQueryRepo.findAll.mockResolvedValue({ data: [], meta });
     mockBalanceEnrichment.enrich.mockResolvedValue([]);
     jest.mocked(getLedgerAccountsUseCase).mockImplementation(
       makeGetLedgerAccountsUsecase({
         appContext,
-        ledgerAccountRepo: mockLedgerAccountRepo,
+        ledgerAccountQueryRepo: mockLedgerAccountQueryRepo,
         balanceEnrichmentAppService: mockBalanceEnrichment,
       })
     );
@@ -290,7 +290,7 @@ describe('POST /mcp', () => {
         });
         const repo =
           name === 'get_ledger_accounts'
-            ? mockLedgerAccountRepo
+            ? mockLedgerAccountQueryRepo
             : mockJournalEntryQueryRepo;
         expect(repo.findAll).toHaveBeenCalledWith(
           firstEntity.id,
@@ -309,7 +309,7 @@ describe('POST /mcp', () => {
         arguments: {},
       }).set('x-correlation-id', firstCorrelationId);
       expect(readResponse(response).result.isError).not.toBe(true);
-      expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+      expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
         firstEntity.id,
         expect.objectContaining({ offset: 0 })
       );
@@ -327,7 +327,7 @@ describe('POST /mcp', () => {
           { type: 'text', text: '{"errorKey":"app_error_unexpected"}' },
         ],
       });
-      expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
+      expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
       expect(mockReporter.report).toHaveBeenCalledTimes(1);
     });
 
@@ -375,7 +375,7 @@ describe('POST /mcp', () => {
         arguments: { limit: 201 },
       }).set('x-correlation-id', firstCorrelationId);
       expect(readResponse(response).result.isError).toBe(true);
-      expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
+      expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
     });
 
     it('preserves health ordering and existing REST routes', async () => {
@@ -434,7 +434,7 @@ describe('POST /mcp', () => {
       // The current application error handler sanitizes parser failures as 500.
       expect(response.status).toBe(500);
       expect(createServer).not.toHaveBeenCalled();
-      expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
+      expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
     });
   });
 

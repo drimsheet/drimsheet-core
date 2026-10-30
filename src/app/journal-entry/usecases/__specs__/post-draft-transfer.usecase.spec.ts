@@ -270,6 +270,7 @@ describe('post draft transfer use case', () => {
 
       expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
         [account.id, destinationAccount.id, chargeAccount.id],
+        originalEntry.accountingEntityId,
         lockedReadOptions
       );
       expect(mockCounterpartyRepo.findById).toHaveBeenCalledTimes(1);

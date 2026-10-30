@@ -320,6 +320,7 @@ function makePostDraftOpeningBalance(
     ];
     const counterparts = await deps.ledgerAccountRepo.findAllByIds(
       counterpartIds,
+      entry.accountingEntityId,
       repoOptions
     );
 

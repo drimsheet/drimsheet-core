@@ -1,5 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
 
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import {
@@ -100,10 +101,6 @@ describe('makeLedgerBalancePropagationPreparationAppService', () => {
       },
     },
   ];
-  const page = (data: ILedgerAccount[]) => ({
-    data,
-    meta: { page: 1, limit: data.length, total: data.length, totalPages: 1 },
-  });
   const service = makeLedgerBalancePropagationPreparationAppService({
     journalEntryRepo: mockJournalEntryRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
@@ -115,7 +112,7 @@ describe('makeLedgerBalancePropagationPreparationAppService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockJournalEntryRepo.findById.mockResolvedValue(journalEntry);
-    mockLedgerAccountRepo.findAll.mockResolvedValue(page([childAccount]));
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValue([childAccount]);
     mockLedgerAccountRepo.findAllByMaterializedPath.mockResolvedValue([
       parentAccount,
       childAccount,
@@ -140,6 +137,69 @@ describe('makeLedgerBalancePropagationPreparationAppService', () => {
     expect(parentBalance.version).toBe(1);
   });
 
+  it('prepares every account and ancestor when a journal exceeds 200 direct accounts', async () => {
+    const directAccounts = Array.from({ length: 250 }, (_, index) => ({
+      ...childAccount,
+      id: generateUUID(),
+      materializedPath: `100000.${100001 + index}`,
+    }));
+    const largeJournal = {
+      ...journalEntry,
+      lines: directAccounts.map((account) => ({
+        ...journalEntry.lines[0],
+        accountId: account.id,
+      })),
+    };
+    const accounts = [parentAccount, ...directAccounts];
+    const directBalances = directAccounts.map((account) =>
+      ledgerAccountBalanceEntity.make({
+        createdBy: creatorId,
+        ledgerAccountId: account.id,
+        accountingEntityId,
+        accountMaterializedPath: account.materializedPath,
+        currencyCode: SYSTEM_CURRENCIES.USD.code,
+        functionalCurrencyCode: SYSTEM_CURRENCIES.NGN.code,
+      })
+    );
+    mockJournalEntryRepo.findById.mockResolvedValue(largeJournal);
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValue(directAccounts);
+    mockLedgerAccountRepo.findAllByMaterializedPath.mockResolvedValue(accounts);
+    mockLedgerAccountBalanceAdjustmentService.calculate.mockReturnValue([
+      deltas[1],
+      ...directAccounts.map((account) => ({
+        ...deltas[0],
+        ledgerAccountId: account.id,
+      })),
+    ]);
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      parentBalance,
+      ...directBalances,
+    ]);
+    const options = { ...repoOptions, tx: {} };
+
+    const prepared = await service.prepare(journalEntryId, options);
+
+    expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+      directAccounts.map((account) => account.id),
+      accountingEntityId,
+      options
+    );
+    expect(
+      mockLedgerAccountRepo.findAllByMaterializedPath
+    ).toHaveBeenCalledWith(
+      accountingEntityId,
+      ['100000', ...directAccounts.map((account) => account.materializedPath)],
+      options
+    );
+    expect(
+      mockLedgerAccountBalanceAdjustmentService.calculate
+    ).toHaveBeenCalledWith(largeJournal, accounts);
+    expect(prepared).toHaveLength(251);
+    expect(
+      prepared.map((item) => item.balanceAdjustment.newBalance.ledgerAccountId)
+    ).toEqual(accounts.map((account) => account.id).sort());
+  });
+
   it('prepares pending historical propagation for archived direct accounts and ancestors', async () => {
     const archivedChild = {
       ...childAccount,
@@ -149,15 +209,16 @@ describe('makeLedgerBalancePropagationPreparationAppService', () => {
       ...parentAccount,
       status: ELedgerAccountStatus.Archived,
     };
-    mockLedgerAccountRepo.findAll.mockResolvedValue(page([archivedChild]));
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValue([archivedChild]);
     mockLedgerAccountRepo.findAllByMaterializedPath.mockResolvedValue([
       archivedParent,
       archivedChild,
     ]);
     const adjustments = await service.prepare(journalEntryId, repoOptions);
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+      [childAccountId],
       accountingEntityId,
-      { ...repoOptions, ids: [childAccountId], limit: 1 }
+      repoOptions
     );
     expect(
       mockLedgerAccountBalanceAdjustmentService.calculate
@@ -178,13 +239,10 @@ describe('makeLedgerBalancePropagationPreparationAppService', () => {
       journalEntryId,
       repoOptions
     );
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+      [childAccountId],
       accountingEntityId,
-      {
-        ...repoOptions,
-        ids: [childAccountId],
-        limit: 1,
-      }
+      repoOptions
     );
     expect(
       mockLedgerAccountRepo.findAllByMaterializedPath
@@ -255,7 +313,7 @@ describe('makeLedgerBalancePropagationPreparationAppService', () => {
       journalEntryError.InvalidJournalEntry
     );
 
-    expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
+    expect(mockLedgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
     expect(
       mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();

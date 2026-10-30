@@ -62,7 +62,6 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
   findLatestBySubType: jest.fn(),
-  findAll: jest.fn(),
 };
 const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
   existsByAccountingEntityId: jest.fn(),
@@ -779,7 +778,6 @@ describe('ledgerAccountService.delete', () => {
     });
     mockLedgerAccountRepo.findDescendants.mockResolvedValue(descendants);
     expect((await service.delete(target, options)).accounts).toHaveLength(61);
-    expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
   });
 });
 

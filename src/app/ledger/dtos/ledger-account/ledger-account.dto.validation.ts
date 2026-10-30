@@ -6,10 +6,6 @@ import { paginationDtoValidation } from '@shared/values/pagination/dto/paginatio
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import {
-  ELedgerAccountSortBy,
-  ULedgerAccountSortBy,
-} from '@domain/ledger/repos/ledger-account.repo';
-import {
   ELedgerAccountBehavior,
   ULedgerAccountBehavior,
 } from '@domain/ledger/types/account-behaviors.tyypes';
@@ -23,10 +19,16 @@ import {
   ULedgerType,
 } from '@domain/ledger/types/ledger.types';
 
+import {
+  ELedgerAccountSortBy,
+  ULedgerAccountSortBy,
+} from '@app/ledger/contracts/ledger-account.query.repo.contract';
+
 // =========== error keys start ===========
 const invalidTypeKey = new ledgerAccountError.InvalidType().errorKey;
 const invalidSubTypeKey = new ledgerAccountError.InvalidSubType().errorKey;
 const invalidBehaviorKey = new ledgerAccountError.InvalidBehavior().errorKey;
+const invalidStatusKey = new ledgerAccountError.InvalidStatus().errorKey;
 const defaultErrorKey = new appError.UnprocessableEntity([]).errorKey;
 // =========== error keys end ===========
 
@@ -75,15 +77,17 @@ export const ledgerAccountBehaviorValidation = z.enum(
 );
 
 export const getLedgerAccountQueryValidationSchema = z.object({
-  status: z
-    .enum(
-      Object.values(ELedgerAccountStatus),
-      new ledgerAccountError.InvalidStatus().errorKey
+  statuses: z
+    .array(
+      z.enum(Object.values(ELedgerAccountStatus), invalidStatusKey),
+      invalidStatusKey
     )
     .optional(),
   ...omit(paginationDtoValidation.shape, ['orderBy']),
-  type: ledgerAccountTypeValidation.optional(),
-  subType: ledgerAccountSubTypeValidation.optional(),
+  types: z.array(ledgerAccountTypeValidation, invalidTypeKey).optional(),
+  subTypes: z
+    .array(ledgerAccountSubTypeValidation, invalidSubTypeKey)
+    .optional(),
   behavior: ledgerAccountBehaviorValidation.optional(),
   isControlAccount: z.boolean(defaultErrorKey).optional(),
   orderBy: ledgerAccountOrderByValidationSchema.optional(),

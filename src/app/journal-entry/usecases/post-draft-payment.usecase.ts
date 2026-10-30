@@ -102,6 +102,7 @@ export default function makePostDraftPaymentUsecase(deps: IDependencies) {
       // Account eligibility must hold through commit; these locks serialize posting with archival.
       const accounts = await deps.ledgerAccountRepo.findAllByIds(
         accountIds,
+        originalEntry.accountingEntityId,
         lockedReadOptions
       );
       const posting = await deps.journalEntryService.postDraftPayment(

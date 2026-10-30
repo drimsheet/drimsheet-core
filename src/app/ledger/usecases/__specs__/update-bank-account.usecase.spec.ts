@@ -615,10 +615,10 @@ describe('update bank account workflow', () => {
       functionalCurrencyCode: 'NGN',
     });
     mockJournalEntryRepo.findById.mockResolvedValueOnce(creation[0]);
-    mockLedgerAccountRepo.findAll.mockResolvedValueOnce({
-      data: [savedAccount, equity],
-      meta: { page: 1, limit: 2, total: 2, totalPages: 1 },
-    });
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
+      savedAccount,
+      equity,
+    ]);
     mockLedgerAccountRepo.findAllByMaterializedPath.mockResolvedValueOnce([
       parent,
       savedAccount,

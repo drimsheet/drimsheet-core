@@ -3,6 +3,7 @@ import ILedgerAccountQueryRepo from '@app/ledger/contracts/ledger-account.query.
 const mockLedgerAccountQueryRepo: jest.Mocked<ILedgerAccountQueryRepo> = {
   findChartOfAccounts: jest.fn(),
   findSubAccounts: jest.fn(),
+  findAll: jest.fn(),
 };
 
 export default mockLedgerAccountQueryRepo;

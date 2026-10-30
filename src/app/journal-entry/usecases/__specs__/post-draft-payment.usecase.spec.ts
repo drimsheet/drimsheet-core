@@ -199,6 +199,7 @@ describe('post draft payment use case', () => {
 
       expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
         [account.id, expenseAccount.id],
+        originalEntry.accountingEntityId,
         lockedReadOptions
       );
       expect(mockCounterpartyRepo.findById).toHaveBeenCalledTimes(1);

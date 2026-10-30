@@ -192,6 +192,7 @@ describe('post draft opening balance use case', () => {
 
       expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
         [account.id, equityAccount.id],
+        originalEntry.accountingEntityId,
         lockedReadOptions
       );
       expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
@@ -389,6 +390,7 @@ describe('post draft opening balance use case', () => {
 
       expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
         [equityAccount.id, account.id],
+        originalEntry.accountingEntityId,
         lockedReadOptions
       );
       expect(
@@ -496,6 +498,7 @@ describe('post draft opening balance use case', () => {
       expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenNthCalledWith(
         1,
         [account.id, equityAccount.id],
+        originalEntry.accountingEntityId,
         lockedReadOptions
       );
       expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
@@ -531,7 +534,7 @@ describe('post draft opening balance use case', () => {
 
       // In-process account-store fake: a Share lock blocks the archival write until commit.
       mockLedgerAccountRepo.findAllByIds.mockImplementation(
-        async (ids, options) => {
+        async (ids, _accountingEntityId, options) => {
           const holdsTransactionShareLock =
             options.tx === mockRepoTransaction.context &&
             options.lock === ERepoLock.Share;
