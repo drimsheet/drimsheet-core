@@ -157,7 +157,6 @@ describe('archive ledger account use case', () => {
     mockLedgerAccountRepo.findDescendants.mockResolvedValue(descendants);
     await usecase(account.id);
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledTimes(61);
-    expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
   });
 
   it('does not write an already archived account', async () => {

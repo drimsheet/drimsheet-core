@@ -133,9 +133,72 @@ describe('GET /ledger', () => {
   });
 
   describe('200 Response', () => {
+    it.each(['subTypes[]', 'subTypes'])(
+      'preserves all 25 subtype filters encoded as %s',
+      async (subTypeParameter) => {
+        const subTypes = [
+          'suspense',
+          'sales',
+          'services',
+          'subscriptions',
+          'employment_income',
+          'interest_income',
+          'gain_on_asset_sale',
+          'unrealized_gains',
+          'grants',
+          'gifts',
+          'payroll_and_personnel',
+          'rent_and_utilities',
+          'admin_and_general',
+          'marketing_and_selling',
+          'research_and_development',
+          'depreciation_and_amortization',
+          'bank_charge',
+          'finance_cost',
+          'interest',
+          'unrealized_loss',
+          'impairment_loss',
+          'other_loss',
+          'direct_costs',
+          'income_tax_expense',
+          'loss_on_asset_disposal',
+        ];
+        const query = new URLSearchParams({
+          page: '1',
+          limit: '10',
+          isControlAccount: 'false',
+        });
+        const types = ['revenue', 'expense', 'asset'];
+
+        types.forEach((type) => query.append('types[]', type));
+        subTypes.forEach((subType) => query.append(subTypeParameter, subType));
+
+        const response = await request(server)
+          .get(`${ENDPOINT}?${query.toString()}`)
+          .set('Authorization', 'Bearer valid-token');
+
+        expect(response.status).toBe(200);
+        expect(mockGetLedgerAccounts).toHaveBeenCalledWith({
+          page: 1,
+          limit: 10,
+          types,
+          subTypes,
+          isControlAccount: false,
+        });
+      }
+    );
+
     it('returns ledger accounts and forwards coerced query values', async () => {
       const response = await request(server)
-        .get(`${ENDPOINT}?type=asset&page=2&limit=5&isControlAccount=false`)
+        .get(ENDPOINT)
+        .query({
+          types: ['asset', 'liability'],
+          statuses: ['active', 'draft'],
+          subTypes: ['cash_and_cash_equivalent', 'receivables'],
+          page: 2,
+          limit: 5,
+          isControlAccount: false,
+        })
         .set('Authorization', 'Bearer valid-token');
 
       expect(response.status).toBe(200);
@@ -152,10 +215,30 @@ describe('GET /ledger', () => {
         meta: { page: 2, limit: 5, total: 1, totalPages: 1 },
       });
       expect(mockGetLedgerAccounts).toHaveBeenCalledWith({
-        type: 'asset',
+        types: ['asset', 'liability'],
+        statuses: ['active', 'draft'],
+        subTypes: ['cash_and_cash_equivalent', 'receivables'],
         page: 2,
         limit: 5,
         isControlAccount: false,
+      });
+    });
+
+    it('parses single filter values as arrays', async () => {
+      const response = await request(server)
+        .get(ENDPOINT)
+        .query({
+          types: 'asset',
+          subTypes: 'cash_and_cash_equivalent',
+          statuses: 'archived',
+        })
+        .set('Authorization', 'Bearer valid-token');
+
+      expect(response.status).toBe(200);
+      expect(mockGetLedgerAccounts).toHaveBeenCalledWith({
+        types: ['asset'],
+        subTypes: ['cash_and_cash_equivalent'],
+        statuses: ['archived'],
       });
     });
   });
@@ -182,6 +265,25 @@ describe('GET /ledger', () => {
         name: 'FeatureFlagError',
         errorKey: 'feature_flag_error_forbidden',
       });
+      expect(mockGetLedgerAccounts).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('422 Response', () => {
+    it.each([
+      { statuses: ['active', 'invalid_status'] },
+      { status: 'active' },
+      { types: ['asset', 'invalid_type'] },
+      { subTypes: ['cash_and_cash_equivalent', 'invalid_sub_type'] },
+      { type: 'asset' },
+      { subType: 'cash_and_cash_equivalent' },
+    ])('rejects invalid or replaced filters: %j', async (query) => {
+      const response = await request(server)
+        .get(ENDPOINT)
+        .query(query)
+        .set('Authorization', 'Bearer valid-token');
+
+      expect(response.status).toBe(422);
       expect(mockGetLedgerAccounts).not.toHaveBeenCalled();
     });
   });

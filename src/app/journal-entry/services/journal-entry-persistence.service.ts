@@ -3,6 +3,7 @@ import {
   TRepoTransactionFn,
 } from '@shared/contracts/repo.contract';
 import { ERepoLock, IRepoOptions } from '@shared/types/repo.types';
+import { TEntityId } from '@shared/types/uuid';
 
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import IJournalEntryAttachmentRepo from '@domain/journal-entry/repos/journal-entry-attachment.repo';
@@ -25,37 +26,50 @@ interface IDependencies {
   journalLineRepo: IJournalLineRepo;
 }
 
-/** Locks current account rows through commit so prepared lines cannot race a currency edit (LED-LA-008). */
+/**
+ * Locks current account rows per entity through commit so prepared lines
+ * cannot race a currency edit (LED-LA-008).
+ */
 async function assertPersistedAccountCurrencies(
   deps: IDependencies,
   entries: IJournalEntry[],
   options: IRepoOptions
 ) {
-  const lines = entries.flatMap((entry) => entry.lines);
-  if (lines.length === 0) {
-    return;
+  const linesByEntity = new Map<TEntityId, IJournalEntry['lines']>();
+  for (const entry of entries) {
+    const lines = linesByEntity.get(entry.accountingEntityId) ?? [];
+    lines.push(...entry.lines);
+    linesByEntity.set(entry.accountingEntityId, lines);
   }
-  const accounts = await deps.ledgerAccountRepo.findAllByIds(
-    [...new Set(lines.map((line) => line.accountId))],
-    { ...options, lock: ERepoLock.Share }
-  );
-  const accountsById = new Map(
-    accounts.map((account) => [account.id, account])
-  );
-  for (const line of lines) {
-    const account = accountsById.get(line.accountId);
-    if (!account) {
-      throw new journalEntryError.AccountNotFound({
-        accountId: line.accountId,
-      });
+
+  for (const accountingEntityId of linesByEntity.keys()) {
+    const lines = linesByEntity.get(accountingEntityId)!;
+    if (lines.length === 0) {
+      continue;
     }
-    const hasCurrencyMismatch =
-      account.currency !== null &&
-      account.currency.code !== line.amount.currency.code;
-    if (hasCurrencyMismatch) {
-      throw new journalEntryError.JournalLineAccountCurrencyMismatch({
-        accountId: line.accountId,
-      });
+    const accounts = await deps.ledgerAccountRepo.findAllByIds(
+      [...new Set(lines.map((line) => line.accountId))],
+      accountingEntityId,
+      { ...options, lock: ERepoLock.Share }
+    );
+    const accountsById = new Map(
+      accounts.map((account) => [account.id, account])
+    );
+    for (const line of lines) {
+      const account = accountsById.get(line.accountId);
+      if (!account) {
+        throw new journalEntryError.AccountNotFound({
+          accountId: line.accountId,
+        });
+      }
+      const hasCurrencyMismatch =
+        account.currency !== null &&
+        account.currency.code !== line.amount.currency.code;
+      if (hasCurrencyMismatch) {
+        throw new journalEntryError.JournalLineAccountCurrencyMismatch({
+          accountId: line.accountId,
+        });
+      }
     }
   }
 }

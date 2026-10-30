@@ -1,7 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 
-import { ULedgerAccountSortBy } from '@domain/ledger/repos/ledger-account.repo';
 import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
 import {
   ULedgerAccountCurrencyUpdateReason,
@@ -16,12 +15,13 @@ import {
   UNormalBalance,
 } from '@domain/ledger/types/ledger.types';
 
+import { ULedgerAccountSortBy } from '@app/ledger/contracts/ledger-account.query.repo.contract';
 import { IMoneyDto } from '@app/money/dtos/money/money.dto';
 
 export interface IGetLedgerAccountsQuery extends IPaginationDto {
-  status?: ULedgerAccountStatus;
-  type?: ULedgerType;
-  subType?: ULedgerAccountSubType;
+  statuses?: ULedgerAccountStatus[];
+  types?: ULedgerType[];
+  subTypes?: ULedgerAccountSubType[];
   behavior?: string;
   isControlAccount?: boolean;
   orderBy?: ULedgerAccountSortBy;

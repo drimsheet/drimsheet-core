@@ -58,18 +58,14 @@ async function prepareBalancePropagation(
     new Set(journalEntry.lines.map((line) => line.accountId))
   );
 
-  const directAccountsPage = await deps.ledgerAccountRepo.findAll(
+  const directAccounts = await deps.ledgerAccountRepo.findAllByIds(
+    directAccountIds,
     journalEntry.accountingEntityId,
-    {
-      ...repoOptions,
-      ids: directAccountIds,
-      limit: directAccountIds.length,
-    }
+    repoOptions
   );
 
-  const materializedPaths = ledgerAccountEntity.getMaterializedPaths(
-    directAccountsPage.data
-  );
+  const materializedPaths =
+    ledgerAccountEntity.getMaterializedPaths(directAccounts);
   const accounts = await deps.ledgerAccountRepo.findAllByMaterializedPath(
     journalEntry.accountingEntityId,
     materializedPaths,

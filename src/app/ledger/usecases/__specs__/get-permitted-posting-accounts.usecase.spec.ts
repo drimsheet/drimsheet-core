@@ -26,7 +26,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
@@ -93,7 +93,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
   const getUseCase = () =>
     makeGetPermittedPostingAccountsUsecase({
       appContext: mockAppContext,
-      ledgerAccountRepo: mockLedgerAccountRepo,
+      ledgerAccountQueryRepo: mockLedgerAccountQueryRepo,
       balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
     });
 
@@ -103,7 +103,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       accountingEntity,
       correlationId,
     } as IAppContextData);
-    mockLedgerAccountRepo.findAll.mockResolvedValue({
+    mockLedgerAccountQueryRepo.findAll.mockResolvedValue({
       data: [],
       meta: { page: 2, limit: 5, total: 0, totalPages: 0 },
     });
@@ -119,7 +119,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     ).rejects.toThrow();
 
     expect(mockAppContext.get).not.toHaveBeenCalled();
-    expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
+    expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
     expect(
       mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
@@ -136,7 +136,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       data: [],
       meta: { page: 3, limit: 5, total: 0, totalPages: 0 },
     });
-    expect(mockLedgerAccountRepo.findAll).not.toHaveBeenCalled();
+    expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
     expect(
       mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
   it('translates receipt source sets into one paginated non-control account query', async () => {
     await getUseCase()(validQuery);
 
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
       accountingEntityId,
       {
         statuses: ['active', 'draft'],
@@ -168,7 +168,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       currencyCode: 'usd',
     });
 
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
       accountingEntityId,
       expect.objectContaining({
         types: [ELedgerType.Asset],
@@ -186,7 +186,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       sourceType: EJournalEntrySourceType.Payment,
     });
 
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
       accountingEntityId,
       expect.objectContaining({
         types: undefined,
@@ -207,7 +207,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       side: 'destination',
     });
 
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
       accountingEntityId,
       expect.objectContaining({
         types: undefined,
@@ -228,7 +228,8 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       filterSuspense: true,
     });
 
-    const accountRepoOptions = mockLedgerAccountRepo.findAll.mock.calls[0][1];
+    const accountRepoOptions =
+      mockLedgerAccountQueryRepo.findAll.mock.calls[0][1];
 
     expect(accountRepoOptions.subTypes).toEqual(
       expect.arrayContaining([
@@ -250,7 +251,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
         side,
       });
 
-      expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+      expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
         accountingEntityId,
         expect.objectContaining({
           types: [ELedgerType.Asset],
@@ -270,7 +271,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       sourceType: EJournalEntrySourceType.OpeningBalance,
     });
 
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
       accountingEntityId,
       expect.objectContaining({
         types: undefined,
@@ -287,7 +288,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       filterSuspense: true,
     });
 
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
       accountingEntityId,
       expect.objectContaining({
         subTypes: Object.values(ELedgerAccountSubType).filter(
@@ -304,7 +305,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       side: 'destination',
     });
 
-    expect(mockLedgerAccountRepo.findAll).toHaveBeenCalledWith(
+    expect(mockLedgerAccountQueryRepo.findAll).toHaveBeenCalledWith(
       accountingEntityId,
       expect.objectContaining({
         types: [ELedgerType.Equity],
@@ -327,7 +328,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
   });
 
   it('enriches page accounts and preserves pagination metadata', async () => {
-    mockLedgerAccountRepo.findAll.mockResolvedValue({
+    mockLedgerAccountQueryRepo.findAll.mockResolvedValue({
       data: [ledgerAccount],
       meta: { page: 2, limit: 5, total: 6, totalPages: 2 },
     });

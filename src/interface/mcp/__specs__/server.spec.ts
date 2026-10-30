@@ -163,7 +163,18 @@ describe('MCP server', () => {
         inputSchema: expect.objectContaining({
           properties: expect.objectContaining({
             limit: expect.objectContaining({ maximum: 200 }),
-            type: expect.any(Object),
+            types: expect.objectContaining({
+              type: 'array',
+              items: expect.objectContaining({ type: 'string' }),
+            }),
+            subTypes: expect.objectContaining({
+              type: 'array',
+              items: expect.objectContaining({ type: 'string' }),
+            }),
+            statuses: expect.objectContaining({
+              type: 'array',
+              items: expect.objectContaining({ type: 'string' }),
+            }),
           }),
         }),
       }),
@@ -197,6 +208,23 @@ describe('MCP server', () => {
       ]);
     }
   );
+
+  it('forwards ledger array filters to the use case', async () => {
+    const query = {
+      types: ['asset', 'liability'],
+      subTypes: ['cash_and_cash_equivalent', 'payable'],
+      statuses: ['active', 'draft'],
+    };
+
+    const response = await send('tools/call', {
+      name: 'get_ledger_accounts',
+      arguments: query,
+    });
+
+    expect(response.result.isError).not.toBe(true);
+    expect(getLedgerAccounts).toHaveBeenCalledTimes(1);
+    expect(getLedgerAccounts).toHaveBeenCalledWith(query);
+  });
 
   it('serializes dates consistently without changing minor-unit amounts', async () => {
     const now = new Date('2026-09-24T10:00:00.000Z');
@@ -250,7 +278,15 @@ describe('MCP server', () => {
 
   it.each([
     ['get_ledger_accounts', { limit: 201 }],
-    ['get_ledger_accounts', { type: 'invented' }],
+    ['get_ledger_accounts', { types: ['asset', 'invented'] }],
+    [
+      'get_ledger_accounts',
+      { subTypes: ['cash_and_cash_equivalent', 'invented'] },
+    ],
+    ['get_ledger_accounts', { statuses: ['active', 'invented'] }],
+    ['get_ledger_accounts', { types: 'asset' }],
+    ['get_ledger_accounts', { subTypes: 'cash_and_cash_equivalent' }],
+    ['get_ledger_accounts', { statuses: 'active' }],
     ['get_journal_entries', { accountId: 'invalid-id' }],
     ['get_journal_entries', { status: 'draft' }],
   ])(

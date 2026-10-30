@@ -96,7 +96,6 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
   findLatestBySubType: jest.fn(),
-  findAll: jest.fn(),
 };
 
 describe('journalEntryService', () => {
@@ -1645,6 +1644,7 @@ describe('journalEntryService', () => {
         expect(payload.entry.status).toBe('draft');
         expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
           [payload.equity.id],
+          payload.entry.accountingEntityId,
           repoOptions
         );
         expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();

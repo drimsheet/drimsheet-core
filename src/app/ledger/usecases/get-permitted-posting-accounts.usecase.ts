@@ -29,9 +29,6 @@ import {
   EJournalEntrySourceType,
   UJournalEntrySourceType,
 } from '@domain/journal-entry/types/journal-entry.types';
-import ILedgerAccountRepo, {
-  IFindAllLedgerAccountsOptions,
-} from '@domain/ledger/repos/ledger-account.repo';
 import {
   ELedgerAccountSubType,
   ULedgerAccountSubType,
@@ -41,13 +38,16 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
+import ILedgerAccountQueryRepo, {
+  IFindAllLedgerAccountsOptions,
+} from '@app/ledger/contracts/ledger-account.query.repo.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 import { getPermittedPostingAccountsQueryValidationSchema } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto.validation';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
-  ledgerAccountRepo: ILedgerAccountRepo;
+  ledgerAccountQueryRepo: ILedgerAccountQueryRepo;
   balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
 }
 
@@ -117,7 +117,7 @@ export default function makeGetPermittedPostingAccountsUsecase(
       ...repoOptions,
     };
 
-    const ledgerAccountsResponse = await deps.ledgerAccountRepo.findAll(
+    const ledgerAccountsResponse = await deps.ledgerAccountQueryRepo.findAll(
       accountingEntity.id,
       accountRepoOptions
     );

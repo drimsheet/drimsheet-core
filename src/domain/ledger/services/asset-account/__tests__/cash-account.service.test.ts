@@ -34,7 +34,6 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
   findLatestBySubType: jest.fn(),
-  findAll: jest.fn(),
 };
 const bankRepo: jest.Mocked<IBankAccountRepo> = {
   findOne: jest.fn(),

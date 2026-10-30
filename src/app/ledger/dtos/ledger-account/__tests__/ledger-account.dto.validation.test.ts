@@ -1,8 +1,8 @@
-import { ELedgerAccountSortBy } from '@domain/ledger/repos/ledger-account.repo';
 import { ELedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
 import { ELedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
 import { ELedgerType } from '@domain/ledger/types/ledger.types';
 
+import { ELedgerAccountSortBy } from '@app/ledger/contracts/ledger-account.query.repo.contract';
 import {
   bankAccountCreationReqValidation,
   pettyCashCreationReqValidation,
@@ -112,8 +112,12 @@ describe('Ledger Account DTO Validation', () => {
       const payload = {
         limit: 20,
         page: 1,
-        type: ELedgerType.Asset,
-        subType: ELedgerAccountSubType.CashAndCashEquivalent,
+        statuses: ['active', 'draft', 'archived'],
+        types: [ELedgerType.Asset, ELedgerType.Liability],
+        subTypes: [
+          ELedgerAccountSubType.CashAndCashEquivalent,
+          ELedgerAccountSubType.Receivables,
+        ],
         behavior: ELedgerAccountBehavior.Bank,
         isControlAccount: true,
         orderBy: ELedgerAccountSortBy.AccountName,
@@ -131,6 +135,29 @@ describe('Ledger Account DTO Validation', () => {
       expect(
         getLedgerAccountQueryValidationSchema.safeParse(payload).success
       ).toBe(true);
+    });
+
+    it('accepts empty filter arrays', () => {
+      expect(
+        getLedgerAccountQueryValidationSchema.safeParse({
+          types: [],
+          subTypes: [],
+          statuses: [],
+        }).success
+      ).toBe(true);
+    });
+
+    it.each([
+      { statuses: 'active' },
+      { statuses: ['active', 'invalid_status'] },
+      { types: 'asset' },
+      { subTypes: 'cash_and_cash_equivalent' },
+      { types: ['asset', 'invalid_type'] },
+      { subTypes: ['cash_and_cash_equivalent', 'invalid_sub_type'] },
+    ])('rejects invalid array filters: %j', (payload) => {
+      expect(
+        getLedgerAccountQueryValidationSchema.safeParse(payload).success
+      ).toBe(false);
     });
 
     it('should fail if fields have invalid types', () => {

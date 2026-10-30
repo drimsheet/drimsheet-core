@@ -100,7 +100,6 @@ describe('journal entry rules', () => {
     findBySubType: jest.fn(),
     findByBehavior: jest.fn(),
     findLatestBySubType: jest.fn(),
-    findAll: jest.fn(),
   };
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: ledgerAccountRepo,

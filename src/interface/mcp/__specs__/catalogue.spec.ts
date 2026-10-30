@@ -369,8 +369,8 @@ const cases: IToolCase[] = [
   {
     name: 'get_ledger_accounts',
     useCase: ledger.getLedgerAccountsUseCase,
-    input: { type: 'asset', page: 2, limit: 5 },
-    argument: { type: 'asset', page: 2, limit: 5 },
+    input: { types: ['asset'], page: 2, limit: 5 },
+    argument: { types: ['asset'], page: 2, limit: 5 },
     result: paginated,
     expected: paginated,
   },

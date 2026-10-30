@@ -687,33 +687,11 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ULedgerAccountSubType: {
+  UAssetSubType: {
     dataType: 'refAlias',
     type: {
       dataType: 'union',
       subSchemas: [
-        { dataType: 'enum', enums: ['retained_earnings'] },
-        { dataType: 'enum', enums: ['sales'] },
-        { dataType: 'enum', enums: ['services'] },
-        { dataType: 'enum', enums: ['subscriptions'] },
-        { dataType: 'enum', enums: ['employment_income'] },
-        { dataType: 'enum', enums: ['interest_income'] },
-        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
-        { dataType: 'enum', enums: ['unrealized_gains'] },
-        { dataType: 'enum', enums: ['grants'] },
-        { dataType: 'enum', enums: ['gifts'] },
-        { dataType: 'enum', enums: ['payroll_and_personnel'] },
-        { dataType: 'enum', enums: ['rent_and_utilities'] },
-        { dataType: 'enum', enums: ['admin_and_general'] },
-        { dataType: 'enum', enums: ['marketing_and_selling'] },
-        { dataType: 'enum', enums: ['research_and_development'] },
-        { dataType: 'enum', enums: ['depreciation_and_amortization'] },
-        { dataType: 'enum', enums: ['bank_charge'] },
-        { dataType: 'enum', enums: ['finance_cost'] },
-        { dataType: 'enum', enums: ['interest'] },
-        { dataType: 'enum', enums: ['unrealized_loss'] },
-        { dataType: 'enum', enums: ['impairment_loss'] },
-        { dataType: 'enum', enums: ['other_loss'] },
         { dataType: 'enum', enums: ['cash_and_cash_equivalent'] },
         { dataType: 'enum', enums: ['short_term_investment'] },
         { dataType: 'enum', enums: ['receivables'] },
@@ -726,6 +704,17 @@ const models: TsoaRoute.Models = {
         { dataType: 'enum', enums: ['right_of_use_assets'] },
         { dataType: 'enum', enums: ['goodwill'] },
         { dataType: 'enum', enums: ['suspense'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULiabilitySubType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['suspense'] },
         { dataType: 'enum', enums: ['short_term_debt'] },
         { dataType: 'enum', enums: ['payable'] },
         { dataType: 'enum', enums: ['accrued_expense'] },
@@ -733,12 +722,79 @@ const models: TsoaRoute.Models = {
         { dataType: 'enum', enums: ['long_term_loan'] },
         { dataType: 'enum', enums: ['lease_liability'] },
         { dataType: 'enum', enums: ['provision'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UEquitySubType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['retained_earnings'] },
         { dataType: 'enum', enums: ['capital'] },
         { dataType: 'enum', enums: ['reserve'] },
         { dataType: 'enum', enums: ['opening_balance'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  URevenueSubType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['sales'] },
+        { dataType: 'enum', enums: ['services'] },
+        { dataType: 'enum', enums: ['subscriptions'] },
+        { dataType: 'enum', enums: ['employment_income'] },
+        { dataType: 'enum', enums: ['interest_income'] },
+        { dataType: 'enum', enums: ['gain_on_asset_sale'] },
+        { dataType: 'enum', enums: ['unrealized_gains'] },
+        { dataType: 'enum', enums: ['grants'] },
+        { dataType: 'enum', enums: ['gifts'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  UExpenseSubType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['payroll_and_personnel'] },
+        { dataType: 'enum', enums: ['rent_and_utilities'] },
+        { dataType: 'enum', enums: ['admin_and_general'] },
+        { dataType: 'enum', enums: ['marketing_and_selling'] },
+        { dataType: 'enum', enums: ['research_and_development'] },
+        { dataType: 'enum', enums: ['depreciation_and_amortization'] },
+        { dataType: 'enum', enums: ['bank_charge'] },
+        { dataType: 'enum', enums: ['finance_cost'] },
+        { dataType: 'enum', enums: ['interest'] },
+        { dataType: 'enum', enums: ['unrealized_loss'] },
+        { dataType: 'enum', enums: ['impairment_loss'] },
+        { dataType: 'enum', enums: ['other_loss'] },
         { dataType: 'enum', enums: ['direct_costs'] },
         { dataType: 'enum', enums: ['income_tax_expense'] },
         { dataType: 'enum', enums: ['loss_on_asset_disposal'] },
+      ],
+      validators: {},
+    },
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ULedgerAccountSubType: {
+    dataType: 'refAlias',
+    type: {
+      dataType: 'union',
+      subSchemas: [
+        { ref: 'UAssetSubType' },
+        { ref: 'ULiabilitySubType' },
+        { ref: 'UEquitySubType' },
+        { ref: 'URevenueSubType' },
+        { ref: 'UExpenseSubType' },
       ],
       validators: {},
     },
@@ -1164,9 +1220,18 @@ const models: TsoaRoute.Models = {
       orderBy: { ref: 'ULedgerAccountSortBy' },
       sortDirection: { ref: 'UPaginationSortDirection' },
       page: { dataType: 'double' },
-      status: { ref: 'ULedgerAccountStatus' },
-      type: { ref: 'ULedgerType' },
-      subType: { ref: 'ULedgerAccountSubType' },
+      statuses: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerAccountStatus' },
+      },
+      types: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerType' },
+      },
+      subTypes: {
+        dataType: 'array',
+        array: { dataType: 'refAlias', ref: 'ULedgerAccountSubType' },
+      },
       behavior: { dataType: 'string' },
       isControlAccount: { dataType: 'boolean' },
     },

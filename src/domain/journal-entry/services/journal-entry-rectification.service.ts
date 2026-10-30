@@ -29,10 +29,12 @@ interface IDependencies {
 async function validateAccounts(
   deps: IDependencies,
   accountIds: TEntityId[],
+  accountingEntityId: TEntityId,
   repoOptions: IReadRepoOptions
 ) {
   const accounts = await deps.ledgerAccountRepo.findAllByIds(
     [...new Set(accountIds)],
+    accountingEntityId,
     repoOptions
   );
 
@@ -242,6 +244,7 @@ function makeRectify(
         [...payload.originalEntry.lines, ...(payload.newEntry.lines ?? [])].map(
           (line) => line.accountId
         ),
+        payload.originalEntry.accountingEntityId,
         repoOptions
       );
       return voidAndReplace(deps, payload, repoOptions);
@@ -253,6 +256,7 @@ function makeRectify(
         (payload.newEntry.lines ?? payload.originalEntry.lines).map(
           (line) => line.accountId
         ),
+        payload.originalEntry.accountingEntityId,
         repoOptions
       );
     }
@@ -286,6 +290,7 @@ function makeReverse(
     await validateAccounts(
       deps,
       originalEntry.lines.map((line) => line.accountId),
+      originalEntry.accountingEntityId,
       repoOptions
     );
 

@@ -16,6 +16,10 @@ rejects with `BalanceNotFound` rather than substituting zero amounts.
 - **Propagation** creates the corresponding adjustments for that account's
   control-account ancestors.
 
+Propagation reads every directly affected account by ID within the journal's
+accounting entity, without pagination or status filtering, before resolving
+the complete ancestor set.
+
 Use these terms in ledger code and documentation. Do not introduce another term
 for derived balances or for bubbling adjustments through the account hierarchy.
 An adjustment or propagation failure can leave displayed balances stale, but it
@@ -71,8 +75,9 @@ posted, including generated reversals. Consequently corrections and reversing
 deletions that reference archived original accounts are rejected. Existing
 journals, historical transactions, and reporting inputs remain readable.
 
-The public ledger list defaults to `status=active`; explicit `status=draft` and
-`status=archived` queries expose those states. Posting-account discovery includes
+The public ledger list defaults to `statuses=['active']` when omitted; explicit
+`statuses` arrays select one or more lifecycle states, and an empty array leaves
+statuses unfiltered. Posting-account discovery includes
 active/draft candidates and excludes archived accounts. Repository reads without
 a status filter remain unfiltered so pending propagation for existing posted
 journals still includes archived accounts and control ancestors. Report totals

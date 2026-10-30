@@ -1688,26 +1688,35 @@
           },
           {
             "in": "query",
-            "name": "status",
+            "name": "statuses",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ULedgerAccountStatus"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerAccountStatus"
+              }
             }
           },
           {
             "in": "query",
-            "name": "type",
+            "name": "types",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ULedgerType"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerType"
+              }
             }
           },
           {
             "in": "query",
-            "name": "subType",
+            "name": "subTypes",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ULedgerAccountSubType"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ULedgerAccountSubType"
+              }
             }
           },
           {
@@ -9476,10 +9485,43 @@
         "type": "object",
         "additionalProperties": false
       },
-      "ULedgerAccountSubType": {
+      "UAssetSubType": {
         "type": "string",
         "enum": [
-          "retained_earnings",
+          "cash_and_cash_equivalent",
+          "short_term_investment",
+          "receivables",
+          "inventory",
+          "accrued_income",
+          "prepayments",
+          "long_term_investment",
+          "property_plant_and_equipment",
+          "intangible_assets",
+          "right_of_use_assets",
+          "goodwill",
+          "suspense"
+        ]
+      },
+      "ULiabilitySubType": {
+        "type": "string",
+        "enum": [
+          "suspense",
+          "short_term_debt",
+          "payable",
+          "accrued_expense",
+          "deferred_revenue",
+          "long_term_loan",
+          "lease_liability",
+          "provision"
+        ]
+      },
+      "UEquitySubType": {
+        "type": "string",
+        "enum": ["retained_earnings", "capital", "reserve", "opening_balance"]
+      },
+      "URevenueSubType": {
+        "type": "string",
+        "enum": [
           "sales",
           "services",
           "subscriptions",
@@ -9488,7 +9530,12 @@
           "gain_on_asset_sale",
           "unrealized_gains",
           "grants",
-          "gifts",
+          "gifts"
+        ]
+      },
+      "UExpenseSubType": {
+        "type": "string",
+        "enum": [
           "payroll_and_personnel",
           "rent_and_utilities",
           "admin_and_general",
@@ -9501,31 +9548,28 @@
           "unrealized_loss",
           "impairment_loss",
           "other_loss",
-          "cash_and_cash_equivalent",
-          "short_term_investment",
-          "receivables",
-          "inventory",
-          "accrued_income",
-          "prepayments",
-          "long_term_investment",
-          "property_plant_and_equipment",
-          "intangible_assets",
-          "right_of_use_assets",
-          "goodwill",
-          "suspense",
-          "short_term_debt",
-          "payable",
-          "accrued_expense",
-          "deferred_revenue",
-          "long_term_loan",
-          "lease_liability",
-          "provision",
-          "capital",
-          "reserve",
-          "opening_balance",
           "direct_costs",
           "income_tax_expense",
           "loss_on_asset_disposal"
+        ]
+      },
+      "ULedgerAccountSubType": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/UAssetSubType"
+          },
+          {
+            "$ref": "#/components/schemas/ULiabilitySubType"
+          },
+          {
+            "$ref": "#/components/schemas/UEquitySubType"
+          },
+          {
+            "$ref": "#/components/schemas/URevenueSubType"
+          },
+          {
+            "$ref": "#/components/schemas/UExpenseSubType"
+          }
         ]
       },
       "IGetBalanceHistoryBySubTypeQuery": {
@@ -10099,14 +10143,23 @@
             "type": "number",
             "format": "double"
           },
-          "status": {
-            "$ref": "#/components/schemas/ULedgerAccountStatus"
+          "statuses": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerAccountStatus"
+            },
+            "type": "array"
           },
-          "type": {
-            "$ref": "#/components/schemas/ULedgerType"
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerType"
+            },
+            "type": "array"
           },
-          "subType": {
-            "$ref": "#/components/schemas/ULedgerAccountSubType"
+          "subTypes": {
+            "items": {
+              "$ref": "#/components/schemas/ULedgerAccountSubType"
+            },
+            "type": "array"
           },
           "behavior": {
             "type": "string"

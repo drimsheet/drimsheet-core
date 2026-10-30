@@ -1,61 +1,12 @@
 import {
-  IPaginatedReadRepoOptions,
   IReadRepoOptions,
   IVersionedRepoWriteOptions,
   IWriteRepoOptions,
 } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
 
-import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
-import { UAssetSubType } from '@domain/ledger/types/asset-account.types';
-import { UEquitySubType } from '@domain/ledger/types/equity-account.types';
-import { UExpenseSubType } from '@domain/ledger/types/expense-account.types';
 import { ILedgerAccountHistory } from '@domain/ledger/types/ledger-account-audit.types';
-import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
-import {
-  ILedgerAccount,
-  ULedgerAccountStatus,
-  ULedgerType,
-} from '@domain/ledger/types/ledger.types';
-import { ULiabilitySubType } from '@domain/ledger/types/liability-account.types';
-import { URevenueSubType } from '@domain/ledger/types/revenue-account.types';
-
-export const ELedgerAccountSortBy = {
-  AccountName: 'accountName',
-  CreatedAt: 'createdAt',
-  Balance: 'balance',
-} as const;
-
-export type ULedgerAccountSortBy =
-  (typeof ELedgerAccountSortBy)[keyof typeof ELedgerAccountSortBy];
-
-// TODO: move this to a query repo
-export interface IFindAllLedgerAccountsOptions extends Omit<
-  IPaginatedReadRepoOptions,
-  'orderBy'
-> {
-  ids?: TEntityId[];
-  /**
-   * @deprecated use "statuses" instead
-   */
-  status?: ULedgerAccountStatus;
-  statuses?: ULedgerAccountStatus[];
-  type?: ULedgerType;
-  types?: ULedgerType[];
-  subType?:
-    | UAssetSubType
-    | ULiabilitySubType
-    | UEquitySubType
-    | URevenueSubType
-    | UExpenseSubType;
-  subTypes?: ULedgerAccountSubType[];
-  behavior?: string;
-  behaviors?: ULedgerAccountBehavior[];
-  currencyCodes?: Array<string | null>;
-  isControlAccount?: boolean;
-  orderBy?: ULedgerAccountSortBy;
-}
+import { ILedgerAccount, ULedgerType } from '@domain/ledger/types/ledger.types';
 
 export default interface ILedgerAccountRepo {
   /** Deletes an unreferenced draft account and its history at the expected version. */
@@ -77,8 +28,13 @@ export default interface ILedgerAccountRepo {
     options: IReadRepoOptions
   ): Promise<ILedgerAccount | null>;
 
+  /**
+   * Returns all matching accounts in the entity, across statuses, without
+   * pagination.
+   */
   findAllByIds(
     ids: TEntityId[],
+    accountingEntityId: TEntityId,
     options: IReadRepoOptions
   ): Promise<ILedgerAccount[]>;
 
@@ -120,9 +76,4 @@ export default interface ILedgerAccountRepo {
     subType: string,
     options: IReadRepoOptions
   ): Promise<Pick<ILedgerAccount, 'id' | 'code' | 'materializedPath'> | null>;
-
-  findAll(
-    accountingEntityId: TEntityId,
-    options: IFindAllLedgerAccountsOptions
-  ): Promise<IPaginatedResponse<ILedgerAccount>>;
 }
