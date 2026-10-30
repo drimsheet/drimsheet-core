@@ -2,15 +2,13 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import { SYSTEM_JURISDICTIONS } from '@domain/accounting/config/jurisdictions.config';
+import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 import periodError from '@domain/accounting/errors/period.error';
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 import accountingEntityServiceValidation from '@domain/accounting/services/validations/accounting-entity.validation';
 import { IAccountingEntityCreationInput } from '@domain/accounting/types/accounting-entity.service.types';
-import {
-  EAccountingEntityType,
-  IAccountingEntity,
-} from '@domain/accounting/types/accounting-entity.types';
+import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 
 const repo: jest.Mocked<IAccountingEntityRepo> = {
@@ -125,11 +123,22 @@ describe('accountingEntityServiceValidation', () => {
       );
     });
 
-    it('rejects an individual entity when the owner already has one', async () => {
+    it('allows an individual when existing entities belong to another jurisdiction', async () => {
       repo.findByUserId.mockResolvedValue([
-        {
-          createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        } as IAccountingEntity,
+        accountingEntityEntity.make({ ...input, jurisdictionCode: 'NG' })[0],
+      ]);
+      await expect(
+        accountingEntityServiceValidation.validateExistingIndividualEntity(
+          repo,
+          input,
+          repoOptions
+        )
+      ).resolves.toBeUndefined();
+    });
+
+    it('rejects an individual entity when the owner already has one in the jurisdiction', async () => {
+      repo.findByUserId.mockResolvedValue([
+        accountingEntityEntity.make(input)[0],
       ]);
 
       await expect(
@@ -139,7 +148,7 @@ describe('accountingEntityServiceValidation', () => {
           repoOptions
         )
       ).rejects.toThrow(
-        accountingEntityError.OnlyOneIndividualAccountingEntityAllowed
+        accountingEntityError.IndividualAccountingEntityAlreadyExistsInJurisdiction
       );
     });
   });

@@ -540,9 +540,13 @@ export const accountingEntitiesInCore = core.table(
   },
   (table) => [
     index().using('btree', table.createdBy.asc().nullsLast().op('uuid_ops')),
-    uniqueIndex('accounting_entities_unique_individual_owner_idx')
-      .using('btree', table.ownerId.asc().nullsLast().op('uuid_ops'))
-      .where(sql`(type = 'individual'::accounting_entity_type)`),
+    uniqueIndex('accounting_entities_unique_individual_owner_jurisdiction_idx')
+      .using(
+        'btree',
+        table.ownerId.asc().nullsLast().op('uuid_ops'),
+        table.jurisdictionCode.asc().nullsLast().op('text_ops')
+      )
+      .where(sql`(type = 'individual'::core.accounting_entity_type)`),
     foreignKey({
       columns: [table.createdBy],
       foreignColumns: [actorsInCore.id],

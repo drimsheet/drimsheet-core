@@ -7,6 +7,7 @@ import { EAccountingEntityStatus } from '@domain/accounting/types/accounting-ent
 
 import { accountingEntitiesInCore } from '@infra/config/drizzle/schema';
 import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import mapIndividualAccountingEntityConflictErrorHelper from '@infra/persistence/helpers/map-individual-accounting-entity-conflict-error.helper';
 import mapJournalFunctionalCurrencyErrorHelper from '@infra/persistence/helpers/map-journal-functional-currency-error.helper';
 import accountingEntityMapper from '@infra/persistence/repos/accounting/mappers/accounting-entity.mapper';
 
@@ -20,17 +21,21 @@ const accountingEntityRepo: IAccountingEntityRepo = {
   },
 
   create: async (domain, options) => {
-    await getDbQuery(options).transaction(async (tx) => {
-      await tx
-        .insert(accountingEntitiesInCore)
-        .values(accountingEntityMapper.toRepo(domain));
+    try {
+      await getDbQuery(options).transaction(async (tx) => {
+        await tx
+          .insert(accountingEntitiesInCore)
+          .values(accountingEntityMapper.toRepo(domain));
 
-      await accountingEntityHistoryRepo.save(
-        domain,
-        options.history,
-        passOnRepoTransaction(options, tx)
-      );
-    });
+        await accountingEntityHistoryRepo.save(
+          domain,
+          options.history,
+          passOnRepoTransaction(options, tx)
+        );
+      });
+    } catch (error) {
+      throw mapIndividualAccountingEntityConflictErrorHelper(error);
+    }
   },
 
   update: async (domain, options) => {

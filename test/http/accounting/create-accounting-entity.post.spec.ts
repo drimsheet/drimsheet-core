@@ -187,11 +187,14 @@ describe('POST /accounting/accounting-entity', () => {
   });
 
   describe('409 Response', () => {
-    it('maps an existing individual accounting entity violation', async () => {
+    it('maps an existing individual accounting entity in the jurisdiction to a conflict', async () => {
       mockCreateAccountingEntity.mockRejectedValue(
-        new accountingEntityError.OnlyOneIndividualAccountingEntityAllowed({
-          ownerId: userId,
-        })
+        new accountingEntityError.IndividualAccountingEntityAlreadyExistsInJurisdiction(
+          {
+            ownerId: userId,
+            jurisdictionCode: validPayload.jurisdictionCode,
+          }
+        )
       );
 
       const response = await request(server)
@@ -203,8 +206,11 @@ describe('POST /accounting/accounting-entity', () => {
       expect(response.body).toEqual({
         name: 'AccountingEntityError',
         errorKey:
-          'accounting_error_accounting_entity_only_one_individual_accounting_entity_allowed_conflict',
-        cause: { ownerId: userId },
+          'accounting_error_accounting_entity_individual_already_exists_in_jurisdiction_conflict',
+        cause: {
+          ownerId: userId,
+          jurisdictionCode: validPayload.jurisdictionCode,
+        },
       });
     });
   });

@@ -197,12 +197,12 @@ describe('makeCreateAccountingEntityUsecase', () => {
 
   it('propagates the Individual ownership invariant without persistence', async () => {
     mockAccountingEntityService.create.mockRejectedValueOnce(
-      new accountingEntityError.OnlyOneIndividualAccountingEntityAllowed()
+      new accountingEntityError.IndividualAccountingEntityAlreadyExistsInJurisdiction()
     );
     await expect(
       execute({ ...payload, entityType: 'individual' })
     ).rejects.toBeInstanceOf(
-      accountingEntityError.OnlyOneIndividualAccountingEntityAllowed
+      accountingEntityError.IndividualAccountingEntityAlreadyExistsInJurisdiction
     );
     expect(mockAccountingEntityRepo.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
