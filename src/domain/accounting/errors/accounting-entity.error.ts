@@ -23,8 +23,8 @@ const EErrorKeys = {
     'accounting_error_accounting_entity_jurisdiction_code_invalid',
   InvalidHistoryAction:
     'accounting_error_accounting_entity_history_action_invalid',
-  OnlyOneIndividualAccountingEntityAllowed:
-    'accounting_error_accounting_entity_only_one_individual_accounting_entity_allowed_conflict',
+  IndividualAccountingEntityAlreadyExistsInJurisdiction:
+    'accounting_error_accounting_entity_individual_already_exists_in_jurisdiction_conflict',
 } as const satisfies TErrorKeys<'accounting_error_accounting_entity'>;
 
 type UAccountingEntityError = (typeof EErrorKeys)[keyof typeof EErrorKeys];

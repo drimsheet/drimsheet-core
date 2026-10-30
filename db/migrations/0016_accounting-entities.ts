@@ -82,8 +82,8 @@ export const up = (pgm: MigrationBuilder) => {
     }
   );
 
-  pgm.createIndex(accountingEntitiesTable, ['owner_id'], {
-    name: 'accounting_entities_unique_individual_owner_idx',
+  pgm.createIndex(accountingEntitiesTable, ['owner_id', 'jurisdiction_code'], {
+    name: 'accounting_entities_unique_individual_owner_jurisdiction_idx',
     unique: true,
     where: "type = 'individual'",
   });

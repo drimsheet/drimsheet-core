@@ -15,7 +15,7 @@ interface IDependencies {
   journalEntryRepo: IJournalEntryRepo;
 }
 
-/** Enforces owner uniqueness and prepares only the entity, event, and audit. */
+/** Enforces owner/jurisdiction uniqueness and prepares entity, event, and audit. */
 function makeCreate(deps: IDependencies): IAccountingEntityService['create'] {
   return async (input, repoOptions) => {
     await accountingEntityServiceValidation.validateExistingIndividualEntity(

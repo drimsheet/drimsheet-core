@@ -601,7 +601,7 @@ Table core.accounting_entities {
 
   indexes {
     (created_by) [name: 'accounting_entities_created_by_index']
-    (owner_id) [unique, name: 'accounting_entities_unique_individual_owner_idx']
+    (owner_id, jurisdiction_code) [unique, name: 'accounting_entities_unique_individual_owner_jurisdiction_idx']
   }
 
   Note: 'Schema: core'

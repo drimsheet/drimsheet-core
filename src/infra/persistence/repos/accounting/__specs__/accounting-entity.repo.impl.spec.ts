@@ -36,11 +36,12 @@ describe('AccountingEntityRepoImpl', () => {
   it.each([
     {
       code: '23505',
-      constraint: 'accounting_entities_unique_individual_owner_idx',
+      constraint: 'unrelated_unique_index',
     },
     {
       code: '08006',
-      constraint: 'accounting_entities_unique_individual_owner_idx',
+      constraint:
+        'accounting_entities_unique_individual_owner_jurisdiction_idx',
     },
     new Error('database unavailable'),
   ])('propagates database failures unchanged', async (databaseError) => {
@@ -51,6 +52,27 @@ describe('AccountingEntityRepoImpl', () => {
 
     await expect(accountingEntityRepo.create(domain, options)).rejects.toBe(
       databaseError
+    );
+  });
+
+  it('maps a concurrent duplicate individual creation to a domain conflict', async () => {
+    const query = {
+      transaction: jest.fn().mockRejectedValue({
+        cause: {
+          code: '23505',
+          constraint:
+            'accounting_entities_unique_individual_owner_jurisdiction_idx',
+        },
+      }),
+    };
+    jest
+      .mocked(getDbQuery)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+
+    await expect(
+      accountingEntityRepo.create(domain, options)
+    ).rejects.toBeInstanceOf(
+      accountingEntityError.IndividualAccountingEntityAlreadyExistsInJurisdiction
     );
   });
 

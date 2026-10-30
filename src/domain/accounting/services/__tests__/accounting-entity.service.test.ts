@@ -87,20 +87,78 @@ describe('accountingEntityService', () => {
       }
     );
 
-    it('rejects a second Individual, including an archived one (ACC-AE-005)', async () => {
+    it.each(['active', 'archived'] as const)(
+      'rejects another Individual in the same jurisdiction when existing is %s (ACC-AE-005)',
+      async (status) => {
+        const [existing] = accountingEntityEntity.make(input);
+        accountingEntityRepo.findByUserId.mockResolvedValue([
+          status === 'archived'
+            ? accountingEntityEntity.archive(existing)[0]
+            : existing,
+        ]);
+        await expect(service.create(input, repoOptions)).rejects.toMatchObject({
+          errorKey:
+            'accounting_error_accounting_entity_individual_already_exists_in_jurisdiction_conflict',
+          cause: {
+            ownerId: input.ownerId,
+            jurisdictionCode: input.jurisdictionCode,
+          },
+        });
+        expect(accountingEntityRepo.findByUserId).toHaveBeenCalledWith(
+          input.ownerId,
+          repoOptions,
+          EAccountingEntityType.Individual
+        );
+      }
+    );
+
+    it.each(['active', 'archived'] as const)(
+      'allows another jurisdiction when the existing Individual is %s (ACC-AE-005)',
+      async (status) => {
+        const [existing] = accountingEntityEntity.make({
+          ...input,
+          jurisdictionCode: 'US',
+        });
+        accountingEntityRepo.findByUserId.mockResolvedValue([
+          status === 'archived'
+            ? accountingEntityEntity.archive(existing)[0]
+            : existing,
+        ]);
+
+        const [entity] = await service.create(input, repoOptions);
+        expect(entity).toMatchObject(input);
+      }
+    );
+
+    it('scopes the existing-entity lookup to the requested owner (ACC-AE-005)', async () => {
+      const otherOwner = '123e4567-e89b-12d3-a456-426614174099' as TEntityId;
       const [existing] = accountingEntityEntity.make(input);
-      accountingEntityRepo.findByUserId.mockResolvedValue([
-        accountingEntityEntity.archive(existing)[0],
-      ]);
-      await expect(service.create(input, repoOptions)).rejects.toBeInstanceOf(
-        accountingEntityError.OnlyOneIndividualAccountingEntityAllowed
+      accountingEntityRepo.findByUserId.mockImplementation(async (ownerId) =>
+        ownerId === input.ownerId ? [existing] : []
       );
-      expect(accountingEntityRepo.findByUserId).toHaveBeenCalledWith(
-        input.ownerId,
-        repoOptions,
-        EAccountingEntityType.Individual
+
+      const [entity] = await service.create(
+        { ...input, ownerId: otherOwner },
+        repoOptions
       );
+      expect(entity.ownerId).toBe(otherOwner);
+      expect(entity.jurisdictionCode).toBe(input.jurisdictionCode);
     });
+
+    it.each([
+      EAccountingEntityType.SoleTrader,
+      EAccountingEntityType.PrivateCompany,
+    ])(
+      'allows a %s alongside an Individual in the same jurisdiction',
+      async (type) => {
+        accountingEntityRepo.findByUserId.mockResolvedValue([
+          accountingEntityEntity.make(input)[0],
+        ]);
+        const [entity] = await service.create({ ...input, type }, repoOptions);
+        expect(entity.type).toBe(type);
+        expect(accountingEntityRepo.findByUserId).not.toHaveBeenCalled();
+      }
+    );
 
     it.each([
       { name: '' },

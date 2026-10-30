@@ -52,10 +52,17 @@ async function validateExistingIndividualEntity(
     EAccountingEntityType.Individual
   );
 
-  if (existingIndividualEntities.length > 0) {
-    throw new accountingEntityError.OnlyOneIndividualAccountingEntityAllowed({
-      ownerId: input.ownerId,
-    });
+  const hasIndividualInJurisdiction = existingIndividualEntities.some(
+    (entity) => entity.jurisdictionCode === input.jurisdictionCode
+  );
+
+  if (hasIndividualInJurisdiction) {
+    throw new accountingEntityError.IndividualAccountingEntityAlreadyExistsInJurisdiction(
+      {
+        ownerId: input.ownerId,
+        jurisdictionCode: input.jurisdictionCode,
+      }
+    );
   }
 }
 
