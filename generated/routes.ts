@@ -291,6 +291,40 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IAccountActivityDto: {
+    dataType: 'refObject',
+    properties: {
+      accountId: { dataType: 'string', required: true },
+      currencyCode: { dataType: 'string', required: true },
+      period: { ref: 'IDateRangeDto', required: true },
+      buckets: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            delta: { ref: 'IMoneyDto', required: true },
+            totalCredits: { ref: 'IMoneyDto', required: true },
+            totalDebits: { ref: 'IMoneyDto', required: true },
+            to: { dataType: 'string', required: true },
+            from: { dataType: 'string', required: true },
+          },
+        },
+        required: true,
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetAccountActivityQuery: {
+    dataType: 'refObject',
+    properties: {
+      from: { dataType: 'string', required: true },
+      to: { dataType: 'string', required: true },
+      bucketDays: { dataType: 'double', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UCounterpartyStatus: {
     dataType: 'refAlias',
     type: {
@@ -4034,6 +4068,61 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getAccountActivityByTypes',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsLedgerReportingController_getAccountActivity: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    accountId: {
+      in: 'path',
+      name: 'accountId',
+      required: true,
+      dataType: 'string',
+    },
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetAccountActivityQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/ledger/accounts/:accountId/activity',
+    ...fetchMiddlewares<RequestHandler>(LedgerReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      LedgerReportingController.prototype.getAccountActivity
+    ),
+
+    async function LedgerReportingController_getAccountActivity(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsLedgerReportingController_getAccountActivity,
+          request,
+          response,
+        });
+
+        const controller = new LedgerReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getAccountActivity',
           controller,
           response,
           next,
