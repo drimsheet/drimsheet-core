@@ -49,6 +49,8 @@ const accountBalanceContributionsByCounterpartyRepoQuery: TGetAccountBalanceCont
           AND entry.posted_at IS NOT NULL
           AND entry.voiding_entry_id IS NULL
           AND entry.source_type <> 'reversal'
+          ${criteria.from === undefined ? sql`` : sql`AND entry.effective_date >= ${criteria.from.toISOString().slice(0, 10)}::date`}
+          ${criteria.to === undefined ? sql`` : sql`AND entry.effective_date <= ${criteria.to.toISOString().slice(0, 10)}::date`}
           AND line.functional_currency_code = ${criteria.functionalCurrencyCode}
       ), contributions AS (
         SELECT counterparty_id, is_self, normal_balance,

@@ -201,6 +201,25 @@ describe('GET /reporting/ledger/accounts/{accountId}/balance-contributions-by-co
       );
     });
 
+    it.each([
+      { from: '2026-10-01', to: '2026-10-31' },
+      { from: '2026-10-01' },
+      { to: '2026-10-31' },
+    ])('accepts date filters %j and returns period shares', async (query) => {
+      const response = await getReport(query);
+      expect(response.status).toBe(200);
+      expect(response.body.data[0].participation.totalShare).toBe(100);
+      expect(
+        mockAccountBalanceContributionsByCounterpartyRepoQuery
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: query.from === undefined ? undefined : new Date(query.from),
+          to: query.to === undefined ? undefined : new Date(query.to),
+        }),
+        expect.any(Object)
+      );
+    });
+
     it('accepts numeric pagination and case-insensitive entity-name search without changing shares', async () => {
       mockAccountBalanceContributionsByCounterpartyRepoQuery.mockResolvedValue([
         aggregate,
@@ -250,6 +269,15 @@ describe('GET /reporting/ledger/accounts/{accountId}/balance-contributions-by-co
       expect(response.body.errorKey).toBe(
         'app_error_reporting_account_id_invalid'
       );
+      expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+    });
+
+    it('rejects reversed date ranges before reading storage', async () => {
+      const response = await getReport({
+        from: '2026-10-31',
+        to: '2026-10-01',
+      });
+      expect(response.status).toBe(400);
       expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
     });
 
@@ -327,6 +355,9 @@ describe('GET /reporting/ledger/accounts/{accountId}/balance-contributions-by-co
       { limit: 201 },
       { limit: 1.5 },
       { page: 'invalid' },
+      { from: '2026-02-30' },
+      { to: '0000-01-01' },
+      { to: '2026-10-01T00:00:00Z' },
     ])(
       'rejects invalid pagination %j before reading storage',
       async (query) => {

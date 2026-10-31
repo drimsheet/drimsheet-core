@@ -466,6 +466,8 @@ const models: TsoaRoute.Models = {
       page: { dataType: 'double' },
       limit: { dataType: 'double' },
       search: { dataType: 'string' },
+      from: { dataType: 'string' },
+      to: { dataType: 'string' },
     },
     additionalProperties: false,
   },

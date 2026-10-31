@@ -455,7 +455,7 @@
             }
           }
         },
-        "description": "Returns counterparty contributions to an account balance, including\ndescendants. Shares use the full account balance before filtering and\npagination; zero balances yield null shares. Self-transfers and\nunattributed activity remain separate.",
+        "description": "Returns counterparty contributions to an account balance, including\ndescendants. Optional from/to dates filter effective dates inclusively;\neither bound may be omitted. Shares use period net activity when dates are\nsupplied, otherwise the stored balance, before search and pagination.\nZero denominators yield null. Self and unattributed groups stay separate.",
         "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
@@ -488,6 +488,24 @@
           {
             "in": "query",
             "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
             "required": false,
             "schema": {
               "type": "string"
@@ -9103,7 +9121,7 @@
                 "type": "number",
                 "format": "double",
                 "nullable": true,
-                "description": "Percentage of the stored account balance, before filtering; null at zero."
+                "description": "Percentage of period net activity when dates are supplied, otherwise the\nstored balance. Calculated before search/pagination; null at zero."
               },
               "functionalAmount": {
                 "$ref": "#/components/schemas/IMoneyDto"
@@ -9172,6 +9190,14 @@
           },
           "search": {
             "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
           }
         },
         "type": "object",

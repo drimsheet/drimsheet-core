@@ -71,9 +71,10 @@ export class LedgerReportingController extends Controller {
 
   /**
    * Returns counterparty contributions to an account balance, including
-   * descendants. Shares use the full account balance before filtering and
-   * pagination; zero balances yield null shares. Self-transfers and
-   * unattributed activity remain separate.
+   * descendants. Optional from/to dates filter effective dates inclusively;
+   * either bound may be omitted. Shares use period net activity when dates are
+   * supplied, otherwise the stored balance, before search and pagination.
+   * Zero denominators yield null. Self and unattributed groups stay separate.
    */
   @Get('/accounts/{accountId}/balance-contributions-by-counterparty')
   @OperationId('getAccountBalanceContributionsByCounterparty')
