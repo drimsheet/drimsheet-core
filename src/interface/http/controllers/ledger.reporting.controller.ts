@@ -14,6 +14,7 @@ import {
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
 import type { IGetAccountActivityByTypesQuery } from '@app/ledger/usecases/reporting/account-activity-by-types/dto';
+import type { IGetAccountActivityQuery } from '@app/ledger/usecases/reporting/account-activity/dto';
 import type { IGetAccountBalanceContributionsByCounterpartyQuery } from '@app/ledger/usecases/reporting/account-balance-contributions-by-counterparty/dto';
 import type { IGetAccountCashFlowQuery } from '@app/ledger/usecases/reporting/account-cash-flow/dto';
 import type { IGetBalanceHistoryByAccountQuery } from '@app/ledger/usecases/reporting/balance-history-by-account/dto';
@@ -29,6 +30,7 @@ import type { IDateRangeDto } from '@app/ledger/usecases/reporting/shared/date-r
 import middlewares from '@infra/ioc/middlewares/http';
 import {
   getAccountActivityByTypesUseCase,
+  getAccountActivityUseCase,
   getAccountBalanceContributionsByCounterpartyUseCase,
   getAccountCashFlowUseCase,
   getBalanceHistoryByAccountUseCase,
@@ -70,10 +72,38 @@ export class LedgerReportingController extends Controller {
   }
 
   /**
+   * Returns activity for an account and its descendants in functional currency.
+   * Deltas follow the selected account's normal side. Dates are inclusive, up
+   * to 366 days; empty buckets return zeros. Opening balances and reversed
+   * activity are excluded.
+   */
+  @Get('/accounts/{accountId}/activity')
+  @OperationId('getAccountActivity')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async getAccountActivity(
+    @Path() accountId: string,
+    @Queries() query: IGetAccountActivityQuery
+  ) {
+    return await getAccountActivityUseCase(accountId, query);
+  }
+
+  /**
    * Returns counterparty contributions to an account balance, including
-   * descendants. Shares use the full account balance before filtering and
-   * pagination; zero balances yield null shares. Self-transfers and
-   * unattributed activity remain separate.
+   * descendants. Optional from/to dates filter effective dates inclusively;
+   * either bound may be omitted. Shares use period net activity when dates are
+   * supplied, otherwise the stored balance, before search and pagination.
+   * Zero denominators yield null. Self and unattributed groups stay separate.
    */
   @Get('/accounts/{accountId}/balance-contributions-by-counterparty')
   @OperationId('getAccountBalanceContributionsByCounterparty')

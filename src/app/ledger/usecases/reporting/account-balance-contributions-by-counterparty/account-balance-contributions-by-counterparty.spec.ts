@@ -1,5 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
+import dateError from '@shared/values/errors/date.error';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
@@ -131,6 +132,107 @@ describe('getAccountBalanceContributionsByCounterpartyUsecase', () => {
       },
     });
     expect(response.data[0].counterparty).not.toHaveProperty('version');
+  });
+
+  it.each([
+    { from: '2026-10-01', to: '2026-10-31' },
+    { from: '2026-10-01' },
+    { to: '2026-10-31' },
+    { from: '2026-10-01', to: '2026-10-01' },
+    { from: '1970-01-01', to: '1970-01-01' },
+  ])(
+    'passes inclusive date bounds and uses period totals for %j',
+    async (query) => {
+      const response = await usecase(accountId, query);
+      expect(
+        mockAccountBalanceContributionsByCounterpartyRepoQuery
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: query.from === undefined ? undefined : new Date(query.from),
+          to: query.to === undefined ? undefined : new Date(query.to),
+        }),
+        { correlationId: 'participation-spec' }
+      );
+      expect(response.data[0].participation.totalShare).toBe(100);
+    }
+  );
+
+  it('rejects reversed bounds and invalid dates before reading storage', async () => {
+    await expect(
+      usecase(accountId, { from: '2026-10-31', to: '2026-10-01' })
+    ).rejects.toThrow(dateError.InvalidDates);
+    await expect(usecase(accountId, { from: '2026-02-30' })).rejects.toThrow(
+      appError.UnprocessableEntity
+    );
+    expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+  });
+
+  it('calculates period shares before search and pagination including self and unattributed activity', async () => {
+    mockAccountBalanceContributionsByCounterpartyRepoQuery.mockResolvedValue([
+      aggregate,
+      { ...aggregate, counterparty: null, isSelf: true },
+      { ...aggregate, counterparty: null, isSelf: false },
+    ]);
+    const response = await usecase(accountId, {
+      from: '2026-10-01',
+      search: 'Alice',
+      limit: 1,
+    });
+    expect(response.data).toHaveLength(1);
+    expect(response.data[0].participation.totalShare).toBe(33.33);
+  });
+
+  it('uses signed period totals and returns null shares when period activity nets to zero', async () => {
+    mockAccountBalanceContributionsByCounterpartyRepoQuery.mockResolvedValue([
+      aggregate,
+      {
+        ...aggregate,
+        counterparty: null,
+        normalBalance: 'debit',
+        debits: 0n,
+        credits: 1000n,
+      },
+    ]);
+    const response = await usecase(accountId, { to: '2026-10-31' });
+    expect(response.data.map((row) => row.participation.totalShare)).toEqual([
+      150, -50,
+    ]);
+    mockAccountBalanceContributionsByCounterpartyRepoQuery.mockResolvedValue([
+      aggregate,
+      { ...aggregate, counterparty: null, normalBalance: 'debit' },
+    ]);
+    const zero = await usecase(accountId, { to: '2026-10-31' });
+    expect(zero.data.map((row) => row.participation.totalShare)).toEqual([
+      null,
+      null,
+    ]);
+    mockAccountBalanceContributionsByCounterpartyRepoQuery.mockResolvedValue(
+      []
+    );
+    expect((await usecase(accountId, { to: '2026-10-31' })).data).toEqual([]);
+  });
+
+  it('validates the period denominator independently of the stored balance', async () => {
+    mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue({
+      ...balance,
+      amount: moneyValue.makeZeroAmount(SYSTEM_CURRENCIES.USD),
+    });
+    expect(
+      (await usecase(accountId, { from: '2026-10-01' })).data[0].participation
+        .totalShare
+    ).toBe(100);
+    mockAccountBalanceContributionsByCounterpartyRepoQuery.mockResolvedValue([
+      { ...aggregate, debits: 0n, credits: 60_000_000_000_000n },
+      {
+        ...aggregate,
+        counterparty: null,
+        debits: 0n,
+        credits: 60_000_000_000_000n,
+      },
+    ]);
+    await expect(usecase(accountId, { from: '2026-10-01' })).rejects.toThrow(
+      reportingError.ReportAmountLimitExceeded
+    );
   });
 
   it('supports control accounts and functional-currency balances without imposing posting restrictions', async () => {
@@ -439,12 +541,15 @@ describe('getAccountBalanceContributionsByCounterpartyUsecase', () => {
   });
 });
 describe('getAccountBalanceContributionsByCounterpartyQueryValidationSchema', () => {
-  it.each([{}, { page: 1, limit: 200, search: 'Alice' }, { search: '' }])(
-    'accepts %j',
-    (query) => {
-      expect(schema.safeParse(query).success).toBe(true);
-    }
-  );
+  it.each([
+    {},
+    { page: 1, limit: 200, search: 'Alice' },
+    { search: '' },
+    { from: '2026-10-01' },
+    { to: '2026-10-31' },
+  ])('accepts %j', (query) => {
+    expect(schema.safeParse(query).success).toBe(true);
+  });
 
   it.each([
     { page: 0 },
@@ -455,6 +560,10 @@ describe('getAccountBalanceContributionsByCounterpartyQueryValidationSchema', ()
     { limit: 1.5 },
     { limit: '10' },
     { search: 1 },
+    { from: '2026-02-30' },
+    { to: '0000-01-01' },
+    { from: '2026-10-01T00:00:00Z' },
+    { to: 'invalid' },
   ])('rejects %j', (query) => {
     expect(schema.safeParse(query).success).toBe(false);
   });

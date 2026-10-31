@@ -3,15 +3,16 @@
  * Reports counterparties' signed contributions to an account in the selected
  * entity, combining activity across descendants and preserving separate self-
  * transfer and unattributed groups. Returns contributions in the stored balance
- * currency and functional currency. Share percentages use the stored account
- * balance, not the returned rows; a zero denominator yields null. Name search
+ * currency and functional currency. Optional inclusive effective-date bounds
+ * restrict activity. Shares use period net activity when dates are supplied,
+ * otherwise the stored balance; a zero denominator yields null. Name search
  * and pagination apply after shares are calculated. Rejects missing accounts or
  * balances and invalid amounts.
  *
  * WHEN TO USE
  * Use to inspect who contributes to an account balance. This is a balance-
- * participation view without a date-range filter; filtered or paginated shares
- * need not sum to 100 percent.
+ * participation view, or period activity view when dates are supplied. Searched
+ * or paginated shares need not sum to 100 percent.
  *
  * SEQUENCE DIAGRAM
  * Not required for this read-only aggregation workflow.
@@ -22,6 +23,7 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
+import dateRangeValue from '@shared/values/date-range/date-range.vo';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
 
@@ -62,12 +64,15 @@ export interface IGetAccountBalanceContributionsByCounterpartyRepoQueryInput {
   accountId: TEntityId;
   accountingEntityId: TEntityId;
   functionalCurrencyCode: UCurrencyCode;
+  from?: Date;
+  to?: Date;
 }
 /**
  * Reads only the requested account's adjustments to identify applied journals.
  * Within those journals, includes lines on the account or its descendants once,
  * excluding drafts, never-posted entries, voided originals and reversals.
- * Archived records and opening balances remain eligible.
+ * Archived records and opening balances remain eligible within the optional
+ * inclusive effective-date bounds.
  * Amounts use the requested account's currency
  * or functional currency when unset. Groups by counterparty, self and the posting
  * account's normal balance, ordered by counterparty name/ID then self and side.
@@ -98,6 +103,13 @@ export default function makeGetAccountBalanceContributionsByCounterpartyUsecase(
       getAccountBalanceContributionsByCounterpartyQueryValidationSchema,
       query
     );
+    const hasDateFilter = query.from !== undefined || query.to !== undefined;
+    const periodBounds = {
+      from: query.from === undefined ? undefined : new Date(query.from),
+      to: query.to === undefined ? undefined : new Date(query.to),
+    };
+    dateRangeValue.make(periodBounds);
+
     const { accountingEntity, correlationId } = deps.appContext.get([
       'accountingEntity',
     ]);
@@ -125,13 +137,16 @@ export default function makeGetAccountBalanceContributionsByCounterpartyUsecase(
         accountId: account.id,
         accountingEntityId: accountingEntity.id,
         functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
+        from: periodBounds.from,
+        to: periodBounds.to,
       },
       repoOptions
     );
     const participants = buildAccountBalanceContributionsByCounterparty(
       aggregates,
       balance.amount,
-      currencyEntity.getByCode(accountingEntity.functionalCurrencyCode)
+      currencyEntity.getByCode(accountingEntity.functionalCurrencyCode),
+      hasDateFilter
     );
 
     const search = query.search?.toLowerCase() ?? '';
@@ -158,18 +173,17 @@ export default function makeGetAccountBalanceContributionsByCounterpartyUsecase(
 
 /**
  * Nets each posting account's normal side, then combines counterparties across
- * descendants. Shares use the stored account balance, never the returned rows.
+ * descendants. Shares use all period contributions when dates are supplied,
+ * otherwise the stored account balance, before search and pagination.
  * Keeps self transfers separate from other unattributed activity and preserves
  * the query's deterministic group order, including zero contributions.
  */
 function buildAccountBalanceContributionsByCounterparty(
   aggregates: IGetAccountBalanceContributionsByCounterpartyRepoQueryOutput[],
   balance: IMoney,
-  functionalCurrency: ICurrency
+  functionalCurrency: ICurrency,
+  usePeriodTotal: boolean
 ): IAccountBalanceContributionsByCounterparty[] {
-  reportingValidation.validateAmountLimit(balance);
-  reportingValidation.validateSafeAmount(balance);
-
   const participants = new Map<
     string,
     IAccountBalanceContributionsByCounterparty
@@ -210,6 +224,15 @@ function buildAccountBalanceContributionsByCounterparty(
     });
   }
 
+  const denominator = usePeriodTotal
+    ? [...participants.values()].reduce(
+        (total, participant) => moneyValue.add(total, participant.amount),
+        moneyValue.makeZeroAmount(balance.currency)
+      )
+    : balance;
+  reportingValidation.validateAmountLimit(denominator);
+  reportingValidation.validateSafeAmount(denominator);
+
   for (const participant of participants.values()) {
     for (const money of [participant.amount, participant.functionalAmount]) {
       reportingValidation.validateAmountLimit(money);
@@ -217,7 +240,7 @@ function buildAccountBalanceContributionsByCounterparty(
     }
     participant.totalShare = moneyValue.getPercentage(
       participant.amount,
-      balance
+      denominator
     );
   }
 
