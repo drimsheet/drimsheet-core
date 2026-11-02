@@ -380,6 +380,124 @@
         ]
       }
     },
+    "/reporting/ledger/accounts/{accountId}/activity": {
+      "get": {
+        "operationId": "getAccountActivity",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IAccountActivityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns activity for an account and its descendants in functional currency.\nDeltas follow the selected account's normal side. Dates are inclusive, up\nto 366 days; empty buckets return zeros. Opening balances and reversed\nactivity are excluded.",
+        "tags": ["Reporting", "Ledger Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Positive calendar-day bucket size, anchored at from.",
+            "in": "query",
+            "name": "bucketDays",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
     "/reporting/ledger/accounts/{accountId}/balance-contributions-by-counterparty": {
       "get": {
         "operationId": "getAccountBalanceContributionsByCounterparty",
@@ -455,7 +573,7 @@
             }
           }
         },
-        "description": "Returns counterparty contributions to an account balance, including\ndescendants. Shares use the full account balance before filtering and\npagination; zero balances yield null shares. Self-transfers and\nunattributed activity remain separate.",
+        "description": "Returns counterparty contributions to an account balance, including\ndescendants. Optional from/to dates filter effective dates inclusively;\neither bound may be omitted. Shares use period net activity when dates are\nsupplied, otherwise the stored balance, before search and pagination.\nZero denominators yield null. Self and unattributed groups stay separate.",
         "tags": ["Reporting", "Ledger Reporting"],
         "security": [],
         "parameters": [
@@ -488,6 +606,24 @@
           {
             "in": "query",
             "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive calendar date in YYYY-MM-DD format.",
+            "in": "query",
+            "name": "to",
             "required": false,
             "schema": {
               "type": "string"
@@ -8951,6 +9087,76 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IAccountActivityDto": {
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto"
+          },
+          "buckets": {
+            "items": {
+              "properties": {
+                "delta": {
+                  "$ref": "#/components/schemas/IMoneyDto",
+                  "description": "Signed movement on the selected account's normal side."
+                },
+                "totalCredits": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "totalDebits": {
+                  "$ref": "#/components/schemas/IMoneyDto"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Inclusive last calendar date, clipped to the requested period."
+                },
+                "from": {
+                  "type": "string",
+                  "description": "Inclusive first calendar date."
+                }
+              },
+              "required": [
+                "delta",
+                "totalCredits",
+                "totalDebits",
+                "to",
+                "from"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["accountId", "currencyCode", "period", "buckets"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetAccountActivityQuery": {
+        "description": "Inclusive calendar dates spanning at most 366 days.",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "bucketDays": {
+            "type": "number",
+            "format": "double",
+            "description": "Positive calendar-day bucket size, anchored at from."
+          }
+        },
+        "required": ["from", "to", "bucketDays"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "UCounterpartyStatus": {
         "type": "string",
         "enum": ["draft", "active", "archived"]
@@ -9103,7 +9309,7 @@
                 "type": "number",
                 "format": "double",
                 "nullable": true,
-                "description": "Percentage of the stored account balance, before filtering; null at zero."
+                "description": "Percentage of period net activity when dates are supplied, otherwise the\nstored balance. Calculated before search/pagination; null at zero."
               },
               "functionalAmount": {
                 "$ref": "#/components/schemas/IMoneyDto"
@@ -9172,6 +9378,14 @@
           },
           "search": {
             "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
+          },
+          "to": {
+            "type": "string",
+            "description": "Inclusive calendar date in YYYY-MM-DD format."
           }
         },
         "type": "object",

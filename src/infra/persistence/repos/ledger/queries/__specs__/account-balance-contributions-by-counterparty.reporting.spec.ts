@@ -67,6 +67,48 @@ describe('accountBalanceContributionsByCounterpartyRepoQuery', () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    { from: new Date('2026-10-01'), to: new Date('2026-10-31') },
+    { from: new Date('2026-10-01') },
+    { to: new Date('2026-10-31') },
+  ])(
+    'binds inclusive effective-date bounds before aggregation for %j',
+    async (bounds) => {
+      await accountBalanceContributionsByCounterpartyRepoQuery(
+        { ...criteria, ...bounds },
+        options
+      );
+      const compiled = compiledQuery();
+      const expectedDates = [bounds.from, bounds.to]
+        .filter((date) => date !== undefined)
+        .map((date) => date.toISOString().slice(0, 10));
+      expect(compiled.params).toEqual([
+        criteria.accountId,
+        criteria.accountingEntityId,
+        ...expectedDates,
+        'NGN',
+        criteria.accountingEntityId,
+      ]);
+      expect(compiled.sql.includes('entry.effective_date >=')).toBe(
+        bounds.from !== undefined
+      );
+      expect(compiled.sql.includes('entry.effective_date <=')).toBe(
+        bounds.to !== undefined
+      );
+      const predicates = compiled.sql.slice(
+        0,
+        compiled.sql.indexOf('contributions AS')
+      );
+      expect(predicates).toContain('entry.effective_date');
+      expect(compiled.sql).not.toContain('entry.posted_at >=');
+    }
+  );
+
+  it('leaves dates unrestricted when neither bound is supplied', async () => {
+    await accountBalanceContributionsByCounterpartyRepoQuery(criteria, options);
+    expect(compiledQuery().sql).not.toContain('effective_date');
+  });
+
   it('reads only the requested account adjustments and limits their journal lines to that account or its descendants', async () => {
     await accountBalanceContributionsByCounterpartyRepoQuery(criteria, options);
     const sql = compiledQuery().sql.replace(/\s+/g, ' ');
