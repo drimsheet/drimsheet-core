@@ -21,6 +21,8 @@ import { BankController } from './../src/interface/http/controllers/bank.control
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { CounterpartyController } from './../src/interface/http/controllers/counterparty.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { CounterpartyReportingController } from './../src/interface/http/controllers/counterparty.reporting.controller';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { CurrencyController } from './../src/interface/http/controllers/currency.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { FileController } from './../src/interface/http/controllers/file.controller';
@@ -2945,6 +2947,26 @@ const models: TsoaRoute.Models = {
       currencyPair: { dataType: 'string', required: true },
       type: { ref: 'UExchangeRateType' },
       asOf: { dataType: 'datetime' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  ICounterpartyAccountTypeParticipationDto: {
+    dataType: 'refObject',
+    properties: {
+      counterpartyId: { dataType: 'string', required: true },
+      fiscalYearId: { dataType: 'string', required: true },
+      period: { ref: 'IDateRangeDto', required: true },
+      revenue: { ref: 'IMoneyDto', required: true },
+      expense: { ref: 'IMoneyDto', required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IGetCounterpartyAccountTypeParticipationQuery: {
+    dataType: 'refObject',
+    properties: {
+      fiscalYearId: { dataType: 'string', required: true },
     },
     additionalProperties: false,
   },
@@ -6901,6 +6923,62 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'getExchangeRates',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsCounterpartyReportingController_getCounterpartyAccountTypeParticipation: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    counterpartyId: {
+      in: 'path',
+      name: 'counterpartyId',
+      required: true,
+      dataType: 'string',
+    },
+    query: {
+      in: 'queries',
+      name: 'query',
+      required: true,
+      ref: 'IGetCounterpartyAccountTypeParticipationQuery',
+    },
+  };
+  app.get(
+    '/api/v1/reporting/counterparties/:counterpartyId/participation-by-account-type',
+    ...fetchMiddlewares<RequestHandler>(CounterpartyReportingController),
+    ...fetchMiddlewares<RequestHandler>(
+      CounterpartyReportingController.prototype
+        .getCounterpartyAccountTypeParticipation
+    ),
+
+    async function CounterpartyReportingController_getCounterpartyAccountTypeParticipation(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsCounterpartyReportingController_getCounterpartyAccountTypeParticipation,
+          request,
+          response,
+        });
+
+        const controller = new CounterpartyReportingController();
+
+        await templateService.apiHandler({
+          methodName: 'getCounterpartyAccountTypeParticipation',
           controller,
           response,
           next,

@@ -5889,6 +5889,104 @@
         ]
       }
     },
+    "/reporting/counterparties/{counterpartyId}/participation-by-account-type": {
+      "get": {
+        "operationId": "getCounterpartyAccountTypeParticipation",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICounterpartyAccountTypeParticipationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns net revenue and expense participation for the full fiscal\nyear in functional currency. Counts only lines attributed to this party.\nIncludes posted opening balances and archived records; originals and\nreversals retain their own effective dates. Missing activity returns zero.",
+        "tags": ["Reporting", "Counterparty Reporting"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "counterpartyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fiscalYearId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/counterparties": {
       "get": {
         "operationId": "getCounterparties",
@@ -12788,6 +12886,47 @@
           }
         },
         "required": ["currencyPair"],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ICounterpartyAccountTypeParticipationDto": {
+        "properties": {
+          "counterpartyId": {
+            "type": "string"
+          },
+          "fiscalYearId": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/IDateRangeDto",
+            "description": "Full fiscal year, with inclusive effective-date boundaries."
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Credits minus debits, in the entity's functional currency."
+          },
+          "expense": {
+            "$ref": "#/components/schemas/IMoneyDto",
+            "description": "Debits minus credits, in the entity's functional currency."
+          }
+        },
+        "required": [
+          "counterpartyId",
+          "fiscalYearId",
+          "period",
+          "revenue",
+          "expense"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IGetCounterpartyAccountTypeParticipationQuery": {
+        "properties": {
+          "fiscalYearId": {
+            "type": "string"
+          }
+        },
+        "required": ["fiscalYearId"],
         "type": "object",
         "additionalProperties": false
       },
