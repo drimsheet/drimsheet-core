@@ -85,7 +85,7 @@ const [initial] = counterpartyEntity.make({
 });
 const [counterparty] = counterpartyEntity.addRole(initial, {
   role: 'vendor',
-  meta: { address: null },
+  roleDetails: { address: null },
 });
 const endpoint = `/api/v1/counterparties/${counterparty.id}/archive`;
 

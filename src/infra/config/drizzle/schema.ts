@@ -1616,7 +1616,7 @@ export const counterpartiesInCore = core.table(
     status: counterPartyStatusInCore().notNull(),
     type: counterPartyTypeInCore().notNull(),
     version: integer().notNull(),
-    meta: jsonb().default({}).notNull(),
+    roleDetails: jsonb('role_details').default({}).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
@@ -1640,20 +1640,20 @@ export const counterpartiesInCore = core.table(
       name: 'counterparties_accounting_entity_id_fkey',
     }),
     check(
-      'counterparties_meta_check',
-      sql`(jsonb_typeof(meta) = 'object'::text) AND ((meta - ARRAY['employer'::text, 'vendor'::text, 'contractor'::text]) = '{}'::jsonb)`
+      'counterparties_role_details_check',
+      sql`(jsonb_typeof(role_details) = 'object'::text) AND ((role_details - ARRAY['employer'::text, 'vendor'::text, 'contractor'::text]) = '{}'::jsonb)`
     ),
     check(
-      'counterparties_employer_meta_check',
-      sql`(NOT (meta ? 'employer'::text)) OR COALESCE((jsonb_typeof((meta -> 'employer'::text)) = 'object'::text), false)`
+      'counterparties_employer_role_details_check',
+      sql`(NOT (role_details ? 'employer'::text)) OR COALESCE((jsonb_typeof((role_details -> 'employer'::text)) = 'object'::text), false)`
     ),
     check(
-      'counterparties_vendor_meta_check',
-      sql`(NOT (meta ? 'vendor'::text)) OR COALESCE((jsonb_typeof((meta -> 'vendor'::text)) = 'object'::text), false)`
+      'counterparties_vendor_role_details_check',
+      sql`(NOT (role_details ? 'vendor'::text)) OR COALESCE((jsonb_typeof((role_details -> 'vendor'::text)) = 'object'::text), false)`
     ),
     check(
-      'counterparties_contractor_meta_check',
-      sql`(NOT (meta ? 'contractor'::text)) OR COALESCE((jsonb_typeof((meta -> 'contractor'::text)) = 'object'::text), false)`
+      'counterparties_contractor_role_details_check',
+      sql`(NOT (role_details ? 'contractor'::text)) OR COALESCE((jsonb_typeof((role_details -> 'contractor'::text)) = 'object'::text), false)`
     ),
   ]
 );

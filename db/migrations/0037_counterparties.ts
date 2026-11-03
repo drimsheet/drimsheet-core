@@ -54,7 +54,7 @@ export function up(pgm: MigrationBuilder) {
       notNull: true,
     },
 
-    meta: {
+    role_details: {
       type: 'jsonb',
       notNull: true,
       default: pgm.func("'{}'::jsonb"),
@@ -73,17 +73,17 @@ export function up(pgm: MigrationBuilder) {
     },
   });
 
-  pgm.addConstraint(counterpartiesTable, 'counterparties_meta_check', {
-    check: `jsonb_typeof(meta) = 'object'
-      AND meta - ARRAY['employer', 'vendor', 'contractor']::text[] = '{}'::jsonb`,
+  pgm.addConstraint(counterpartiesTable, 'counterparties_role_details_check', {
+    check: `jsonb_typeof(role_details) = 'object'
+      AND role_details - ARRAY['employer', 'vendor', 'contractor']::text[] = '{}'::jsonb`,
   });
 
   for (const role of ['employer', 'vendor', 'contractor']) {
     pgm.addConstraint(
       counterpartiesTable,
-      `counterparties_${role}_meta_check`,
+      `counterparties_${role}_role_details_check`,
       {
-        check: `NOT (meta ? '${role}') OR COALESCE(jsonb_typeof(meta->'${role}') = 'object', false)`,
+        check: `NOT (role_details ? '${role}') OR COALESCE(jsonb_typeof(role_details->'${role}') = 'object', false)`,
       }
     );
   }

@@ -56,7 +56,7 @@ const address = addressValue.make({
 describe('Counterparty service', () => {
   it('creates a role-less counterparty with one creation event and audit', () => {
     const [counterparty, events, audit] = service.create(payload);
-    expect(counterparty.meta).toEqual({});
+    expect(counterparty.roleDetails).toEqual({});
     expect(counterparty.roles).toEqual([]);
     expect(events.map((event) => event.type)).toEqual([
       'domain:counterparty:created',
@@ -71,12 +71,12 @@ describe('Counterparty service', () => {
         role === 'vendor'
           ? service.create({
               ...payload,
-              meta: { vendor: { address } },
+              roleDetails: { vendor: { address } },
             })
           : role === 'employer'
             ? service.create({
                 ...payload,
-                meta: {
+                roleDetails: {
                   employer: {
                     address,
                     displayName: ' Example ',
@@ -85,12 +85,14 @@ describe('Counterparty service', () => {
               })
             : service.create({
                 ...payload,
-                meta: { contractor: { address } },
+                roleDetails: { contractor: { address } },
               });
       const [counterparty, events, audit] = creation;
       expect(counterparty.roles).toEqual([role]);
-      expect(counterparty.meta[role]?.address).toEqual(address);
-      expect(Object.isFrozen(counterparty.meta[role]?.address)).toBe(true);
+      expect(counterparty.roleDetails[role]?.address).toEqual(address);
+      expect(Object.isFrozen(counterparty.roleDetails[role]?.address)).toBe(
+        true
+      );
       expect(events.map((event) => event.type)).toEqual([
         'domain:counterparty:created',
         'domain:counterparty:role-added',
@@ -104,23 +106,23 @@ describe('Counterparty service', () => {
   it('allows a vendor without an address', () => {
     const [counterparty] = service.create({
       ...payload,
-      meta: { vendor: { address: null } },
+      roleDetails: { vendor: { address: null } },
     });
-    expect(counterparty.meta).toEqual({ vendor: { address: null } });
+    expect(counterparty.roleDetails).toEqual({ vendor: { address: null } });
   });
 });
 
-describe('metadata-driven creation', () => {
+describe('creation from role details', () => {
   const rawAddress = {
     line1: ' Main Street ',
     city: ' Lagos ',
     countryCode: 'ng',
   };
 
-  it('accepts empty metadata without assigning a role', () => {
+  it('accepts empty role details without assigning a role', () => {
     const [counterparty, events] = service.create({
       ...payload,
-      meta: {},
+      roleDetails: {},
     });
     expect(counterparty.roles).toEqual([]);
     expect(counterparty.status).toBe('active');
@@ -130,24 +132,28 @@ describe('metadata-driven creation', () => {
   it.each([1, 2, 3, 4, 5, 6, 7])(
     'creates role combination %i with ordered immutable transitions',
     (mask) => {
-      const meta: NonNullable<Parameters<typeof service.create>[0]['meta']> =
-        {};
+      const roleDetails: NonNullable<
+        Parameters<typeof service.create>[0]['roleDetails']
+      > = {};
       // Deliberately supply keys in reverse order.
       if (mask & 4) {
-        meta.contractor = {
+        roleDetails.contractor = {
           address: { ...rawAddress, line1: ' Contractor Road ' },
         };
       }
       if (mask & 2) {
-        meta.vendor = {};
+        roleDetails.vendor = {};
       }
       if (mask & 1) {
-        meta.employer = { address: rawAddress, displayName: ' Employer ' };
+        roleDetails.employer = {
+          address: rawAddress,
+          displayName: ' Employer ',
+        };
       }
-      const before = structuredClone(meta);
+      const before = structuredClone(roleDetails);
       const [counterparty, events, audit] = service.create({
         ...payload,
-        meta,
+        roleDetails,
       });
       const expectedRoles = (
         ['employer', 'vendor', 'contractor'] as const
@@ -158,22 +164,22 @@ describe('metadata-driven creation', () => {
       for (let i = 0; i < expectedRoles.length; i++) {
         expect(events[i + 1].type).toBe('domain:counterparty:role-added');
         expect(events[i + 1].data.roles).toEqual(expectedRoles.slice(0, i + 1));
-        expect(Object.isFrozen(events[i + 1].data.meta)).toBe(true);
+        expect(Object.isFrozen(events[i + 1].data.roleDetails)).toBe(true);
       }
       expect(audit?.action).toBe('created');
       expect(audit?.diff).toEqual({ before: null, after: counterparty });
-      expect(meta).toEqual(before);
-      if (meta.employer) {
-        expect(counterparty.meta.employer).toEqual({
+      expect(roleDetails).toEqual(before);
+      if (roleDetails.employer) {
+        expect(counterparty.roleDetails.employer).toEqual({
           displayName: 'Employer',
           address,
         });
       }
-      if (meta.vendor) {
-        expect(counterparty.meta.vendor).toEqual({ address: null });
+      if (roleDetails.vendor) {
+        expect(counterparty.roleDetails.vendor).toEqual({ address: null });
       }
-      if (meta.contractor) {
-        expect(counterparty.meta.contractor?.address).toEqual({
+      if (roleDetails.contractor) {
+        expect(counterparty.roleDetails.contractor?.address).toEqual({
           ...address,
           line1: 'Contractor Road',
         });
@@ -204,14 +210,17 @@ describe('metadata-driven creation', () => {
       vendor: {},
       contractor: { address: { ...rawAddress, countryCode: 'invalid' } },
     },
-  ])('rejects the entire creation for invalid raw metadata %j', (meta) => {
-    expect(() =>
-      service.create({
-        ...payload,
-        meta,
-      } as unknown as Parameters<typeof service.create>[0])
-    ).toThrow();
-  });
+  ])(
+    'rejects the entire creation for invalid raw role details %j',
+    (roleDetails) => {
+      expect(() =>
+        service.create({
+          ...payload,
+          roleDetails,
+        } as unknown as Parameters<typeof service.create>[0])
+      ).toThrow();
+    }
+  );
 });
 
 describe('counterparty updates', () => {
@@ -219,7 +228,7 @@ describe('counterparty updates', () => {
     service.create({
       ...payload,
       status: 'draft',
-      meta: { employer: { address }, vendor: { address } },
+      roleDetails: { employer: { address }, vendor: { address } },
     })[0];
 
   it('activates with corrections and one complete immutable activation audit', async () => {
@@ -230,7 +239,7 @@ describe('counterparty updates', () => {
       {
         name: ' Corrected ',
         type: 'individual',
-        meta: { vendor: {} },
+        roleDetails: { vendor: {} },
         status: 'active',
       },
       readOptions
@@ -244,11 +253,11 @@ describe('counterparty updates', () => {
       type: 'individual',
       status: 'active',
       roles: ['vendor'],
-      meta: { vendor: { address: null } },
+      roleDetails: { vendor: { address: null } },
     });
     expect(before).toEqual(snapshot);
     expect(Object.isFrozen(after)).toBe(true);
-    expect(Object.isFrozen(after.meta.vendor)).toBe(true);
+    expect(Object.isFrozen(after.roleDetails.vendor)).toBe(true);
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
       type: 'domain:counterparty:activated',
@@ -268,7 +277,7 @@ describe('counterparty updates', () => {
       const [before] = service.create({
         ...payload,
         status,
-        meta: { vendor: {} },
+        roleDetails: { vendor: {} },
       });
       const [after, events, audit] = await service.update(
         before,
@@ -278,7 +287,7 @@ describe('counterparty updates', () => {
         readOptions
       );
       expect(after.status).toBe(status);
-      expect(after.meta).toEqual(before.meta);
+      expect(after.roleDetails).toEqual(before.roleDetails);
       expect(after.roles).toEqual(before.roles);
       expect(events[0].type).toBe('domain:counterparty:updated');
       expect(audit?.action).toBe('updated');
@@ -292,39 +301,46 @@ describe('counterparty updates', () => {
     ).toMatchObject({
       status: 'active',
       roles: [],
-      meta: {},
+      roleDetails: {},
     });
   });
 
   it.each([0, 1, 2, 3, 4, 5, 6, 7])(
     'replaces all roles for role mask %i, including clearing',
     async (mask) => {
-      const meta: NonNullable<Parameters<typeof service.update>[1]['meta']> =
-        {};
+      const roleDetails: NonNullable<
+        Parameters<typeof service.update>[1]['roleDetails']
+      > = {};
       if (mask & 1) {
-        meta.employer = { address };
+        roleDetails.employer = { address };
       }
       if (mask & 2) {
-        meta.vendor = {};
+        roleDetails.vendor = {};
       }
       if (mask & 4) {
-        meta.contractor = { address };
+        roleDetails.contractor = { address };
       }
-      const [after] = await service.update(draft(), { meta }, readOptions);
+      const [after] = await service.update(
+        draft(),
+        { roleDetails },
+        readOptions
+      );
       expect(after.roles).toEqual(
         (['employer', 'vendor', 'contractor'] as const).filter(
           (_, index) => mask & (1 << index)
         )
       );
-      expect(Object.keys(after.meta)).toEqual(after.roles);
-      if (after.meta.employer) {
-        expect(after.meta.employer.displayName).toBeNull();
+      expect(Object.keys(after.roleDetails)).toEqual(after.roles);
+      if (after.roleDetails.employer) {
+        expect(after.roleDetails.employer.displayName).toBeNull();
       }
-      if (after.meta.vendor) {
-        expect(after.meta.vendor.address).toBeNull();
+      if (after.roleDetails.vendor) {
+        expect(after.roleDetails.vendor.address).toBeNull();
       }
-      if (after.meta.contractor) {
-        expect(Object.isFrozen(after.meta.contractor.address)).toBe(true);
+      if (after.roleDetails.contractor) {
+        expect(Object.isFrozen(after.roleDetails.contractor.address)).toBe(
+          true
+        );
       }
     }
   );
@@ -333,7 +349,7 @@ describe('counterparty updates', () => {
     {},
     { name: ' Example ' },
     { type: 'organization' as const },
-    { meta: { employer: { address }, vendor: { address } } },
+    { roleDetails: { employer: { address }, vendor: { address } } },
   ])(
     'returns the original state for an effective no-change update %j',
     async (changes) => {
@@ -371,11 +387,11 @@ describe('counterparty updates', () => {
     { status: 'archived' },
     { name: '' },
     { type: null },
-    { meta: null },
-    { meta: { employer: {} } },
-    { meta: { vendor: null } },
-    { meta: { contractor: { address: { ...address, city: '' } } } },
-    { meta: { employer: { address, displayName: 'x'.repeat(256) } } },
+    { roleDetails: null },
+    { roleDetails: { employer: {} } },
+    { roleDetails: { vendor: null } },
+    { roleDetails: { contractor: { address: { ...address, city: '' } } } },
+    { roleDetails: { employer: { address, displayName: 'x'.repeat(256) } } },
   ])('rejects invalid changes atomically %j', async (changes) => {
     const before = draft();
     const snapshot = structuredClone(before);
@@ -392,7 +408,7 @@ describe('counterparty updates', () => {
         await service.update(
           draft(),
           {
-            meta: { [role]: { address: { ...address, city: '' } } },
+            roleDetails: { [role]: { address: { ...address, city: '' } } },
           },
           readOptions
         );
@@ -400,7 +416,7 @@ describe('counterparty updates', () => {
       } catch (error) {
         expect(error).toMatchObject({
           errorKey: 'counterparty_error_address_invalid',
-          cause: { field: `meta.${role}.address` },
+          cause: { field: `roleDetails.${role}.address` },
         });
       }
     }
@@ -417,7 +433,7 @@ describe('counterparty service version composition', () => {
       name: 'Supplier',
       type: 'organization',
       status: 'draft',
-      meta: {
+      roleDetails: {
         vendor: {},
         employer: {
           address: { line1: 'Road', city: 'Lagos', countryCode: 'NG' },
@@ -467,7 +483,7 @@ describe('counterparty type changes after transaction use', () => {
           {
             type: type === 'individual' ? 'organization' : 'individual',
             name: 'Changed',
-            meta: { vendor: {} },
+            roleDetails: { vendor: {} },
             status: 'active',
           },
           readOptions
@@ -494,7 +510,7 @@ describe('counterparty type changes after transaction use', () => {
       ]);
       const [after] = await service.update(
         before,
-        { type, name: 'Changed', meta: {} },
+        { type, name: 'Changed', roleDetails: {} },
         readOptions
       );
       expect(after.type).toBe(before.type);

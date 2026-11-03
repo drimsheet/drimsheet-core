@@ -12,7 +12,7 @@ export interface ICounterpartyCreateReq {
   name: string;
   status: UCounterpartyStatus;
   type: UCounterpartyType;
-  meta?: ICounterpartyCreateMetaReq;
+  roleDetails?: ICounterpartyCreateRoleDetailsReq;
 }
 
 export interface ICounterpartyUpdateReq {
@@ -21,16 +21,16 @@ export interface ICounterpartyUpdateReq {
   /** Omit for ordinary edits; Active explicitly requests Draft activation. */
   status?: 'active';
   /** Complete role replacement when supplied; {} clears all roles. */
-  meta?: ICounterpartyCreateMetaReq;
+  roleDetails?: ICounterpartyCreateRoleDetailsReq;
 }
 
-interface ICounterpartyCreateMetaReq {
+interface ICounterpartyCreateRoleDetailsReq {
   employer?: { displayName?: string | null; address: IAddressDto };
   vendor?: { address?: IAddressDto | null };
   contractor?: { address: IAddressDto };
 }
 
-interface ICounterpartyMetaDto {
+interface ICounterpartyRoleDetailsDto {
   employer?: { displayName: string | null; address: IAddressDto };
   vendor?: { address: IAddressDto | null };
   contractor?: { address: IAddressDto };
@@ -44,7 +44,7 @@ export interface ICounterpartyDto {
   status: UCounterpartyStatus;
   type: UCounterpartyType;
   roles: UCounterpartyRole[];
-  meta: ICounterpartyMetaDto;
+  roleDetails: ICounterpartyRoleDetailsDto;
   createdAt: Date;
   updatedAt: Date;
 }

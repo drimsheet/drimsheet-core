@@ -3,10 +3,10 @@
  * Updates a counterparty within the selected accounting entity while retaining
  * its identity. Accepts name, type, role details, or an explicit active status
  * for draft activation. Type changes are rejected while any journal lines
- * reference the counterparty. Supplied metadata replaces all roles; omitted
- * metadata preserves them, and an empty metadata object clears them. Saves
- * changes with audit history, publishes events after commit, and returns the
- * counterparty. Valid unchanged requests produce no writes, audit, or events;
+ * reference the counterparty. Supplied role details replace all roles; omitted
+ * role details preserve them, and an empty role details object clears them.
+ * Saves changes with audit history, publishes events after commit, and
+ * returns the counterparty. Valid unchanged requests produce no writes, audit, or events;
  * an empty update request is rejected.
  *
  * WHEN TO USE

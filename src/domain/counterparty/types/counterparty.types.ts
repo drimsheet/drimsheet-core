@@ -42,35 +42,35 @@ export interface ICounterparty {
   status: UCounterpartyStatus;
   type: UCounterpartyType;
   roles: UCounterpartyRole[];
-  meta: ICounterpartyMeta;
+  roleDetails: ICounterpartyRoleDetails;
   version: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface ICounterpartyEmployerMeta {
+export interface ICounterpartyEmployerDetails {
   displayName: string | null;
   address: IAddress;
 }
 
-export interface ICounterpartyVendorMeta {
+export interface ICounterpartyVendorDetails {
   address: IAddress | null;
 }
 
-export interface ICounterpartyContractorMeta {
+export interface ICounterpartyContractorDetails {
   address: IAddress;
 }
 
-export interface ICounterpartyMeta {
-  employer?: ICounterpartyEmployerMeta;
-  vendor?: ICounterpartyVendorMeta;
-  contractor?: ICounterpartyContractorMeta;
+export interface ICounterpartyRoleDetails {
+  employer?: ICounterpartyEmployerDetails;
+  vendor?: ICounterpartyVendorDetails;
+  contractor?: ICounterpartyContractorDetails;
 }
 
 export type TCounterpartyRoleDetails = {
   [Role in UCounterpartyRole]: {
     role: Role;
-    meta: NonNullable<ICounterpartyMeta[Role]>;
+    roleDetails: NonNullable<ICounterpartyRoleDetails[Role]>;
   };
 }[UCounterpartyRole];
 
@@ -82,34 +82,34 @@ export interface IMakeCounterpartyPayload {
   status?: UCounterpartyStatus;
 }
 
-export interface ICreateCounterpartyEmployerMeta {
+export interface ICreateCounterpartyEmployerDetails {
   displayName?: string | null;
   address: TCreateAddressPayload;
 }
 
-export interface ICreateCounterpartyVendorMeta {
+export interface ICreateCounterpartyVendorDetails {
   address?: TCreateAddressPayload | null;
 }
 
-export interface ICreateCounterpartyContractorMeta {
+export interface ICreateCounterpartyContractorDetails {
   address: TCreateAddressPayload;
 }
 
-export interface ICreateCounterpartyMeta {
-  employer?: ICreateCounterpartyEmployerMeta;
-  vendor?: ICreateCounterpartyVendorMeta;
-  contractor?: ICreateCounterpartyContractorMeta;
+export interface ICreateCounterpartyRoleDetails {
+  employer?: ICreateCounterpartyEmployerDetails;
+  vendor?: ICreateCounterpartyVendorDetails;
+  contractor?: ICreateCounterpartyContractorDetails;
 }
 
 export interface ICreateCounterpartyPayload extends IMakeCounterpartyPayload {
-  meta?: ICreateCounterpartyMeta;
+  roleDetails?: ICreateCounterpartyRoleDetails;
 }
 
 export interface IUpdateCounterpartyPayload {
   name?: string;
   type?: UCounterpartyType;
   status?: typeof ECounterpartyStatus.Active;
-  meta?: ICreateCounterpartyMeta;
+  roleDetails?: ICreateCounterpartyRoleDetails;
 }
 
 export type TAuditedCounterparty = TAuditedEntity<

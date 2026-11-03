@@ -5,8 +5,8 @@ import { IAddress } from '@shared/values/contact-details/types/address.types';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import {
   ECounterpartyRole,
-  ICounterpartyMeta,
-  ICreateCounterpartyMeta,
+  ICounterpartyRoleDetails,
+  ICreateCounterpartyRoleDetails,
   UCounterpartyRole,
 } from '@domain/counterparty/types/counterparty.types';
 
@@ -15,22 +15,24 @@ import {
 function validateObject(value: unknown): Record<string, unknown> {
   const isInvalidObject = !isPlainObject(value);
   if (isInvalidObject) {
-    throw new counterpartyError.InvalidMeta({ value });
+    throw new counterpartyError.InvalidRoleDetails({ value });
   }
   return value as Record<string, unknown>;
 }
 
-/** Checks raw role details before value construction normalizes optional fields. */
-function validateCreate(meta: ICreateCounterpartyMeta): void {
-  validateObject(meta);
-  for (const role of Object.keys(meta)) {
+/**
+ * Checks raw role details before value construction normalizes optional fields.
+ */
+function validateCreate(roleDetails: ICreateCounterpartyRoleDetails): void {
+  validateObject(roleDetails);
+  for (const role of Object.keys(roleDetails)) {
     const isUnknownRole =
       !Object.values<string>(ECounterpartyRole).includes(role);
     if (isUnknownRole) {
-      throw new counterpartyError.InvalidMeta({ role });
+      throw new counterpartyError.InvalidRoleDetails({ role });
     }
 
-    const details = validateObject(meta[role as UCounterpartyRole]);
+    const details = validateObject(roleDetails[role as UCounterpartyRole]);
     const allowedKeys =
       role === ECounterpartyRole.Employer
         ? ['address', 'displayName']
@@ -39,7 +41,7 @@ function validateCreate(meta: ICreateCounterpartyMeta): void {
       (key) => !allowedKeys.includes(key)
     );
     if (hasUnknownFields) {
-      throw new counterpartyError.InvalidMeta({ role });
+      throw new counterpartyError.InvalidRoleDetails({ role });
     }
 
     if (role === ECounterpartyRole.Employer) {
@@ -117,33 +119,36 @@ function validateAddress(address: IAddress | null, required: boolean): void {
   }
 }
 
-function validate(meta: ICounterpartyMeta): void {
-  validateObject(meta);
-  for (const role of Object.keys(meta)) {
+function validate(roleDetails: ICounterpartyRoleDetails): void {
+  validateObject(roleDetails);
+  for (const role of Object.keys(roleDetails)) {
     const isUnknownRole =
       !Object.values<string>(ECounterpartyRole).includes(role);
     if (isUnknownRole) {
-      throw new counterpartyError.InvalidMeta({ role });
+      throw new counterpartyError.InvalidRoleDetails({ role });
     }
-    validateObject(meta[role as UCounterpartyRole]);
+    validateObject(roleDetails[role as UCounterpartyRole]);
   }
-  if (meta.employer) {
-    const displayName = meta.employer.displayName;
+  if (roleDetails.employer) {
+    const displayName = roleDetails.employer.displayName;
     const isInvalidDisplayName =
       displayName !== null &&
       (typeof displayName !== 'string' || displayName.length > 255);
     if (isInvalidDisplayName) {
       throw new counterpartyError.InvalidName({ displayName });
     }
-    validateAddress(meta.employer.address, true);
+    validateAddress(roleDetails.employer.address, true);
   }
-  if (meta.vendor) {
-    validateAddress(meta.vendor.address, false);
+  if (roleDetails.vendor) {
+    validateAddress(roleDetails.vendor.address, false);
   }
-  if (meta.contractor) {
-    validateAddress(meta.contractor.address, true);
+  if (roleDetails.contractor) {
+    validateAddress(roleDetails.contractor.address, true);
   }
 }
 
-const counterpartyMetaValidation = Object.freeze({ validate, validateCreate });
-export default counterpartyMetaValidation;
+const counterpartyRoleDetailsValidation = Object.freeze({
+  validate,
+  validateCreate,
+});
+export default counterpartyRoleDetailsValidation;

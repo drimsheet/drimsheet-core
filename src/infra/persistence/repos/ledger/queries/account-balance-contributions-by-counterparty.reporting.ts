@@ -66,7 +66,7 @@ const accountBalanceContributionsByCounterpartyRepoQuery: TGetAccountBalanceCont
           'accountingEntityId', counterparty.accounting_entity_id,
           'name', counterparty.name, 'status', counterparty.status,
           'type', counterparty.type, 'version', counterparty.version,
-          'meta', counterparty.meta, 'createdAt', counterparty.created_at,
+          'roleDetails', counterparty.role_details, 'createdAt', counterparty.created_at,
           'updatedAt', counterparty.updated_at
         ) END AS counterparty,
         contributions.is_self, contributions.normal_balance,

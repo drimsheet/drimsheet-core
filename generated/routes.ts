@@ -376,7 +376,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICounterpartyMetaDto: {
+  ICounterpartyRoleDetailsDto: {
     dataType: 'refObject',
     properties: {
       employer: {
@@ -428,7 +428,7 @@ const models: TsoaRoute.Models = {
         array: { dataType: 'refAlias', ref: 'UCounterpartyRole' },
         required: true,
       },
-      meta: { ref: 'ICounterpartyMetaDto', required: true },
+      roleDetails: { ref: 'ICounterpartyRoleDetailsDto', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
     },
@@ -3000,7 +3000,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ICounterpartyCreateMetaReq: {
+  ICounterpartyCreateRoleDetailsReq: {
     dataType: 'refObject',
     properties: {
       employer: {
@@ -3042,7 +3042,7 @@ const models: TsoaRoute.Models = {
       name: { dataType: 'string', required: true },
       status: { ref: 'UCounterpartyStatus', required: true },
       type: { ref: 'UCounterpartyType', required: true },
-      meta: { ref: 'ICounterpartyCreateMetaReq' },
+      roleDetails: { ref: 'ICounterpartyCreateRoleDetailsReq' },
     },
     additionalProperties: false,
   },
@@ -3053,7 +3053,7 @@ const models: TsoaRoute.Models = {
       name: { dataType: 'string' },
       type: { ref: 'UCounterpartyType' },
       status: { dataType: 'enum', enums: ['active'] },
-      meta: { ref: 'ICounterpartyCreateMetaReq' },
+      roleDetails: { ref: 'ICounterpartyCreateRoleDetailsReq' },
     },
     additionalProperties: false,
   },

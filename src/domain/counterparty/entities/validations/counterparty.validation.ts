@@ -13,7 +13,7 @@ import {
   UCounterpartyStatus,
   UCounterpartyType,
 } from '@domain/counterparty/types/counterparty.types';
-import counterpartyMetaValidation from '@domain/counterparty/values/validations/counterparty-meta.validation';
+import counterpartyRoleDetailsValidation from '@domain/counterparty/values/validations/counterparty-role-details.validation';
 
 function validateVersion(version: number): void {
   const isInvalidVersion = !Number.isInteger(version) || version < 1;
@@ -111,8 +111,8 @@ function validateCounterparty(counterparty: ICounterparty): void {
     validateRole(role);
   }
 
-  counterpartyMetaValidation.validate(counterparty.meta);
-  const expectedRoles = getCounterpartyRolesHelper(counterparty.meta);
+  counterpartyRoleDetailsValidation.validate(counterparty.roleDetails);
+  const expectedRoles = getCounterpartyRolesHelper(counterparty.roleDetails);
   const hasInconsistentRoles =
     counterparty.roles.length !== expectedRoles.length ||
     expectedRoles.some((role) => !counterparty.roles.includes(role));

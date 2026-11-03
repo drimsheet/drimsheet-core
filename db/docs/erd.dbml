@@ -734,7 +734,7 @@ Table core.counterparties {
   status core.counter_party_status [not null]
   type core.counter_party_type [not null]
   version integer [not null]
-  meta jsonb [not null, default: `'{}'`]
+  role_details jsonb [not null, default: `'{}'`]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
@@ -743,10 +743,10 @@ Table core.counterparties {
   }
 
   checks {
-    `NOT meta ? 'contractor'::text OR COALESCE(jsonb_typeof(meta -> 'contractor'::text) = 'object'::text, false)` [name: 'counterparties_contractor_meta_check']
-    `NOT meta ? 'employer'::text OR COALESCE(jsonb_typeof(meta -> 'employer'::text) = 'object'::text, false)` [name: 'counterparties_employer_meta_check']
-    `jsonb_typeof(meta) = 'object'::text AND (meta - ARRAY['employer'::text, 'vendor'::text, 'contractor'::text]) = '{}'::jsonb` [name: 'counterparties_meta_check']
-    `NOT meta ? 'vendor'::text OR COALESCE(jsonb_typeof(meta -> 'vendor'::text) = 'object'::text, false)` [name: 'counterparties_vendor_meta_check']
+    `NOT role_details ? 'contractor'::text OR COALESCE(jsonb_typeof(role_details -> 'contractor'::text) = 'object'::text, false)` [name: 'counterparties_contractor_role_details_check']
+    `NOT role_details ? 'employer'::text OR COALESCE(jsonb_typeof(role_details -> 'employer'::text) = 'object'::text, false)` [name: 'counterparties_employer_role_details_check']
+    `jsonb_typeof(role_details) = 'object'::text AND (role_details - ARRAY['employer'::text, 'vendor'::text, 'contractor'::text]) = '{}'::jsonb` [name: 'counterparties_role_details_check']
+    `NOT role_details ? 'vendor'::text OR COALESCE(jsonb_typeof(role_details -> 'vendor'::text) = 'object'::text, false)` [name: 'counterparties_vendor_role_details_check']
   }
 
   Note: 'Schema: core'

@@ -596,7 +596,7 @@ describe('accountBalanceContributionsByCounterpartyMapper', () => {
         status: 'active',
         type: 'individual',
         roles: [],
-        meta: {},
+        roleDetails: {},
         createdAt: counterparty.createdAt,
         updatedAt: counterparty.updatedAt,
       },

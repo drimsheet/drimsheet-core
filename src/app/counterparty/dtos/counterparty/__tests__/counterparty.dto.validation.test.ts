@@ -215,7 +215,7 @@ describe('Counterparty DTO validation', () => {
   });
 });
 
-describe('creation metadata request validation', () => {
+describe('creation role details request validation', () => {
   const base = { name: 'Acme', status: 'active', type: 'organization' };
   const address = { line1: 'Street', city: 'Lagos', countryCode: 'ng' };
 
@@ -229,28 +229,29 @@ describe('creation metadata request validation', () => {
     { employer: { address, displayName: ' ' } },
     { contractor: { address } },
     { employer: { address }, vendor: {}, contractor: { address } },
-  ])('accepts metadata %j', (meta) => {
+  ])('accepts role details %j', (roleDetails) => {
     expect(
-      counterpartyCreateReqValidation.safeParse({ ...base, meta }).success
+      counterpartyCreateReqValidation.safeParse({ ...base, roleDetails })
+        .success
     ).toBe(true);
   });
 
   it.each([
-    { meta: null },
-    { meta: [] },
-    { meta: 'vendor' },
-    { meta: { customer: {} } },
-    { meta: { vendor: undefined } },
-    { meta: { vendor: null } },
-    { meta: { employer: {} } },
-    { meta: { contractor: {} } },
-    { meta: { contractor: { address: null } } },
-    { meta: { vendor: { extra: true } } },
-    { meta: { contractor: { address, displayName: 'No' } } },
-    { meta: { employer: { address, displayName: 5 } } },
-    { meta: { employer: { address, displayName: 'x'.repeat(256) } } },
-    { meta: { vendor: { address: { ...address, extra: true } } } },
-    { meta: { vendor: { address: { ...address, line2: null } } } },
+    { roleDetails: null },
+    { roleDetails: [] },
+    { roleDetails: 'vendor' },
+    { roleDetails: { customer: {} } },
+    { roleDetails: { vendor: undefined } },
+    { roleDetails: { vendor: null } },
+    { roleDetails: { employer: {} } },
+    { roleDetails: { contractor: {} } },
+    { roleDetails: { contractor: { address: null } } },
+    { roleDetails: { vendor: { extra: true } } },
+    { roleDetails: { contractor: { address, displayName: 'No' } } },
+    { roleDetails: { employer: { address, displayName: 5 } } },
+    { roleDetails: { employer: { address, displayName: 'x'.repeat(256) } } },
+    { roleDetails: { vendor: { address: { ...address, extra: true } } } },
+    { roleDetails: { vendor: { address: { ...address, line2: null } } } },
     { roles: ['vendor'] },
     { address },
     { displayName: 'Old input' },
@@ -266,14 +267,14 @@ describe('creation metadata request validation', () => {
   it('identifies nested address errors at their request path', () => {
     const parsed = counterpartyCreateReqValidation.safeParse({
       ...base,
-      meta: { contractor: { address: { ...address, city: '' } } },
+      roleDetails: { contractor: { address: { ...address, city: '' } } },
     });
     expect(parsed.success).toBe(false);
     if (parsed.success) {
       throw new Error('Expected invalid city');
     }
     expect(parsed.error.issues[0].path).toEqual([
-      'meta',
+      'roleDetails',
       'contractor',
       'address',
       'city',

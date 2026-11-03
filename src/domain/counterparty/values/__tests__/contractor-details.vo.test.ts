@@ -1,6 +1,6 @@
 import addressValue from '@shared/values/contact-details/address.vo';
 
-import contractorMetaValue from '@domain/counterparty/values/contractor-meta.vo';
+import contractorDetailsValue from '@domain/counterparty/values/contractor-details.vo';
 
 const address = addressValue.make({
   line1: 'Main Street',
@@ -8,9 +8,9 @@ const address = addressValue.make({
   countryCode: 'NG',
 });
 
-describe('contractor metadata', () => {
+describe('contractor role details', () => {
   it('constructs deeply immutable address details without keeping a mutable alias', () => {
-    const value = contractorMetaValue.make({ address });
+    const value = contractorDetailsValue.make({ address });
     expect(value.address).toEqual(address);
     expect(value.address).not.toBe(address);
     expect(Object.isFrozen(value)).toBe(true);

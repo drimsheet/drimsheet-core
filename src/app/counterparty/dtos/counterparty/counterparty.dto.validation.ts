@@ -24,7 +24,8 @@ const invalidTypeKey = new counterpartyError.InvalidType().errorKey;
 const invalidStatusKey = new counterpartyError.InvalidStatus().errorKey;
 const invalidRoleKey = new counterpartyError.InvalidRole().errorKey;
 const invalidOrderByKey = new paginationError.InvalidOrderBy().errorKey;
-const invalidMetaKey = new counterpartyError.InvalidMeta().errorKey;
+const invalidRoleDetailsKey = new counterpartyError.InvalidRoleDetails()
+  .errorKey;
 
 const counterpartyStatusValidation = z.enum(
   Object.values(ECounterpartyStatus) as [
@@ -66,10 +67,10 @@ export const counterpartyNameValidation = z
 
 const counterpartyAddressValidation = z.strictObject(
   addressDtoValidation.shape,
-  invalidMetaKey
+  invalidRoleDetailsKey
 );
 
-const counterpartyCreateMetaValidation = z
+const counterpartyCreateRoleDetailsValidation = z
   .strictObject(
     {
       employer: z
@@ -82,7 +83,7 @@ const counterpartyCreateMetaValidation = z
               .nullish(),
             address: counterpartyAddressValidation,
           },
-          invalidMetaKey
+          invalidRoleDetailsKey
         )
         .optional(),
       vendor: z
@@ -90,7 +91,7 @@ const counterpartyCreateMetaValidation = z
           {
             address: counterpartyAddressValidation.nullish(),
           },
-          invalidMetaKey
+          invalidRoleDetailsKey
         )
         .optional(),
       contractor: z
@@ -98,16 +99,20 @@ const counterpartyCreateMetaValidation = z
           {
             address: counterpartyAddressValidation,
           },
-          invalidMetaKey
+          invalidRoleDetailsKey
         )
         .optional(),
     },
-    invalidMetaKey
+    invalidRoleDetailsKey
   )
-  .superRefine((meta, ctx) => {
-    for (const role of Object.keys(meta)) {
-      if (meta[role as UCounterpartyRole] === undefined) {
-        ctx.addIssue({ code: 'custom', path: [role], message: invalidMetaKey });
+  .superRefine((roleDetails, ctx) => {
+    for (const role of Object.keys(roleDetails)) {
+      if (roleDetails[role as UCounterpartyRole] === undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [role],
+          message: invalidRoleDetailsKey,
+        });
       }
     }
   });
@@ -117,9 +122,9 @@ export const counterpartyCreateReqValidation = z.strictObject(
     name: counterpartyNameValidation,
     status: counterpartyStatusValidation,
     type: counterpartyTypeValidation,
-    meta: counterpartyCreateMetaValidation.optional(),
+    roleDetails: counterpartyCreateRoleDetailsValidation.optional(),
   },
-  invalidMetaKey
+  invalidRoleDetailsKey
 );
 
 export const counterpartyUpdateReqValidation = z
@@ -128,13 +133,13 @@ export const counterpartyUpdateReqValidation = z
       name: counterpartyNameValidation.optional(),
       type: counterpartyTypeValidation.optional(),
       status: z.literal('active', invalidStatusKey).optional(),
-      meta: counterpartyCreateMetaValidation.optional(),
+      roleDetails: counterpartyCreateRoleDetailsValidation.optional(),
     },
-    invalidMetaKey
+    invalidRoleDetailsKey
   )
   .refine(
     (payload) =>
-      [payload.name, payload.type, payload.status, payload.meta].some(
+      [payload.name, payload.type, payload.status, payload.roleDetails].some(
         (value) => value !== undefined
       ),
     new counterpartyError.InvalidUpdate().errorKey

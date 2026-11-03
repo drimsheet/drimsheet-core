@@ -6290,7 +6290,7 @@
             }
           }
         },
-        "description": "Update details and optionally activate a Draft. Supplied metadata replaces all roles.\nA type change after transaction use returns 409 with field=type,\nreason=transaction_usage and nextAction=create_counterparty.\nThis counterparty's type cannot be changed because it has been used in a\ntransaction. Create a new counterparty if a different type is required.",
+        "description": "Update details and optionally activate a Draft.\nSupplied role details replace all roles.\nA type change after transaction use returns 409 with field=type,\nreason=transaction_usage and nextAction=create_counterparty.\nThis counterparty's type cannot be changed because it has been used in a\ntransaction. Create a new counterparty if a different type is required.",
         "tags": ["Counterparty"],
         "security": [],
         "parameters": [
@@ -9194,7 +9194,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "ICounterpartyMetaDto": {
+      "ICounterpartyRoleDetailsDto": {
         "properties": {
           "employer": {
             "properties": {
@@ -9262,8 +9262,8 @@
             },
             "type": "array"
           },
-          "meta": {
-            "$ref": "#/components/schemas/ICounterpartyMetaDto"
+          "roleDetails": {
+            "$ref": "#/components/schemas/ICounterpartyRoleDetailsDto"
           },
           "createdAt": {
             "type": "string",
@@ -9282,7 +9282,7 @@
           "status",
           "type",
           "roles",
-          "meta",
+          "roleDetails",
           "createdAt",
           "updatedAt"
         ],
@@ -12856,7 +12856,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "ICounterpartyCreateMetaReq": {
+      "ICounterpartyCreateRoleDetailsReq": {
         "properties": {
           "employer": {
             "properties": {
@@ -12908,8 +12908,8 @@
           "type": {
             "$ref": "#/components/schemas/UCounterpartyType"
           },
-          "meta": {
-            "$ref": "#/components/schemas/ICounterpartyCreateMetaReq"
+          "roleDetails": {
+            "$ref": "#/components/schemas/ICounterpartyCreateRoleDetailsReq"
           }
         },
         "required": ["name", "status", "type"],
@@ -12930,8 +12930,8 @@
             "nullable": false,
             "description": "Omit for ordinary edits; Active explicitly requests Draft activation."
           },
-          "meta": {
-            "$ref": "#/components/schemas/ICounterpartyCreateMetaReq",
+          "roleDetails": {
+            "$ref": "#/components/schemas/ICounterpartyCreateRoleDetailsReq",
             "description": "Complete role replacement when supplied; {} clears all roles."
           }
         },

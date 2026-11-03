@@ -73,7 +73,7 @@ describe('Counterparty Entity', () => {
       expect(counterparty).toMatchObject({
         status: 'draft',
         roles: [],
-        meta: {},
+        roleDetails: {},
       });
       expect(Object.isFrozen(counterparty)).toBe(true);
       expect(events[0].data).toEqual(counterparty);
@@ -169,7 +169,7 @@ describe('Counterparty Entity', () => {
 
       const [updatedCounterparty, events, audit] = counterpartyEntity.addRole(
         initialCounterparty,
-        { role: ECounterpartyRole.Vendor, meta: { address: null } }
+        { role: ECounterpartyRole.Vendor, roleDetails: { address: null } }
       );
 
       expect(initialCounterparty.version).toBe(1);
@@ -200,14 +200,14 @@ describe('Counterparty Entity', () => {
 
       const [counterpartyWithRole] = counterpartyEntity.addRole(
         initialCounterparty,
-        { role: ECounterpartyRole.Vendor, meta: { address: null } }
+        { role: ECounterpartyRole.Vendor, roleDetails: { address: null } }
       );
 
       const [unchanged, events, audit] = counterpartyEntity.addRole(
         counterpartyWithRole,
         {
           role: ECounterpartyRole.Vendor,
-          meta: { address: null },
+          roleDetails: { address: null },
         }
       );
       expect(unchanged).toBe(counterpartyWithRole);
@@ -215,7 +215,7 @@ describe('Counterparty Entity', () => {
       expect(audit).toBeNull();
     });
 
-    it('rejects conflicting or invalid metadata when a role already exists', () => {
+    it('rejects conflicting or invalid role details when a role already exists', () => {
       const [counterparty] = counterpartyEntity.make({
         createdBy: generateUUID(),
         accountingEntityId,
@@ -224,7 +224,7 @@ describe('Counterparty Entity', () => {
       });
       const [assigned] = counterpartyEntity.addRole(counterparty, {
         role: 'vendor',
-        meta: { address: null },
+        roleDetails: { address: null },
       });
       const address = addressValue.make({
         line1: 'Road',
@@ -234,13 +234,13 @@ describe('Counterparty Entity', () => {
       expect(() =>
         counterpartyEntity.addRole(assigned, {
           role: 'vendor',
-          meta: { address },
+          roleDetails: { address },
         })
       ).toThrow(counterpartyError.RoleAlreadyAssigned);
       expect(() =>
         counterpartyEntity.addRole(assigned, {
           role: 'vendor',
-          meta: { address: undefined as never },
+          roleDetails: { address: undefined as never },
         })
       ).toThrow(counterpartyError.InvalidAddress);
     });
@@ -256,7 +256,7 @@ describe('Counterparty Entity', () => {
       expect(() =>
         counterpartyEntity.addRole(initialCounterparty, {
           role: 'invalid-role',
-          meta: { address: null },
+          roleDetails: { address: null },
         } as unknown as Parameters<typeof counterpartyEntity.addRole>[1])
       ).toThrow(counterpartyError.InvalidRole);
     });
@@ -283,7 +283,7 @@ describe('counterparty archive transition', () => {
       });
       const [before] = counterpartyEntity.addRole(initial, {
         role: 'vendor',
-        meta: { address: null },
+        roleDetails: { address: null },
       });
       const timestamp = new Date('2026-10-04T11:00:00.000Z');
       jest.setSystemTime(timestamp);
@@ -302,8 +302,8 @@ describe('counterparty archive transition', () => {
       expect(before.updatedAt).toEqual(initial.updatedAt);
       expect(Object.isFrozen(after)).toBe(true);
       expect(Object.isFrozen(after.roles)).toBe(true);
-      expect(Object.isFrozen(after.meta)).toBe(true);
-      expect(Object.isFrozen(after.meta.vendor)).toBe(true);
+      expect(Object.isFrozen(after.roleDetails)).toBe(true);
+      expect(Object.isFrozen(after.roleDetails.vendor)).toBe(true);
       expect(events).toHaveLength(1);
       expect(events[0]).toMatchObject({
         type: 'domain:counterparty:archived',
@@ -364,7 +364,7 @@ describe('counterparty archive transition', () => {
   });
 });
 
-describe('Counterparty role metadata transitions', () => {
+describe('Counterparty role details transitions', () => {
   const [generic] = counterpartyEntity.make({
     createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
     accountingEntityId: generateUUID(),
@@ -380,19 +380,21 @@ describe('Counterparty role metadata transitions', () => {
   it('adds multiple roles in stable order while preserving previous details and identity', () => {
     const [contractor] = counterpartyEntity.addRole(generic, {
       role: 'contractor',
-      meta: { address },
+      roleDetails: { address },
     });
     const [employer] = counterpartyEntity.addRole(contractor, {
       role: 'employer',
-      meta: { displayName: null, address },
+      roleDetails: { displayName: null, address },
     });
     expect(employer.roles).toEqual(['employer', 'contractor']);
     expect(employer.id).toBe(generic.id);
     expect(employer.createdAt).toBe(generic.createdAt);
-    expect(employer.meta.contractor).toEqual(contractor.meta.contractor);
-    expect(contractor.meta.employer).toBeUndefined();
-    expect(Object.isFrozen(employer.meta)).toBe(true);
-    expect(Object.isFrozen(employer.meta.employer?.address)).toBe(true);
+    expect(employer.roleDetails.contractor).toEqual(
+      contractor.roleDetails.contractor
+    );
+    expect(contractor.roleDetails.employer).toBeUndefined();
+    expect(Object.isFrozen(employer.roleDetails)).toBe(true);
+    expect(Object.isFrozen(employer.roleDetails.employer?.address)).toBe(true);
   });
 
   it.each(['vendor', 'employer'])(
@@ -407,10 +409,10 @@ describe('Counterparty role metadata transitions', () => {
     }
   );
 
-  it('rejects wrong roles and duplicate roles even when metadata counts look plausible', () => {
+  it('rejects wrong roles and duplicate roles even when role details counts look plausible', () => {
     const [vendor] = counterpartyEntity.addRole(generic, {
       role: 'vendor',
-      meta: { address: null },
+      roleDetails: { address: null },
     });
     expect(() =>
       counterpartyEntity.validateCounterparty({
@@ -420,7 +422,7 @@ describe('Counterparty role metadata transitions', () => {
     ).toThrow(counterpartyError.InvalidRole);
     const [both] = counterpartyEntity.addRole(vendor, {
       role: 'contractor',
-      meta: { address },
+      roleDetails: { address },
     });
     expect(() =>
       counterpartyEntity.validateCounterparty({
@@ -475,7 +477,7 @@ describe('counterparty entity updates', () => {
       expect(() =>
         counterpartyEntity.addRole(before, {
           role: 'vendor',
-          meta: { address: null },
+          roleDetails: { address: null },
         })
       ).toThrow(counterpartyError.InvalidVersion);
       expect(before.status).toBe('draft');
@@ -489,7 +491,7 @@ describe('counterparty entity updates', () => {
       name: 'Completed',
       type: 'organization',
       status: 'active',
-      meta: { vendor: { address: null } },
+      roleDetails: { vendor: { address: null } },
     });
     expect(active.version).toBe(before.version + 1);
     expect(activationAudit?.entityVersion).toBe(active.version);
@@ -501,10 +503,10 @@ describe('counterparty entity updates', () => {
     expect(active.name).toBe('Completed');
   });
 
-  it('rejects invalid replacement metadata before deriving roles', () => {
+  it('rejects invalid replacement role details before deriving roles', () => {
     expect(() =>
-      counterpartyEntity.update(make(), { meta: [] as never })
-    ).toThrow(counterpartyError.InvalidMeta);
+      counterpartyEntity.update(make(), { roleDetails: [] as never })
+    ).toThrow(counterpartyError.InvalidRoleDetails);
   });
 
   it('rejects an invalid source even when the requested changes would repair it', () => {
@@ -513,7 +515,7 @@ describe('counterparty entity updates', () => {
     expect(() =>
       counterpartyEntity.update(
         { ...before, roles: [...before.roles] },
-        { meta: { vendor: { address: null } } }
+        { roleDetails: { vendor: { address: null } } }
       )
     ).toThrow(counterpartyError.InvalidRole);
   });
@@ -540,7 +542,7 @@ describe('counterparty entity updates', () => {
   it.each([
     {},
     { name: '  Draft  ' },
-    { type: 'individual' as const, meta: {} },
+    { type: 'individual' as const, roleDetails: {} },
   ])('preserves the original state for an equivalent update: %j', (details) => {
     const before = make();
     const [after, events, audit] = counterpartyEntity.update(before, details);

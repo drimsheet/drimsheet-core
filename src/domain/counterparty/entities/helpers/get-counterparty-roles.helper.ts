@@ -1,14 +1,14 @@
 import {
   ECounterpartyRole,
-  ICounterpartyMeta,
+  ICounterpartyRoleDetails,
   UCounterpartyRole,
 } from '@domain/counterparty/types/counterparty.types';
 
-/** Derives membership in a stable order from the metadata's own role keys. */
+/** Derives membership in a stable order from own keys in roleDetails. */
 export default function getCounterpartyRolesHelper(
-  meta: ICounterpartyMeta
+  roleDetails: ICounterpartyRoleDetails
 ): UCounterpartyRole[] {
   return Object.values(ECounterpartyRole).filter((role) =>
-    Object.prototype.hasOwnProperty.call(meta, role)
+    Object.prototype.hasOwnProperty.call(roleDetails, role)
   );
 }

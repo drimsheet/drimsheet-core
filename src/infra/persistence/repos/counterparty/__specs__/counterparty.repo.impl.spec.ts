@@ -33,7 +33,7 @@ const payload = {
 const [counterparty, , audit] = service.create({
   createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
   ...payload,
-  meta: {
+  roleDetails: {
     vendor: {
       address: null,
     },
@@ -47,7 +47,7 @@ const address = addressValue.make({
 const [employer, , employerAudit] = service.create({
   createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
   ...payload,
-  meta: {
+  roleDetails: {
     employer: {
       displayName: 'Acme',
       address,
@@ -187,7 +187,7 @@ describe('Counterparty repository', () => {
     expect(tx.insert.mock.calls).toEqual([[counterpartiesInCore]]);
     expect(values.mock.calls).toEqual([[counterpartyMapper.toRepo(employer)]]);
     expect(values).toHaveBeenCalledWith(
-      expect.objectContaining({ meta: employer.meta })
+      expect.objectContaining({ roleDetails: employer.roleDetails })
     );
     expect(counterpartyHistoryRepo.save).toHaveBeenCalledWith(
       employer,
@@ -195,7 +195,7 @@ describe('Counterparty repository', () => {
       { ...options, tx, history: employerHistory }
     );
     expect(employerHistory.diff.after).toHaveProperty(
-      'meta.employer.address',
+      'roleDetails.employer.address',
       address
     );
   });
@@ -233,11 +233,13 @@ describe('Counterparty repository reads', () => {
   const address = { line1: 'Main Street', city: 'Lagos', countryCode: 'NG' };
   type CounterpartyRow = Parameters<typeof counterpartyMapper.toDomain>[0];
 
-  function fixture(meta?: Parameters<typeof domainService.create>[0]['meta']) {
+  function fixture(
+    roleDetails?: Parameters<typeof domainService.create>[0]['roleDetails']
+  ) {
     const [entity] = domainService.create({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       ...payload,
-      meta,
+      roleDetails,
     });
     const row = counterpartyMapper.toRepo(entity);
     return { entity, row };
@@ -344,7 +346,9 @@ describe('Counterparty repository reads', () => {
       options
     );
     expect(page.data).toEqual([multi.entity, generic.entity]);
-    expect(Object.isFrozen(page.data[0].meta.employer?.address)).toBe(true);
+    expect(Object.isFrozen(page.data[0].roleDetails.employer?.address)).toBe(
+      true
+    );
     expect(page.meta.total).toBe(3);
     expect(fake.db.select).toHaveBeenCalledTimes(2);
     expect(fake.from.mock.calls).toEqual([
@@ -388,8 +392,8 @@ describe('Counterparty repository reads', () => {
 
   it.each([undefined, { vendor: {} }, { contractor: { address } }])(
     'hydrates detail for %j in the supplied transaction',
-    async (meta) => {
-      const { entity, row } = fixture(meta);
+    async (roleDetails) => {
+      const { entity, row } = fixture(roleDetails);
       const fake = queryFake([row]);
       const options = { correlationId: 'read', tx: fake.db };
       expect(
