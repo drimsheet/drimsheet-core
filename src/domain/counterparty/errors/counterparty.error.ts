@@ -20,7 +20,7 @@ const EErrorKeys = {
   InvalidType: 'counterparty_error_type_invalid',
   InvalidStatus: 'counterparty_error_status_invalid',
   InvalidRole: 'counterparty_error_role_invalid',
-  InvalidMeta: 'counterparty_error_meta_invalid',
+  InvalidRoleDetails: 'counterparty_error_role_details_invalid',
   InvalidDate: 'counterparty_error_date_invalid',
   InvalidAddress: 'counterparty_error_address_invalid',
   RoleAlreadyAssigned: 'counterparty_error_role_already_assigned_conflict',

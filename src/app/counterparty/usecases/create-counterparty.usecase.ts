@@ -4,7 +4,7 @@
  * actor. Accepts a name, type, initial status, and optional employer, vendor,
  * or contractor details. Saves the counterparty and creation history, publishes
  * creation and role events, and returns the counterparty with its roles and
- * metadata.
+ * role details.
  *
  * WHEN TO USE
  * Use to register a counterparty directly for later use in the entity's

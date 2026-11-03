@@ -34,7 +34,7 @@ describe('makeCounterpartyAppService', () => {
 
   describe('findOrCreate', () => {
     it.each(['individual', 'organization'] as const)(
-      'prepares a draft %s without metadata or writes',
+      'prepares a draft %s without role details or writes',
       async (type) => {
         const result = await service.findOrCreate(
           { name: 'Draft supplier', type },
@@ -48,7 +48,7 @@ describe('makeCounterpartyAppService', () => {
           type,
           status: 'draft',
           roles: [],
-          meta: {},
+          roleDetails: {},
         });
         expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
       }
@@ -95,7 +95,7 @@ describe('makeCounterpartyAppService', () => {
           accountingEntityId,
           name: 'Jane Doe',
           type: ECounterpartyType.Individual,
-          meta: {},
+          roleDetails: {},
           roles: [],
           status: 'active',
           version: 1,

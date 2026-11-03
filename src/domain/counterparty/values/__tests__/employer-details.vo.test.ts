@@ -1,6 +1,6 @@
 import addressValue from '@shared/values/contact-details/address.vo';
 
-import employerMetaValue from '@domain/counterparty/values/employer-meta.vo';
+import employerDetailsValue from '@domain/counterparty/values/employer-details.vo';
 
 const address = addressValue.make({
   line1: 'Main Street',
@@ -8,9 +8,9 @@ const address = addressValue.make({
   countryCode: 'NG',
 });
 
-describe('employer metadata', () => {
+describe('employer role details', () => {
   it('constructs deeply immutable address details without keeping a mutable alias', () => {
-    const value = employerMetaValue.make({
+    const value = employerDetailsValue.make({
       address,
       displayName: ' Employer ',
     });
@@ -24,7 +24,7 @@ describe('employer metadata', () => {
     'normalizes an absent display name %j',
     (displayName) => {
       expect(
-        employerMetaValue.make({ address, displayName }).displayName
+        employerDetailsValue.make({ address, displayName }).displayName
       ).toBeNull();
     }
   );
@@ -32,7 +32,7 @@ describe('employer metadata', () => {
 
 it('validates display-name length after trimming, preserving existing normalization', () => {
   expect(
-    employerMetaValue.make({
+    employerDetailsValue.make({
       address,
       displayName: ' '.repeat(256) + 'Employer',
     }).displayName
@@ -41,7 +41,7 @@ it('validates display-name length after trimming, preserving existing normalizat
 
 it('constructs a canonical address and display name from raw optional inputs', () => {
   expect(
-    employerMetaValue.make({
+    employerDetailsValue.make({
       address: { line1: ' Street ', city: ' Lagos ', countryCode: 'ng' },
     })
   ).toEqual({

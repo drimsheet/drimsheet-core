@@ -104,7 +104,7 @@ const createdCounterparty: ICounterpartyDto = {
   name: validPayload.name,
   status: validPayload.status,
   type: validPayload.type,
-  meta: {},
+  roleDetails: {},
   roles: [],
   createdAt: new Date('2026-08-01T08:00:00.000Z'),
   updatedAt: new Date('2026-08-01T08:00:00.000Z'),
@@ -170,7 +170,7 @@ describe('POST /counterparties', () => {
         type: 'organization',
         status: 'draft',
         roles: [],
-        meta: {},
+        roleDetails: {},
       });
       expect(mockCounterpartyRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'draft' }),
@@ -239,17 +239,20 @@ describe('POST /counterparties', () => {
       { employer: { address } },
       { contractor: { address } },
       { employer: { address }, vendor: {}, contractor: { address } },
-    ])('passes metadata %j to the unified use case', async (meta) => {
-      const response = await makeRequest({ ...validPayload, meta });
-      expect(response.status).toBe(201);
-      expect(mockCreateCounterparty).toHaveBeenCalledTimes(1);
-      expect(mockCreateCounterparty).toHaveBeenCalledWith(
-        expect.objectContaining({ meta })
-      );
-    });
+    ])(
+      'passes role details %j to the unified use case',
+      async (roleDetails) => {
+        const response = await makeRequest({ ...validPayload, roleDetails });
+        expect(response.status).toBe(201);
+        expect(mockCreateCounterparty).toHaveBeenCalledTimes(1);
+        expect(mockCreateCounterparty).toHaveBeenCalledWith(
+          expect.objectContaining({ roleDetails })
+        );
+      }
+    );
 
-    it('returns complete role metadata from the use case unchanged', async () => {
-      const meta = {
+    it('returns complete role details from the use case unchanged', async () => {
+      const roleDetails = {
         employer: { address, displayName: null },
         vendor: { address: null },
         contractor: { address },
@@ -257,12 +260,12 @@ describe('POST /counterparties', () => {
       const roles = ['employer', 'vendor', 'contractor'];
       mockCreateCounterparty.mockResolvedValueOnce({
         ...createdCounterparty,
-        meta,
+        roleDetails,
         roles,
       });
-      const response = await makeRequest({ ...validPayload, meta });
+      const response = await makeRequest({ ...validPayload, roleDetails });
       expect(response.status).toBe(201);
-      expect(response.body.meta).toEqual(meta);
+      expect(response.body.roleDetails).toEqual(roleDetails);
       expect(response.body.roles).toEqual(roles);
     });
   });
@@ -285,16 +288,16 @@ describe('POST /counterparties', () => {
   describe('422 Response', () => {
     const address = { line1: 'Street', city: 'Lagos', countryCode: 'NG' };
     it.each([
-      { meta: null },
-      { meta: [] },
-      { meta: { customer: {} } },
-      { meta: { vendor: null } },
-      { meta: { employer: {} } },
-      { meta: { contractor: { address: null } } },
-      { meta: { vendor: { extra: true } } },
-      { meta: { employer: { address, displayName: 42 } } },
-      { meta: { vendor: { address: { ...address, extra: true } } } },
-      { meta: { vendor: { address: { ...address, line2: null } } } },
+      { roleDetails: null },
+      { roleDetails: [] },
+      { roleDetails: { customer: {} } },
+      { roleDetails: { vendor: null } },
+      { roleDetails: { employer: {} } },
+      { roleDetails: { contractor: { address: null } } },
+      { roleDetails: { vendor: { extra: true } } },
+      { roleDetails: { employer: { address, displayName: 42 } } },
+      { roleDetails: { vendor: { address: { ...address, extra: true } } } },
+      { roleDetails: { vendor: { address: { ...address, line2: null } } } },
       { roles: ['vendor'] },
       { address },
       { displayName: 'Old input' },

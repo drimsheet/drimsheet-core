@@ -22,7 +22,7 @@ describe('makeGetCounterpartyUsecase', () => {
     name: 'Acme Corp',
     status: 'active',
     type: 'organization',
-    meta: {
+    roleDetails: {
       vendor: { address: null },
       contractor: {
         address: {
@@ -85,7 +85,7 @@ describe('makeGetCounterpartyUsecase', () => {
       name: 'Acme Corp',
       status: 'active',
       type: 'organization',
-      meta: {
+      roleDetails: {
         vendor: { address: null },
         contractor: {
           address: {

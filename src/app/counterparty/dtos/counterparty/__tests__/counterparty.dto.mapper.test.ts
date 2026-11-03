@@ -16,7 +16,7 @@ describe('Counterparty DTO Mapper', () => {
         name: 'John Doe',
         status: 'active',
         type: 'individual',
-        meta: {},
+        roleDetails: {},
         roles: [],
         version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
@@ -32,7 +32,7 @@ describe('Counterparty DTO Mapper', () => {
         name: 'John Doe',
         status: 'active',
         type: 'individual',
-        meta: {},
+        roleDetails: {},
         roles: [],
         createdAt: new Date('2026-08-01T08:00:00Z'),
         updatedAt: new Date('2026-08-01T08:00:00Z'),
@@ -48,7 +48,7 @@ describe('Counterparty DTO Mapper', () => {
         name: 'Vendor Corp',
         status: 'active',
         type: 'organization',
-        meta: { vendor: { address: null } },
+        roleDetails: { vendor: { address: null } },
         roles: ['vendor'],
         version: 1,
         createdAt: new Date('2026-08-01T08:00:00Z'),
@@ -74,7 +74,7 @@ describe('creation input mapping', () => {
   it('maps only creation fields and authorized context without normalization', () => {
     const payload = {
       ...base,
-      meta: {
+      roleDetails: {
         employer: { address },
         vendor: { address },
         contractor: { address },
@@ -91,26 +91,26 @@ describe('creation input mapping', () => {
       accountingEntityId,
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
     });
-    expect(mapped.meta?.employer?.displayName).toBeUndefined();
-    expect(mapped.meta?.employer?.address.line2).toBeUndefined();
-    expect(mapped.meta?.employer?.address).not.toBe(address);
+    expect(mapped.roleDetails?.employer?.displayName).toBeUndefined();
+    expect(mapped.roleDetails?.employer?.address.line2).toBeUndefined();
+    expect(mapped.roleDetails?.employer?.address).not.toBe(address);
     expect(payload).toEqual(before);
   });
 
-  it('preserves omitted and empty metadata distinctly', () => {
+  it('preserves omitted and empty role details distinctly', () => {
     expect(
       counterpartyDtoMapper.fromDto(
         base,
         accountingEntityId,
         'a1111111-1111-4111-8111-111111111111' as TEntityId
-      ).meta
+      ).roleDetails
     ).toBeUndefined();
     expect(
       counterpartyDtoMapper.fromDto(
-        { ...base, meta: {} },
+        { ...base, roleDetails: {} },
         accountingEntityId,
         'a1111111-1111-4111-8111-111111111111' as TEntityId
-      ).meta
+      ).roleDetails
     ).toEqual({});
   });
 
@@ -119,10 +119,10 @@ describe('creation input mapping', () => {
     (vendor) => {
       expect(
         counterpartyDtoMapper.fromDto(
-          { ...base, meta: { vendor } },
+          { ...base, roleDetails: { vendor } },
           accountingEntityId,
           'a1111111-1111-4111-8111-111111111111' as TEntityId
-        ).meta
+        ).roleDetails
       ).toEqual({ vendor });
     }
   );
@@ -146,7 +146,7 @@ describe('complete counterparty response mapping', () => {
       accountingEntityId: '123e4567-e89b-12d3-a456-426614174001' as TEntityId,
       name: 'Company',
       type: 'organization',
-      meta: {
+      roleDetails: {
         employer: { address, displayName: 'Company' },
         vendor: { address },
         contractor: { address },
@@ -161,14 +161,14 @@ describe('complete counterparty response mapping', () => {
       region: optional.region ?? undefined,
       postalCode: optional.postalCode ?? undefined,
     };
-    expect(dto.meta).toEqual({
+    expect(dto.roleDetails).toEqual({
       employer: { displayName: 'Company', address: addressDto },
       vendor: { address: addressDto },
       contractor: { address: addressDto },
     });
     expect(dto.roles).toEqual(['employer', 'vendor', 'contractor']);
-    expect(dto.meta.employer?.address).not.toBe(
-      counterparty.meta.employer?.address
+    expect(dto.roleDetails.employer?.address).not.toBe(
+      counterparty.roleDetails.employer?.address
     );
   });
 });

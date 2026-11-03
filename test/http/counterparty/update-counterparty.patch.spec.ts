@@ -127,7 +127,7 @@ describe('PATCH /counterparties/{id}', () => {
     name: 'Draft',
     type: 'organization',
     status: 'draft',
-    meta: { vendor: {} },
+    roleDetails: { vendor: {} },
   });
 
   beforeEach(async () => {
@@ -193,7 +193,11 @@ describe('PATCH /counterparties/{id}', () => {
         mockJournalLineRepo.findAllByCounterpartyId.mockResolvedValue([
           referencedLine,
         ]);
-        const response = await patch({ type, name: 'Changed', meta: {} });
+        const response = await patch({
+          type,
+          name: 'Changed',
+          roleDetails: {},
+        });
         expect(response.status).toBe(200);
         expect(response.body.type).toBe('organization');
         expect(
@@ -229,9 +233,9 @@ describe('PATCH /counterparties/{id}', () => {
     });
     it.each([
       { name: 'Changed' },
-      { meta: {} },
+      { roleDetails: {} },
       {
-        meta: {
+        roleDetails: {
           contractor: {
             address: { line1: 'Road', city: 'Lagos', countryCode: 'NG' },
           },
@@ -242,7 +246,7 @@ describe('PATCH /counterparties/{id}', () => {
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('draft');
       expect(response.body.roles).toEqual(
-        payload.meta ? Object.keys(payload.meta) : ['vendor']
+        payload.roleDetails ? Object.keys(payload.roleDetails) : ['vendor']
       );
     });
     it('edits an Active record when status is omitted', async () => {
@@ -301,7 +305,7 @@ describe('PATCH /counterparties/{id}', () => {
       const response = await patch({
         type: 'individual',
         name: 'Changed',
-        meta: {},
+        roleDetails: {},
         status: 'active',
       });
       expect(response.status).toBe(409);
@@ -356,8 +360,8 @@ describe('PATCH /counterparties/{id}', () => {
       { status: 'archived' },
       { name: '' },
       { roles: [] },
-      { meta: null },
-      { meta: { vendor: null } },
+      { roleDetails: null },
+      { roleDetails: { vendor: null } },
       { accountingEntityId },
       { createdBy: actor.id },
       { expectedVersion: draft.version, name: 'Changed' },
@@ -368,7 +372,7 @@ describe('PATCH /counterparties/{id}', () => {
     it('identifies the missing nested field and preserves Draft', async () => {
       const response = await patch({
         status: 'active',
-        meta: {
+        roleDetails: {
           contractor: {
             address: { line1: 'Road', city: '', countryCode: 'NG' },
           },

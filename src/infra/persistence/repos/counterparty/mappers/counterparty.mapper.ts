@@ -6,7 +6,7 @@ import deepFreeze from '@shared/utils/deep-freeze';
 import getCounterpartyRolesHelper from '@domain/counterparty/entities/helpers/get-counterparty-roles.helper';
 import {
   ICounterparty,
-  ICounterpartyMeta,
+  ICounterpartyRoleDetails,
   UCounterpartyStatus,
   UCounterpartyType,
 } from '@domain/counterparty/types/counterparty.types';
@@ -31,14 +31,16 @@ const counterpartyMapper = {
       name: entity.name,
       status: entity.status,
       type: entity.type,
-      meta: structuredClone(entity.meta),
+      roleDetails: structuredClone(entity.roleDetails),
       createdAt: toRepoDate(entity.createdAt),
       updatedAt: toRepoDate(entity.updatedAt),
     };
   },
 
   toDomain(payload: ICounterpartyModel): ICounterparty {
-    const meta = structuredClone(payload.meta) as ICounterpartyMeta;
+    const roleDetails = structuredClone(
+      payload.roleDetails
+    ) as ICounterpartyRoleDetails;
     return deepFreeze({
       createdBy: payload.createdBy as TEntityId,
       id: payload.id as TEntityId,
@@ -47,8 +49,8 @@ const counterpartyMapper = {
       name: payload.name,
       status: payload.status as UCounterpartyStatus,
       type: payload.type as UCounterpartyType,
-      roles: getCounterpartyRolesHelper(meta),
-      meta,
+      roles: getCounterpartyRolesHelper(roleDetails),
+      roleDetails,
       createdAt: fromRepoDate(payload.createdAt),
       updatedAt: fromRepoDate(payload.updatedAt),
     });

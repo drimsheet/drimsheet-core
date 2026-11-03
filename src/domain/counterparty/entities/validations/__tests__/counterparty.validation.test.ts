@@ -157,7 +157,7 @@ describe('counterpartyValidation', () => {
         name: 'Jane Doe',
         status: ECounterpartyStatus.Active,
         type: ECounterpartyType.Individual,
-        meta: {
+        roleDetails: {
           contractor: {
             address: {
               line1: 'Main Street',
@@ -196,7 +196,7 @@ describe('counterpartyValidation', () => {
         name: 'Jane Doe',
         status: ECounterpartyStatus.Active,
         type: ECounterpartyType.Individual,
-        meta: {},
+        roleDetails: {},
         roles: 'not-an-array',
         version: 1,
         createdAt: new Date(),

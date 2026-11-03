@@ -11,7 +11,7 @@ type TTool = IMcpTool<typeof counterpartyCreateReqValidation>;
 const name = 'create_counterparty';
 
 const description =
-  'Create a counterparty in the current accounting-entity context using its name, type, status, and optional role metadata.';
+  'Create a counterparty in the current accounting-entity context using its name, type, status, and optional role details.';
 
 const func: TTool['func'] = async (input) => {
   try {

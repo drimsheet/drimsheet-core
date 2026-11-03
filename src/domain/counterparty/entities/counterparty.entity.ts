@@ -21,7 +21,7 @@ import {
   TCounterpartyUpdate,
 } from '@domain/counterparty/types/counterparty.types';
 import counterpartyAuditValue from '@domain/counterparty/values/counterparty-audit.vo';
-import counterpartyMetaValidation from '@domain/counterparty/values/validations/counterparty-meta.validation';
+import counterpartyRoleDetailsValidation from '@domain/counterparty/values/validations/counterparty-role-details.validation';
 
 function make(payload: IMakeCounterpartyPayload): TAuditedCounterparty {
   counterpartyValidation.validateAccountingEntityId(payload.accountingEntityId);
@@ -46,7 +46,7 @@ function make(payload: IMakeCounterpartyPayload): TAuditedCounterparty {
     status,
     type,
     roles: [],
-    meta: {},
+    roleDetails: {},
     version: 1,
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -71,15 +71,18 @@ function addRole(
   const { role } = details;
   counterpartyValidation.validateRole(role);
 
-  const meta = {
-    ...counterparty.meta,
-    [role]: details.meta,
+  const roleDetails = {
+    ...counterparty.roleDetails,
+    [role]: details.roleDetails,
   };
-  counterpartyMetaValidation.validate(meta);
+  counterpartyRoleDetailsValidation.validate(roleDetails);
 
   if (counterparty.roles.includes(role)) {
-    const hasMetaChanges = generateDiff(meta, counterparty.meta).hasChanges;
-    if (!hasMetaChanges) {
+    const hasRoleDetailsChanges = generateDiff(
+      roleDetails,
+      counterparty.roleDetails
+    ).hasChanges;
+    if (!hasRoleDetailsChanges) {
       return [counterparty, [], null];
     }
     throw new counterpartyError.RoleAlreadyAssigned({
@@ -97,8 +100,8 @@ function addRole(
     name: counterparty.name,
     status: counterparty.status,
     type: counterparty.type,
-    roles: getCounterpartyRolesHelper(meta),
-    meta,
+    roles: getCounterpartyRolesHelper(roleDetails),
+    roleDetails,
     version: counterparty.version + 1,
     createdAt: counterparty.createdAt,
     updatedAt: timestamp,
@@ -118,7 +121,9 @@ function addRole(
 /** Applies final validated details, retaining identity and auditing one transition. */
 function update(
   counterparty: ICounterparty,
-  details: Partial<Pick<ICounterparty, 'name' | 'type' | 'status' | 'meta'>>
+  details: Partial<
+    Pick<ICounterparty, 'name' | 'type' | 'status' | 'roleDetails'>
+  >
 ): TCounterpartyUpdate {
   counterpartyValidation.validateCounterparty(counterparty);
   counterpartyValidation.validateUpdateStatus(
@@ -133,15 +138,18 @@ function update(
     details.type ?? counterparty.type
   );
   const status = details.status ?? counterparty.status;
-  const meta = details.meta ?? counterparty.meta;
-  counterpartyMetaValidation.validate(meta);
+  const roleDetails = details.roleDetails ?? counterparty.roleDetails;
+  counterpartyRoleDetailsValidation.validate(roleDetails);
 
-  const hasMetaChanges = generateDiff(meta, counterparty.meta).hasChanges;
+  const hasRoleDetailsChanges = generateDiff(
+    roleDetails,
+    counterparty.roleDetails
+  ).hasChanges;
   const isUnchanged =
     name === counterparty.name &&
     type === counterparty.type &&
     status === counterparty.status &&
-    !hasMetaChanges;
+    !hasRoleDetailsChanges;
 
   if (isUnchanged) {
     return [counterparty, [], null];
@@ -154,8 +162,8 @@ function update(
     name,
     type,
     status,
-    roles: getCounterpartyRolesHelper(meta),
-    meta,
+    roles: getCounterpartyRolesHelper(roleDetails),
+    roleDetails,
     version: counterparty.version + 1,
     createdAt: counterparty.createdAt,
     updatedAt: new Date(),
@@ -196,7 +204,7 @@ function archive(
     type: counterparty.type,
     status: ECounterpartyStatus.Archived,
     roles: counterparty.roles,
-    meta: counterparty.meta,
+    roleDetails: counterparty.roleDetails,
     version: counterparty.version + 1,
     createdAt: counterparty.createdAt,
     updatedAt: new Date(),

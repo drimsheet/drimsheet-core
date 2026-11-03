@@ -14,7 +14,7 @@ describe('counterpartyHistoryMapper', () => {
     name: 'Acme Corp',
     status: 'active',
     type: 'organization',
-    meta: {},
+    roleDetails: {},
     roles: [],
     version: 1,
     createdAt: now,

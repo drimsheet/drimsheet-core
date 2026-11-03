@@ -86,7 +86,7 @@ describe('makeCreateCounterpartyUsecase', () => {
         name: 'Jane Doe',
         type: 'individual',
         status: 'active',
-        meta: {},
+        roleDetails: {},
         roles: [],
       }),
       expect.objectContaining({
@@ -115,7 +115,7 @@ describe('makeCreateCounterpartyUsecase', () => {
       name: 'Jane Doe',
       status: 'active',
       type: 'individual',
-      meta: {},
+      roleDetails: {},
       roles: [],
       createdAt: expect.any(Date),
       updatedAt: expect.any(Date),
@@ -206,13 +206,20 @@ describe('makeCreateCounterpartyUsecase', () => {
     };
     const payload = {
       ...validPayload,
-      meta: { employer: { address }, vendor: {}, contractor: { address } },
+      roleDetails: {
+        employer: { address },
+        vendor: {},
+        contractor: { address },
+      },
     };
     const result = await usecase(payload);
 
     expect(mockCounterpartyService.create).toHaveBeenCalledTimes(1);
     expect(mockCounterpartyService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ accountingEntityId, meta: payload.meta })
+      expect.objectContaining({
+        accountingEntityId,
+        roleDetails: payload.roleDetails,
+      })
     );
     expect(mockCounterpartyRepo.create).toHaveBeenCalledTimes(1);
     const [saved, options] = mockCounterpartyRepo.create.mock.calls[0];
@@ -221,9 +228,9 @@ describe('makeCreateCounterpartyUsecase', () => {
       before: null,
       after: JSON.parse(JSON.stringify(saved)),
     });
-    expect(saved.meta.employer?.displayName).toBeNull();
-    expect(saved.meta.employer?.address.countryCode).toBe('NG');
-    expect(saved.meta.vendor?.address).toBeNull();
+    expect(saved.roleDetails.employer?.displayName).toBeNull();
+    expect(saved.roleDetails.employer?.address.countryCode).toBe('NG');
+    expect(saved.roleDetails.vendor?.address).toBeNull();
     expect(result.roles).toEqual(saved.roles);
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
     expect(mockEventBus.publish.mock.calls[0][0]).toHaveLength(4);
@@ -242,7 +249,7 @@ describe('makeCreateCounterpartyUsecase', () => {
     await expect(
       usecase({
         ...validPayload,
-        meta: {
+        roleDetails: {
           vendor: {},
           contractor: {
             address: { line1: '', city: 'Lagos', countryCode: 'NG' },

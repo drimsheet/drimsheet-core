@@ -1025,13 +1025,13 @@ export const counterpartyHistoryInAuditRelations = relations(
 export const journalEntriesInCoreRelations = relations(
   journalEntriesInCore,
   ({ one, many }) => ({
-    actorsInCore: one(actorsInCore, {
-      fields: [journalEntriesInCore.createdBy],
-      references: [actorsInCore.id],
-    }),
     accountingEntitiesInCore: one(accountingEntitiesInCore, {
       fields: [journalEntriesInCore.accountingEntityId],
       references: [accountingEntitiesInCore.id],
+    }),
+    actorsInCore: one(actorsInCore, {
+      fields: [journalEntriesInCore.createdBy],
+      references: [actorsInCore.id],
     }),
     journalEntriesInCore: one(journalEntriesInCore, {
       fields: [journalEntriesInCore.voidingEntryId],

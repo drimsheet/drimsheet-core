@@ -1,6 +1,6 @@
 import addressValue from '@shared/values/contact-details/address.vo';
 
-import vendorMetaValue from '@domain/counterparty/values/vendor-meta.vo';
+import vendorDetailsValue from '@domain/counterparty/values/vendor-details.vo';
 
 const address = addressValue.make({
   line1: 'Main Street',
@@ -8,26 +8,28 @@ const address = addressValue.make({
   countryCode: 'NG',
 });
 
-describe('vendor metadata', () => {
+describe('vendor role details', () => {
   it('constructs deeply immutable address details without keeping a mutable alias', () => {
-    const value = vendorMetaValue.make({ address });
+    const value = vendorDetailsValue.make({ address });
     expect(value.address).toEqual(address);
     expect(value.address).not.toBe(address);
     expect(Object.isFrozen(value)).toBe(true);
     expect(Object.isFrozen(value.address)).toBe(true);
   });
   it('retains a null address', () => {
-    expect(vendorMetaValue.make({ address: null })).toEqual({ address: null });
+    expect(vendorDetailsValue.make({ address: null })).toEqual({
+      address: null,
+    });
   });
 });
 
 it('normalizes an omitted address to null', () => {
-  expect(vendorMetaValue.make({})).toEqual({ address: null });
+  expect(vendorDetailsValue.make({})).toEqual({ address: null });
 });
 
 it('checks optional address lengths after normalizing raw input', () => {
   expect(() =>
-    vendorMetaValue.make({
+    vendorDetailsValue.make({
       address: {
         line1: 'Street',
         city: 'Lagos',

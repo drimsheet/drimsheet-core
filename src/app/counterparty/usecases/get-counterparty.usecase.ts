@@ -1,7 +1,7 @@
 /**
  * SUMMARY
  * Retrieves a counterparty by ID within the selected accounting entity. Returns
- * its details, status, roles, and metadata, or rejects when the counterparty
+ * its identity, status, roles, and role details, or rejects when the party
  * cannot be found in that entity.
  *
  * WHEN TO USE

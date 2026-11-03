@@ -3,8 +3,8 @@ import { runInNewContext } from 'node:vm';
 import addressValue from '@shared/values/contact-details/address.vo';
 
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
-import { ICounterpartyMeta } from '@domain/counterparty/types/counterparty.types';
-import counterpartyMetaValidation from '@domain/counterparty/values/validations/counterparty-meta.validation';
+import { ICounterpartyRoleDetails } from '@domain/counterparty/types/counterparty.types';
+import counterpartyRoleDetailsValidation from '@domain/counterparty/values/validations/counterparty-role-details.validation';
 
 const address = addressValue.make({
   line1: 'Main Street',
@@ -12,13 +12,17 @@ const address = addressValue.make({
   countryCode: 'NG',
 });
 
-describe('counterpartyMetaValidation', () => {
+describe('counterpartyRoleDetailsValidation', () => {
   it('accepts plain JSON parsed in another JavaScript context', () => {
-    const meta = runInNewContext(
+    const roleDetails = runInNewContext(
       'JSON.parse(\'{"vendor":{"address":null}}\')'
-    ) as ICounterpartyMeta;
-    expect(() => counterpartyMetaValidation.validate(meta)).not.toThrow();
-    expect(() => counterpartyMetaValidation.validateCreate(meta)).not.toThrow();
+    ) as ICounterpartyRoleDetails;
+    expect(() =>
+      counterpartyRoleDetailsValidation.validate(roleDetails)
+    ).not.toThrow();
+    expect(() =>
+      counterpartyRoleDetailsValidation.validateCreate(roleDetails)
+    ).not.toThrow();
   });
 
   it('rejects class instances with otherwise valid role details', () => {
@@ -26,8 +30,8 @@ describe('counterpartyMetaValidation', () => {
       address = null;
     }
     expect(() =>
-      counterpartyMetaValidation.validate({ vendor: new Vendor() })
-    ).toThrow(counterpartyError.InvalidMeta);
+      counterpartyRoleDetailsValidation.validate({ vendor: new Vendor() })
+    ).toThrow(counterpartyError.InvalidRoleDetails);
   });
 
   it.each([
@@ -40,8 +44,10 @@ describe('counterpartyMetaValidation', () => {
       vendor: { address },
       contractor: { address },
     },
-  ])('accepts valid metadata %j', (meta) => {
-    expect(() => counterpartyMetaValidation.validate(meta)).not.toThrow();
+  ])('accepts valid role details %j', (roleDetails) => {
+    expect(() =>
+      counterpartyRoleDetailsValidation.validate(roleDetails)
+    ).not.toThrow();
   });
 
   it.each([
@@ -55,26 +61,30 @@ describe('counterpartyMetaValidation', () => {
     { vendor: undefined },
     { vendor: [] },
     { vendor: new Date() },
-  ])('rejects malformed metadata %j', (meta) => {
+  ])('rejects malformed role details %j', (roleDetails) => {
     expect(() =>
-      counterpartyMetaValidation.validate(meta as ICounterpartyMeta)
-    ).toThrow(counterpartyError.InvalidMeta);
+      counterpartyRoleDetailsValidation.validate(
+        roleDetails as ICounterpartyRoleDetails
+      )
+    ).toThrow(counterpartyError.InvalidRoleDetails);
   });
 
   it.each([null, undefined, [], 'address', 1])(
     'rejects invalid required addresses %j',
     (invalid) => {
       expect(() =>
-        counterpartyMetaValidation.validate({
+        counterpartyRoleDetailsValidation.validate({
           employer: { displayName: null, address: invalid },
-        } as unknown as ICounterpartyMeta)
+        } as unknown as ICounterpartyRoleDetails)
       ).toThrow(counterpartyError.InvalidAddress);
     }
   );
 
-  it('does not accept omitted vendor address as canonical metadata', () => {
+  it('does not accept omitted vendor address as canonical role details', () => {
     expect(() =>
-      counterpartyMetaValidation.validate({ vendor: {} } as ICounterpartyMeta)
+      counterpartyRoleDetailsValidation.validate({
+        vendor: {},
+      } as ICounterpartyRoleDetails)
     ).toThrow(counterpartyError.InvalidAddress);
   });
 
@@ -82,7 +92,7 @@ describe('counterpartyMetaValidation', () => {
     'checks required address field %s',
     (field) => {
       expect(() =>
-        counterpartyMetaValidation.validate({
+        counterpartyRoleDetailsValidation.validate({
           contractor: { address: { ...address, [field]: '' } },
         })
       ).toThrow();
@@ -95,13 +105,13 @@ describe('counterpartyMetaValidation', () => {
     { field: 'postalCode', max: 20 },
   ])('checks nullable address field $field', ({ field, max }) => {
     expect(() =>
-      counterpartyMetaValidation.validate({
+      counterpartyRoleDetailsValidation.validate({
         vendor: { address: { ...address, [field]: 'x'.repeat(max) } },
       })
     ).not.toThrow();
     for (const invalid of [undefined, 42, 'x'.repeat(max + 1)]) {
       expect(() =>
-        counterpartyMetaValidation.validate({
+        counterpartyRoleDetailsValidation.validate({
           vendor: { address: { ...address, [field]: invalid } },
         })
       ).toThrow(counterpartyError.InvalidAddress);
@@ -112,24 +122,26 @@ describe('counterpartyMetaValidation', () => {
     'rejects invalid display name %j',
     (displayName) => {
       expect(() =>
-        counterpartyMetaValidation.validate({
+        counterpartyRoleDetailsValidation.validate({
           employer: { address, displayName },
-        } as ICounterpartyMeta)
+        } as ICounterpartyRoleDetails)
       ).toThrow(counterpartyError.InvalidName);
     }
   );
 
   it('accepts a JSON-like object without a prototype', () => {
     expect(() =>
-      counterpartyMetaValidation.validate(
-        Object.create(null) as ICounterpartyMeta
+      counterpartyRoleDetailsValidation.validate(
+        Object.create(null) as ICounterpartyRoleDetails
       )
     ).not.toThrow();
   });
 });
 
-describe('creation metadata validation', () => {
-  type Input = Parameters<typeof counterpartyMetaValidation.validateCreate>[0];
+describe('creation role details validation', () => {
+  type Input = Parameters<
+    typeof counterpartyRoleDetailsValidation.validateCreate
+  >[0];
   const rawAddress = { line1: 'Street', city: 'Lagos', countryCode: 'ng' };
 
   it.each([
@@ -150,15 +162,17 @@ describe('creation metadata validation', () => {
         },
       },
     },
-  ])('accepts raw optional fields %j', (meta) => {
-    expect(() => counterpartyMetaValidation.validateCreate(meta)).not.toThrow();
+  ])('accepts raw optional fields %j', (roleDetails) => {
+    expect(() =>
+      counterpartyRoleDetailsValidation.validateCreate(roleDetails)
+    ).not.toThrow();
   });
 
   it.each([
     undefined,
     null,
     [],
-    'meta',
+    'roleDetails',
     new Date(),
     { invalid: {} },
     { vendor: null },
@@ -176,9 +190,11 @@ describe('creation metadata validation', () => {
     { vendor: { address: { ...rawAddress, line2: 1 } } },
     { vendor: { address: { ...rawAddress, region: false } } },
     { vendor: { address: { ...rawAddress, postalCode: [] } } },
-  ])('rejects invalid raw role details %j', (meta) => {
+  ])('rejects invalid raw role details %j', (roleDetails) => {
     expect(() =>
-      counterpartyMetaValidation.validateCreate(meta as unknown as Input)
+      counterpartyRoleDetailsValidation.validateCreate(
+        roleDetails as unknown as Input
+      )
     ).toThrow();
   });
 });

@@ -95,7 +95,7 @@ describe('update counterparty use case', () => {
         name: 'Completed',
         status: 'active',
         type: undefined,
-        meta: undefined,
+        roleDetails: undefined,
       },
       { correlationId: 'update', tx: mockRepoTransaction.context }
     );
@@ -195,7 +195,7 @@ describe('update counterparty use case', () => {
     { status: 'draft' },
     { roles: [] },
     { name: '' },
-    { meta: { employer: {} } },
+    { roleDetails: { employer: {} } },
   ])(
     'rejects invalid DTO %j before reading the counterparty',
     async (payload) => {

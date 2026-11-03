@@ -1,16 +1,16 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
-import getUpdatedCounterpartyMetaHelper from '@domain/counterparty/services/helpers/get-updated-counterparty-meta.helper';
+import getUpdatedCounterpartyRoleDetailsHelper from '@domain/counterparty/services/helpers/get-updated-counterparty-role-details.helper';
 import counterpartyServiceValidation from '@domain/counterparty/services/validations/counterparty.validation';
 import { ECounterpartyEntityActions } from '@domain/counterparty/types/counterparty-audit.types';
 import ICounterpartyService from '@domain/counterparty/types/counterparty.service.types';
 import { TCounterpartyRoleDetails } from '@domain/counterparty/types/counterparty.types';
-import contractorMetaValue from '@domain/counterparty/values/contractor-meta.vo';
+import contractorDetailsValue from '@domain/counterparty/values/contractor-details.vo';
 import counterpartyAuditValue from '@domain/counterparty/values/counterparty-audit.vo';
-import employerMetaValue from '@domain/counterparty/values/employer-meta.vo';
-import counterpartyMetaValidation from '@domain/counterparty/values/validations/counterparty-meta.validation';
-import vendorMetaValue from '@domain/counterparty/values/vendor-meta.vo';
+import employerDetailsValue from '@domain/counterparty/values/employer-details.vo';
+import counterpartyRoleDetailsValidation from '@domain/counterparty/values/validations/counterparty-role-details.validation';
+import vendorDetailsValue from '@domain/counterparty/values/vendor-details.vo';
 import IJournalLineRepo from '@domain/journal-entry/repos/journal-line.repo';
 
 interface IDependencies {
@@ -20,28 +20,28 @@ interface IDependencies {
 /** Prepares all requested roles, immutable transition events, and one creation audit without persistence. */
 function makeCreate(): ICounterpartyService['create'] {
   return (payload) => {
-    const { meta } = payload;
-    if (meta !== undefined) {
-      counterpartyMetaValidation.validateCreate(meta);
+    const { roleDetails } = payload;
+    if (roleDetails !== undefined) {
+      counterpartyRoleDetailsValidation.validateCreate(roleDetails);
     }
 
     const assignments: TCounterpartyRoleDetails[] = [];
-    if (meta?.employer) {
+    if (roleDetails?.employer) {
       assignments.push({
         role: 'employer',
-        meta: employerMetaValue.make(meta.employer),
+        roleDetails: employerDetailsValue.make(roleDetails.employer),
       });
     }
-    if (meta?.vendor) {
+    if (roleDetails?.vendor) {
       assignments.push({
         role: 'vendor',
-        meta: vendorMetaValue.make(meta.vendor),
+        roleDetails: vendorDetailsValue.make(roleDetails.vendor),
       });
     }
-    if (meta?.contractor) {
+    if (roleDetails?.contractor) {
       assignments.push({
         role: 'contractor',
-        meta: contractorMetaValue.make(meta.contractor),
+        roleDetails: contractorDetailsValue.make(roleDetails.contractor),
       });
     }
 
@@ -103,7 +103,7 @@ function makeUpdate(
       name: payload.name,
       type: payload.type,
       status: payload.status,
-      meta: getUpdatedCounterpartyMetaHelper(payload.meta),
+      roleDetails: getUpdatedCounterpartyRoleDetailsHelper(payload.roleDetails),
     });
   };
 }

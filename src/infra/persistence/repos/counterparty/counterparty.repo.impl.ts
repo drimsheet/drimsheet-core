@@ -111,7 +111,11 @@ const counterpartyRepo: ICounterpartyRepo = {
     const hasRoleFilter = roles.length > 0;
     if (hasRoleFilter) {
       conditions.push(
-        or(...roles.map((role) => sql`${counterpartiesInCore.meta} ? ${role}`))!
+        or(
+          ...roles.map(
+            (role) => sql`${counterpartiesInCore.roleDetails} ? ${role}`
+          )
+        )!
       );
     }
 

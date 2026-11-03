@@ -80,7 +80,7 @@ const mockResult = {
       name: 'Acme Corp',
       status: 'active',
       type: 'organization',
-      meta: { vendor: { address: null } },
+      roleDetails: { vendor: { address: null } },
       roles: ['vendor'],
       createdAt: new Date('2026-08-01T08:00:00.000Z'),
       updatedAt: new Date('2026-08-01T08:00:00.000Z'),

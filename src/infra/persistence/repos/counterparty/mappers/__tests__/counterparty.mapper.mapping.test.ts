@@ -29,37 +29,38 @@ describe('counterpartyMapper', () => {
         city: 'Lagos',
         countryCode: 'NG',
       };
-      const meta: NonNullable<Parameters<typeof service.create>[0]['meta']> =
-        {};
+      const roleDetails: NonNullable<
+        Parameters<typeof service.create>[0]['roleDetails']
+      > = {};
       if (combination & 1) {
-        meta.employer = { address };
+        roleDetails.employer = { address };
       }
       if (combination & 2) {
-        meta.vendor = { address: null };
+        roleDetails.vendor = { address: null };
       }
       if (combination & 4) {
-        meta.contractor = { address };
+        roleDetails.contractor = { address };
       }
 
       const [entity] = service.create({
         ...payload,
-        meta,
+        roleDetails,
       });
       const row = counterpartyMapper.toRepo(entity);
 
-      expect(row.meta).toEqual(entity.meta);
+      expect(row.roleDetails).toEqual(entity.roleDetails);
       expect(counterpartyMapper.toDomain(row)).toEqual(entity);
     }
   );
 
-  it('round-trips a generic counterparty with empty metadata', () => {
+  it('round-trips a generic counterparty with empty role details', () => {
     const [entity] = service.create(payload);
     const row = counterpartyMapper.toRepo(entity);
-    expect(row.meta).toEqual({});
+    expect(row.roleDetails).toEqual({});
     expect(counterpartyMapper.toDomain(row)).toEqual(entity);
   });
 
-  it('derives stable roles from metadata and isolates nested values', () => {
+  it('derives stable roles from role details and isolates nested values', () => {
     const address = addressValue.make({
       line1: 'Main Street',
       city: 'Lagos',
@@ -67,24 +68,24 @@ describe('counterpartyMapper', () => {
     });
     const [vendor] = service.create({
       ...payload,
-      meta: { vendor: { address: null } },
+      roleDetails: { vendor: { address: null } },
     });
     const [entity] = counterpartyEntity.addRole(vendor, {
       role: 'employer',
-      meta: { displayName: null, address },
+      roleDetails: { displayName: null, address },
     });
     const row = counterpartyMapper.toRepo(entity);
     const hydrated = counterpartyMapper.toDomain(row);
     expect(hydrated).toEqual(entity);
     expect(hydrated.roles).toEqual(['employer', 'vendor']);
-    expect(hydrated.meta).not.toBe(row.meta);
-    expect(row.meta).not.toBe(entity.meta);
-    expect(row.meta).toEqual(entity.meta);
-    expect(Object.isFrozen(hydrated.meta.employer?.address)).toBe(true);
+    expect(hydrated.roleDetails).not.toBe(row.roleDetails);
+    expect(row.roleDetails).not.toBe(entity.roleDetails);
+    expect(row.roleDetails).toEqual(entity.roleDetails);
+    expect(Object.isFrozen(hydrated.roleDetails.employer?.address)).toBe(true);
     expect(Object.isFrozen(hydrated.roles)).toBe(true);
   });
 
-  it('round-trips distinct addresses for every role in metadata', () => {
+  it('round-trips distinct addresses for every role in role details', () => {
     const employerAddress = addressValue.make({
       line1: 'Employer Street',
       city: 'Lagos',
@@ -105,7 +106,7 @@ describe('counterpartyMapper', () => {
     });
     const [employer] = service.create({
       ...payload,
-      meta: {
+      roleDetails: {
         employer: {
           displayName: 'Acme',
           address: employerAddress,
@@ -114,42 +115,44 @@ describe('counterpartyMapper', () => {
     });
     const [vendor] = counterpartyEntity.addRole(employer, {
       role: 'vendor',
-      meta: { address: vendorAddress },
+      roleDetails: { address: vendorAddress },
     });
     const [entity] = counterpartyEntity.addRole(vendor, {
       role: 'contractor',
-      meta: { address: contractorAddress },
+      roleDetails: { address: contractorAddress },
     });
     const row = counterpartyMapper.toRepo(entity);
     const hydrated = counterpartyMapper.toDomain(row);
-    expect(row.meta).toEqual(entity.meta);
+    expect(row.roleDetails).toEqual(entity.roleDetails);
     expect(hydrated).toEqual(entity);
-    expect(hydrated.meta.vendor?.address).not.toBe(vendorAddress);
-    expect(Object.isFrozen(hydrated.meta.contractor?.address)).toBe(true);
+    expect(hydrated.roleDetails.vendor?.address).not.toBe(vendorAddress);
+    expect(Object.isFrozen(hydrated.roleDetails.contractor?.address)).toBe(
+      true
+    );
   });
 
   it('isolates stored addresses from the entity and hydrated addresses from the row', () => {
     const [entity] = service.create({
       ...payload,
-      meta: {
+      roleDetails: {
         contractor: {
           address: { line1: 'Main Street', city: 'Lagos', countryCode: 'NG' },
         },
       },
     });
     const row = counterpartyMapper.toRepo(entity);
-    const storedMeta = row.meta as typeof entity.meta;
+    const storedRoleDetails = row.roleDetails as typeof entity.roleDetails;
     const hydrated = counterpartyMapper.toDomain(row);
 
-    expect(storedMeta.contractor?.address).not.toBe(
-      entity.meta.contractor?.address
+    expect(storedRoleDetails.contractor?.address).not.toBe(
+      entity.roleDetails.contractor?.address
     );
-    expect(hydrated.meta.contractor?.address).not.toBe(
-      storedMeta.contractor?.address
+    expect(hydrated.roleDetails.contractor?.address).not.toBe(
+      storedRoleDetails.contractor?.address
     );
-    storedMeta.contractor!.address.city = 'Abuja';
-    expect(entity.meta.contractor?.address.city).toBe('Lagos');
-    expect(hydrated.meta.contractor?.address.city).toBe('Lagos');
+    storedRoleDetails.contractor!.address.city = 'Abuja';
+    expect(entity.roleDetails.contractor?.address.city).toBe('Lagos');
+    expect(hydrated.roleDetails.contractor?.address.city).toBe('Lagos');
     expect(row.createdAt).toBe(entity.createdAt.toISOString());
     expect(row.updatedAt).toBe(entity.updatedAt.toISOString());
     expect(hydrated.createdAt).toEqual(entity.createdAt);
