@@ -7,6 +7,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
+import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import makeCounterpartyService from '@domain/counterparty/services/counterparty.service';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -31,8 +32,6 @@ import mockAppContext, {
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
-import mockCounterpartyAppService from '@app/counterparty/contracts/__mocks__/counterparty.service.mock';
-import { ICounterpartyFindOrCreateRes } from '@app/counterparty/contracts/counterparty.service.contract';
 import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
@@ -103,7 +102,7 @@ describe('makeCreateReceiptUsecase', () => {
   const counterpartyService = makeCounterpartyService({
     journalLineRepo: mockJournalLineRepo,
   });
-  const newCounterparty = counterpartyService.create({
+  const selectedCounterparty = counterpartyService.create({
     createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
     accountingEntityId: accountingEntity.id,
     name: 'Jane Doe',
@@ -116,16 +115,6 @@ describe('makeCreateReceiptUsecase', () => {
     name: 'Jane Doe',
     type: ECounterpartyType.Individual,
   });
-
-  const counterpartyResponse: ICounterpartyFindOrCreateRes = {
-    new: true,
-    data: newCounterparty,
-  };
-
-  const existingCounterpartyResponse: ICounterpartyFindOrCreateRes = {
-    new: false,
-    data: existingCounterparty,
-  };
 
   type TJournalEntryResult = ReturnType<typeof journalEntryEntity.make>;
   let journalEntry: TJournalEntryResult[0];
@@ -197,7 +186,7 @@ describe('makeCreateReceiptUsecase', () => {
         lines: [
           {
             accountId: sourceAccount.id,
-            counterpartyId: newCounterparty[0].id,
+            counterpartyId: selectedCounterparty[0].id,
             sequenceOrder: 1,
             amount: { amount: 1000n, currency: SYSTEM_CURRENCIES.NGN },
             exchangeRate: null,
@@ -207,7 +196,7 @@ describe('makeCreateReceiptUsecase', () => {
           },
           {
             accountId: destinationAccount.id,
-            counterpartyId: newCounterparty[0].id,
+            counterpartyId: selectedCounterparty[0].id,
             sequenceOrder: 2,
             amount: { amount: 1000n, currency: SYSTEM_CURRENCIES.NGN },
             exchangeRate: null,
@@ -241,13 +230,8 @@ describe('makeCreateReceiptUsecase', () => {
       return null;
     });
 
-    const counterparties = new Map([['counterparty', counterpartyResponse]]);
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValue(
-      counterparties
-    );
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValue(
-      counterpartyResponse
-    );
+    const counterparties = [selectedCounterparty[0]];
+    mockCounterpartyRepo.findByIds.mockResolvedValue(counterparties);
     mockJournalEntryService.createReceipt.mockResolvedValue([
       journalEntry,
       journalEntryEvents,
@@ -267,11 +251,10 @@ describe('makeCreateReceiptUsecase', () => {
   const getUseCase = () =>
     makeCreateReceiptUsecase({
       appContext: mockAppContext,
-      counterpartyAppService: mockCounterpartyAppService,
+      counterpartyRepo: mockCounterpartyRepo,
       fileManagementAppService: mockFileManagementAppService,
       journalEntryService: mockJournalEntryService,
       ledgerAccountRepo: mockLedgerAccountRepo,
-      counterpartyRepo: mockCounterpartyRepo,
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
       eventBus: mockEventBus,
@@ -296,7 +279,7 @@ describe('makeCreateReceiptUsecase', () => {
           sourceLines: [
             {
               accountId: sourceAccount.id,
-              counterparty: { name: 'Jane Doe' },
+              counterpartyId: selectedCounterparty[0].id,
               amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
               exchangeRate: null,
               description: 'Revenue',
@@ -305,7 +288,7 @@ describe('makeCreateReceiptUsecase', () => {
           ],
           destinationLine: {
             accountId: destinationAccount.id,
-            counterparty: { name: 'Jane Doe' },
+            counterpartyId: selectedCounterparty[0].id,
             amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
             exchangeRate: null,
             description: 'Cash',
@@ -354,7 +337,7 @@ describe('makeCreateReceiptUsecase', () => {
       sourceLines: [
         {
           accountId: sourceAccount.id,
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 900, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'Revenue',
@@ -362,7 +345,7 @@ describe('makeCreateReceiptUsecase', () => {
         },
         {
           accountId: sourceAccount.id,
-          counterparty: { name: 'Tax Authority' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 100, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'VAT payable',
@@ -371,7 +354,7 @@ describe('makeCreateReceiptUsecase', () => {
       ],
       destinationLine: {
         accountId: destinationAccount.id,
-        counterparty: { name: 'Jane Doe' },
+        counterpartyId: selectedCounterparty[0].id,
         amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Cash',
@@ -407,15 +390,9 @@ describe('makeCreateReceiptUsecase', () => {
       repoOptions
     );
 
-    expect(mockCounterpartyAppService.findOrCreateMany).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        payload.sourceLines[0].counterparty,
-        payload.sourceLines[1].counterparty,
-        payload.destinationLine.counterparty,
-      ]),
+    expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
+      [payload.sourceLines[0].counterpartyId],
       accountingEntity.id,
-      'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      'active',
       repoOptions
     );
 
@@ -436,18 +413,18 @@ describe('makeCreateReceiptUsecase', () => {
         sourceLines: [
           expect.objectContaining({
             account: sourceAccount,
-            counterparty: newCounterparty[0],
+            counterparty: selectedCounterparty[0],
             description: 'Revenue',
           }),
           expect.objectContaining({
             account: sourceAccount,
-            counterparty: newCounterparty[0],
+            counterparty: selectedCounterparty[0],
             description: 'VAT payable',
           }),
         ],
         destinationLine: expect.objectContaining({
           account: destinationAccount,
-          counterparty: newCounterparty[0],
+          counterparty: selectedCounterparty[0],
         }),
         attachments,
       }),
@@ -455,15 +432,7 @@ describe('makeCreateReceiptUsecase', () => {
     );
 
     expect(mockRepoService.runInTransaction).toHaveBeenCalled();
-    expect(mockCounterpartyRepo.create).toHaveBeenCalled();
-    expect(mockCounterpartyRepo.create).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({
-        correlationId,
-        history: expect.any(Object),
-        tx: 'mock-tx',
-      })
-    );
+    expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
@@ -490,7 +459,6 @@ describe('makeCreateReceiptUsecase', () => {
 
     const [publishedEvents] = mockEventBus.publish.mock.calls[0];
     expect(publishedEvents).toEqual([
-      expect.objectContaining({ type: 'domain:counterparty:created' }),
       expect.objectContaining({ type: 'domain:journal-entry:created' }),
       expect.objectContaining({ type: 'domain:journal-line-item:created' }),
       expect.objectContaining({ type: 'domain:journal-line-item:created' }),
@@ -506,7 +474,7 @@ describe('makeCreateReceiptUsecase', () => {
       sourceLines: [
         {
           accountId: sourceAccount.id,
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'Revenue',
@@ -515,7 +483,7 @@ describe('makeCreateReceiptUsecase', () => {
       ],
       destinationLine: {
         accountId: destinationAccount.id,
-        counterparty: { name: 'Jane Doe' },
+        counterpartyId: selectedCounterparty[0].id,
         amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Cash',
@@ -546,7 +514,7 @@ describe('makeCreateReceiptUsecase', () => {
         sourceLines: [
           {
             accountId: sourceAccount.id,
-            counterparty: { name: 'Jane Doe' },
+            counterpartyId: selectedCounterparty[0].id,
             amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
             exchangeRate: null,
             description: 'Revenue',
@@ -555,7 +523,7 @@ describe('makeCreateReceiptUsecase', () => {
         ],
         destinationLine: {
           accountId: destinationAccount.id,
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'Cash',
@@ -578,16 +546,9 @@ describe('makeCreateReceiptUsecase', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('orchestrates successfully when findOrCreateMany returns only existing counterparties', async () => {
-    const counterparties = new Map([
-      ['counterparty', existingCounterpartyResponse],
-    ]);
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValue(
-      counterparties
-    );
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValue(
-      existingCounterpartyResponse
-    );
+  it('orchestrates successfully with existing counterparties', async () => {
+    const counterparties = [existingCounterparty[0]];
+    mockCounterpartyRepo.findByIds.mockResolvedValue(counterparties);
     mockJournalEntryService.createReceipt.mockResolvedValue([
       journalEntry,
       [],
@@ -600,7 +561,7 @@ describe('makeCreateReceiptUsecase', () => {
       sourceLines: [
         {
           accountId: sourceAccount.id,
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: existingCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'Revenue',
@@ -609,7 +570,7 @@ describe('makeCreateReceiptUsecase', () => {
       ],
       destinationLine: {
         accountId: destinationAccount.id,
-        counterparty: { name: 'Jane Doe' },
+        counterpartyId: existingCounterparty[0].id,
         amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Cash',
@@ -622,6 +583,17 @@ describe('makeCreateReceiptUsecase', () => {
 
     await usecase(payload);
 
+    expect(mockJournalEntryService.createReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceLines: [
+          expect.objectContaining({ counterparty: existingCounterparty[0] }),
+        ],
+        destinationLine: expect.objectContaining({
+          counterparty: existingCounterparty[0],
+        }),
+      }),
+      expect.any(Object)
+    );
     expect(mockRepoService.runInTransaction).toHaveBeenCalled();
     expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
@@ -636,7 +608,7 @@ describe('makeCreateReceiptUsecase', () => {
       sourceLines: [
         {
           accountId: generateUUID(),
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'Revenue',
@@ -645,7 +617,7 @@ describe('makeCreateReceiptUsecase', () => {
       ],
       destinationLine: {
         accountId: destinationAccount.id,
-        counterparty: { name: 'Jane Doe' },
+        counterpartyId: selectedCounterparty[0].id,
         amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Cash',
@@ -660,7 +632,7 @@ describe('makeCreateReceiptUsecase', () => {
       ledgerAppError.AccountNotFound
     );
 
-    expect(mockCounterpartyAppService.findOrCreateMany).not.toHaveBeenCalled();
+    expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
     expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(
@@ -684,7 +656,7 @@ describe('makeCreateReceiptUsecase', () => {
       sourceLines: [
         {
           accountId: sourceAccount.id,
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'Revenue',
@@ -693,7 +665,7 @@ describe('makeCreateReceiptUsecase', () => {
       ],
       destinationLine: {
         accountId: generateUUID(),
-        counterparty: { name: 'Jane Doe' },
+        counterpartyId: selectedCounterparty[0].id,
         amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Cash',
@@ -708,7 +680,7 @@ describe('makeCreateReceiptUsecase', () => {
       ledgerAppError.AccountNotFound
     );
 
-    expect(mockCounterpartyAppService.findOrCreateMany).toHaveBeenCalled();
+    expect(mockCounterpartyRepo.findByIds).toHaveBeenCalled();
     expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(
@@ -733,7 +705,7 @@ describe('makeCreateReceiptUsecase', () => {
         sourceLines: [
           {
             accountId: sourceAccount.id,
-            counterparty: { name: 'Jane Doe' },
+            counterpartyId: selectedCounterparty[0].id,
             amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
             exchangeRate: null,
             description: 'Revenue',
@@ -742,7 +714,7 @@ describe('makeCreateReceiptUsecase', () => {
         ],
         destinationLine: {
           accountId: destinationAccount.id,
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'Cash',
@@ -785,7 +757,7 @@ describe('makeCreateReceiptUsecase', () => {
       sourceLines: [
         {
           accountId: sourceAccount.id,
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'USD', isMinorUnit: true },
           exchangeRate: {
             baseCurrencyCode: 'USD',
@@ -801,7 +773,7 @@ describe('makeCreateReceiptUsecase', () => {
       ],
       destinationLine: {
         accountId: destinationAccount.id,
-        counterparty: { name: 'Jane Doe' },
+        counterpartyId: selectedCounterparty[0].id,
         amount: { amount: 1500, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: {
           baseCurrencyCode: 'NGN',
@@ -836,50 +808,41 @@ describe('makeCreateReceiptUsecase', () => {
     );
   });
 
-  it('orchestrates successfully when counterparties are unresolved', async () => {
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValue(undefined);
+  it('rejects a partially resolved counterparty batch before preparing the journal', async () => {
+    mockCounterpartyRepo.findByIds.mockResolvedValueOnce([
+      selectedCounterparty[0],
+    ]);
 
-    const usecase = getUseCase();
-
-    const payload = {
-      sourceLines: [
-        {
-          accountId: sourceAccount.id,
-          counterparty: { name: 'Jane Doe' },
+    await expect(
+      getUseCase()({
+        sourceLines: [
+          {
+            accountId: sourceAccount.id,
+            counterpartyId: selectedCounterparty[0].id,
+            amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+            exchangeRate: null,
+            description: null,
+            sequenceOrder: 1,
+          },
+        ],
+        destinationLine: {
+          accountId: destinationAccount.id,
+          counterpartyId: existingCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
-          description: 'Revenue',
-          sequenceOrder: 1,
+          description: null,
+          sequenceOrder: 2,
         },
-      ],
-      destinationLine: {
-        accountId: destinationAccount.id,
-        counterparty: { name: 'Jane Doe' },
-        amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
-        exchangeRate: null,
-        description: 'Cash',
-        sequenceOrder: 2,
-      },
-      effectiveDate: new Date('2026-08-06T00:00:00.000Z'),
-      postedAt: new Date('2026-08-06T00:00:00.000Z'),
-      memo: 'Receipt',
-    };
+        effectiveDate: new Date('2026-08-06'),
+        postedAt: null,
+        memo: null,
+      })
+    ).rejects.toThrow(counterpartyError.InvalidCounterpartyId);
 
-    await usecase(payload);
-
-    expect(mockJournalEntryService.createReceipt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourceLines: expect.arrayContaining([
-          expect.objectContaining({
-            counterparty: null,
-          }),
-        ]),
-        destinationLine: expect.objectContaining({
-          counterparty: null,
-        }),
-      }),
-      expect.any(Object)
-    );
+    expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('does not create outbox work or enqueue balance propagation for a draft receipt', async () => {
@@ -898,7 +861,7 @@ describe('makeCreateReceiptUsecase', () => {
       sourceLines: [
         {
           accountId: sourceAccount.id,
-          counterparty: { name: 'Jane Doe' },
+          counterpartyId: selectedCounterparty[0].id,
           amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
           exchangeRate: null,
           description: 'Revenue',
@@ -907,7 +870,7 @@ describe('makeCreateReceiptUsecase', () => {
       ],
       destinationLine: {
         accountId: destinationAccount.id,
-        counterparty: { name: 'Jane Doe' },
+        counterpartyId: selectedCounterparty[0].id,
         amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Cash',
@@ -931,9 +894,6 @@ describe('makeCreateReceiptUsecase', () => {
       mockOutboxAppService.createBalancePropagation
     ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-    expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
-      'draft'
-    );
   });
 
   it('rejects on validation failure and prevents side-effects', async () => {
@@ -943,7 +903,7 @@ describe('makeCreateReceiptUsecase', () => {
       sourceLines: [],
       destinationLine: {
         // Missing accountId
-        counterparty: { name: 'Jane Doe' },
+        counterpartyId: selectedCounterparty[0].id,
         amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Cash',
@@ -958,6 +918,41 @@ describe('makeCreateReceiptUsecase', () => {
 
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
-    expect(mockCounterpartyAppService.findOrCreateMany).not.toHaveBeenCalled();
+    expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
+  });
+  it('propagates counterparty read failures before journal preparation or persistence', async () => {
+    const failure = new Error('counterparty read failed');
+    mockCounterpartyRepo.findByIds.mockRejectedValueOnce(failure);
+
+    await expect(
+      getUseCase()({
+        sourceLines: [
+          {
+            accountId: sourceAccount.id,
+            counterpartyId: selectedCounterparty[0].id,
+            amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+            exchangeRate: null,
+            description: null,
+            sequenceOrder: 1,
+          },
+        ],
+        destinationLine: {
+          accountId: destinationAccount.id,
+          counterpartyId: selectedCounterparty[0].id,
+          amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+          exchangeRate: null,
+          description: null,
+          sequenceOrder: 2,
+        },
+        effectiveDate: new Date('2026-08-06'),
+        postedAt: null,
+        memo: null,
+      })
+    ).rejects.toBe(failure);
+
+    expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 });

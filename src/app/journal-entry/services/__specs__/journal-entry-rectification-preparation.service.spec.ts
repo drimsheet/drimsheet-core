@@ -5,6 +5,7 @@ import appError from '@shared/values/errors/app.error';
 import periodError from '@domain/accounting/errors/period.error';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
+import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
@@ -32,7 +33,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 
 import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
-import mockCounterpartyAppService from '@app/counterparty/contracts/__mocks__/counterparty.service.mock';
+import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import {
   mockJournalEntryRectificationService,
   mockJournalEntryService,
@@ -41,6 +42,7 @@ import {
   IPaymentJournalEntryRectificationReq,
   IReceiptJournalEntryRectificationReq,
   ITransferJournalEntryRectificationReq,
+  TJournalEntryRectificationReq,
 } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
 import makeJournalEntryRectificationPreparationAppService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
 import {
@@ -76,10 +78,16 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     currencyCode: SYSTEM_CURRENCIES.NGN.code,
     isMinorUnit: false,
   };
-  const counterparty = { name: 'Counterparty' };
+  const [counterparty] = counterpartyEntity.make({
+    accountingEntityId,
+    createdBy: userId,
+    name: 'Counterparty',
+    type: 'organization',
+  });
+  const counterpartyId = counterparty.id;
   const actor = userId;
   const service = makeJournalEntryRectificationPreparationAppService({
-    counterpartyAppService: mockCounterpartyAppService,
+    counterpartyRepo: mockCounterpartyRepo,
     journalEntryService: mockJournalEntryService,
     journalEntryRectificationService: mockJournalEntryRectificationService,
     ledgerAccountRepo: mockLedgerAccountRepo,
@@ -144,8 +152,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValue(new Map());
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValue(undefined);
+    mockCounterpartyRepo.findByIds.mockResolvedValue([counterparty]);
     mockJournalEntryRectificationService.rectify.mockImplementation(
       async ({ originalEntry, newEntry }) =>
         makeRectificationResult(originalEntry, newEntry as IJournalEntry)
@@ -168,13 +175,13 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
   });
 
   it.each([
-    [null, null, 'draft'],
-    [null, effectiveDate, 'active'],
-    [effectiveDate, null, 'active'],
-    [effectiveDate, effectiveDate, 'active'],
+    [null, null],
+    [null, effectiveDate],
+    [effectiveDate, null],
+    [effectiveDate, effectiveDate],
   ] as const)(
     'prepares payment counterparties for effective posting state %s / %s',
-    async (originalPostedAt, requestedPostedAt, creationStatus) => {
+    async (originalPostedAt, requestedPostedAt) => {
       const [originalEntry] = makeEntry(
         EJournalEntrySourceType.Payment,
         100,
@@ -194,7 +201,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         sourceLine: {
           id: originalEntry.lines[0].id,
           accountId: sourceAccount.id,
-          counterparty,
+          counterpartyId,
           amount: amountDto,
           exchangeRate: null,
           description: 'Source',
@@ -204,7 +211,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           {
             id: originalEntry.lines[1].id,
             accountId: destinationAccount.id,
-            counterparty,
+            counterpartyId,
             amount: amountDto,
             exchangeRate: null,
             description: 'Destination',
@@ -225,8 +232,10 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         repoOptions
       );
 
-      expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
-        creationStatus
+      expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
+        expect.any(Array),
+        accountingEntityId,
+        repoOptions
       );
       expect(mockJournalEntryService.createPayment).toHaveBeenCalledTimes(1);
       expect(mockJournalEntryService.createPayment).toHaveBeenCalledWith(
@@ -277,7 +286,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       };
       const sourceLine = {
         accountId: sourceAccount.id,
-        counterparty,
+        counterpartyId,
         amount: amountDto,
         exchangeRate: null,
         description: null,
@@ -315,8 +324,10 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         { originalEntry, requestedEntry, accountingEntity, actor },
         repoOptions
       );
-      expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
-        postedAt === null ? 'draft' : 'active'
+      expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
+        expect.any(Array),
+        accountingEntityId,
+        repoOptions
       );
       const creation =
         sourceType === 'receipt'
@@ -387,16 +398,9 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           id === source.id ? source : id === destination.id ? destination : null
         );
         if (reference === 'counterparty') {
-          mockCounterpartyAppService.getFoundOrCreated.mockReturnValue({
-            new: false,
-            data: counterpartyEntity.make({
-              accountingEntityId,
-              createdBy: actor,
-              name: 'Draft supplier',
-              type: 'organization',
-              status: 'draft',
-            }),
-          });
+          mockCounterpartyRepo.findByIds.mockResolvedValue([
+            Object.freeze({ ...counterparty, status: 'draft' as const }),
+          ]);
         }
         const domainService = makeJournalEntryService({
           ledgerAccountRepo: mockLedgerAccountRepo,
@@ -405,7 +409,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         });
         const guardedPreparation =
           makeJournalEntryRectificationPreparationAppService({
-            counterpartyAppService: mockCounterpartyAppService,
+            counterpartyRepo: mockCounterpartyRepo,
             journalEntryService: domainService,
             journalEntryRectificationService:
               mockJournalEntryRectificationService,
@@ -421,7 +425,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           memo: 'Correction',
           sourceLine: {
             accountId: source.id,
-            counterparty,
+            counterpartyId,
             amount: amountDto,
             exchangeRate: null,
             description: null,
@@ -430,7 +434,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           destinationLines: [
             {
               accountId: destination.id,
-              counterparty,
+              counterpartyId,
               amount: amountDto,
               exchangeRate: null,
               description: null,
@@ -476,7 +480,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       sourceLines: [
         {
           accountId: sourceAccount.id,
-          counterparty,
+          counterpartyId,
           amount: amountDto,
           exchangeRate: {
             baseCurrencyCode: 'USD',
@@ -492,7 +496,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       ],
       destinationLine: {
         accountId: destinationAccount.id,
-        counterparty,
+        counterpartyId,
         amount: amountDto,
         exchangeRate: null,
         description: 'Destination',
@@ -557,7 +561,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       chargeLines: [
         {
           accountId: chargeAccount.id,
-          counterparty,
+          counterpartyId,
           amount: amountDto,
           exchangeRate: null,
           description: 'Charge with counterparty',
@@ -565,7 +569,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         },
         {
           accountId: chargeAccount.id,
-          counterparty: null,
+          counterpartyId: null,
           amount: amountDto,
           exchangeRate: null,
           description: 'Charge without counterparty',
@@ -643,7 +647,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       memo: 'Payment',
       sourceLine: {
         accountId: sourceAccount.id,
-        counterparty,
+        counterpartyId,
         amount: amountDto,
         exchangeRate: null,
         description: 'Source',
@@ -652,7 +656,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       destinationLines: [
         {
           accountId: destinationAccount.id,
-          counterparty,
+          counterpartyId,
           amount: amountDto,
           exchangeRate: null,
           description: 'Destination',
@@ -716,7 +720,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       memo: 'Payment',
       sourceLine: {
         accountId: sourceAccount.id,
-        counterparty,
+        counterpartyId,
         amount: amountDto,
         exchangeRate: null,
         description: 'Source',
@@ -725,7 +729,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       destinationLines: [
         {
           accountId: destinationAccount.id,
-          counterparty,
+          counterpartyId,
           amount: amountDto,
           exchangeRate: null,
           description: 'Destination',
@@ -780,7 +784,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       memo: 'Payment',
       sourceLine: {
         accountId: sourceAccount.id,
-        counterparty,
+        counterpartyId,
         amount: amountDto,
         exchangeRate: null,
         description: 'Source',
@@ -789,7 +793,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       destinationLines: [
         {
           accountId: destinationAccount.id,
-          counterparty,
+          counterpartyId,
           amount: amountDto,
           exchangeRate: null,
           description: 'Destination',
@@ -844,7 +848,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       memo: 'Payment',
       sourceLine: {
         accountId: sourceAccount.id,
-        counterparty,
+        counterpartyId,
         amount: amountDto,
         exchangeRate: null,
         description: 'Source',
@@ -853,7 +857,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       destinationLines: [
         {
           accountId: destinationAccount.id,
-          counterparty,
+          counterpartyId,
           amount: amountDto,
           exchangeRate: null,
           description: 'Destination',
@@ -963,6 +967,82 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       } finally {
         jest.useRealTimers();
       }
+    }
+  );
+  it.each(['payment', 'receipt', 'transfer'] as const)(
+    'rejects a partially resolved counterparty batch before preparing a %s rectification',
+    async (sourceType) => {
+      const missingId = generateUUID();
+      const sourceLine = {
+        accountId: sourceAccount.id,
+        counterpartyId,
+        amount: amountDto,
+        exchangeRate: null,
+        description: null,
+        sequenceOrder: 1,
+      };
+      const destinationLine = {
+        ...sourceLine,
+        accountId: destinationAccount.id,
+        counterpartyId: missingId,
+        sequenceOrder: 2,
+      };
+      const base = {
+        attachments: [],
+        effectiveDate,
+        postedAt: null,
+        memo: null,
+      };
+      const requestedEntry: TJournalEntryRectificationReq =
+        sourceType === 'payment'
+          ? {
+              ...base,
+              sourceType,
+              sourceLine,
+              destinationLines: [destinationLine],
+            }
+          : sourceType === 'receipt'
+            ? {
+                ...base,
+                sourceType,
+                sourceLines: [sourceLine],
+                destinationLine,
+              }
+            : {
+                ...base,
+                sourceType,
+                sourceLine,
+                destinationLine,
+                chargeLines: [
+                  { ...destinationLine, accountId: chargeAccount.id },
+                ],
+              };
+      mockCounterpartyRepo.findByIds.mockResolvedValueOnce([counterparty]);
+      const [originalEntry] = makeEntry(sourceType);
+
+      await expect(
+        service.prepare(
+          {
+            originalEntry,
+            requestedEntry,
+            accountingEntity,
+            actor,
+          },
+          repoOptions
+        )
+      ).rejects.toMatchObject({
+        errorKey: new counterpartyError.InvalidCounterpartyId().errorKey,
+        cause: { id: missingId },
+      });
+
+      expect(mockJournalEntryService.createPayment).not.toHaveBeenCalled();
+      expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
+      expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+      expect(
+        mockJournalEntryRectificationService.rectify
+      ).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
     }
   );
 });

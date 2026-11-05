@@ -1,4 +1,4 @@
-import { and, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 
 import drizzleFilters from '@shared/helpers/drizzle-filters';
 import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
@@ -179,6 +179,26 @@ const counterpartyRepo: ICounterpartyRepo = {
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
     const [row] = await query;
     return row ? counterpartyMapper.toDomain(row) : null;
+  },
+
+  async findByIds(ids, accountingEntityId, options) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const baseQuery = getDbQuery(options)
+      .select()
+      .from(counterpartiesInCore)
+      .where(
+        and(
+          inArray(counterpartiesInCore.id, ids),
+          eq(counterpartiesInCore.accountingEntityId, accountingEntityId)
+        )
+      );
+
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const rows = await query;
+    return rows.map(counterpartyMapper.toDomain);
   },
 };
 

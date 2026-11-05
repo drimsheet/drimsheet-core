@@ -23,5 +23,5 @@ sequenceDiagram
         Records-->>Adjust: Balance changes committed
         Adjust-->>Worker: Complete
     end
-    Note over Adjust,Records: Validation or write failures reject; incomplete changes do not commit
+    Note over Adjust,Records: Validation or write failures reject#59; incomplete changes do not commit
 ```

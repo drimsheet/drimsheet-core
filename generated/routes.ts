@@ -2381,21 +2381,11 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalCounterpartyReq: {
-    dataType: 'refObject',
-    properties: {
-      id: { dataType: 'string' },
-      name: { dataType: 'string', required: true },
-      type: { ref: 'UCounterpartyType' },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IPaymentEntryLineReq: {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
-      counterparty: { ref: 'IJournalCounterpartyReq', required: true },
+      counterpartyId: { dataType: 'string', required: true },
       amount: { ref: 'IMoneyDto', required: true },
       exchangeRate: {
         dataType: 'union',
@@ -2456,7 +2446,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
-      counterparty: { ref: 'IJournalCounterpartyReq', required: true },
+      counterpartyId: { dataType: 'string', required: true },
       amount: { ref: 'IMoneyDto', required: true },
       exchangeRate: {
         dataType: 'union',
@@ -2543,10 +2533,10 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
-      counterparty: {
+      counterpartyId: {
         dataType: 'union',
         subSchemas: [
-          { ref: 'IJournalCounterpartyReq' },
+          { dataType: 'string' },
           { dataType: 'enum', enums: [null] },
         ],
         required: true,
@@ -2644,7 +2634,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
-      counterparty: { ref: 'IJournalCounterpartyReq', required: true },
+      counterpartyId: { dataType: 'string', required: true },
       amount: { ref: 'IMoneyDto', required: true },
       exchangeRate: {
         dataType: 'union',
@@ -2783,10 +2773,10 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
-      counterparty: {
+      counterpartyId: {
         dataType: 'union',
         subSchemas: [
-          { ref: 'IJournalCounterpartyReq' },
+          { dataType: 'string' },
           { dataType: 'enum', enums: [null] },
         ],
         required: true,

@@ -72,7 +72,7 @@ const validPayload: IReceiptEntryReq = {
   sourceLines: [
     {
       accountId: '123e4567-e89b-12d3-a456-426614174005',
-      counterparty: { name: 'Jane Doe' },
+      counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
       amount: { amount: 900, currencyCode: 'NGN', isMinorUnit: true },
       exchangeRate: null,
       description: 'Revenue line',
@@ -80,7 +80,7 @@ const validPayload: IReceiptEntryReq = {
     },
     {
       accountId: '123e4567-e89b-12d3-a456-426614174010',
-      counterparty: { name: 'Tax Authority' },
+      counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
       amount: { amount: 100, currencyCode: 'NGN', isMinorUnit: true },
       exchangeRate: null,
       description: 'VAT payable line',
@@ -89,7 +89,7 @@ const validPayload: IReceiptEntryReq = {
   ],
   destinationLine: {
     accountId: '123e4567-e89b-12d3-a456-426614174008',
-    counterparty: { name: 'Jane Doe' },
+    counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
     amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
     exchangeRate: null,
     description: 'Cash line',
@@ -356,6 +356,30 @@ describe('POST /journal-entries/receipt', () => {
   });
 
   describe('422 Response', () => {
+    it.each([null, undefined, 42, { name: 'Supplier' }])(
+      'rejects an invalid counterparty ID shape before orchestration: %s',
+      async (counterpartyId) => {
+        const response = await makeRequest({
+          ...validPayload,
+          destinationLine: { ...validPayload.destinationLine, counterpartyId },
+        });
+
+        expect(response.status).toBe(422);
+        expect(mockCreateReceiptUseCase).not.toHaveBeenCalled();
+      }
+    );
+
+    it('rejects the former embedded counterparty request', async () => {
+      const { counterpartyId: _id, ...line } = validPayload.destinationLine;
+      const response = await makeRequest({
+        ...validPayload,
+        destinationLine: { ...line, counterparty: { name: 'Supplier' } },
+      });
+
+      expect(response.status).toBe(422);
+      expect(mockCreateReceiptUseCase).not.toHaveBeenCalled();
+    });
+
     it('rejects invalid payload with extra fields (TSOA validation)', async () => {
       const invalidPayload = {
         ...validPayload,

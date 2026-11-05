@@ -6,11 +6,11 @@ import makeJournalEntryPersistenceAppService from '@app/journal-entry/services/j
 import makeJournalEntryRectificationPreparationAppService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
 import makeOpeningBalanceEntryAppService from '@app/journal-entry/services/opening-balance-entry.service';
 
+import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 
 import { accountingPeriodService } from './accounting';
-import { counterpartyAppService } from './counterparty';
 import { fxLotAppService } from './fx-lot-cost-basis';
 import { repoService } from './repo';
 
@@ -32,7 +32,7 @@ export const journalEntryRemovalService = makeJournalEntryRemovalService({
 
 export const journalEntryRectificationPreparationAppService =
   makeJournalEntryRectificationPreparationAppService({
-    counterpartyAppService,
+    counterpartyRepo: counterpartyRepos.counterparty,
     journalEntryService,
     journalEntryRectificationService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,

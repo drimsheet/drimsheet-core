@@ -6,8 +6,6 @@ import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
 import periodError from '@domain/accounting/errors/period.error';
-import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
-import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
@@ -156,7 +154,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
   function getUsecase() {
     return makeRectifyJournalEntryUsecase({
       appContext: mockAppContext,
-      counterpartyRepo: mockCounterpartyRepo,
       journalEntryRepo: mockJournalEntryRepo,
       journalEntryRectificationPreparationAppService:
         mockJournalEntryRectificationPreparationAppService,
@@ -210,7 +207,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
           entryUpdate: null,
           events: [],
         },
-        counterparties: new Map(),
         fxReversal: null,
         fxDisposition: null,
         fxAcquisition: null,
@@ -265,15 +261,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
       { correlationId }
     );
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-    const counterparty = counterpartyEntity.make({
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      accountingEntityId,
-      name: 'Vendor',
-      type: ECounterpartyType.Organization,
-    });
-    const counterparties = new Map([
-      ['vendor', { new: true, data: counterparty }],
-    ]);
     const fxDisposition = {
       records: {} as TFxLotDispositionAppResult['records'],
       events: [],
@@ -286,7 +273,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
     mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
       {
         rectification: result,
-        counterparties,
         fxReversal,
         fxDisposition,
         fxAcquisition,
@@ -339,15 +325,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
         (call) => call[0]
       )
     ).toEqual([correlationId, correlationId]);
-    expect(mockCounterpartyRepo.create).toHaveBeenCalledTimes(1);
-    expect(mockCounterpartyRepo.create).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({
-        correlationId,
-        history: expect.any(Object),
-        tx: 'mock-tx',
-      })
-    );
+    expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistReversal
     ).toHaveBeenCalledWith(fxReversal.records, expect.any(Object));
@@ -384,18 +362,9 @@ describe('makeRectifyJournalEntryUsecase', () => {
       { correlationId }
     );
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-    const existingCounterparty = counterpartyEntity.make({
-      createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      accountingEntityId,
-      name: 'Existing vendor',
-      type: ECounterpartyType.Organization,
-    });
     mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
       {
         rectification: result,
-        counterparties: new Map([
-          ['existing-vendor', { new: false, data: existingCounterparty }],
-        ]),
         fxReversal: null,
         fxDisposition: null,
         fxAcquisition: null,
@@ -439,7 +408,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
     mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
       {
         rectification: result,
-        counterparties: new Map(),
         fxReversal: null,
         fxDisposition: null,
         fxAcquisition: null,
@@ -550,12 +518,12 @@ describe('makeRectifyJournalEntryUsecase', () => {
       memo: transferPayload.memo,
       sourceLine: {
         ...transferPayload.sourceLine,
-        counterparty: { name: 'Source counterparty' },
+        counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
       },
       destinationLines: [
         {
           ...transferPayload.destinationLine,
-          counterparty: { name: 'Destination counterparty' },
+          counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
         },
       ],
     };
@@ -618,7 +586,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
             },
             options
           ),
-          counterparties: new Map(),
           fxReversal: null,
           fxDisposition: null,
           fxAcquisition: null,

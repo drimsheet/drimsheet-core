@@ -18,7 +18,7 @@ sequenceDiagram
     Correction->>Records: Request referenced accounts and eligibility facts
     Records-->>Correction: Accounts and eligibility facts
     Correction->>Parties: Resolve requested counterparties
-    Parties-->>Correction: Existing and prepared new counterparties
+    Parties-->>Correction: Existing counterparties
     alt Draft correction
         Note over Correction: Prepare changes to the existing draft, including posting when requested
     else Metadata-only correction
@@ -28,17 +28,17 @@ sequenceDiagram
     end
     Correction->>FX: Request applicable reversal and corrected FX effects
     FX-->>Correction: FX records and events, or no effect
-    Correction-->>Rectify: Prepared correction, counterparties, and FX effects
+    Correction-->>Rectify: Prepared correction and FX effects
     alt No journal changes
         Rectify-->>Caller: Current entry, IDs, and correction mode
     else Journal changes prepared
-        Rectify->>Records: Save correction, new parties, audits, FX effects, and pending balance work together
+        Rectify->>Records: Save correction, audits, FX effects, and pending balance work together
         Records-->>Rectify: Changes committed
         opt Entries require balance propagation
             Rectify->>Balances: Request propagation for affected posted entries
             Balances-->>Rectify: Requests accepted
         end
-        Rectify->>Events: Correction, counterparty, and applicable FX events
+        Rectify->>Events: Correction and applicable FX events
         Rectify-->>Caller: Current entry, original and reversal IDs, and correction mode
     end
 ```

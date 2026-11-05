@@ -23,8 +23,8 @@ sequenceDiagram
             Delete-->>Caller: Entity with journal entries cannot be deleted
         else Eligible for deletion
             Accounting-->>Delete: Entity deletion and event
-            Delete->>Records: Remove entity and related setup; clear saved selections together
-            Records-->>Delete: Removal committed; audit history retained
+            Delete->>Records: Remove entity and related setup#59; clear saved selections together
+            Records-->>Delete: Removal committed#59; audit history retained
             Delete->>Selection: Clear current selection
             Delete->>Events: Entity deleted
             Delete-->>Caller: Complete

@@ -3,7 +3,6 @@ import { IFileAttachment } from '@shared/values/file-attachments/types/file-atta
 import { UJournalEntryRectificationMode } from '@domain/journal-entry/types/journal-entry-rectification.types';
 
 import {
-  IJournalCounterpartyReq,
   IJournalEntryDto,
   IJournalLineReq,
 } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
@@ -15,7 +14,7 @@ interface IJournalEntryRectificationLineReq extends IJournalLineReq {
 }
 
 interface IJournalEntryRectificationCounterpartyLineReq extends IJournalEntryRectificationLineReq {
-  counterparty: IJournalCounterpartyReq;
+  counterpartyId: string;
 }
 
 interface ITransferJournalEntryRectificationLineReq {

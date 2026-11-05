@@ -2,14 +2,12 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 import { ICreateTransferEntryPayload } from '@domain/journal-entry/types/journal-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 
-import ICounterpartyAppService, {
-  ICounterpartyFindOrCreateRes,
-} from '@app/counterparty/contracts/counterparty.service.contract';
 import { IJournalLineReq } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
@@ -44,17 +42,14 @@ async function getChargeAccounts(
 
 function transformChargeLineToJournalLine(
   payload: ITransferEntryReq,
-  counterparties: Map<string, ICounterpartyFindOrCreateRes>,
-  chargeAccounts: ILedgerAccount[],
-  counterpartyAppService: ICounterpartyAppService
+  counterparties: ICounterparty[],
+  chargeAccounts: ILedgerAccount[]
 ): ICreateTransferEntryPayload['destinationLines'] {
   return payload.chargeLines.map((chargeLine, index) => {
-    const counterparty = chargeLine.counterparty
-      ? (counterpartyAppService.getFoundOrCreated(
-          chargeLine.counterparty,
-          counterparties
-        )?.data[0] ?? null)
-      : null;
+    const counterparty =
+      counterparties.find(
+        (candidate) => candidate.id === chargeLine.counterpartyId
+      ) ?? null;
 
     return {
       account: chargeAccounts[index],

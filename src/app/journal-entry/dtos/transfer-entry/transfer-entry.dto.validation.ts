@@ -16,7 +16,7 @@ const maxAttachmentReferences = fileUploadPolicy.getPolicy(
 ).maxFiles;
 
 const transferEntryLineReqValidation = journalLineReqValidation.omit({
-  counterparty: true,
+  counterpartyId: true,
 });
 
 export const transferEntryReqValidation = z.object({

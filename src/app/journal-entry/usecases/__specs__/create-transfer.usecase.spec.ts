@@ -8,6 +8,7 @@ import accountingEntityEntity from '@domain/accounting/entities/accounting-entit
 import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
+import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -39,8 +40,6 @@ import mockAppContext, {
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
-import mockCounterpartyAppService from '@app/counterparty/contracts/__mocks__/counterparty.service.mock';
-import { ICounterpartyFindOrCreateRes } from '@app/counterparty/contracts/counterparty.service.contract';
 import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
@@ -159,10 +158,6 @@ describe('makeCreateTransferUsecase', () => {
     name: 'Transfer provider',
     type: ECounterpartyType.Organization,
   });
-  const newBankCounterpartyResponse: ICounterpartyFindOrCreateRes = {
-    new: true,
-    data: bankCounterparty,
-  };
   const attachments = [
     {
       url: 'https://files.example.com/transfer.pdf',
@@ -236,11 +231,10 @@ describe('makeCreateTransferUsecase', () => {
   function getUseCase() {
     return makeCreateTransferUsecase({
       appContext: mockAppContext,
-      counterpartyAppService: mockCounterpartyAppService,
+      counterpartyRepo: mockCounterpartyRepo,
       fileManagementAppService: mockFileManagementAppService,
       journalEntryService: mockJournalEntryService,
       ledgerAccountRepo: mockLedgerAccountRepo,
-      counterpartyRepo: mockCounterpartyRepo,
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
       eventBus: mockEventBus,
@@ -281,7 +275,7 @@ describe('makeCreateTransferUsecase', () => {
       return null;
     });
     mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValue(new Map());
+    mockCounterpartyRepo.findByIds.mockResolvedValue([]);
     mockJournalEntryService.createTransfer.mockResolvedValue({
       journalEntry: postedJournalEntry,
       destinationAssetAccount: destinationAccount,
@@ -425,7 +419,7 @@ describe('makeCreateTransferUsecase', () => {
     payload.chargeLines = [
       {
         accountId: bankChargeAccount.id,
-        counterparty: { name: 'Transfer provider' },
+        counterpartyId: bankCounterparty[0].id,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Transfer fee',
@@ -433,19 +427,14 @@ describe('makeCreateTransferUsecase', () => {
       },
       {
         accountId: bankChargeAccount.id,
-        counterparty: null,
+        counterpartyId: null,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Bank fee',
         sequenceOrder: 4,
       },
     ];
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValueOnce(
-      new Map([['transfer-provider', newBankCounterpartyResponse]])
-    );
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValueOnce(
-      newBankCounterpartyResponse
-    );
+    mockCounterpartyRepo.findByIds.mockResolvedValueOnce([bankCounterparty[0]]);
 
     await getUseCase()(payload);
 
@@ -467,11 +456,9 @@ describe('makeCreateTransferUsecase', () => {
       accountingEntity.id,
       { correlationId, idempotencyKey }
     );
-    expect(mockCounterpartyAppService.findOrCreateMany).toHaveBeenCalledWith(
-      [payload.chargeLines[0].counterparty],
+    expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
+      [payload.chargeLines[0].counterpartyId],
       accountingEntity.id,
-      'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      'active',
       { correlationId, idempotencyKey }
     );
     expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
@@ -493,15 +480,6 @@ describe('makeCreateTransferUsecase', () => {
       }),
       { correlationId, idempotencyKey }
     );
-    expect(mockCounterpartyRepo.create).toHaveBeenCalledWith(
-      bankCounterparty[0],
-      expect.objectContaining({ correlationId, tx: 'mock-tx' })
-    );
-    expect(
-      mockCounterpartyRepo.create.mock.invocationCallOrder[0]
-    ).toBeLessThan(
-      mockJournalEntryPersistenceAppService.create.mock.invocationCallOrder[0]
-    );
     expect(mockFxLotAppService.acquire).toHaveBeenCalledTimes(1);
     expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
       expect.objectContaining({ account: destinationAccount }),
@@ -513,18 +491,18 @@ describe('makeCreateTransferUsecase', () => {
     );
     const [publishedEvents] = mockEventBus.publish.mock.calls[0];
     expect(publishedEvents).toEqual(
-      expect.arrayContaining([
+      expect.not.arrayContaining([
         expect.objectContaining({ type: bankCounterparty[1][0].type }),
       ])
     );
   });
 
-  it('maps unresolved charge counterparties as null with their exchange rate', async () => {
+  it('maps a charge exchange rate with no counterparty', async () => {
     const payload = makePayload();
     payload.chargeLines = [
       {
         accountId: bankChargeAccount.id,
-        counterparty: { name: 'Transfer provider' },
+        counterpartyId: null,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: {
           baseCurrencyCode: 'USD',
@@ -538,7 +516,6 @@ describe('makeCreateTransferUsecase', () => {
         sequenceOrder: 3,
       },
     ];
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValueOnce(undefined);
 
     await getUseCase()(payload);
 
@@ -564,23 +541,14 @@ describe('makeCreateTransferUsecase', () => {
     payload.chargeLines = [
       {
         accountId: bankChargeAccount.id,
-        counterparty: { name: 'Transfer provider' },
+        counterpartyId: bankCounterparty[0].id,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Transfer fee',
         sequenceOrder: 3,
       },
     ];
-    const existingBankCounterpartyResponse: ICounterpartyFindOrCreateRes = {
-      new: false,
-      data: bankCounterparty,
-    };
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValueOnce(
-      new Map([['transfer-provider', existingBankCounterpartyResponse]])
-    );
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValueOnce(
-      existingBankCounterpartyResponse
-    );
+    mockCounterpartyRepo.findByIds.mockResolvedValueOnce([bankCounterparty[0]]);
 
     await getUseCase()(payload);
 
@@ -625,9 +593,6 @@ describe('makeCreateTransferUsecase', () => {
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-    expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
-      'draft'
-    );
   });
 
   it('maps source and destination exchange rates', async () => {
@@ -715,7 +680,7 @@ describe('makeCreateTransferUsecase', () => {
     payload.chargeLines = [
       {
         accountId: bankChargeAccount.id,
-        counterparty: null,
+        counterpartyId: null,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Transfer fee',
@@ -730,7 +695,7 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(payload)).rejects.toMatchObject({
       cause: { id: payload.chargeLines[0].accountId },
     });
-    expect(mockCounterpartyAppService.findOrCreateMany).not.toHaveBeenCalled();
+    expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
   });
@@ -1025,5 +990,47 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(payload)).rejects.toThrow();
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+  });
+  it('propagates counterparty read failures before journal preparation or persistence', async () => {
+    const failure = new Error('counterparty read failed');
+    mockCounterpartyRepo.findByIds.mockRejectedValueOnce(failure);
+
+    await expect(getUseCase()(makePayload())).rejects.toBe(failure);
+
+    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+  it('rejects a charge ID omitted from a partial repository result before uploads or writes', async () => {
+    const payload = makePayload();
+    const chargeLine = {
+      accountId: bankChargeAccount.id,
+      counterpartyId: bankCounterparty[0].id,
+      amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
+      exchangeRate: null,
+      description: 'Transfer fee',
+      sequenceOrder: 3,
+    };
+    const missingId = generateUUID();
+    payload.chargeLines = [
+      chargeLine,
+      {
+        ...chargeLine,
+        counterpartyId: missingId,
+        sequenceOrder: 4,
+      },
+    ];
+    mockCounterpartyRepo.findByIds.mockResolvedValueOnce([bankCounterparty[0]]);
+
+    await expect(getUseCase()(payload)).rejects.toMatchObject({
+      errorKey: new counterpartyError.InvalidCounterpartyId().errorKey,
+      cause: { id: missingId },
+    });
+
+    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 });

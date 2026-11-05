@@ -250,4 +250,70 @@ describe('POST /journal-entries/{id}/rectify', () => {
       expect.any(Object)
     );
   });
+  describe('200 Response', () => {
+    it.each(['payment', 'receipt'] as const)(
+      'accepts counterparty IDs when rectifying a %s',
+      async (sourceType) => {
+        const sourceLine = {
+          ...validPayload.sourceLine,
+          counterpartyId: sourceLineId,
+        };
+        const destinationLine = {
+          ...validPayload.destinationLine,
+          counterpartyId: destinationLineId,
+        };
+        const base = {
+          sourceType,
+          attachments: [],
+          effectiveDate,
+          postedAt: effectiveDate,
+          memo: null,
+        };
+        const payload =
+          sourceType === 'payment'
+            ? { ...base, sourceLine, destinationLines: [destinationLine] }
+            : { ...base, sourceLines: [sourceLine], destinationLine };
+
+        const response = await makeRequest(payload);
+
+        expect(response.status).toBe(200);
+        expect(mockRectifyJournalEntryUseCase).toHaveBeenCalledWith(
+          journalEntryId,
+          expect.objectContaining(payload)
+        );
+      }
+    );
+  });
+
+  describe('422 Response', () => {
+    it.each(['payment', 'receipt'] as const)(
+      'rejects embedded counterparty details on a %s rectification',
+      async (sourceType) => {
+        const sourceLine = {
+          ...validPayload.sourceLine,
+          counterparty: { name: 'Supplier' },
+        };
+        const destinationLine = {
+          ...validPayload.destinationLine,
+          counterparty: { name: 'Supplier' },
+        };
+        const base = {
+          sourceType,
+          attachments: [],
+          effectiveDate,
+          postedAt: effectiveDate,
+          memo: null,
+        };
+        const payload =
+          sourceType === 'payment'
+            ? { ...base, sourceLine, destinationLines: [destinationLine] }
+            : { ...base, sourceLines: [sourceLine], destinationLine };
+
+        const response = await makeRequest(payload);
+
+        expect(response.status).toBe(422);
+        expect(mockRectifyJournalEntryUseCase).not.toHaveBeenCalled();
+      }
+    );
+  });
 });

@@ -1,4 +1,4 @@
-import counterpartyError from '@domain/counterparty/errors/counterparty.error';
+import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 
 import fileAppError from '@app/file/errors/file.error';
 import { journalEntryRectificationReqValidation } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto.validation';
@@ -8,7 +8,7 @@ import { receiptEntryReqValidation } from '@app/journal-entry/dtos/receipt-entry
 
 const sourceLine = {
   accountId: '1b4c1064-a09e-4e4f-b6a3-23945cc87f75',
-  counterparty: { name: 'Vendor' },
+  counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
   amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
   exchangeRate: null,
   description: 'Bank payment',
@@ -17,10 +17,7 @@ const sourceLine = {
 
 const destinationLine = {
   accountId: '2b4c1064-a09e-4e4f-b6a3-23945cc87f74',
-  counterparty: {
-    id: '3b4c1064-a09e-4e4f-b6a3-23945cc87f76',
-    name: 'Vendor',
-  },
+  counterpartyId: '3b4c1064-a09e-4e4f-b6a3-23945cc87f76',
   amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
   exchangeRate: null,
   description: 'Rent expense',
@@ -39,10 +36,16 @@ function makePayload() {
 }
 
 describe('Payment Entry DTO Validation', () => {
-  it.each(['individual', 'organization', 'invalid'])(
-    'validates inline counterparty type %s across journal request schemas',
-    (type) => {
-      const line = { ...sourceLine, counterparty: { name: 'Supplier', type } };
+  it.each([
+    ['UUID', sourceLine.counterpartyId, true, true],
+    ['null', null, true, false],
+    ['missing', undefined, false, false],
+    ['malformed', 'invalid', false, false],
+    ['embedded details', { name: 'Supplier' }, false, false],
+  ])(
+    'validates %s counterparty IDs across journal request schemas',
+    (_case, counterpartyId, sharedValid, requiredValid) => {
+      const line = { ...sourceLine, counterpartyId };
       const base = {
         effectiveDate: new Date('2026-08-30'),
         postedAt: null,
@@ -75,11 +78,12 @@ describe('Payment Entry DTO Validation', () => {
           destinationLine: line,
         }),
       ];
-      for (const result of results) {
-        expect(result.success).toBe(type !== 'invalid');
+      for (const validationResult of results.entries()) {
+        const [index, result] = validationResult;
+        expect(result.success).toBe(index === 0 ? sharedValid : requiredValid);
         if (!result.success) {
           expect(result.error.issues[0].message).toBe(
-            new counterpartyError.InvalidType().errorKey
+            new journalLineError.InvalidCounterpartyId().errorKey
           );
         }
       }
@@ -145,11 +149,11 @@ describe('Payment Entry DTO Validation', () => {
   });
 
   it.each([
-    ['source', { sourceLine: { ...sourceLine, counterparty: null } }],
+    ['source', { sourceLine: { ...sourceLine, counterpartyId: null } }],
     [
       'destination',
       {
-        destinationLines: [{ ...destinationLine, counterparty: null }],
+        destinationLines: [{ ...destinationLine, counterpartyId: null }],
       },
     ],
   ])('rejects a null %s counterparty', (_case, override) => {

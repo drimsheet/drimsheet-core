@@ -1,10 +1,7 @@
-import {
-  IJournalCounterpartyReq,
-  IJournalLineReq,
-} from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
+import { IJournalLineReq } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 
 interface IPaymentEntryLineReq extends IJournalLineReq {
-  counterparty: IJournalCounterpartyReq;
+  counterpartyId: string;
 }
 
 export interface IPaymentEntryReq {

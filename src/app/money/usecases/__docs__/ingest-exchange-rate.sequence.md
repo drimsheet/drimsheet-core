@@ -19,7 +19,7 @@ sequenceDiagram
     end
     Ingest->>Records: Request latest stored date for each observed pair
     Records-->>Ingest: Latest dates or no stored rate for each pair
-    Note over Ingest,Records: Select observations at or after each latest date; include all for unseen pairs
+    Note over Ingest,Records: Select observations at or after each latest date#59; include all for unseen pairs
     alt No selected observations
         Ingest-->>Worker: processedCount is zero
     else Observations selected

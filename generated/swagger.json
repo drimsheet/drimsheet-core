@@ -12147,29 +12147,13 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IJournalCounterpartyReq": {
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "$ref": "#/components/schemas/UCounterpartyType"
-          }
-        },
-        "required": ["name"],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IPaymentEntryLineReq": {
         "properties": {
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "$ref": "#/components/schemas/IJournalCounterpartyReq"
+          "counterpartyId": {
+            "type": "string"
           },
           "amount": {
             "$ref": "#/components/schemas/IMoneyDto"
@@ -12193,7 +12177,7 @@
         },
         "required": [
           "accountId",
-          "counterparty",
+          "counterpartyId",
           "amount",
           "exchangeRate",
           "description",
@@ -12249,8 +12233,8 @@
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "$ref": "#/components/schemas/IJournalCounterpartyReq"
+          "counterpartyId": {
+            "type": "string"
           },
           "amount": {
             "$ref": "#/components/schemas/IMoneyDto"
@@ -12274,7 +12258,7 @@
         },
         "required": [
           "accountId",
-          "counterparty",
+          "counterpartyId",
           "amount",
           "exchangeRate",
           "description",
@@ -12365,12 +12349,8 @@
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IJournalCounterpartyReq"
-              }
-            ],
+          "counterpartyId": {
+            "type": "string",
             "nullable": true
           },
           "amount": {
@@ -12395,7 +12375,7 @@
         },
         "required": [
           "accountId",
-          "counterparty",
+          "counterpartyId",
           "amount",
           "exchangeRate",
           "description",
@@ -12488,8 +12468,8 @@
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "$ref": "#/components/schemas/IJournalCounterpartyReq"
+          "counterpartyId": {
+            "type": "string"
           },
           "amount": {
             "$ref": "#/components/schemas/IMoneyDto"
@@ -12516,7 +12496,7 @@
         },
         "required": [
           "accountId",
-          "counterparty",
+          "counterpartyId",
           "amount",
           "exchangeRate",
           "description",
@@ -12664,12 +12644,8 @@
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IJournalCounterpartyReq"
-              }
-            ],
+          "counterpartyId": {
+            "type": "string",
             "nullable": true
           },
           "amount": {
@@ -12697,7 +12673,7 @@
         },
         "required": [
           "accountId",
-          "counterparty",
+          "counterpartyId",
           "amount",
           "exchangeRate",
           "description",

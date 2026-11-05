@@ -3,8 +3,8 @@
  * Corrects an eligible payment, receipt, or transfer in the selected accounting
  * entity. Updates drafts in place and permits metadata-only changes to posted
  * entries; financial corrections void the original and create a reversal and
- * replacement. Saves journal changes, new counterparties, audits, applicable
- * foreign-exchange reversal and replacement effects, and pending balance work
+ * replacement. Saves journal changes, audits, applicable foreign-exchange
+ * reversal and replacement effects, and pending balance work
  * together. Requests required balance processing and publishes events. Returns
  * the correction mode, current entry, and original/current/reversing entry IDs.
  * Valid unchanged requests produce no writes, audit, events, or balance work.
@@ -30,7 +30,6 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 
-import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 
@@ -43,7 +42,6 @@ import {
 } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
 import journalEntryRectificationDtoMapper from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto.mapper';
 import { journalEntryRectificationReqValidation } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto.validation';
-import getNewCounterpartiesHelper from '@app/journal-entry/helpers/get-new-counterparties.helper';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import helpers from '@app/journal-entry/usecases/helpers/rectify-journal-entry.usecase.helpers';
@@ -53,7 +51,6 @@ import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/cont
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
-  counterpartyRepo: ICounterpartyRepo;
   journalEntryRepo: IJournalEntryRepo;
   journalEntryRectificationPreparationAppService: IJournalEntryRectificationPreparationAppService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
@@ -110,11 +107,6 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
       );
     }
 
-    const newCounterparties = getNewCounterpartiesHelper(
-      preparedRectification.counterparties,
-      actor.id,
-      correlationId
-    );
     const rectificationPersistencePayload =
       getJournalEntryPersistencePayloadHelper(
         preparedRectification.rectification,
@@ -129,14 +121,6 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
 
     const transactionFn: TRepoTransactionFn = async (tx) => {
       const writeOptions = { correlationId, tx };
-
-      for (const counterpartyWithHistory of newCounterparties.records) {
-        const [counterparty, history] = counterpartyWithHistory;
-        await deps.counterpartyRepo.create(counterparty, {
-          ...writeOptions,
-          history,
-        });
-      }
 
       await deps.journalEntryPersistenceAppService.rectify(
         rectificationPersistencePayload,
@@ -181,7 +165,6 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
     }
 
     const events: IEvent<unknown>[] = [
-      ...newCounterparties.events,
       ...preparedRectification.rectification.events,
       ...(preparedRectification.fxReversal?.events ?? []),
       ...(preparedRectification.fxDisposition?.events ?? []),

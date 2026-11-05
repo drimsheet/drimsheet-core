@@ -19,10 +19,6 @@ import {
 } from '@domain/journal-entry/types/journal-line.types';
 
 import {
-  counterpartyNameValidation,
-  counterpartyTypeValidation,
-} from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
-import {
   EJournalEntrySortBy,
   UJournalEntrySortBy,
 } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
@@ -146,13 +142,7 @@ export const journalEntryStatusValidation = z.enum(
 
 export const journalLineReqValidation = z.object({
   accountId: z.uuid(accountIdError),
-  counterparty: z
-    .object({
-      id: z.uuid(counterpartyIdError).optional(),
-      name: counterpartyNameValidation,
-      type: counterpartyTypeValidation.optional(),
-    })
-    .nullable(),
+  counterpartyId: z.uuid(counterpartyIdError).nullable(),
   amount: moneyDtoValidation,
   exchangeRate: exchangeRateDtoValidation.nullable(),
   description: z

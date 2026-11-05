@@ -8,10 +8,7 @@ describe('Receipt Entry DTO Validation', () => {
       sourceLines: [
         {
           accountId: '2b4c1064-a09e-4e4f-b6a3-23945cc87f74',
-          counterparty: {
-            id: '3b4c1064-a09e-4e4f-b6a3-23945cc87f76',
-            name: 'Customer',
-          },
+          counterpartyId: '3b4c1064-a09e-4e4f-b6a3-23945cc87f76',
           amount: {
             amount: 900,
             currencyCode: 'USD',
@@ -23,7 +20,7 @@ describe('Receipt Entry DTO Validation', () => {
         },
         {
           accountId: '4b4c1064-a09e-4e4f-b6a3-23945cc87f74',
-          counterparty: { name: 'Tax authority' },
+          counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
           amount: {
             amount: 100,
             currencyCode: 'USD',
@@ -36,9 +33,7 @@ describe('Receipt Entry DTO Validation', () => {
       ],
       destinationLine: {
         accountId: '1b4c1064-a09e-4e4f-b6a3-23945cc87f75',
-        counterparty: {
-          name: 'Customer',
-        },
+        counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
         amount: {
           amount: 1000,
           currencyCode: 'USD',
@@ -62,7 +57,7 @@ describe('Receipt Entry DTO Validation', () => {
       sourceLines: [
         {
           accountId: '2b4c1064-a09e-4e4f-b6a3-23945cc87f74',
-          counterparty: { name: 'Customer' },
+          counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
           amount: { amount: 1000, currencyCode: 'USD', isMinorUnit: true },
           exchangeRate: null,
           description: 'Source Line',
@@ -71,7 +66,7 @@ describe('Receipt Entry DTO Validation', () => {
       ],
       destinationLine: {
         accountId: '1b4c1064-a09e-4e4f-b6a3-23945cc87f75',
-        counterparty: { name: 'Customer' },
+        counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
         amount: { amount: 1000, currencyCode: 'USD', isMinorUnit: true },
         exchangeRate: null,
         description: 'Destination Line',
@@ -109,7 +104,7 @@ describe('Receipt Entry DTO Validation', () => {
         sourceLines: [
           {
             accountId: '2b4c1064-a09e-4e4f-b6a3-23945cc87f74',
-            counterparty: { name: 'Customer' },
+            counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
             amount: { amount: 1000, currencyCode: 'USD', isMinorUnit: true },
             exchangeRate: null,
             description: 'Source Line',
@@ -118,7 +113,7 @@ describe('Receipt Entry DTO Validation', () => {
         ],
         destinationLine: {
           accountId: '1b4c1064-a09e-4e4f-b6a3-23945cc87f75',
-          counterparty: { name: 'Customer' },
+          counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
           amount: { amount: 1000, currencyCode: 'USD', isMinorUnit: true },
           exchangeRate: null,
           description: 'Destination Line',
@@ -157,7 +152,7 @@ describe('Receipt Entry DTO Validation', () => {
       sourceLines: [
         {
           accountId: '2b4c1064-a09e-4e4f-b6a3-23945cc87f74',
-          counterparty: null,
+          counterpartyId: null,
           amount: {
             amount: 1000,
             currencyCode: 'USD',
@@ -170,9 +165,7 @@ describe('Receipt Entry DTO Validation', () => {
       ],
       destinationLine: {
         accountId: '1b4c1064-a09e-4e4f-b6a3-23945cc87f75',
-        counterparty: {
-          name: 'Customer',
-        },
+        counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
         amount: {
           amount: 1000,
           currencyCode: 'USD',
@@ -196,7 +189,7 @@ describe('Receipt Entry DTO Validation', () => {
       sourceLines: [],
       destinationLine: {
         accountId: '1b4c1064-a09e-4e4f-b6a3-23945cc87f75',
-        counterparty: { name: 'Customer' },
+        counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
         amount: {
           amount: 1000,
           currencyCode: 'USD',

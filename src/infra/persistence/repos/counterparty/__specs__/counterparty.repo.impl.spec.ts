@@ -409,6 +409,103 @@ describe('Counterparty repository reads', () => {
   );
 });
 
+describe('Counterparty repository bulk reads', () => {
+  beforeEach(() => jest.resetAllMocks());
+
+  function bulkQuery(
+    rows: Parameters<typeof counterpartyMapper.toDomain>[0][]
+  ) {
+    const lock = jest.fn().mockResolvedValue(rows);
+    const baseQuery = Object.assign(Promise.resolve(rows), { for: lock });
+    const where = jest.fn().mockReturnValue(baseQuery);
+    const from = jest.fn().mockReturnValue({ where });
+    const select = jest.fn().mockReturnValue({ from });
+    const db = { select };
+    useQuery(db);
+    return { db, where, from, lock };
+  }
+
+  it('returns an empty batch without querying', async () => {
+    await expect(
+      counterpartyRepo.findByIds([], counterparty.accountingEntityId, {
+        correlationId: 'bulk-read',
+      })
+    ).resolves.toEqual([]);
+    expect(getDbQuery).not.toHaveBeenCalled();
+  });
+
+  it('retrieves matching tenant records in one query regardless of duplicates, missing IDs, or result order', async () => {
+    const fake = bulkQuery([counterpartyMapper.toRepo(employer), row]);
+    const missingId = generateUUID();
+    const ids = [counterparty.id, employer.id, counterparty.id, missingId];
+    const readOptions = { correlationId: 'bulk-read' };
+
+    const counterparties = await counterpartyRepo.findByIds(
+      ids,
+      counterparty.accountingEntityId,
+      readOptions
+    );
+
+    expect(counterparties).toEqual([employer, counterparty]);
+    expect(fake.db.select).toHaveBeenCalledTimes(1);
+    expect(fake.from).toHaveBeenCalledWith(counterpartiesInCore);
+    const predicate = new PgDialect().sqlToQuery(
+      fake.where.mock.calls[0][0] as SQL
+    );
+    expect(predicate.sql).toContain('"core"."counterparties"."id" in');
+    expect(predicate.sql).toContain(
+      '"core"."counterparties"."accounting_entity_id"'
+    );
+    expect(predicate.params).toEqual([...ids, counterparty.accountingEntityId]);
+    expect(fake.lock).not.toHaveBeenCalled();
+    expect(getDbQuery).toHaveBeenCalledWith(readOptions);
+  });
+
+  it('returns no records when IDs are missing from the selected entity', async () => {
+    bulkQuery([]);
+    await expect(
+      counterpartyRepo.findByIds(
+        [generateUUID()],
+        counterparty.accountingEntityId,
+        { correlationId: 'bulk-read' }
+      )
+    ).resolves.toEqual([]);
+  });
+
+  it('honors a requested read lock in the supplied transaction', async () => {
+    const fake = bulkQuery([row]);
+    const readOptions = {
+      correlationId: 'bulk-read',
+      tx: { _brand: 'DrimsheetTransactionContext' as const },
+      lock: 'update' as const,
+    };
+
+    await expect(
+      counterpartyRepo.findByIds(
+        [counterparty.id],
+        counterparty.accountingEntityId,
+        readOptions
+      )
+    ).resolves.toEqual([counterparty]);
+    expect(fake.lock).toHaveBeenCalledWith('update');
+    expect(getDbQuery).toHaveBeenCalledWith(readOptions);
+  });
+
+  it('propagates query failures to the caller', async () => {
+    const fake = bulkQuery([]);
+    const failure = new Error('bulk read failed');
+    fake.where.mockRejectedValueOnce(failure);
+
+    await expect(
+      counterpartyRepo.findByIds(
+        [counterparty.id],
+        counterparty.accountingEntityId,
+        { correlationId: 'bulk-read' }
+      )
+    ).rejects.toBe(failure);
+  });
+});
+
 describe('versioned counterparty updates', () => {
   const [updated, , delta] = counterpartyEntity.update(counterparty, {
     name: 'Changed',

@@ -12,7 +12,6 @@ import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
 
-import { counterpartyAppService } from '@infra/ioc/services/counterparty';
 import { fileManagementAppService } from '@infra/ioc/services/file';
 import {
   fxCostBasisPersistenceAppService,
@@ -164,9 +163,8 @@ export const getJournalEntriesUseCase = makeTracedUseCase(
 export const createPaymentUseCase = makeTracedUseCase(
   'journalEntry.createPaymentUseCase',
   makeCreatePaymentUsecase({
-    counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
-    counterpartyAppService,
+    counterpartyRepo: counterpartyRepos.counterparty,
     fileManagementAppService,
     journalEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
@@ -183,9 +181,8 @@ export const createPaymentUseCase = makeTracedUseCase(
 export const createReceiptUseCase = makeTracedUseCase(
   'journalEntry.createReceiptUseCase',
   makeCreateReceiptUsecase({
-    counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
-    counterpartyAppService,
+    counterpartyRepo: counterpartyRepos.counterparty,
     fileManagementAppService,
     journalEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
@@ -202,9 +199,8 @@ export const createReceiptUseCase = makeTracedUseCase(
 export const createTransferUseCase = makeTracedUseCase(
   'journalEntry.createTransferUseCase',
   makeCreateTransferUsecase({
-    counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
-    counterpartyAppService,
+    counterpartyRepo: counterpartyRepos.counterparty,
     fileManagementAppService,
     journalEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
@@ -221,7 +217,6 @@ export const createTransferUseCase = makeTracedUseCase(
 export const rectifyJournalEntryUseCase = makeTracedUseCase(
   'journalEntry.rectifyJournalEntryUseCase',
   makeRectifyJournalEntryUsecase({
-    counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
     journalEntryRepo: journalEntryRepos.journalEntry,
     journalEntryRectificationPreparationAppService,

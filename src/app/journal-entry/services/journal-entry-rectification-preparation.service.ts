@@ -2,7 +2,7 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 
-import { ECounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
+import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import {
   EJournalEntryRectificationMode,
   IJournalEntryRectificationResult,
@@ -23,14 +23,12 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 
-import ICounterpartyAppService, {
-  ICounterpartyFindOrCreateRes,
-} from '@app/counterparty/contracts/counterparty.service.contract';
 import IJournalEntryRectificationPreparationAppService, {
   IJournalEntryRectificationPreparationPayload,
 } from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
 import { TJournalEntryRectificationReq } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
 import getLedgerAccount from '@app/journal-entry/helpers/account-getter.helper';
+import getCounterpartiesHelper from '@app/journal-entry/helpers/get-counterparties.helper';
 import transferHelpers from '@app/journal-entry/helpers/transfer-entry.helpers';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
@@ -42,7 +40,7 @@ import {
 } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 interface IDependencies {
-  counterpartyAppService: ICounterpartyAppService;
+  counterpartyRepo: ICounterpartyRepo;
   journalEntryService: IJournalEntryService;
   journalEntryRectificationService: IJournalEntryRectificationService;
   ledgerAccountRepo: ILedgerAccountRepo;
@@ -51,7 +49,6 @@ interface IDependencies {
 
 interface IPreparedSourceJournalEntry {
   journalEntry: IJournalEntry;
-  counterparties: Map<string, ICounterpartyFindOrCreateRes>;
   sourceAccount: ILedgerAccount;
   destinationAssetAccount: ILedgerAccount;
 }
@@ -141,23 +138,18 @@ async function preparePayment(
     destinationAccounts.push(destinationAccount);
   }
 
-  const counterparties = await deps.counterpartyAppService.findOrCreateMany(
-    [
-      requestedEntry.sourceLine.counterparty,
-      ...requestedEntry.destinationLines.map((line) => line.counterparty),
+  const counterparties = await getCounterpartiesHelper({
+    ids: [
+      requestedEntry.sourceLine.counterpartyId,
+      ...requestedEntry.destinationLines.map((line) => line.counterpartyId),
     ],
-    accountingEntity.id,
-    preparation.actor,
-    getHeader(preparation).postedAt === null
-      ? ECounterpartyStatus.Draft
-      : ECounterpartyStatus.Active,
-    repoOptions
-  );
-  const sourceCounterparty =
-    deps.counterpartyAppService.getFoundOrCreated(
-      requestedEntry.sourceLine.counterparty,
-      counterparties
-    )?.data[0] ?? null;
+    accountingEntityId: accountingEntity.id,
+    repo: deps.counterpartyRepo,
+    repoOptions,
+  });
+  const sourceCounterparty = counterparties.find(
+    (candidate) => candidate.id === requestedEntry.sourceLine.counterpartyId
+  )!;
   const paymentPayload: ICreatePaymentEntryPayload = {
     header: getHeader(preparation),
     attachments: requestedEntry.attachments,
@@ -172,11 +164,9 @@ async function preparePayment(
     },
     destinationLines: requestedEntry.destinationLines.map((line, index) => ({
       account: destinationAccounts[index],
-      counterparty:
-        deps.counterpartyAppService.getFoundOrCreated(
-          line.counterparty,
-          counterparties
-        )?.data[0] ?? null,
+      counterparty: counterparties.find(
+        (candidate) => candidate.id === line.counterpartyId
+      )!,
       sequenceOrder: line.sequenceOrder,
       amount: moneyMapper.fromDto(line.amount),
       exchangeRate: getExchangeRate(line.exchangeRate),
@@ -197,7 +187,6 @@ async function preparePayment(
 
   return {
     journalEntry: retainRequestedLineIds(journalEntry, requestedLineIds),
-    counterparties,
     sourceAccount,
     destinationAssetAccount: destinationAccounts[0],
   };
@@ -229,28 +218,23 @@ async function prepareReceipt(
     repo: deps.ledgerAccountRepo,
     repoOptions,
   });
-  const counterparties = await deps.counterpartyAppService.findOrCreateMany(
-    [
-      ...requestedEntry.sourceLines.map((line) => line.counterparty),
-      requestedEntry.destinationLine.counterparty,
+  const counterparties = await getCounterpartiesHelper({
+    ids: [
+      ...requestedEntry.sourceLines.map((line) => line.counterpartyId),
+      requestedEntry.destinationLine.counterpartyId,
     ],
-    accountingEntity.id,
-    preparation.actor,
-    getHeader(preparation).postedAt === null
-      ? ECounterpartyStatus.Draft
-      : ECounterpartyStatus.Active,
-    repoOptions
-  );
+    accountingEntityId: accountingEntity.id,
+    repo: deps.counterpartyRepo,
+    repoOptions,
+  });
   const receiptPayload: ICreateReceiptEntryPayload = {
     header: getHeader(preparation),
     attachments: requestedEntry.attachments,
     sourceLines: requestedEntry.sourceLines.map((line, index) => ({
       account: sourceAccounts[index],
-      counterparty:
-        deps.counterpartyAppService.getFoundOrCreated(
-          line.counterparty,
-          counterparties
-        )?.data[0] ?? null,
+      counterparty: counterparties.find(
+        (candidate) => candidate.id === line.counterpartyId
+      )!,
       sequenceOrder: line.sequenceOrder,
       amount: moneyMapper.fromDto(line.amount),
       exchangeRate: getExchangeRate(line.exchangeRate),
@@ -259,11 +243,10 @@ async function prepareReceipt(
     })),
     destinationLine: {
       account: destinationAccount,
-      counterparty:
-        deps.counterpartyAppService.getFoundOrCreated(
-          requestedEntry.destinationLine.counterparty,
-          counterparties
-        )?.data[0] ?? null,
+      counterparty: counterparties.find(
+        (candidate) =>
+          candidate.id === requestedEntry.destinationLine.counterpartyId
+      )!,
       sequenceOrder: requestedEntry.destinationLine.sequenceOrder,
       amount: moneyMapper.fromDto(requestedEntry.destinationLine.amount),
       exchangeRate: getExchangeRate(
@@ -286,7 +269,6 @@ async function prepareReceipt(
 
   return {
     journalEntry: retainRequestedLineIds(journalEntry, requestedLineIds),
-    counterparties,
     sourceAccount: sourceAccounts[0],
     destinationAssetAccount: destinationAccount,
   };
@@ -318,17 +300,12 @@ async function prepareTransfer(
     deps.ledgerAccountRepo,
     repoOptions
   );
-  const counterparties = await deps.counterpartyAppService.findOrCreateMany(
-    requestedEntry.chargeLines.flatMap((line) =>
-      line.counterparty ? [line.counterparty] : []
-    ),
-    accountingEntity.id,
-    preparation.actor,
-    getHeader(preparation).postedAt === null
-      ? ECounterpartyStatus.Draft
-      : ECounterpartyStatus.Active,
-    repoOptions
-  );
+  const counterparties = await getCounterpartiesHelper({
+    ids: requestedEntry.chargeLines.map((line) => line.counterpartyId),
+    accountingEntityId: accountingEntity.id,
+    repo: deps.counterpartyRepo,
+    repoOptions,
+  });
   const transferPayload: ICreateTransferEntryPayload = {
     header: getHeader(preparation),
     attachments: requestedEntry.attachments,
@@ -341,8 +318,7 @@ async function prepareTransfer(
       ...transferHelpers.transformChargeLineToJournalLine(
         requestedEntry,
         counterparties,
-        chargeAccounts,
-        deps.counterpartyAppService
+        chargeAccounts
       ),
     ],
   };
@@ -363,7 +339,6 @@ async function prepareTransfer(
       transferResult.journalEntry[0],
       requestedLineIds
     ),
-    counterparties,
     sourceAccount,
     destinationAssetAccount: transferResult.destinationAssetAccount,
   };
@@ -544,7 +519,6 @@ function makePrepare(
 
     return {
       rectification,
-      counterparties: sourcePreparation.counterparties,
       ...fxRectification,
     };
   };

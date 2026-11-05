@@ -5,11 +5,11 @@ import { journalEntryRectificationReqValidation } from '@app/journal-entry/dtos/
 describe('journalEntryRectificationReqValidation', () => {
   const accountId = generateUUID();
   const lineId = generateUUID();
-  const counterparty = { id: generateUUID(), name: 'Vendor' };
+  const counterpartyId = generateUUID();
   const line = {
     id: lineId,
     accountId,
-    counterparty,
+    counterpartyId,
     amount: { amount: 100, currencyCode: 'NGN', isMinorUnit: false },
     exchangeRate: null,
     description: 'Description',
@@ -45,11 +45,11 @@ describe('journalEntryRectificationReqValidation', () => {
     {
       ...base,
       sourceType: 'transfer',
-      sourceLine: { ...line, counterparty: undefined },
+      sourceLine: { ...line, counterpartyId: undefined },
       destinationLine: {
         ...line,
         id: generateUUID(),
-        counterparty: undefined,
+        counterpartyId: undefined,
         sequenceOrder: 2,
       },
       chargeLines: [],

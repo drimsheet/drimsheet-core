@@ -3,10 +3,6 @@ import z from 'zod';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 
-import {
-  counterpartyNameValidation,
-  counterpartyTypeValidation,
-} from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
 import fileAppError from '@app/file/errors/file.error';
 import fileUploadPolicy from '@app/file/policies/file-upload.policy';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
@@ -21,13 +17,7 @@ const maxAttachmentReferences = fileUploadPolicy.getPolicy(
 ).maxFiles;
 
 const paymentEntryLineReqValidation = journalLineReqValidation.extend({
-  counterparty: z.object({
-    id: z
-      .uuid(new journalLineError.InvalidCounterpartyId().errorKey)
-      .optional(),
-    name: counterpartyNameValidation,
-    type: counterpartyTypeValidation.optional(),
-  }),
+  counterpartyId: z.uuid(new journalLineError.InvalidCounterpartyId().errorKey),
 });
 
 export const paymentEntryReqValidation = z.object({
