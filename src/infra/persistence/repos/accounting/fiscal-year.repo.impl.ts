@@ -1,12 +1,12 @@
 import { and, asc, eq, gte, lte } from 'drizzle-orm';
 
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 
 import { fiscalYearsInCore } from '@infra/config/drizzle/schema';
 import { toRepoDateOnly } from '@infra/persistence/helpers/date.mapper';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import mapFiscalYearOverlapErrorHelper from '@infra/persistence/helpers/map-fiscal-year-overlap-error.helper';
 import fiscalYearMapper from '@infra/persistence/repos/accounting/mappers/fiscal-year.mapper';
 
@@ -14,7 +14,7 @@ import fiscalYearHistoryRepo from './fiscal-year-history.repo.impl';
 
 const fiscalYearRepoImpl: IFiscalYearRepo = {
   findByAccountingEntityId: async (accountingEntityId, options) => {
-    const years = await getDbQuery(options)
+    const years = await getDbQueryHelper(options)
       .select()
       .from(fiscalYearsInCore)
       .where(eq(fiscalYearsInCore.accountingEntityId, accountingEntityId));
@@ -24,7 +24,7 @@ const fiscalYearRepoImpl: IFiscalYearRepo = {
 
   findByDate: async (accountingEntityId, date, options) => {
     const calendarDate = toRepoDateOnly(date);
-    const years = await getDbQuery(options)
+    const years = await getDbQueryHelper(options)
       .select()
       .from(fiscalYearsInCore)
       .where(
@@ -40,7 +40,7 @@ const fiscalYearRepoImpl: IFiscalYearRepo = {
   },
 
   findById: async (accountingEntityId, id, options) => {
-    const [year] = await getDbQuery(options)
+    const [year] = await getDbQueryHelper(options)
       .select()
       .from(fiscalYearsInCore)
       .where(
@@ -55,7 +55,7 @@ const fiscalYearRepoImpl: IFiscalYearRepo = {
   },
 
   existsByRange: async (accountingEntityId, range, options) => {
-    const rows = await getDbQuery(options)
+    const rows = await getDbQueryHelper(options)
       .select({ id: fiscalYearsInCore.id })
       .from(fiscalYearsInCore)
       .where(
@@ -71,7 +71,7 @@ const fiscalYearRepoImpl: IFiscalYearRepo = {
 
   create: async (payload, options) => {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         await tx
           .insert(fiscalYearsInCore)
           .values(fiscalYearMapper.toRepo(payload));
@@ -79,7 +79,7 @@ const fiscalYearRepoImpl: IFiscalYearRepo = {
         await fiscalYearHistoryRepo.save(
           payload,
           options.history,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {

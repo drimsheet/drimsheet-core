@@ -2,9 +2,9 @@ import { TCreationOmits } from '@shared/types/creation-omits.types';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import getContraLedgerAccountBalance from '@domain/ledger/entities/helpers/get-contra-balance.helper';
-import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getContraLedgerAccountBalanceHelper from '@domain/ledger/entities/helpers/get-contra-balance.helper';
+import getLedgerAccountMaterializedPathHelper from '@domain/ledger/entities/helpers/get-materialized-path.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountValidation from '@domain/ledger/entities/validations/ledger-account.validation';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
@@ -83,7 +83,7 @@ describe('Ledger Account Shared Entity', () => {
     type: ELedgerType.Asset,
     subType: 'cash',
     behavior: 'bank',
-    normalBalance: getLedgerAccountNormalBalance(ELedgerType.Asset),
+    normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Asset),
     isControlAccount: false,
     controlAccountId: null,
     name: 'Main Bank Account',
@@ -386,23 +386,23 @@ describe('Ledger Account Shared Entity', () => {
     });
   });
 
-  describe('getLedgerAccountMaterializedPath', () => {
+  describe('getLedgerAccountMaterializedPathHelper', () => {
     it('returns a correct appended materialized path', () => {
-      expect(getLedgerAccountMaterializedPath('100000', '100001')).toBe(
+      expect(getLedgerAccountMaterializedPathHelper('100000', '100001')).toBe(
         '100000.100001'
       );
     });
 
     it('throws AppError if parent path is too short', () => {
       expect(() =>
-        getLedgerAccountMaterializedPath('10000', '100001')
+        getLedgerAccountMaterializedPathHelper('10000', '100001')
       ).toThrow();
     });
 
     it('throws AppError if parent path is too long', () => {
       // 63 characters
       expect(() =>
-        getLedgerAccountMaterializedPath(
+        getLedgerAccountMaterializedPathHelper(
           '100000.100001.100002.100003.100004.100005.100006.100007.100008.',
           '100009'
         )
@@ -432,24 +432,24 @@ describe('Ledger Account Shared Entity', () => {
     });
   });
 
-  describe('getLedgerAccountNormalBalance', () => {
+  describe('getLedgerAccountNormalBalanceHelper', () => {
     it('returns Debit for Asset and Expense', () => {
-      expect(getLedgerAccountNormalBalance(ELedgerType.Asset)).toBe(
+      expect(getLedgerAccountNormalBalanceHelper(ELedgerType.Asset)).toBe(
         ENormalBalance.Debit
       );
-      expect(getLedgerAccountNormalBalance(ELedgerType.Expense)).toBe(
+      expect(getLedgerAccountNormalBalanceHelper(ELedgerType.Expense)).toBe(
         ENormalBalance.Debit
       );
     });
 
     it('returns Credit for Liability, Equity, and Revenue', () => {
-      expect(getLedgerAccountNormalBalance(ELedgerType.Liability)).toBe(
+      expect(getLedgerAccountNormalBalanceHelper(ELedgerType.Liability)).toBe(
         ENormalBalance.Credit
       );
-      expect(getLedgerAccountNormalBalance(ELedgerType.Equity)).toBe(
+      expect(getLedgerAccountNormalBalanceHelper(ELedgerType.Equity)).toBe(
         ENormalBalance.Credit
       );
-      expect(getLedgerAccountNormalBalance(ELedgerType.Revenue)).toBe(
+      expect(getLedgerAccountNormalBalanceHelper(ELedgerType.Revenue)).toBe(
         ENormalBalance.Credit
       );
     });
@@ -457,20 +457,20 @@ describe('Ledger Account Shared Entity', () => {
     it('throws AppError for invalid ledger type', () => {
       expect(() => {
         // @ts-expect-error testing invalid type
-        getLedgerAccountNormalBalance('INVALID_TYPE');
+        getLedgerAccountNormalBalanceHelper('INVALID_TYPE');
       }).toThrow();
     });
   });
 
-  describe('getContraLedgerAccountBalance', () => {
+  describe('getContraLedgerAccountBalanceHelper', () => {
     it('returns Credit when normal balance is Debit', () => {
-      expect(getContraLedgerAccountBalance(ENormalBalance.Debit)).toBe(
+      expect(getContraLedgerAccountBalanceHelper(ENormalBalance.Debit)).toBe(
         ENormalBalance.Credit
       );
     });
 
     it('returns Debit when normal balance is Credit', () => {
-      expect(getContraLedgerAccountBalance(ENormalBalance.Credit)).toBe(
+      expect(getContraLedgerAccountBalanceHelper(ENormalBalance.Credit)).toBe(
         ENormalBalance.Debit
       );
     });
@@ -478,7 +478,7 @@ describe('Ledger Account Shared Entity', () => {
     it('throws AppError for invalid normal balance', () => {
       expect(() => {
         // @ts-expect-error testing invalid balance
-        getContraLedgerAccountBalance('INVALID_BALANCE');
+        getContraLedgerAccountBalanceHelper('INVALID_BALANCE');
       }).toThrow();
     });
   });

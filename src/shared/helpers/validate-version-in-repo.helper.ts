@@ -19,7 +19,7 @@ function validateVersion(version: unknown) {
   }
 }
 
-export default function validateVersionInRepo(
+export default function validateVersionInRepoHelper(
   entity: IVersionedEntity,
   options:
     IVersionedRepoWriteOptions | IVersionedRepoWriteOptions<TVersionedHistory>

@@ -4,7 +4,7 @@ import {
   UJournalSide,
 } from '@domain/journal-entry/types/journal-line.types';
 
-export default function getOppositeJournalSide(
+export default function getOppositeJournalSideHelper(
   side: UJournalSide
 ): UJournalSide {
   journalLineValidation.validateSide(side);

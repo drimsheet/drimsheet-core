@@ -5,11 +5,11 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import reportingIntervalEntity from '@domain/accounting/entities/reporting-interval.entity';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import reportingIntervalMapper from '@infra/persistence/repos/accounting/mappers/reporting-interval.mapper';
 import reportingIntervalRepo from '@infra/persistence/repos/accounting/reporting-interval.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock(
   '@infra/persistence/repos/accounting/mappers/reporting-interval.mapper'
 );
@@ -32,9 +32,9 @@ describe('reportingIntervalRepo.findById', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       query: { reportingIntervalsInCore: { findFirst } },
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
   });
 
   it.each([false, true])(
@@ -54,7 +54,7 @@ describe('reportingIntervalRepo.findById', () => {
           options
         )
       ).resolves.toBe(interval);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(findFirst).toHaveBeenCalledTimes(1);
       expect(reportingIntervalMapper.toDomain).toHaveBeenCalledWith(row);
       const config = findFirst.mock.calls[0][0] as {
@@ -116,9 +116,9 @@ describe('reportingIntervalRepo.findByFiscalYear', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       query: { reportingIntervalsInCore: { findFirst } },
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
   });
 
   it.each([false, true])(
@@ -138,7 +138,7 @@ describe('reportingIntervalRepo.findByFiscalYear', () => {
           options
         )
       ).resolves.toBe(interval);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(findFirst).toHaveBeenCalledTimes(1);
       expect(reportingIntervalMapper.toDomain).toHaveBeenCalledWith(row);
       const config = findFirst.mock.calls[0][0] as {

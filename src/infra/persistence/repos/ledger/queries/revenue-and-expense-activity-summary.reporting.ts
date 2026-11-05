@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 
 import type { TGetRevenueAndExpenseActivitySummaryRepoQuery } from '@app/ledger/usecases/reporting/revenue-and-expense-activity-summary/revenue-and-expense-activity-summary.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 interface IAggregateRow extends Record<string, unknown> {
   account_id: string;
@@ -18,7 +18,8 @@ interface IAggregateRow extends Record<string, unknown> {
 
 const revenueAndExpenseActivitySummaryRepoQuery: TGetRevenueAndExpenseActivitySummaryRepoQuery =
   async (criteria, options) => {
-    const aggregates = await getDbQuery(options).execute<IAggregateRow>(sql`
+    const aggregates = await getDbQueryHelper(options)
+      .execute<IAggregateRow>(sql`
       WITH periods AS (
         SELECT ${criteria.period.from.toISOString().slice(0, 10)}::date AS current_from,
           ${criteria.period.to.toISOString().slice(0, 10)}::date AS current_to,

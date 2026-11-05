@@ -2,7 +2,7 @@ import stringUtils from '@shared/utils/string';
 
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 
-export default function getJournalLineDescription(value?: string | null) {
+export default function getJournalLineDescriptionHelper(value?: string | null) {
   if (!value) {
     return null;
   }

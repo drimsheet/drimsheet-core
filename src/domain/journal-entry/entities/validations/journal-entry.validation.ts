@@ -5,7 +5,7 @@ import dateUtils from '@shared/utils/date';
 import serializeBigIntInObj from '@shared/utils/serialize-bigint-in-object';
 import stringUtils from '@shared/utils/string';
 
-import getJournalEntryMemo from '@domain/journal-entry/entities/helpers/get-memo.helper';
+import getJournalEntryMemoHelper from '@domain/journal-entry/entities/helpers/get-memo.helper';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import {
   EJournalEntrySourceType,
@@ -169,7 +169,7 @@ function hasOnlyMetadataChanges(
     (newEntry.sourceType !== undefined &&
       newEntry.sourceType !== entry.sourceType) ||
     (newEntry.memo !== undefined &&
-      getJournalEntryMemo(newEntry.memo) !== entry.memo) ||
+      getJournalEntryMemoHelper(newEntry.memo) !== entry.memo) ||
     (newEntry.status !== undefined && newEntry.status !== entry.status) ||
     (newEntry.effectiveDate !== undefined &&
       !isEqual(newEntry.effectiveDate, entry.effectiveDate)) ||

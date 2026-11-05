@@ -38,7 +38,7 @@ import { IPettyCashAccountCreationReq } from '@app/ledger/dtos/asset-account/ass
 import { pettyCashCreationReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
-import openingBalanceExchangeRateGetter from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
+import openingBalanceExchangeRateGetterHelper from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
 import openingBalanceExchangeRateValidationHelper from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-validation.helper';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
@@ -148,7 +148,9 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
         account,
         amount: moneyMapper.fromDto(payload.openingBalance.amount),
         effectiveDate: payload.openingBalance.date,
-        exchangeRate: openingBalanceExchangeRateGetter(payload.openingBalance),
+        exchangeRate: openingBalanceExchangeRateGetterHelper(
+          payload.openingBalance
+        ),
         createdBy: actor.id,
       };
 

@@ -6,7 +6,7 @@ import {
   UNormalBalance,
 } from '@domain/ledger/types/ledger.types';
 
-export default function getLedgerAccountNormalBalance(
+export default function getLedgerAccountNormalBalanceHelper(
   type: ULedgerType
 ): UNormalBalance {
   switch (type) {

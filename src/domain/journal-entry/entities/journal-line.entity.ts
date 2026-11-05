@@ -6,7 +6,7 @@ import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 import { IEvent } from '@shared/values/events/types/event.types';
 
-import getJournalLineDescription from '@domain/journal-entry/entities/helpers/get-description.helper';
+import getJournalLineDescriptionHelper from '@domain/journal-entry/entities/helpers/get-description.helper';
 import journalLineValidation from '@domain/journal-entry/entities/validations/journal-line.validation';
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 import journalLineEvents from '@domain/journal-entry/events/journal-line-item.events';
@@ -55,7 +55,7 @@ function make(
         payload.functionalCurrency
       )
     : payload.amount;
-  const description = getJournalLineDescription(
+  const description = getJournalLineDescriptionHelper(
     payload.description ?? entryPayload.memo
   );
 
@@ -124,7 +124,7 @@ function update(
         payload.functionalAmount.currency
       )
     : payload.amount;
-  const description = getJournalLineDescription(payload.description);
+  const description = getJournalLineDescriptionHelper(payload.description);
   const isUnchanged =
     line.accountId === payload.accountId &&
     line.counterpartyId === payload.counterpartyId &&

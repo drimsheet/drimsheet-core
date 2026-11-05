@@ -8,11 +8,11 @@ import reportingIntervalEntity from '@domain/accounting/entities/reporting-inter
 import { mockReportingPeriodHistoryRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 
 import { reportingPeriodsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import reportingPeriodMapper from '@infra/persistence/repos/accounting/mappers/reporting-period.mapper';
 import reportingPeriodRepo from '@infra/persistence/repos/accounting/reporting-period.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock(
   '@infra/persistence/repos/accounting/reporting-period-history.repo.impl',
   () => ({
@@ -75,9 +75,9 @@ describe('reportingPeriodRepo.create', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     mockReportingPeriodHistoryRepo.save.mockImplementation(
       async (_periods, history) => {
@@ -100,7 +100,7 @@ describe('reportingPeriodRepo.create', () => {
       histories,
       { ...options, tx: fake.innerTx }
     );
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
   });
 
   it('rolls back all period records and staged histories when history persistence fails', async () => {

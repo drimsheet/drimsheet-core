@@ -13,11 +13,11 @@ import {
   accountingContextsInCore,
   reportingContextsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import reportingContextMapper from '@infra/persistence/repos/accounting/mappers/reporting-context.mapper';
 import repo from '@infra/persistence/repos/accounting/reporting-context.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 jest.mock(
   '@infra/persistence/repos/accounting/reporting-context-history.repo.impl',
@@ -35,9 +35,9 @@ describe('reporting-context setup deletion', () => {
     const options = { correlationId: 'remove', tx: {} };
     const where = jest.fn().mockResolvedValue(undefined);
     const query = { delete: jest.fn().mockReturnValue({ where }) };
-    jest.mocked(getDbQuery).mockReturnValue(query as never);
+    jest.mocked(getDbQueryHelper).mockReturnValue(query as never);
     await repo.deleteByAccountingEntityId(id, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.delete).toHaveBeenCalledWith(reportingContextsInCore);
     expect(where).toHaveBeenCalledWith(
       eq(reportingContextsInCore.accountingEntityId, id)
@@ -79,9 +79,9 @@ describe('reporting-context atomic creation', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     return { committed, staged, values, insert, innerTx };
   }
@@ -96,7 +96,7 @@ describe('reporting-context atomic creation', () => {
       history,
       { ...options, tx: fake.innerTx }
     );
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
   });
 
   it.each([false, true])(
@@ -139,14 +139,14 @@ describe('reporting-context accounting-context uniqueness lookup', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       await expect(repo.existsByAccountingContext(id, options)).resolves.toBe(
         exists
       );
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(select).toHaveBeenCalledWith({ id: reportingContextsInCore.id });
       expect(from).toHaveBeenCalledWith(reportingContextsInCore);
       const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
@@ -193,16 +193,16 @@ describe('reporting-context lookup', () => {
       const from = jest.fn().mockReturnValue({ innerJoin });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       await expect(
         repo.findByFiscalYear(entityId, fiscalYearId, options)
       ).resolves.toEqual(
         state === 'missing' ? null : reportingContextMapper.toDomain(stored)
       );
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(select).toHaveBeenCalledWith(
         getTableColumns(reportingContextsInCore)
       );
@@ -231,15 +231,15 @@ describe('reporting-context lookup', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       const result = await repo.findById(id, options);
       expect(result).toEqual(
         found ? reportingContextMapper.toDomain(row) : null
       );
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(from).toHaveBeenCalledWith(reportingContextsInCore);
       expect(where).toHaveBeenCalledWith(eq(reportingContextsInCore.id, id));
       expect(limit).toHaveBeenCalledWith(1);
@@ -297,9 +297,9 @@ describe('reporting-context atomic update', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     return { committed, staged, where, set, update, innerTx };
   }
@@ -307,7 +307,7 @@ describe('reporting-context atomic update', () => {
   it('saves the mapped context and audit history in one transaction', async () => {
     const fake = fakeTransaction();
     await repo.update(context, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(fake.update).toHaveBeenCalledWith(reportingContextsInCore);
     expect(fake.set).toHaveBeenCalledWith(
       reportingContextMapper.toRepo(context)

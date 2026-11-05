@@ -1,4 +1,4 @@
-import getEntitiesAndEvents from '@shared/helpers/get-entities-and-events';
+import getEntitiesAndEventsHelper from '@shared/helpers/get-entities-and-events.helper';
 import { TEntityId } from '@shared/types/uuid';
 import {
   IEvent,
@@ -7,7 +7,7 @@ import {
 } from '@shared/values/events/types/event.types';
 import { IEntityDelta } from '@shared/values/history/types/history.types';
 
-describe('getEntitiesAndEvents', () => {
+describe('getEntitiesAndEventsHelper', () => {
   type TMockEntity = { id: number; name: string };
   type TMockEventData = TMockEntity;
 
@@ -41,7 +41,7 @@ describe('getEntitiesAndEvents', () => {
       [mockEntity2, [mockEvent2, mockEvent3]],
     ];
 
-    const result = getEntitiesAndEvents(data);
+    const result = getEntitiesAndEventsHelper(data);
 
     expect(result.entities).toHaveLength(2);
     expect(result.entities).toEqual([mockEntity1, mockEntity2]);
@@ -58,7 +58,7 @@ describe('getEntitiesAndEvents', () => {
       [mockEntity2, [mockEvent2]],
     ];
 
-    const result = getEntitiesAndEvents(data);
+    const result = getEntitiesAndEventsHelper(data);
 
     expect(result.entities).toHaveLength(2);
     expect(result.entities).toEqual([mockEntity1, mockEntity2]);
@@ -72,7 +72,7 @@ describe('getEntitiesAndEvents', () => {
   it('should return empty arrays when given an empty input array', () => {
     const data: TEntityWithEvents<TMockEntity, TMockEventData>[] = [];
 
-    const result = getEntitiesAndEvents(data);
+    const result = getEntitiesAndEventsHelper(data);
 
     expect(result.entities).toHaveLength(0);
     expect(result.entities).toEqual([]);
@@ -98,7 +98,7 @@ describe('getEntitiesAndEvents', () => {
       [mockEntity1, [mockEvent1], audit],
     ];
 
-    const result = getEntitiesAndEvents(data);
+    const result = getEntitiesAndEventsHelper(data);
 
     expect(result.entities).toEqual([mockEntity1]);
     expect(result.events).toEqual([mockEvent1]);

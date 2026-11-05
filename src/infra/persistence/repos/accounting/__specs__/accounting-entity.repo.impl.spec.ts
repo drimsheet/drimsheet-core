@@ -10,12 +10,12 @@ import {
 } from '@domain/accounting/types/accounting-entity.types';
 
 import { accountingEntitiesInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import accountingEntityHistoryRepo from '@infra/persistence/repos/accounting/accounting-entity-history.repo.impl';
 import accountingEntityRepo from '@infra/persistence/repos/accounting/accounting-entity.repo.impl';
 import accountingEntityMapper from '@infra/persistence/repos/accounting/mappers/accounting-entity.mapper';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/accounting-entity.mapper');
 jest.mock('../accounting-entity-history.repo.impl');
 
@@ -48,7 +48,7 @@ describe('AccountingEntityRepoImpl', () => {
     const query = {
       transaction: jest.fn().mockRejectedValue(databaseError),
     };
-    (getDbQuery as jest.Mock).mockReturnValue(query);
+    (getDbQueryHelper as jest.Mock).mockReturnValue(query);
 
     await expect(accountingEntityRepo.create(domain, options)).rejects.toBe(
       databaseError
@@ -66,8 +66,8 @@ describe('AccountingEntityRepoImpl', () => {
       }),
     };
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
 
     await expect(
       accountingEntityRepo.create(domain, options)
@@ -88,7 +88,7 @@ describe('AccountingEntityRepoImpl', () => {
       ),
     };
     const repoValue = { id: domain.id };
-    (getDbQuery as jest.Mock).mockReturnValue(query);
+    (getDbQueryHelper as jest.Mock).mockReturnValue(query);
     (accountingEntityMapper.toRepo as jest.Mock).mockReturnValue(repoValue);
 
     await accountingEntityRepo.create(domain, options);
@@ -108,9 +108,9 @@ describe('AccountingEntityRepoImpl', () => {
     const where = jest.fn().mockResolvedValue({ rowCount: 1 });
     const set = jest.fn().mockReturnValue({ where });
     const tx = { update: jest.fn().mockReturnValue({ set }) };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
     const mapped = { id: domain.id };
     jest.mocked(accountingEntityMapper.toRepo).mockReturnValue(mapped as never);
     await accountingEntityRepo.update(domain, options);
@@ -135,7 +135,7 @@ describe('AccountingEntityRepoImpl', () => {
       const where = jest.fn().mockResolvedValue(results);
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
-      (getDbQuery as jest.Mock).mockReturnValue({ select });
+      (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
       return { select, from, where };
     }
 
@@ -231,7 +231,7 @@ describe('AccountingEntityRepoImpl', () => {
       const where = jest.fn().mockRejectedValue(databaseError);
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
-      (getDbQuery as jest.Mock).mockReturnValue({ select });
+      (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
 
       await expect(
         accountingEntityRepo.findByIdAndUserId(
@@ -262,13 +262,15 @@ describe('accountingEntityRepo.findById', () => {
           .mockReturnValue({ from: jest.fn().mockReturnValue({ where }) }),
       };
       jest
-        .mocked(getDbQuery)
-        .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+        .mocked(getDbQueryHelper)
+        .mockReturnValue(
+          query as unknown as ReturnType<typeof getDbQueryHelper>
+        );
       jest.mocked(accountingEntityMapper.toDomain).mockReturnValue(domain);
       expect(await accountingEntityRepo.findById(id, options)).toBe(
         exists ? domain : null
       );
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(where).toHaveBeenCalledWith(eq(accountingEntitiesInCore.id, id));
       expect(lock).toHaveBeenCalledWith('update');
       if (exists) {
@@ -290,7 +292,7 @@ describe('accountingEntityRepo.update trigger errors', () => {
         constraint: 'accounting_entities_journal_currency_change_check',
       },
     };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(databaseError),
     } as never);
     await expect(
@@ -310,7 +312,7 @@ describe('accountingEntityRepo.update trigger errors', () => {
 
   it('propagates unrelated database errors unchanged', async () => {
     const failure = new Error('unavailable');
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(failure),
     } as never);
     await expect(
@@ -335,9 +337,9 @@ describe('accounting entity removal and selection', () => {
   it('deletes only the selected parent in the caller transaction without deleting history', async () => {
     const where = jest.fn().mockResolvedValue(undefined);
     const query = { delete: jest.fn().mockReturnValue({ where }) };
-    jest.mocked(getDbQuery).mockReturnValue(query as never);
+    jest.mocked(getDbQueryHelper).mockReturnValue(query as never);
     await accountingEntityRepo.delete(id, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.delete).toHaveBeenCalledWith(accountingEntitiesInCore);
     expect(where).toHaveBeenCalledWith(eq(accountingEntitiesInCore.id, id));
     expect(accountingEntityHistoryRepo.save).not.toHaveBeenCalled();
@@ -345,7 +347,7 @@ describe('accounting entity removal and selection', () => {
 
   it('excludes archived entities from owner selection', async () => {
     const where = jest.fn().mockResolvedValue([]);
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       select: jest
         .fn()
         .mockReturnValue({ from: jest.fn().mockReturnValue({ where }) }),
@@ -364,7 +366,7 @@ describe('accounting entity removal and selection', () => {
 
   it('filters active listings without changing unfiltered ownership queries', async () => {
     const where = jest.fn().mockResolvedValue([]);
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       select: jest
         .fn()
         .mockReturnValue({ from: jest.fn().mockReturnValue({ where }) }),

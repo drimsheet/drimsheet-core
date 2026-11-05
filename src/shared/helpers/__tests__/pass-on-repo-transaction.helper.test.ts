@@ -1,10 +1,10 @@
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 
-describe('passOnRepoTransaction', () => {
+describe('passOnRepoTransactionHelper', () => {
   it('should return a new object combining options and the transaction context', () => {
     const options = { correlationId: '123' } as any;
     const tx = { query: jest.fn() } as any;
-    const result = passOnRepoTransaction(options, tx);
+    const result = passOnRepoTransactionHelper(options, tx);
 
     expect(result).toEqual({
       correlationId: '123',
@@ -16,7 +16,7 @@ describe('passOnRepoTransaction', () => {
     const originalTx = { query: jest.fn() } as any;
     const newTx = { query: jest.fn() } as any;
     const options = { correlationId: '123', tx: originalTx } as any;
-    const result = passOnRepoTransaction(options, newTx);
+    const result = passOnRepoTransactionHelper(options, newTx);
 
     expect(result.tx).toBe(newTx);
     expect(result.correlationId).toBe('123');

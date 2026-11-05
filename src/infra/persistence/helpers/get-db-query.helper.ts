@@ -3,7 +3,7 @@ import repoError from '@shared/values/errors/repo.error';
 
 import { postgres } from '@infra/config/postgres.config';
 
-export default function getDbQuery(options: IReadRepoOptions) {
+export default function getDbQueryHelper(options: IReadRepoOptions) {
   const isLockWithoutTransaction = options.lock && !options.tx;
   if (isLockWithoutTransaction) {
     throw new repoError.TransactionRequired();

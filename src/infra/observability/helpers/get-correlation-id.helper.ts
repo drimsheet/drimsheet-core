@@ -7,7 +7,7 @@ import appContext from '@infra/services/app-context.service';
 
 type TCorrelationContext = Pick<IAppContextService<IAppContextData>, 'get'>;
 
-export default function safeGetCorrelationId(
+export default function safeGetCorrelationIdHelper(
   context: TCorrelationContext = appContext
 ): string | undefined {
   try {

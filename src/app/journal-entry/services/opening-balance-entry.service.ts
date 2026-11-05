@@ -1,7 +1,7 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
-import getOppositeJournalSide from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
+import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import openingBalanceEntryRule from '@domain/journal-entry/rules/opening-balance-entry.rule';
@@ -145,7 +145,7 @@ async function makeOpeningBalance(
     exchangeRate: null,
     sequenceOrder: 2,
     description: null,
-    side: getOppositeJournalSide(account.normalBalance),
+    side: getOppositeJournalSideHelper(account.normalBalance),
   };
 
   return journalEntryEntity.make({

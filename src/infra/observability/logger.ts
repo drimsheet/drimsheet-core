@@ -17,8 +17,8 @@ import vars from '@infra/config/vars.config';
 import makeBetterStackLogRuntime from '@infra/integrations/better-stack/better-stack-log-runtime';
 import { BETTER_STACK_CONFIG } from '@infra/integrations/better-stack/better-stack.config';
 import tracer from '@infra/integrations/sentry/sentry-tracer';
-import safeGetCorrelationId from '@infra/observability/helpers/get-correlation-id';
-import { normalizeTelemetryError } from '@infra/observability/helpers/telemetry-error';
+import safeGetCorrelationIdHelper from '@infra/observability/helpers/get-correlation-id.helper';
+import normalizeTelemetryErrorHelper from '@infra/observability/helpers/normalize-telemetry-error.helper';
 
 import packageJson from '../../../package.json';
 
@@ -113,7 +113,7 @@ function prepareFields(fields: ILogFields = {}): ILogFields {
   }
 
   if (error !== undefined) {
-    const normalizedError = normalizeTelemetryError(error);
+    const normalizedError = normalizeTelemetryErrorHelper(error);
     sanitizedFields.error = normalizedError;
 
     if (normalizedError.errorKey) {
@@ -158,7 +158,7 @@ export function makeLogger(options: ILoggerOptions = {}): ILogger {
   });
 
   const log = (level: ULogLevel, event: string, fields?: ILogFields) => {
-    const correlationId = safeGetCorrelationId(options.appContext);
+    const correlationId = safeGetCorrelationIdHelper(options.appContext);
     const activeTrace = safeGetActiveTrace();
     const preparedFields = prepareFields(fields);
 

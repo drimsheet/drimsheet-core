@@ -6,13 +6,13 @@ import {
   subledgerFxCostBasisLotDispositionHistoryInAudit,
   subledgerFxCostBasisLotDispositionsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import fxCostBasisLotDispositionHistoryMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/disposition-history.mapper';
 import fxCostBasisLotDispositionMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/disposition.mapper';
 
 const fxCostBasisLotDispositionRepo: IFxCostBasisLotDispositionRepo = {
   findByJournalEntryId: async (journalEntryId, options) => {
-    const result = await getDbQuery(options)
+    const result = await getDbQueryHelper(options)
       .select()
       .from(subledgerFxCostBasisLotDispositionsInCore)
       .where(
@@ -29,7 +29,7 @@ const fxCostBasisLotDispositionRepo: IFxCostBasisLotDispositionRepo = {
   },
 
   create: async (payload, options) => {
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       const repoModel = fxCostBasisLotDispositionMapper.toRepo(payload);
       await tx
         .insert(subledgerFxCostBasisLotDispositionsInCore)

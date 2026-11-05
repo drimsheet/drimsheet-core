@@ -11,11 +11,11 @@ import periodError from '@domain/accounting/errors/period.error';
 import { mockFiscalYearHistoryRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 
 import { fiscalYearsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import fiscalYearRepo from '@infra/persistence/repos/accounting/fiscal-year.repo.impl';
 import fiscalYearMapper from '@infra/persistence/repos/accounting/mappers/fiscal-year.mapper';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock(
   '@infra/persistence/repos/accounting/fiscal-year-history.repo.impl',
   () => ({
@@ -54,9 +54,9 @@ describe('fiscalYearRepo', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       const exists = await fiscalYearRepo.existsByRange(
         accountingEntityId,
@@ -75,7 +75,7 @@ describe('fiscalYearRepo', () => {
       expect(query.sql).toBe(
         '("core"."fiscal_years"."accounting_entity_id" = $1 and "core"."fiscal_years"."start_date" <= $2 and "core"."fiscal_years"."end_date" >= $3)'
       );
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     }
   );
 
@@ -93,9 +93,9 @@ describe('fiscalYearRepo', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
 
       await expect(
@@ -109,7 +109,7 @@ describe('fiscalYearRepo', () => {
       expect(query.sql).toBe(
         '"core"."fiscal_years"."accounting_entity_id" = $1'
       );
-      expect(getDbQuery).toHaveBeenCalledWith({ correlationId: 'read' });
+      expect(getDbQueryHelper).toHaveBeenCalledWith({ correlationId: 'read' });
     }
   );
 
@@ -124,9 +124,9 @@ describe('fiscalYearRepo', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
 
       await expect(
@@ -141,7 +141,7 @@ describe('fiscalYearRepo', () => {
       expect(query.sql).toBe(
         '("core"."fiscal_years"."id" = $1 and "core"."fiscal_years"."accounting_entity_id" = $2)'
       );
-      expect(getDbQuery).toHaveBeenCalledWith({ correlationId: 'read' });
+      expect(getDbQueryHelper).toHaveBeenCalledWith({ correlationId: 'read' });
     }
   );
 
@@ -162,9 +162,9 @@ describe('fiscalYearRepo', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
 
       await expect(
@@ -191,7 +191,7 @@ describe('fiscalYearRepo', () => {
         '"core"."fiscal_years"."start_date" asc',
         '"core"."fiscal_years"."id" asc',
       ]);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     }
   );
 
@@ -214,9 +214,9 @@ describe('fiscalYearRepo', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     return { committed, staged, values, insert, innerTx, transaction };
   }
@@ -230,7 +230,7 @@ describe('fiscalYearRepo', () => {
       ...options,
       tx: fake.innerTx,
     });
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
   });
 
   it('rolls back the inserted year when history fails', async () => {

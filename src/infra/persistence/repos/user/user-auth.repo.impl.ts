@@ -1,24 +1,24 @@
 import { and, eq } from 'drizzle-orm';
 
-import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import repoError from '@shared/values/errors/repo.error';
 
 import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
 
 import { userAuthInCore as userAuth } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import userAuthMapper from '@infra/persistence/repos/auth/mappers/user-auth.mapper';
 
 const userAuthRepo: IUserAuthRepo = {
   create: async (userAuthData, options) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
     const repoData = userAuthMapper.toRepo(userAuthData);
 
     await query.insert(userAuth).values(repoData);
   },
 
   findByUserId: async (userId, options) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
 
     const result = await query
       .select()
@@ -33,9 +33,9 @@ const userAuthRepo: IUserAuthRepo = {
   },
 
   update: async (userAuthData, options) => {
-    validateVersionInRepo(userAuthData, options);
+    validateVersionInRepoHelper(userAuthData, options);
 
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
     const repoData = userAuthMapper.toRepo(userAuthData);
 
     const updated = await query

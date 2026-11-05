@@ -2,7 +2,7 @@ import stringUtils from '@shared/utils/string';
 
 import accountingError from '@domain/accounting/errors/accounting.error';
 
-export default function getAccountingContextDescription(
+export default function getAccountingContextDescriptionHelper(
   description: string | null
 ) {
   return description != null

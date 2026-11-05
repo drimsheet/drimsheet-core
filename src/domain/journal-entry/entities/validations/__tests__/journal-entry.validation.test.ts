@@ -1,7 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import getJournalEntryMemo from '@domain/journal-entry/entities/helpers/get-memo.helper';
+import getJournalEntryMemoHelper from '@domain/journal-entry/entities/helpers/get-memo.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryValidation from '@domain/journal-entry/entities/validations/journal-entry.validation';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -257,18 +257,20 @@ describe('journalEntryValidation', () => {
     });
   });
 
-  describe('getJournalEntryMemo', () => {
+  describe('getJournalEntryMemoHelper', () => {
     it('should return null for null/empty string', () => {
-      expect(getJournalEntryMemo(null)).toBeNull();
-      expect(getJournalEntryMemo('')).toBeNull();
+      expect(getJournalEntryMemoHelper(null)).toBeNull();
+      expect(getJournalEntryMemoHelper('')).toBeNull();
     });
 
     it('should return sanitized/trimmed string for a valid memo', () => {
-      expect(getJournalEntryMemo('   A valid memo   ')).toBe('A valid memo');
+      expect(getJournalEntryMemoHelper('   A valid memo   ')).toBe(
+        'A valid memo'
+      );
     });
 
     it('should throw InvalidMemo for an overly long string', () => {
-      expect(() => getJournalEntryMemo('a'.repeat(251))).toThrow(
+      expect(() => getJournalEntryMemoHelper('a'.repeat(251))).toThrow(
         journalEntryError.InvalidMemo
       );
     });

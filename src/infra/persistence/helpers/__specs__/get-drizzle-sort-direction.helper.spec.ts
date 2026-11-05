@@ -1,31 +1,37 @@
 import { asc, desc } from 'drizzle-orm';
 
-import drizzleFilters from '@shared/helpers/drizzle-filters';
-import { EPaginationSortDirection } from '@shared/values/pagination/types/pagination.types';
+import {
+  EPaginationSortDirection,
+  UPaginationSortDirection,
+} from '@shared/values/pagination/types/pagination.types';
 
-describe('drizzleFilters', () => {
+import getDrizzleSortDirectionHelper from '@infra/persistence/helpers/get-drizzle-sort-direction.helper';
+
+describe('getDrizzleSortDirectionHelper', () => {
   describe('getSortDirection', () => {
     it('returns asc function when direction is EPaginationSortDirection.Asc', () => {
-      const result = drizzleFilters.getSortDirection(
+      const result = getDrizzleSortDirectionHelper(
         EPaginationSortDirection.Asc
       );
       expect(result).toBe(asc);
     });
 
     it('returns desc function when direction is EPaginationSortDirection.Desc', () => {
-      const result = drizzleFilters.getSortDirection(
+      const result = getDrizzleSortDirectionHelper(
         EPaginationSortDirection.Desc
       );
       expect(result).toBe(desc);
     });
 
     it('defaults to desc function when direction is undefined', () => {
-      const result = drizzleFilters.getSortDirection();
+      const result = getDrizzleSortDirectionHelper();
       expect(result).toBe(desc);
     });
 
     it('defaults to desc function when direction is not Asc', () => {
-      const result = drizzleFilters.getSortDirection('invalid' as any);
+      const result = getDrizzleSortDirectionHelper(
+        'invalid' as UPaginationSortDirection
+      );
       expect(result).toBe(desc);
     });
   });

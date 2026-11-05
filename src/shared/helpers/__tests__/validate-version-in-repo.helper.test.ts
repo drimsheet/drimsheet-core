@@ -1,4 +1,4 @@
-import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import { IVersionedRepoWriteOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import repoError from '@shared/values/errors/repo.error';
@@ -24,7 +24,7 @@ function makeHistory(entityVersion: number) {
   );
 }
 
-describe('validateVersionInRepo', () => {
+describe('validateVersionInRepoHelper', () => {
   it.each([undefined, 0, -1, 1.5])(
     'rejects invalid expected version %s',
     (expectedVersion) => {
@@ -33,9 +33,9 @@ describe('validateVersionInRepo', () => {
         expectedVersion,
       } as unknown as IVersionedRepoWriteOptions;
 
-      expect(() => validateVersionInRepo({ version: 2 }, options)).toThrow(
-        repoError.VersionRequired
-      );
+      expect(() =>
+        validateVersionInRepoHelper({ version: 2 }, options)
+      ).toThrow(repoError.VersionRequired);
     }
   );
 
@@ -43,17 +43,20 @@ describe('validateVersionInRepo', () => {
     'rejects invalid entity version %s',
     (version) => {
       expect(() =>
-        validateVersionInRepo({ version } as unknown as { version: number }, {
-          correlationId,
-          expectedVersion: 1,
-        })
+        validateVersionInRepoHelper(
+          { version } as unknown as { version: number },
+          {
+            correlationId,
+            expectedVersion: 1,
+          }
+        )
       ).toThrow(repoError.VersionRequired);
     }
   );
 
   it('rejects an entity version that is not the next version', () => {
     expect(() =>
-      validateVersionInRepo(
+      validateVersionInRepoHelper(
         { version: 3 },
         { correlationId, expectedVersion: 1 }
       )
@@ -62,7 +65,7 @@ describe('validateVersionInRepo', () => {
 
   it('rejects a history version that differs from the next entity version', () => {
     expect(() =>
-      validateVersionInRepo(
+      validateVersionInRepoHelper(
         { version: 2 },
         {
           correlationId,
@@ -75,7 +78,7 @@ describe('validateVersionInRepo', () => {
 
   it('validates matching entity and history versions', () => {
     expect(() =>
-      validateVersionInRepo(
+      validateVersionInRepoHelper(
         { version: 2 },
         {
           correlationId,

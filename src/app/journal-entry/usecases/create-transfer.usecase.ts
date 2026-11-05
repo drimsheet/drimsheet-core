@@ -44,9 +44,12 @@ import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 import { transferEntryReqValidation } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto.validation';
-import getLedgerAccountHelper from '@app/journal-entry/helpers/account-getter.helper';
-import getCounterpartiesHelper from '@app/journal-entry/helpers/get-counterparties.helper';
-import helpers from '@app/journal-entry/helpers/transfer-entry.helpers';
+import getLedgerAccountHelper from '@app/journal-entry/usecases/helpers/account-getter.helper';
+import getCounterpartiesHelper from '@app/journal-entry/usecases/helpers/get-counterparties.helper';
+import getTransferChargeAccountsHelper from '@app/journal-entry/usecases/helpers/get-transfer-charge-accounts.helper';
+import getTransferDestinationLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-destination-line-payload.helper';
+import getTransferSourceLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-source-line-payload.helper';
+import transformTransferChargeLinesToJournalLinesHelper from '@app/journal-entry/usecases/helpers/transform-transfer-charge-lines-to-journal-lines.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
@@ -90,7 +93,7 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       repoOptions,
     });
 
-    const chargeAccounts = await helpers.getChargeAccounts(
+    const chargeAccounts = await getTransferChargeAccountsHelper(
       payload.chargeLines,
       accountingEntity,
       deps.ledgerAccountRepo,
@@ -107,12 +110,12 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       repoOptions,
     });
 
-    const destinationLinePayload = helpers.getDestinationPayload(
+    const destinationLinePayload = getTransferDestinationLinePayloadHelper(
       payload,
       destinationAccount
     );
 
-    const chargeLinePayloads = helpers.transformChargeLineToJournalLine(
+    const chargeLinePayloads = transformTransferChargeLinesToJournalLinesHelper(
       payload,
       allCounterparties,
       chargeAccounts
@@ -124,7 +127,7 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       references: payload.attachmentReferences ?? [],
     });
 
-    const sourceLinePayload = helpers.getSourceLinePayload(
+    const sourceLinePayload = getTransferSourceLinePayloadHelper(
       payload,
       sourceAccount
     );

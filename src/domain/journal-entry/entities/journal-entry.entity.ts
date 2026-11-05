@@ -6,13 +6,13 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import fileAttachmentValue from '@shared/values/file-attachments/file-attachment.vo';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import getJournalEntryMemo from '@domain/journal-entry/entities/helpers/get-memo.helper';
-import updateJournalEntryLines from '@domain/journal-entry/entities/helpers/update-journal-entry-lines.helper';
+import getJournalEntryMemoHelper from '@domain/journal-entry/entities/helpers/get-memo.helper';
 import journalEntryValidation from '@domain/journal-entry/entities/validations/journal-entry.validation';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalEntryEvents from '@domain/journal-entry/events/journal-entry.events';
 import {
   EJournalEntryAuditAction,
+  IJournalLineAudit,
   TAuditedJournalEntry,
   TAuditedJournalEntryTransition,
   TAuditedJournalEntryUpdate,
@@ -24,6 +24,7 @@ import {
   IJournalHeader,
   IVoidJournalEntryPayload,
 } from '@domain/journal-entry/types/journal-entry.types';
+import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 import journalEntryAudit from '@domain/journal-entry/values/journal-entry-audit.vo';
 
 import journalLineEntity from './journal-line.entity';
@@ -44,7 +45,7 @@ function make(payload: IJournalEntryMakePayload): TAuditedJournalEntry {
   );
   const id = payload.id ?? generateUUID();
   const timestamp = new Date();
-  const memo = getJournalEntryMemo(payload.memo);
+  const memo = getJournalEntryMemoHelper(payload.memo);
 
   stringUtils.validateUUID(id, journalEntryError.InvalidJournalEntry);
 
@@ -109,6 +110,77 @@ function make(payload: IJournalEntryMakePayload): TAuditedJournalEntry {
   ];
 }
 
+interface IJournalEntryLineUpdatePayload {
+  createdBy: IJournalEntry['createdBy'];
+  entry: IJournalEntry;
+  lines: IJournalLine[];
+  memo: IJournalEntry['memo'];
+  updatedAt: Date;
+}
+
+interface IJournalEntryLineUpdateResult {
+  lines: IJournalLine[];
+  events: IEvent<IJournalLine>[];
+  audits: IJournalLineAudit[];
+}
+
+/**
+ * Prepares updated and new lines with their events and audits for this entry.
+ * Unchanged lines retain their identity and produce no line events or audit.
+ */
+function updateJournalEntryLines(
+  payload: IJournalEntryLineUpdatePayload
+): IJournalEntryLineUpdateResult {
+  const events: IJournalEntryLineUpdateResult['events'] = [];
+  const audits: IJournalEntryLineUpdateResult['audits'] = [];
+  const lines = payload.lines.map((newLine) => {
+    const currentLine = payload.entry.lines.find(
+      (line) => line.id === newLine.id
+    );
+
+    if (currentLine) {
+      const [line, lineEvents, audit] = journalLineEntity.update(
+        currentLine,
+        newLine
+      );
+
+      events.push(...lineEvents);
+      if (audit) {
+        audits.push(audit);
+      }
+
+      return line;
+    }
+
+    const [line, lineEvents, audit] = journalLineEntity.make(
+      {
+        id: payload.entry.id,
+        createdBy: payload.createdBy,
+        memo: payload.memo,
+        createdAt: payload.updatedAt,
+      },
+      {
+        id: newLine.id,
+        accountId: newLine.accountId,
+        counterpartyId: newLine.counterpartyId,
+        sequenceOrder: newLine.sequenceOrder,
+        amount: newLine.amount,
+        exchangeRate: newLine.exchangeRate,
+        side: newLine.side,
+        description: newLine.description,
+        functionalCurrency: newLine.functionalAmount.currency,
+      }
+    );
+
+    events.push(...lineEvents);
+    audits.push(audit);
+
+    return line;
+  });
+
+  return { lines, events, audits };
+}
+
 function update(
   entry: IJournalEntry,
   newEntry: Partial<IJournalEntry> & { id: IJournalEntry['id'] },
@@ -121,7 +193,7 @@ function update(
   const memo =
     newEntry.memo === undefined
       ? entry.memo
-      : getJournalEntryMemo(newEntry.memo);
+      : getJournalEntryMemoHelper(newEntry.memo);
   const effectiveDate = newEntry.effectiveDate ?? entry.effectiveDate;
   const postedAt =
     newEntry.postedAt === undefined ? entry.postedAt : newEntry.postedAt;

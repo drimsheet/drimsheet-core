@@ -2,7 +2,7 @@ import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 import { TAuditedEntity } from '@shared/values/events/types/event.types';
 
-import deriveFiscalYearName from '@domain/accounting/entities/helpers/derive-name.helper';
+import deriveFiscalYearNameHelper from '@domain/accounting/entities/helpers/derive-name.helper';
 import fiscalYearValidation from '@domain/accounting/entities/validations/fiscal-year.validation';
 import periodError from '@domain/accounting/errors/period.error';
 import periodEvents from '@domain/accounting/events/period.events';
@@ -27,7 +27,7 @@ function make(
     periodError.InvalidAccountingEntityId
   );
 
-  const name = deriveFiscalYearName(
+  const name = deriveFiscalYearNameHelper(
     payload.startDate,
     payload.endDate,
     payload.name ?? null,

@@ -1,7 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
-import deriveFiscalYearName from '@domain/accounting/entities/helpers/derive-name.helper';
+import deriveFiscalYearNameHelper from '@domain/accounting/entities/helpers/derive-name.helper';
 import fiscalYearValidation from '@domain/accounting/entities/validations/fiscal-year.validation';
 import periodError from '@domain/accounting/errors/period.error';
 import { EPeriodEvents } from '@domain/accounting/events/period.events';
@@ -67,7 +67,7 @@ describe('fiscalYearEntity', () => {
         name: undefined,
       };
       const [entity] = fiscalYearEntity.make(payloadWithoutName);
-      // Depending on fiscalYearHelpers.deriveFiscalYearName implementation, it sets a derived name
+      // Depending on fiscalYearHelpers.deriveFiscalYearNameHelper implementation, it sets a derived name
       expect(entity.name).toBeDefined();
       expect(typeof entity.name).toBe('string');
     });
@@ -140,9 +140,9 @@ describe('fiscalYearEntity', () => {
       });
     });
 
-    describe('deriveFiscalYearName', () => {
+    describe('deriveFiscalYearNameHelper', () => {
       it('returns the provided name sanitized and validated', () => {
-        const name = deriveFiscalYearName(
+        const name = deriveFiscalYearNameHelper(
           new Date('2026-01-01T00:00:00.000Z'),
           new Date('2026-12-31T23:59:59.999Z'),
           '  Custom FY 2026  '
@@ -152,7 +152,7 @@ describe('fiscalYearEntity', () => {
 
       it('throws InvalidName when the provided name is invalid', () => {
         expect(() =>
-          deriveFiscalYearName(
+          deriveFiscalYearNameHelper(
             new Date('2026-01-01T00:00:00.000Z'),
             new Date('2026-12-31T23:59:59.999Z'),
             'a'.repeat(101)
@@ -162,7 +162,7 @@ describe('fiscalYearEntity', () => {
 
       it('validates dates by default when name is not provided', () => {
         expect(() =>
-          deriveFiscalYearName(
+          deriveFiscalYearNameHelper(
             new Date('2026-05-01T00:00:00.000Z'),
             new Date('2026-05-10T00:00:00.000Z'),
             null
@@ -171,7 +171,7 @@ describe('fiscalYearEntity', () => {
       });
 
       it('returns single year string when start and end years are the same', () => {
-        const name = deriveFiscalYearName(
+        const name = deriveFiscalYearNameHelper(
           new Date('2026-05-01T00:00:00.000Z'),
           new Date('2026-11-01T00:00:00.000Z'),
           null,
@@ -181,7 +181,7 @@ describe('fiscalYearEntity', () => {
       });
 
       it('returns start and end year string when start and end years differ', () => {
-        const name = deriveFiscalYearName(
+        const name = deriveFiscalYearNameHelper(
           new Date('2026-01-01T00:00:00.000Z'),
           new Date('2027-03-31T23:59:59.999Z'),
           null,

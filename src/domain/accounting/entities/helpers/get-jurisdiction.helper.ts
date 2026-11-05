@@ -4,7 +4,7 @@ import {
 } from '@domain/accounting/config/jurisdictions.config';
 import jurisdictionError from '@domain/accounting/errors/jurisdiction.error';
 
-export default function getAccountingJurisdiction(code: string) {
+export default function getAccountingJurisdictionHelper(code: string) {
   if (!code) {
     throw new jurisdictionError.Invalid();
   }

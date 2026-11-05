@@ -2,7 +2,7 @@ import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import getAccountingContextDescription from '@domain/accounting/entities/helpers/get-description.helper';
+import getAccountingContextDescriptionHelper from '@domain/accounting/entities/helpers/get-description.helper';
 import reportingContextValidation from '@domain/accounting/entities/validations/reporting-context.validation';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import reportingContextEvents from '@domain/accounting/events/reporting-context.events';
@@ -39,7 +39,9 @@ function make(payload: IReportingContextMakePayload): TAuditedReportingContext {
     { min: 1, max: 150 },
     accountingError.InvalidName
   );
-  const description = getAccountingContextDescription(payload.description);
+  const description = getAccountingContextDescriptionHelper(
+    payload.description
+  );
   stringUtils.validateUUID(payload.createdBy, accountingError.InvalidCreatedBy);
 
   const timestamp = new Date();

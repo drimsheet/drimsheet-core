@@ -3,11 +3,11 @@ import { TEntityId } from '@shared/types/uuid';
 import { ICounterpartyHistory } from '@domain/counterparty/types/counterparty-audit.types';
 import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import counterpartyHistoryRepo from '@infra/persistence/repos/counterparty/counterparty-history.repo.impl';
 import counterpartyHistoryMapper from '@infra/persistence/repos/counterparty/mappers/counterparty-history.mapper';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/counterparty-history.mapper');
 
 describe('CounterpartyHistoryRepoImpl', () => {
@@ -49,7 +49,7 @@ describe('CounterpartyHistoryRepoImpl', () => {
     const db = {
       insert: jest.fn().mockReturnValue({ values }),
     };
-    (getDbQuery as jest.Mock).mockReturnValue(db);
+    (getDbQueryHelper as jest.Mock).mockReturnValue(db);
     const mappedValue = { counterpartyId: counterparty.id };
     (counterpartyHistoryMapper.toRepo as jest.Mock).mockReturnValue(
       mappedValue

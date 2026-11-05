@@ -2,10 +2,10 @@ import { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 
 import { accountingIntervalsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import nextCurrentAccountingPeriodQueryRepo from '@infra/persistence/repos/accounting/queries/next-current-accounting-period.query.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('nextCurrentAccountingPeriodQueryRepo', () => {
   const options = { correlationId: 'due-periods-query' };
@@ -24,14 +24,14 @@ describe('nextCurrentAccountingPeriodQueryRepo', () => {
     query.where.mockReturnValue(query);
     query.orderBy.mockResolvedValue([]);
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
   });
 
   it('selects only entity and interval IDs directly from accounting intervals', async () => {
     await nextCurrentAccountingPeriodQueryRepo.findDue(date, options);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.select).toHaveBeenCalledWith({
       accountingEntityId: accountingIntervalsInCore.accountingEntityId,
       accountingIntervalId: accountingIntervalsInCore.id,

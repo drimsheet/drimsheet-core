@@ -3,12 +3,12 @@ import { eq } from 'drizzle-orm';
 import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
 
 import { userPreferencesInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import userPreferencesMapper from '@infra/persistence/repos/user/mappers/user-preferences.mapper';
 
 const userPreferencesRepo: IUserPreferencesRepo = {
   async clearAccountingEntity(accountingEntityId, options) {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .update(userPreferencesInCore)
       .set({
         lastActiveAccountingEntityId: null,
@@ -23,7 +23,7 @@ const userPreferencesRepo: IUserPreferencesRepo = {
   },
 
   async update(preferences, options) {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
     const preferenceValues = userPreferencesMapper.toRepo(preferences);
 
     await query
@@ -41,7 +41,7 @@ const userPreferencesRepo: IUserPreferencesRepo = {
   },
 
   async findById(id, options) {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
 
     const [result] = await query
       .select()

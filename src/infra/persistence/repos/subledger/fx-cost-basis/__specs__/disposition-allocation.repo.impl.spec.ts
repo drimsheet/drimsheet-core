@@ -4,11 +4,11 @@ import { TEntityId } from '@shared/types/uuid';
 import { IFxCostBasisLotDispositionAllocation } from '@domain/subledger/fx-cost-basis/types/disposition.types';
 
 import { subledgerFxCostBasisLotDispositionAllocationsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import fxCostBasisLotDispositionAllocationRepo from '@infra/persistence/repos/subledger/fx-cost-basis/disposition-allocation.repo.impl';
 import fxCostBasisLotDispositionAllocationMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/disposition-allocation.mapper';
 
-jest.mock('../../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/disposition-allocation.mapper');
 
 describe('FX Cost-Basis Lot Disposition Allocation Repo', () => {
@@ -29,8 +29,8 @@ describe('FX Cost-Basis Lot Disposition Allocation Repo', () => {
     const values = jest.fn().mockResolvedValue(undefined);
     const query = { insert: jest.fn().mockReturnValue({ values }) };
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
     jest
       .mocked(fxCostBasisLotDispositionAllocationMapper.toRepo)
       .mockReturnValue(
@@ -41,7 +41,7 @@ describe('FX Cost-Basis Lot Disposition Allocation Repo', () => {
 
     await fxCostBasisLotDispositionAllocationRepo.create(payload, options);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(
       fxCostBasisLotDispositionAllocationMapper.toRepo
     ).toHaveBeenCalledWith(payload);
@@ -59,8 +59,8 @@ describe('FX Cost-Basis Lot Disposition Allocation Repo', () => {
       }),
     };
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
     jest
       .mocked(fxCostBasisLotDispositionAllocationMapper.toRepo)
       .mockReturnValue({

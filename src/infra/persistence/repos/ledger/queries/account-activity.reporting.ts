@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 
 import type { TGetAccountActivityRepoQuery } from '@app/ledger/usecases/reporting/account-activity/account-activity.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 interface IAggregateRow extends Record<string, unknown> {
   bucket_index: number;
@@ -16,7 +16,7 @@ const accountActivityRepoQuery: TGetAccountActivityRepoQuery = async (
 ) => {
   const from = criteria.period.from.toISOString().slice(0, 10);
   const to = criteria.period.to.toISOString().slice(0, 10);
-  const aggregates = await getDbQuery(options).execute<IAggregateRow>(sql`
+  const aggregates = await getDbQueryHelper(options).execute<IAggregateRow>(sql`
     WITH requested_account AS (
       SELECT id, accounting_entity_id, materialized_path
       FROM core.ledger_accounts

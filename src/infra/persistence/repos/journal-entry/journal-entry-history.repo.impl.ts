@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import IJournalEntryHistoryRepo from '@domain/journal-entry/repos/journal-entry-history.repo';
 
 import { journalEntryHistoryInAudit } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalEntryHistoryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-history.mapper';
 
 const journalEntryHistoryRepo: IJournalEntryHistoryRepo = {
@@ -15,11 +15,13 @@ const journalEntryHistoryRepo: IJournalEntryHistoryRepo = {
       journalEntryHistoryMapper.toRepo(h, historiesArray[i])
     );
 
-    await getDbQuery(options).insert(journalEntryHistoryInAudit).values(values);
+    await getDbQueryHelper(options)
+      .insert(journalEntryHistoryInAudit)
+      .values(values);
   },
 
   deleteByJournalEntryId: async (journalEntryId, options) => {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .delete(journalEntryHistoryInAudit)
       .where(eq(journalEntryHistoryInAudit.journalEntryId, journalEntryId));
   },

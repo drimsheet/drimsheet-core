@@ -13,11 +13,11 @@ import {
   journalLinesInCore,
 } from '@infra/config/drizzle/schema';
 import * as schema from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalEntryDetailsMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-details.mapper';
 import journalEntryQueryRepo from '@infra/persistence/repos/journal-entry/queries/journal-entry.query.repo.impl';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/journal-entry-details.mapper');
 
 describe('journalEntryQueryRepo', () => {
@@ -35,14 +35,14 @@ describe('journalEntryQueryRepo', () => {
     const countFrom = jest.fn().mockReturnValue({ where: countWhere });
     const select = jest.fn().mockReturnValue({ from: countFrom });
 
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       select,
       query: {
         journalEntriesInCore: {
           findMany: findMany.mockResolvedValue(entries),
         },
       },
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
 
     return { countFrom, countWhere };
   }
@@ -64,9 +64,9 @@ describe('journalEntryQueryRepo', () => {
       const innerJoin = jest.fn().mockReturnValue({ where });
       const from = jest.fn().mockReturnValue({ innerJoin });
       const select = jest.fn().mockReturnValue({ from });
-      jest.mocked(getDbQuery).mockReturnValue({
+      jest.mocked(getDbQueryHelper).mockReturnValue({
         select,
-      } as unknown as ReturnType<typeof getDbQuery>);
+      } as unknown as ReturnType<typeof getDbQueryHelper>);
 
       const result = await journalEntryQueryRepo.existsPostedByAccountId(
         accountId,
@@ -96,9 +96,9 @@ describe('journalEntryQueryRepo', () => {
       const innerJoin = jest.fn().mockReturnValue({ where });
       const from = jest.fn().mockReturnValue({ innerJoin });
       const select = jest.fn().mockReturnValue({ from });
-      jest.mocked(getDbQuery).mockReturnValue({
+      jest.mocked(getDbQueryHelper).mockReturnValue({
         select,
-      } as unknown as ReturnType<typeof getDbQuery>);
+      } as unknown as ReturnType<typeof getDbQueryHelper>);
 
       const result = await journalEntryQueryRepo.existsByCounterpartyId(
         counterpartyId,
@@ -271,12 +271,12 @@ describe('journalEntryQueryRepo', () => {
         }
         return builder.select(selection);
       });
-      jest.mocked(getDbQuery).mockReturnValue({
+      jest.mocked(getDbQueryHelper).mockReturnValue({
         select,
         query: {
           journalEntriesInCore: { findMany: findMany.mockResolvedValue([]) },
         },
-      } as unknown as ReturnType<typeof getDbQuery>);
+      } as unknown as ReturnType<typeof getDbQueryHelper>);
       await journalEntryQueryRepo.findAll(accountingEntityId, {
         ...options,
         ...filters,
@@ -356,13 +356,13 @@ describe('journalEntryQueryRepo', () => {
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       id: journalEntryId,
     } as ReturnType<typeof journalEntryDetailsMapper.toDetails>;
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       query: {
         journalEntriesInCore: {
           findFirst: findFirst.mockResolvedValue(persistedEntry),
         },
       },
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
     jest
       .mocked(journalEntryDetailsMapper.toDetails)
       .mockReturnValue(mappedEntry);
@@ -396,13 +396,13 @@ describe('journalEntryQueryRepo', () => {
   });
 
   it('returns null when no scoped entry exists', async () => {
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       query: {
         journalEntriesInCore: {
           findFirst: findFirst.mockResolvedValue(undefined),
         },
       },
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
 
     await expect(
       journalEntryQueryRepo.findById(
@@ -435,12 +435,12 @@ describe('journalEntryQueryRepo', () => {
     const countWhere = jest.fn().mockResolvedValue([]);
     const countFrom = jest.fn().mockReturnValue({ where: countWhere });
     const select = jest.fn().mockReturnValue({ from: countFrom });
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       select,
       query: {
         journalEntriesInCore: { findMany },
       },
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
 
     await expect(
       journalEntryQueryRepo.findAll(accountingEntityId, options)
@@ -544,14 +544,14 @@ describe('journalEntryQueryRepo', () => {
       id: journalEntryId,
     } as ReturnType<typeof journalEntryDetailsMapper.toDetails>;
 
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       select,
       query: {
         journalEntriesInCore: {
           findMany: findMany.mockResolvedValue([persistedEntry]),
         },
       },
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
     jest
       .mocked(journalEntryDetailsMapper.toDetails)
       .mockReturnValue(mappedEntry);

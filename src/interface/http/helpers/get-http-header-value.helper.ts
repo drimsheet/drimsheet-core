@@ -1,6 +1,6 @@
 import { IncomingHttpHeaders } from 'node:http';
 
-export default function getHttpHeaderValue(
+export default function getHttpHeaderValueHelper(
   headerName: string,
   headers: IncomingHttpHeaders
 ) {

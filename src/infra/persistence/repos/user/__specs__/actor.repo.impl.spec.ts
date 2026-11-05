@@ -6,11 +6,11 @@ import actorError from '@domain/user/errors/actor.error';
 import { mockActorHistoryRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import { actorsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import actorRepo from '@infra/persistence/repos/user/actor.repo.impl';
 import actorMapper from '@infra/persistence/repos/user/mappers/actor.mapper';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('@infra/persistence/repos/user/actor-history.repo.impl', () => ({
   __esModule: true,
   default: jest.requireActual('@app/user/contracts/__mocks__/user.repos.mock')
@@ -31,8 +31,8 @@ function makeWrite() {
     ),
   };
   jest
-    .mocked(getDbQuery)
-    .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+    .mocked(getDbQueryHelper)
+    .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
   return { tx, values };
 }
 
@@ -89,8 +89,10 @@ describe('actor repository', () => {
           .mockReturnValue({ from: jest.fn().mockReturnValue({ where }) }),
       };
       jest
-        .mocked(getDbQuery)
-        .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+        .mocked(getDbQueryHelper)
+        .mockReturnValue(
+          query as unknown as ReturnType<typeof getDbQueryHelper>
+        );
       const read = () =>
         method === 'findById'
           ? actorRepo.findById(actor.id, options)

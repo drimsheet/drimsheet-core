@@ -1,12 +1,12 @@
 import { and, eq } from 'drizzle-orm';
 
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 import { EAccountingEntityStatus } from '@domain/accounting/types/accounting-entity.types';
 
 import { accountingEntitiesInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import mapIndividualAccountingEntityConflictErrorHelper from '@infra/persistence/helpers/map-individual-accounting-entity-conflict-error.helper';
 import mapJournalFunctionalCurrencyErrorHelper from '@infra/persistence/helpers/map-journal-functional-currency-error.helper';
 import accountingEntityMapper from '@infra/persistence/repos/accounting/mappers/accounting-entity.mapper';
@@ -15,14 +15,14 @@ import accountingEntityHistoryRepo from './accounting-entity-history.repo.impl';
 
 const accountingEntityRepo: IAccountingEntityRepo = {
   delete: async (id, options) => {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .delete(accountingEntitiesInCore)
       .where(eq(accountingEntitiesInCore.id, id));
   },
 
   create: async (domain, options) => {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         await tx
           .insert(accountingEntitiesInCore)
           .values(accountingEntityMapper.toRepo(domain));
@@ -30,7 +30,7 @@ const accountingEntityRepo: IAccountingEntityRepo = {
         await accountingEntityHistoryRepo.save(
           domain,
           options.history,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {
@@ -40,7 +40,7 @@ const accountingEntityRepo: IAccountingEntityRepo = {
 
   update: async (domain, options) => {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         await tx
           .update(accountingEntitiesInCore)
           .set(accountingEntityMapper.toRepo(domain))
@@ -48,7 +48,7 @@ const accountingEntityRepo: IAccountingEntityRepo = {
         await accountingEntityHistoryRepo.save(
           domain,
           options.history,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {
@@ -57,7 +57,7 @@ const accountingEntityRepo: IAccountingEntityRepo = {
   },
 
   findById: async (id, options) => {
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select()
       .from(accountingEntitiesInCore)
       .where(eq(accountingEntitiesInCore.id, id));
@@ -68,7 +68,7 @@ const accountingEntityRepo: IAccountingEntityRepo = {
   },
 
   findByIdAndUserId: async (id, userId, options) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
 
     const [result] = await query
       .select()
@@ -85,7 +85,7 @@ const accountingEntityRepo: IAccountingEntityRepo = {
   },
 
   findByUserId: async (userId, options, type) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
 
     const whereClause = [eq(accountingEntitiesInCore.ownerId, userId)];
 

@@ -4,9 +4,11 @@ import {
   TEntityWithEvents,
 } from '@shared/values/events/types/event.types';
 
-export default function getEntitiesAndEvents<T, E, S extends object = object>(
-  data: (TEntityWithEvents<T, E> | TAuditedEntity<T, E, S>)[]
-) {
+export default function getEntitiesAndEventsHelper<
+  T,
+  E,
+  S extends object = object,
+>(data: (TEntityWithEvents<T, E> | TAuditedEntity<T, E, S>)[]) {
   const entities: T[] = [];
   const events: IEvent<E>[] = [];
 

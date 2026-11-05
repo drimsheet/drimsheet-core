@@ -3,11 +3,11 @@ import { ITransactionContext } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import { outboxInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import outboxMapper from '@infra/persistence/repos/outbox/mappers/outbox.mapper';
 import outboxRepo from '@infra/persistence/repos/outbox/outbox.repo.impl';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/outbox.mapper');
 
 describe('outboxRepo', () => {
@@ -19,7 +19,7 @@ describe('outboxRepo', () => {
   it('creates the exact application-supplied row in the provided transaction', async () => {
     const values = jest.fn().mockResolvedValue(undefined);
     const insert = jest.fn().mockReturnValue({ values });
-    (getDbQuery as jest.Mock).mockReturnValue({ insert });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ insert });
     const row = {
       id: generateUUID(),
       correlationId: options.correlationId,
@@ -31,7 +31,7 @@ describe('outboxRepo', () => {
 
     await outboxRepo.create(row, options);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(insert).toHaveBeenCalledWith(outboxInCore);
     expect(outboxMapper.toRepo).toHaveBeenCalledWith(row);
     expect(values).toHaveBeenCalledWith(repositoryRow);
@@ -54,7 +54,7 @@ describe('outboxRepo', () => {
     const where = jest.fn().mockReturnValue({ limit });
     const from = jest.fn().mockReturnValue({ where });
     const select = jest.fn().mockReturnValue({ from });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
     (outboxMapper.toDomain as jest.Mock).mockReturnValue(domainRow);
 
     const result = await outboxRepo.findByIdAndType(
@@ -63,7 +63,7 @@ describe('outboxRepo', () => {
       options
     );
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(outboxMapper.toDomain).toHaveBeenCalledWith(databaseRow);
     expect(result).toEqual(domainRow);
   });
@@ -74,7 +74,7 @@ describe('outboxRepo', () => {
     const where = jest.fn().mockReturnValue({ limit });
     const from = jest.fn().mockReturnValue({ where });
     const select = jest.fn().mockReturnValue({ from });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
 
     const result = await outboxRepo.findByIdAndType(
       id,
@@ -91,11 +91,11 @@ describe('outboxRepo', () => {
     const returning = jest.fn().mockResolvedValue([{ id }]);
     const where = jest.fn().mockReturnValue({ returning });
     const deleteQuery = jest.fn().mockReturnValue({ where });
-    (getDbQuery as jest.Mock).mockReturnValue({ delete: deleteQuery });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ delete: deleteQuery });
 
     await expect(outboxRepo.delete(id, options)).resolves.toBe(true);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(deleteQuery).toHaveBeenCalledWith(outboxInCore);
     expect(returning).toHaveBeenCalledWith({ id: outboxInCore.id });
   });
@@ -105,7 +105,7 @@ describe('outboxRepo', () => {
     const returning = jest.fn().mockResolvedValue([]);
     const where = jest.fn().mockReturnValue({ returning });
     const deleteQuery = jest.fn().mockReturnValue({ where });
-    (getDbQuery as jest.Mock).mockReturnValue({ delete: deleteQuery });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ delete: deleteQuery });
 
     await expect(outboxRepo.delete(id, options)).resolves.toBe(false);
   });

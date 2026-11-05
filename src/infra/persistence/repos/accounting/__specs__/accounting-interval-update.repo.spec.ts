@@ -10,11 +10,11 @@ import {
   accountingIntervalHistoryInAudit,
   accountingIntervalsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import accountingIntervalRepo from '@infra/persistence/repos/accounting/accounting-interval.repo.impl';
 import accountingIntervalMapper from '@infra/persistence/repos/accounting/mappers/accounting-interval.mapper';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('accountingIntervalRepo.update', () => {
   const [previousInterval] = accountingIntervalEntity.make(
@@ -63,9 +63,9 @@ describe('accountingIntervalRepo.update', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     return { update, set, where, insert, values, committed };
   }
@@ -77,7 +77,7 @@ describe('accountingIntervalRepo.update', () => {
       const writeOptions = withTransaction ? { ...options, tx: {} } : options;
       await accountingIntervalRepo.update(interval, writeOptions);
 
-      expect(getDbQuery).toHaveBeenCalledWith(writeOptions);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(writeOptions);
       expect(fake.update).toHaveBeenCalledTimes(1);
       expect(fake.update).toHaveBeenCalledWith(accountingIntervalsInCore);
       expect(fake.insert).toHaveBeenCalledTimes(1);

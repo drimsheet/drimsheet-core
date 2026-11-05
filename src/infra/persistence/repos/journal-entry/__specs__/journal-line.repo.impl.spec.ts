@@ -7,11 +7,11 @@ import repoError from '@shared/values/errors/repo.error';
 import accountingEntityError from '@domain/accounting/errors/accounting-entity.error';
 
 import { journalLinesInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalLineRepo from '@infra/persistence/repos/journal-entry/journal-line.repo.impl';
 import journalLineMapper from '@infra/persistence/repos/journal-entry/mappers/journal-line.mapper';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/journal-line.mapper');
 jest.mock('../journal-line-history.repo.impl');
 
@@ -38,7 +38,7 @@ describe('journalLineRepo', () => {
         .mockReturnValue({ set: jest.fn().mockReturnValue({ where }) }),
     };
     const deleteWhere = jest.fn().mockResolvedValue(undefined);
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
       delete: jest.fn().mockReturnValue({ where: deleteWhere }),
       insert: jest.fn().mockReturnValue({ values }),
@@ -97,7 +97,7 @@ describe('journalLineRepo', () => {
         .mockReturnValue({ set: jest.fn().mockReturnValue({ where }) }),
       insert: jest.fn(),
     };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
       insert: jest.fn(),
     } as never);
@@ -132,7 +132,7 @@ describe('journalLineRepo', () => {
       const select = jest
         .fn()
         .mockReturnValue({ from: jest.fn().mockReturnValue({ where }) });
-      jest.mocked(getDbQuery).mockReturnValue({ select } as never);
+      jest.mocked(getDbQueryHelper).mockReturnValue({ select } as never);
 
       await expect(
         journalLineRepo.findAllByAccountId(accountId, options)
@@ -151,7 +151,7 @@ describe('journalLineRepo', () => {
     const select = jest.fn((...args: unknown[]) =>
       args.length > 0 ? { from: countFrom } : { from: resultFrom }
     );
-    jest.mocked(getDbQuery).mockReturnValue({ select } as never);
+    jest.mocked(getDbQueryHelper).mockReturnValue({ select } as never);
     jest.mocked(journalLineMapper.toDomain).mockReturnValue({
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       id: lineId,
@@ -184,8 +184,8 @@ describe('journal lines by counterparty', () => {
     const from = jest.fn().mockReturnValue({ innerJoin });
     const db = { select: jest.fn().mockReturnValue({ from }) };
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(db as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(db as unknown as ReturnType<typeof getDbQueryHelper>);
     return { where, db };
   }
 
@@ -217,7 +217,7 @@ describe('journal lines by counterparty', () => {
     );
 
     expect(result).toEqual([{ id }, { id: tenant }]);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(fake.db.select).toHaveBeenCalledTimes(1);
     expect(fake.db.select).toHaveBeenCalledWith({ line: journalLinesInCore });
     expect(journalLineMapper.toDomain).toHaveBeenCalledTimes(2);
@@ -241,7 +241,7 @@ describe('journalLineRepo.create trigger errors', () => {
         constraint: 'journal_lines_entity_functional_currency_check',
       },
     };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(databaseError),
     } as never);
     await expect(
@@ -259,7 +259,7 @@ describe('journalLineRepo.create trigger errors', () => {
 
   it('propagates unrelated database errors unchanged', async () => {
     const failure = new Error('unavailable');
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(failure),
     } as never);
     await expect(
@@ -286,7 +286,7 @@ describe('journalLineRepo.update trigger errors', () => {
         constraint: 'journal_lines_entity_functional_currency_check',
       },
     };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(databaseError),
     } as never);
     await expect(
@@ -304,7 +304,7 @@ describe('journalLineRepo.update trigger errors', () => {
 
   it('propagates unrelated database errors unchanged', async () => {
     const failure = new Error('unavailable');
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(failure),
     } as never);
     await expect(

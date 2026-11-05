@@ -7,7 +7,11 @@ import {
   IJournalEntry,
 } from '@domain/journal-entry/types/journal-entry.types';
 
-function getEntriesForBalancePropagation(
+/**
+ * Selects the reversing entry and eligible posted current entry for balance
+ * propagation. Metadata-only changes do not propagate the current entry.
+ */
+export default function getJournalEntriesForBalancePropagationHelper(
   result: IJournalEntryRectificationResult
 ): IJournalEntry[] {
   const entries: IJournalEntry[] = [];
@@ -26,9 +30,3 @@ function getEntriesForBalancePropagation(
 
   return entries;
 }
-
-const rectifyJournalEntryUseCaseHelpers = Object.freeze({
-  getEntriesForBalancePropagation,
-});
-
-export default rectifyJournalEntryUseCaseHelpers;

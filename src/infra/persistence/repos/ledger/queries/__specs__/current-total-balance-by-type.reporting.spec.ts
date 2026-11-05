@@ -3,10 +3,10 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 
 import { TEntityId } from '@shared/types/uuid';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import currentTotalBalanceByTypeRepoQuery from '@infra/persistence/repos/ledger/queries/current-total-balance-by-type.reporting';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('currentTotalBalanceByTypeRepoQuery', () => {
   const entityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
@@ -19,8 +19,10 @@ describe('currentTotalBalanceByTypeRepoQuery', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ execute } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ execute } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     execute.mockResolvedValue({ rows: [] });
   });
 
@@ -37,7 +39,7 @@ describe('currentTotalBalanceByTypeRepoQuery', () => {
           options
         )
       ).toEqual([]);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(execute).toHaveBeenCalledTimes(1);
       const compiled = new PgDialect().sqlToQuery(execute.mock.calls[0][0]);
       const query = compiled.sql.replace(/\s+/g, ' ');

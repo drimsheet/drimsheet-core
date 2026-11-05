@@ -1,8 +1,8 @@
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 
-import safeGetCorrelationId from '@infra/observability/helpers/get-correlation-id';
+import safeGetCorrelationIdHelper from '@infra/observability/helpers/get-correlation-id.helper';
 
-describe('safeGetCorrelationId', () => {
+describe('safeGetCorrelationIdHelper', () => {
   const validCorrelationId = '0198ad49-0f4a-7709-a5bf-2f7cfbaea7c4';
 
   beforeEach(() => {
@@ -15,7 +15,7 @@ describe('safeGetCorrelationId', () => {
       idempotencyKey: '',
     });
 
-    expect(safeGetCorrelationId(mockAppContext)).toBe(validCorrelationId);
+    expect(safeGetCorrelationIdHelper(mockAppContext)).toBe(validCorrelationId);
   });
 
   it('returns undefined for a malformed contextual correlation ID', () => {
@@ -24,7 +24,7 @@ describe('safeGetCorrelationId', () => {
       idempotencyKey: '',
     });
 
-    expect(safeGetCorrelationId(mockAppContext)).toBeUndefined();
+    expect(safeGetCorrelationIdHelper(mockAppContext)).toBeUndefined();
   });
 
   it('returns undefined without throwing when no store is active', () => {
@@ -32,8 +32,8 @@ describe('safeGetCorrelationId', () => {
       throw new Error('No active store');
     });
 
-    expect(() => safeGetCorrelationId(mockAppContext)).not.toThrow();
-    expect(safeGetCorrelationId(mockAppContext)).toBeUndefined();
+    expect(() => safeGetCorrelationIdHelper(mockAppContext)).not.toThrow();
+    expect(safeGetCorrelationIdHelper(mockAppContext)).toBeUndefined();
   });
 
   it('does not initialize or mutate context to generate a replacement ID', () => {
@@ -42,7 +42,7 @@ describe('safeGetCorrelationId', () => {
       idempotencyKey: '',
     });
 
-    safeGetCorrelationId(mockAppContext);
+    safeGetCorrelationIdHelper(mockAppContext);
 
     expect(mockAppContext.init).not.toHaveBeenCalled();
     expect(mockAppContext.set).not.toHaveBeenCalled();

@@ -3,7 +3,7 @@ import stringUtils from '@shared/utils/string';
 import fiscalYearValidation from '@domain/accounting/entities/validations/fiscal-year.validation';
 import periodError from '@domain/accounting/errors/period.error';
 
-export default function deriveFiscalYearName(
+export default function deriveFiscalYearNameHelper(
   startDate: Date,
   endDate: Date,
   name: string | null,

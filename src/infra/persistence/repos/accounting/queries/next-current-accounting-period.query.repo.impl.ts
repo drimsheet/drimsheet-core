@@ -4,13 +4,13 @@ import INextCurrentAccountingPeriodQueryRepo from '@app/accounting/contracts/nex
 
 import { accountingIntervalsInCore } from '@infra/config/drizzle/schema';
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import nextCurrentAccountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/next-current-accounting-period.mapper';
 
 const nextCurrentAccountingPeriodQueryRepo: INextCurrentAccountingPeriodQueryRepo =
   {
     async findDue(date, options) {
-      const intervals = await getDbQuery(options)
+      const intervals = await getDbQueryHelper(options)
         .select({
           accountingEntityId: accountingIntervalsInCore.accountingEntityId,
           accountingIntervalId: accountingIntervalsInCore.id,

@@ -43,8 +43,8 @@ import {
 import journalEntryRectificationDtoMapper from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto.mapper';
 import { journalEntryRectificationReqValidation } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto.validation';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
+import getJournalEntriesForBalancePropagationHelper from '@app/journal-entry/usecases/helpers/get-journal-entries-for-balance-propagation.helper';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
-import helpers from '@app/journal-entry/usecases/helpers/rectify-journal-entry.usecase.helpers';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
@@ -115,7 +115,7 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
       );
 
     const entriesForBalancePropagation =
-      helpers.getEntriesForBalancePropagation(
+      getJournalEntriesForBalancePropagationHelper(
         preparedRectification.rectification
       );
 

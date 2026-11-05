@@ -8,10 +8,10 @@ import {
   TBalanceHistoryRepoQuery,
 } from '@app/ledger/contracts/balance-history.repo-query.contract';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import balanceHistoryRepoQuery from '@infra/persistence/repos/ledger/queries/balance-history.reporting';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 const criteria: Parameters<TBalanceHistoryRepoQuery>[0] = {
   accountingEntityId: '123e4567-e89b-12d3-a456-426614174001' as TEntityId,
@@ -37,8 +37,10 @@ describe('balanceHistoryRepoQuery', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ execute } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ execute } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     execute.mockResolvedValue({ rows: [] });
   });
 
@@ -70,7 +72,7 @@ describe('balanceHistoryRepoQuery', () => {
       ]);
       expect(compiled.sql).toContain('account.accounting_entity_id = $1::uuid');
       expect(compiled.sql).toContain('entry.accounting_entity_id = $6::uuid');
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(execute).toHaveBeenCalledTimes(1);
     }
   );

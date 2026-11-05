@@ -4,7 +4,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import ledgerAccountBalanceAdjustmentValidation from '@domain/accounting/entities/validations/ledger-account-balance-adjustment.validation';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
-import getLedgerAccountBalanceEffect from '@domain/ledger/entities/helpers/get-effect-from-amount.helper';
+import getLedgerAccountBalanceEffectHelper from '@domain/ledger/entities/helpers/get-effect-from-amount.helper';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountBalanceValidation from '@domain/ledger/entities/validations/ledger-account-balance.validation';
 import ledgerAccountBalanceError from '@domain/ledger/errors/ledger-account-balance.error';
@@ -578,16 +578,18 @@ describe('ledgerAccountBalanceEntity', () => {
     });
   });
 
-  describe('getLedgerAccountBalanceEffect', () => {
+  describe('getLedgerAccountBalanceEffectHelper', () => {
     it('should throw if amount is invalid', () => {
       // @ts-expect-error: purposefully testing invalid amount
       const invalidAmount: IMoney = { amount: 100n };
-      expect(() => getLedgerAccountBalanceEffect(invalidAmount)).toThrow();
+      expect(() =>
+        getLedgerAccountBalanceEffectHelper(invalidAmount)
+      ).toThrow();
     });
 
     it('should return Noop for zero amount', () => {
       const amount = { amount: 0n, currency: currencyEntity.getByCode('NGN') };
-      expect(getLedgerAccountBalanceEffect(amount)).toBe(
+      expect(getLedgerAccountBalanceEffectHelper(amount)).toBe(
         ELedgerAccountBalanceEffect.Noop
       );
     });
@@ -597,7 +599,7 @@ describe('ledgerAccountBalanceEntity', () => {
         amount: 100n,
         currency: currencyEntity.getByCode('NGN'),
       };
-      expect(getLedgerAccountBalanceEffect(amount)).toBe(
+      expect(getLedgerAccountBalanceEffectHelper(amount)).toBe(
         ELedgerAccountBalanceEffect.Increase
       );
     });
@@ -607,7 +609,7 @@ describe('ledgerAccountBalanceEntity', () => {
         amount: -100n,
         currency: currencyEntity.getByCode('NGN'),
       };
-      expect(getLedgerAccountBalanceEffect(amount)).toBe(
+      expect(getLedgerAccountBalanceEffectHelper(amount)).toBe(
         ELedgerAccountBalanceEffect.Decrease
       );
     });

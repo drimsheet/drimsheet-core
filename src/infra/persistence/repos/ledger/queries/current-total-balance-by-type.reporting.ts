@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 
 import type { TGetCurrentTotalBalanceByTypeRepoQuery } from '@app/ledger/usecases/reporting/current-total-balance-by-type/current-total-balance-by-type.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 interface IAccountRow extends Record<string, unknown> {
   id: string;
@@ -11,7 +11,7 @@ interface IAccountRow extends Record<string, unknown> {
 
 const currentTotalBalanceByTypeRepoQuery: TGetCurrentTotalBalanceByTypeRepoQuery =
   async ({ accountingEntityId, type, functionalCurrencyCode }, options) => {
-    const accounts = await getDbQuery(options).execute<IAccountRow>(sql`
+    const accounts = await getDbQueryHelper(options).execute<IAccountRow>(sql`
       SELECT account.id::text, balance.functional_amount::text
       FROM core.ledger_accounts AS account
       LEFT JOIN core.ledger_account_balances AS balance

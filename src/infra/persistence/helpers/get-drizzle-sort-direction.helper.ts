@@ -5,12 +5,11 @@ import {
   UPaginationSortDirection,
 } from '@shared/values/pagination/types/pagination.types';
 
-function getSortDirection(direction?: UPaginationSortDirection) {
+/**
+ * Selects the Drizzle sort function, defaulting to descending order.
+ */
+export default function getDrizzleSortDirectionHelper(
+  direction?: UPaginationSortDirection
+) {
   return direction === EPaginationSortDirection.Asc ? asc : desc;
 }
-
-const drizzleFilters = Object.freeze({
-  getSortDirection,
-});
-
-export default drizzleFilters;

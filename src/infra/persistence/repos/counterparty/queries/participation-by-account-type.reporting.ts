@@ -5,7 +5,7 @@ import type {
   TGetCounterpartyAccountTypeParticipationRepoQuery,
 } from '@app/counterparty/usecases/reporting/participation-by-account-type/participation-by-account-type.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 interface IAggregateRow extends Record<string, unknown> {
   account_type: IGetCounterpartyAccountTypeParticipationRepoQueryOutput['type'];
@@ -15,7 +15,8 @@ interface IAggregateRow extends Record<string, unknown> {
 
 const counterpartyAccountTypeParticipationRepoQuery: TGetCounterpartyAccountTypeParticipationRepoQuery =
   async (criteria, options) => {
-    const aggregates = await getDbQuery(options).execute<IAggregateRow>(sql`
+    const aggregates = await getDbQueryHelper(options)
+      .execute<IAggregateRow>(sql`
       SELECT account.type AS account_type,
         coalesce(sum(line.functional_amount) FILTER (WHERE line.side = 'debit'), 0)::text AS debits,
         coalesce(sum(line.functional_amount) FILTER (WHERE line.side = 'credit'), 0)::text AS credits

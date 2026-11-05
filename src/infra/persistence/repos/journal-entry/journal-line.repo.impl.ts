@@ -1,9 +1,8 @@
 import { and, eq, getTableName, ilike, inArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import drizzleFilters from '@shared/helpers/drizzle-filters';
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
-import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
+import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import repoError from '@shared/values/errors/repo.error';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
@@ -13,7 +12,8 @@ import {
   journalEntriesInCore,
   journalLinesInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
+import getDrizzleSortDirectionHelper from '@infra/persistence/helpers/get-drizzle-sort-direction.helper';
 import mapJournalFunctionalCurrencyErrorHelper from '@infra/persistence/helpers/map-journal-functional-currency-error.helper';
 import journalLineMapper from '@infra/persistence/repos/journal-entry/mappers/journal-line.mapper';
 
@@ -24,7 +24,7 @@ const journalLineRepo: IJournalLineRepo = {
     const lines = Array.isArray(payload) ? payload : [payload];
 
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         const mappedLines = lines.map(journalLineMapper.toRepo);
         await tx.insert(journalLinesInCore).values(mappedLines);
 
@@ -32,7 +32,7 @@ const journalLineRepo: IJournalLineRepo = {
           lines,
           options.history,
           options.accountingEntityId,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {
@@ -41,10 +41,10 @@ const journalLineRepo: IJournalLineRepo = {
   },
 
   update: async (payload, options) => {
-    validateVersionInRepo(payload, options);
+    validateVersionInRepoHelper(payload, options);
 
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         const updated = await tx
           .update(journalLinesInCore)
           .set(journalLineMapper.toRepo(payload))
@@ -66,7 +66,7 @@ const journalLineRepo: IJournalLineRepo = {
           payload,
           options.history,
           options.accountingEntityId,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {
@@ -79,7 +79,7 @@ const journalLineRepo: IJournalLineRepo = {
       return;
     }
 
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .delete(journalLinesInCore)
       .where(inArray(journalLinesInCore.id, ids));
   },
@@ -93,7 +93,7 @@ const journalLineRepo: IJournalLineRepo = {
       eq(journalLinesInCore.counterpartyId, counterpartyId),
       eq(journalEntriesInCore.accountingEntityId, accountingEntityId)
     );
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const baseQuery = dbQuery
       .select({ line: journalLinesInCore })
@@ -125,7 +125,7 @@ const journalLineRepo: IJournalLineRepo = {
     }
 
     const whereClause = and(...conditions);
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const [countResult] = await dbQuery
       .select({ count: sql<number>`cast(count(*) as integer)` })
@@ -138,7 +138,7 @@ const journalLineRepo: IJournalLineRepo = {
       return paginationValue.getPaginatedResponse([], 0, options);
     }
 
-    const direction = drizzleFilters.getSortDirection(
+    const direction = getDrizzleSortDirectionHelper(
       paginationValue.getSortDirection(options.sortDirection)
     );
 

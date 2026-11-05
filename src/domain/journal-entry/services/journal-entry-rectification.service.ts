@@ -2,7 +2,7 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
-import getOppositeJournalSide from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
+import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryRectificationValidation from '@domain/journal-entry/services/validations/journal-entry-rectification.validation';
 import journalEntryValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
@@ -193,7 +193,7 @@ async function reverseEntry(
       sequenceOrder: line.sequenceOrder,
       amount: line.amount,
       exchangeRate: line.exchangeRate,
-      side: getOppositeJournalSide(line.side),
+      side: getOppositeJournalSideHelper(line.side),
       description: line.description,
       functionalCurrency,
     })),

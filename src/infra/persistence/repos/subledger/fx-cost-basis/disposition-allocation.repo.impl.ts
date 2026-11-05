@@ -3,13 +3,13 @@ import { eq } from 'drizzle-orm';
 import IFxCostBasisLotDispositionAllocationRepo from '@domain/subledger/fx-cost-basis/repos/disposition-allocation.repo';
 
 import { subledgerFxCostBasisLotDispositionAllocationsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import fxCostBasisLotDispositionAllocationMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/disposition-allocation.mapper';
 
 const fxCostBasisLotDispositionAllocationRepo: IFxCostBasisLotDispositionAllocationRepo =
   {
     findAllByDispositionId: async (dispositionId, options) => {
-      const results = await getDbQuery(options)
+      const results = await getDbQueryHelper(options)
         .select()
         .from(subledgerFxCostBasisLotDispositionAllocationsInCore)
         .where(
@@ -25,7 +25,7 @@ const fxCostBasisLotDispositionAllocationRepo: IFxCostBasisLotDispositionAllocat
     create: async (payload, options) => {
       const repoModel =
         fxCostBasisLotDispositionAllocationMapper.toRepo(payload);
-      await getDbQuery(options)
+      await getDbQueryHelper(options)
         .insert(subledgerFxCostBasisLotDispositionAllocationsInCore)
         .values(repoModel);
     },

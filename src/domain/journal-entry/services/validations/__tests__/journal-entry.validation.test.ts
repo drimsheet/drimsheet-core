@@ -9,7 +9,7 @@ import {
   ICreateReceiptEntryPayload,
   IJournalEntryLinePayload,
 } from '@domain/journal-entry/types/journal-entry.service.types';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import {
@@ -67,7 +67,7 @@ describe('journalEntryServiceValidation', () => {
       type,
       subType: EAssetSubType.CashAndCashEquivalent,
       behavior,
-      normalBalance: getLedgerAccountNormalBalance(type),
+      normalBalance: getLedgerAccountNormalBalanceHelper(type),
       isControlAccount: false,
       controlAccountId: null,
       name: 'Transfer account',

@@ -1,7 +1,8 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import getJournalEntryMemo from '@domain/journal-entry/entities/helpers/get-memo.helper';
+import getJournalEntryMemoHelper from '@domain/journal-entry/entities/helpers/get-memo.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalLineEntity from '@domain/journal-entry/entities/journal-line.entity';
 import journalEntryValidation from '@domain/journal-entry/entities/validations/journal-entry.validation';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { EJournalEntryEvent } from '@domain/journal-entry/events/journal-entry.events';
@@ -430,20 +431,20 @@ describe('JournalEntry Entity', () => {
       });
     });
 
-    describe('getJournalEntryMemo', () => {
+    describe('getJournalEntryMemoHelper', () => {
       it('should return null if value is empty or null', () => {
-        expect(getJournalEntryMemo(undefined)).toBeNull();
-        expect(getJournalEntryMemo(null)).toBeNull();
-        expect(getJournalEntryMemo('')).toBeNull();
+        expect(getJournalEntryMemoHelper(undefined)).toBeNull();
+        expect(getJournalEntryMemoHelper(null)).toBeNull();
+        expect(getJournalEntryMemoHelper('')).toBeNull();
       });
 
       it('should throw an AppError if memo is too long', () => {
         const longMemo = 'a'.repeat(251);
-        expect(() => getJournalEntryMemo(longMemo)).toThrow();
+        expect(() => getJournalEntryMemoHelper(longMemo)).toThrow();
       });
 
       it('should return trimmed memo', () => {
-        expect(getJournalEntryMemo('  valid memo  ')).toBe('valid memo');
+        expect(getJournalEntryMemoHelper('  valid memo  ')).toBe('valid memo');
       });
     });
 
@@ -616,6 +617,48 @@ describe('JournalEntry Entity', () => {
       );
       expect(audit?.header.action).toBe(EJournalEntryAuditAction.Updated);
       expect(audit?.lines).toHaveLength(2);
+    });
+
+    it('preserves unchanged lines and audits a new line through the entry update', () => {
+      const entry = makeEntry(null);
+      const actorId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
+      const [newLine] = journalLineEntity.make(
+        {
+          id: entry.id,
+          memo: entry.memo,
+          createdBy: actorId,
+          createdAt: new Date(),
+        },
+        {
+          accountId: 'c3333333-3333-4333-8333-333333333333' as TEntityId,
+          sequenceOrder: 3,
+          amount: entry.lines[1].amount,
+          exchangeRate: null,
+          side: EJournalSide.Credit,
+          description: 'Replacement credit',
+          functionalCurrency: SYSTEM_CURRENCIES.USD,
+        }
+      );
+
+      const [updatedEntry, events, audit] = journalEntryEntity.update(
+        entry,
+        { id: entry.id, lines: [entry.lines[0], newLine] },
+        actorId
+      );
+
+      expect(updatedEntry.lines[0]).toBe(entry.lines[0]);
+      expect(updatedEntry.lines[1]).toEqual(newLine);
+      expect(Object.isFrozen(updatedEntry.lines[1])).toBe(true);
+      expect(updatedEntry.version).toBe(entry.version + 1);
+      expect(events.map((event) => event.type)).toEqual([
+        EJournalEntryEvent.Updated,
+        EJournalLineItemEvent.Created,
+      ]);
+      expect(audit?.lines).toHaveLength(1);
+      expect(audit?.lines[0]).toMatchObject({
+        action: EJournalLineAuditAction.Created,
+        diff: { before: null, after: newLine },
+      });
     });
 
     it('updates only descriptions and attachments on a posted journal entry', () => {

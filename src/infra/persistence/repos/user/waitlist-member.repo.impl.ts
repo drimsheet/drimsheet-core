@@ -3,17 +3,17 @@ import { and, eq } from 'drizzle-orm';
 import IWaitListMemberRepo from '@domain/user/repos/waitlist-member.repo';
 
 import { waitlistMembersInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import waitListMemberMapper from '@infra/persistence/repos/user/mappers/waitlist-member.mapper';
 
 const waitListMemberRepo: IWaitListMemberRepo = {
   async create(member, options) {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .insert(waitlistMembersInCore)
       .values(waitListMemberMapper.toRepo(member));
   },
   async findByEmailAndFeature(email, feature, options) {
-    const [member] = await getDbQuery(options)
+    const [member] = await getDbQueryHelper(options)
       .select()
       .from(waitlistMembersInCore)
       .where(

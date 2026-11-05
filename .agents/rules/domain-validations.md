@@ -26,14 +26,9 @@ helpers narrow and deliberate.
 
 - Reserve helper modules for getters, selectors, and derivations that do not
   own a separately named domain capability.
-- Each `*.helper.ts` module must default-export exactly one function. Do not add
-  named exports or helper wrapper objects.
-- Give the exported function an explicit subject-specific name that remains
-  clear at the call site, such as `getJournalLineDescription`; do not rely on
-  the helper's file path to disambiguate a generic name such as
-  `getDescription`.
-- Keep private implementation functions with their owner; do not manufacture
-  helper modules for them.
+- Follow the cross-layer [Helper Rules](helpers.md) for module shape, naming,
+  exports, and placement. Keep private implementation functions with their owner;
+  do not manufacture helper modules for them.
 
 ## Dependency Direction
 

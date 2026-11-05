@@ -13,11 +13,11 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 
 import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
+import getJournalEntriesForBalancePropagationHelper from '@app/journal-entry/usecases/helpers/get-journal-entries-for-balance-propagation.helper';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
-import helpers from '@app/journal-entry/usecases/helpers/rectify-journal-entry.usecase.helpers';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 
-describe('rectifyJournalEntryUseCaseHelpers', () => {
+describe('getJournalEntriesForBalancePropagationHelper', () => {
   const actor = generateUUID();
   const correlationId = 'correlation-id';
   beforeEach(() => mockLedgerAccountRepo.findAllByIds.mockResolvedValue([]));
@@ -116,7 +116,7 @@ describe('rectifyJournalEntryUseCaseHelpers', () => {
     );
 
     expect(
-      helpers.getEntriesForBalancePropagation({
+      getJournalEntriesForBalancePropagationHelper({
         mode: EJournalEntryRectificationMode.VoidAndReplace,
         originalJournalEntryId: postedEntry.id,
         currentJournalEntry: postedEntry,
@@ -128,7 +128,7 @@ describe('rectifyJournalEntryUseCaseHelpers', () => {
     ).toEqual([reversingEntry, postedEntry]);
 
     expect(
-      helpers.getEntriesForBalancePropagation({
+      getJournalEntriesForBalancePropagationHelper({
         mode: EJournalEntryRectificationMode.UpdateMeta,
         originalJournalEntryId: postedEntry.id,
         currentJournalEntry: postedEntry,

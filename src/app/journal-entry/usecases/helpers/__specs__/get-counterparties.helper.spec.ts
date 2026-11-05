@@ -5,7 +5,7 @@ import counterpartyEntity from '@domain/counterparty/entities/counterparty.entit
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
-import getCounterpartiesHelper from '@app/journal-entry/helpers/get-counterparties.helper';
+import getCounterpartiesHelper from '@app/journal-entry/usecases/helpers/get-counterparties.helper';
 
 describe('getCounterpartiesHelper', () => {
   const accountingEntityId = generateUUID();

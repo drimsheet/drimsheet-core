@@ -1,15 +1,6 @@
-import * as sanitizer from '@shared/utils/sanitizer';
+import normalizeTelemetryErrorHelper from '@infra/observability/helpers/normalize-telemetry-error.helper';
 
-import {
-  normalizeTelemetryError,
-  sanitizeTelemetryErrorText,
-} from '@infra/observability/helpers/telemetry-error';
-
-describe('telemetry error preparation', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
+describe('normalizeTelemetryErrorHelper', () => {
   it('keeps canonical sanitized Error fields and drops custom properties', () => {
     const error = Object.assign(
       new TypeError(
@@ -22,7 +13,7 @@ describe('telemetry error preparation', () => {
       }
     );
 
-    const normalized = normalizeTelemetryError(error);
+    const normalized = normalizeTelemetryErrorHelper(error);
     expect(normalized).toEqual({
       name: 'TypeError',
       message: 'Invalid email [REDACTED] and credential [REDACTED]',
@@ -39,7 +30,7 @@ describe('telemetry error preparation', () => {
     const error = new Error('plain failure');
     delete error.stack;
 
-    expect(normalizeTelemetryError(error)).toEqual({
+    expect(normalizeTelemetryErrorHelper(error)).toEqual({
       name: 'Error',
       message: 'plain failure',
     });
@@ -52,7 +43,7 @@ describe('telemetry error preparation', () => {
     ['null', null],
     ['undefined', undefined],
   ])('represents a non-Error %s without its original value', (type, value) => {
-    const normalized = normalizeTelemetryError(value);
+    const normalized = normalizeTelemetryErrorHelper(value);
 
     expect(normalized).toEqual({
       name: 'UnknownError',
@@ -69,7 +60,7 @@ describe('telemetry error preparation', () => {
       },
     });
 
-    expect(normalizeTelemetryError(error)).toEqual({
+    expect(normalizeTelemetryErrorHelper(error)).toEqual({
       name: 'UnknownError',
       message: 'An Error instance could not be inspected safely',
     });
@@ -81,18 +72,10 @@ describe('telemetry error preparation', () => {
     Object.defineProperty(error, 'message', { value: 42 });
     Object.defineProperty(error, 'errorKey', { value: 42 });
 
-    expect(normalizeTelemetryError(error)).toEqual({
+    expect(normalizeTelemetryErrorHelper(error)).toEqual({
       name: 'Error',
       message: 'Error',
       stack: expect.any(String),
     });
-  });
-
-  it('uses the caller fallback when string sanitization returns no string', () => {
-    jest.spyOn(sanitizer, 'sanitizeData').mockReturnValue(undefined);
-
-    expect(sanitizeTelemetryErrorText('private value', 'safe fallback')).toBe(
-      'safe fallback'
-    );
   });
 });

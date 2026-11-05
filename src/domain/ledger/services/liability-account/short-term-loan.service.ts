@@ -1,6 +1,6 @@
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
-import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getLedgerAccountMaterializedPathHelper from '@domain/ledger/entities/helpers/get-materialized-path.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -60,7 +60,7 @@ function makeCreateHeader(
       accountingEntityId: payload.accountingEntity.id,
       code: LEDGER_CODE.HEADER,
       materializedPath: LEDGER_CODE.HEADER,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Liability),
       type: ELedgerType.Liability,
       subType: ELiabilitySubType.ShortTermDebt,
       behavior: ELiabilityAccountBehavior.DefaultShortTermDebt,
@@ -107,7 +107,7 @@ function makeCreateSubAccount(): IShortTermLoanAccountService['createSubAccount'
     );
 
     const materializedPath =
-      getLedgerAccountMaterializedPath<TShortTermDebtLedgerCode>(
+      getLedgerAccountMaterializedPathHelper<TShortTermDebtLedgerCode>(
         controlAccount.materializedPath as TShortTermDebtLedgerCode,
         code
       );
@@ -117,7 +117,7 @@ function makeCreateSubAccount(): IShortTermLoanAccountService['createSubAccount'
       accountingEntityId: payload.accountingEntityId,
       code,
       materializedPath,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Liability),
       type: ELedgerType.Liability,
       subType: ELiabilitySubType.ShortTermDebt,
       behavior: ELiabilityAccountBehavior.ShortTermLoan,
@@ -158,7 +158,7 @@ function makeCreateCreditCardSubAccount(): IShortTermLoanAccountService['createC
     );
 
     const materializedPath =
-      getLedgerAccountMaterializedPath<TShortTermDebtLedgerCode>(
+      getLedgerAccountMaterializedPathHelper<TShortTermDebtLedgerCode>(
         controlAccount.materializedPath as TShortTermDebtLedgerCode,
         code
       );
@@ -168,7 +168,7 @@ function makeCreateCreditCardSubAccount(): IShortTermLoanAccountService['createC
       accountingEntityId: payload.accountingEntityId,
       code,
       materializedPath,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Liability),
       type: ELedgerType.Liability,
       subType: ELiabilitySubType.ShortTermDebt,
       behavior: ELiabilityAccountBehavior.CreditCard,

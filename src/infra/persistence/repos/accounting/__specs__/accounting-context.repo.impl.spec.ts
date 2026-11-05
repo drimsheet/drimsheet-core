@@ -10,11 +10,11 @@ import accountingError from '@domain/accounting/errors/accounting.error';
 import { mockAccountingContextHistoryRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 
 import { accountingContextsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import repo from '@infra/persistence/repos/accounting/accounting-context.repo.impl';
 import accountingContextMapper from '@infra/persistence/repos/accounting/mappers/accounting-context.mapper';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 jest.mock(
   '@infra/persistence/repos/accounting/accounting-context-history.repo.impl',
@@ -32,9 +32,9 @@ describe('accounting-context setup deletion', () => {
     const options = { correlationId: 'remove', tx: {} };
     const where = jest.fn().mockResolvedValue(undefined);
     const query = { delete: jest.fn().mockReturnValue({ where }) };
-    jest.mocked(getDbQuery).mockReturnValue(query as never);
+    jest.mocked(getDbQueryHelper).mockReturnValue(query as never);
     await repo.deleteByAccountingEntityId(id, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.delete).toHaveBeenCalledWith(accountingContextsInCore);
     expect(where).toHaveBeenCalledWith(
       eq(accountingContextsInCore.accountingEntityId, id)
@@ -76,9 +76,9 @@ describe('accounting-context atomic creation', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     return { committed, staged, values, insert, innerTx };
   }
@@ -93,7 +93,7 @@ describe('accounting-context atomic creation', () => {
       history,
       { ...options, tx: fake.innerTx }
     );
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
   });
 
   it.each([false, true])(
@@ -136,12 +136,12 @@ describe('accounting-context fiscal-year uniqueness lookup', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       await expect(repo.existsByFiscalYear(id, options)).resolves.toBe(exists);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(select).toHaveBeenCalledWith({ id: accountingContextsInCore.id });
       expect(from).toHaveBeenCalledWith(accountingContextsInCore);
       const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
@@ -188,9 +188,9 @@ describe('accounting-context lookup', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
 
       const context = await repo.findByFiscalYear(
@@ -204,7 +204,7 @@ describe('accounting-context lookup', () => {
           ? null
           : accountingContextMapper.toDomain(storedContext)
       );
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(from).toHaveBeenCalledWith(accountingContextsInCore);
       const predicate = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
       expect(predicate.sql).toBe(
@@ -222,8 +222,10 @@ describe('accounting-context lookup', () => {
     const from = jest.fn().mockReturnValue({ where });
     const select = jest.fn().mockReturnValue({ from });
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ select } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ select } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     await expect(
       repo.findByFiscalYear(id, id, { correlationId: 'read-failure' })
     ).rejects.toBe(failure);
@@ -238,15 +240,15 @@ describe('accounting-context lookup', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       const result = await repo.findById(id, options);
       expect(result).toEqual(
         found ? accountingContextMapper.toDomain(row) : null
       );
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(from).toHaveBeenCalledWith(accountingContextsInCore);
       expect(where).toHaveBeenCalledWith(eq(accountingContextsInCore.id, id));
       expect(limit).toHaveBeenCalledWith(1);
@@ -304,9 +306,9 @@ describe('accounting-context atomic update', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     return { committed, staged, where, set, update, innerTx };
   }
@@ -314,7 +316,7 @@ describe('accounting-context atomic update', () => {
   it('saves the mapped context and audit history in one transaction', async () => {
     const fake = fakeTransaction();
     await repo.update(context, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(fake.update).toHaveBeenCalledWith(accountingContextsInCore);
     expect(fake.set).toHaveBeenCalledWith(
       accountingContextMapper.toRepo(context)

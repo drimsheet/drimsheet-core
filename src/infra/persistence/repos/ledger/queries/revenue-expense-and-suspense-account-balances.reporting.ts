@@ -5,7 +5,7 @@ import {
   TGetRevenueExpenseAndSuspenseAccountBalancesRepoQuery,
 } from '@app/ledger/usecases/reporting/revenue-expense-and-suspense-account-balances/revenue-expense-and-suspense-account-balances.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 interface IAccountRow extends Record<string, unknown> {
   id: string;
@@ -22,7 +22,7 @@ interface IAccountRow extends Record<string, unknown> {
 
 const revenueExpenseAndSuspenseAccountBalancesRepoQuery: TGetRevenueExpenseAndSuspenseAccountBalancesRepoQuery =
   async ({ accountingEntityId, currencyCode }, options) => {
-    const accounts = await getDbQuery(options).execute<IAccountRow>(sql`
+    const accounts = await getDbQueryHelper(options).execute<IAccountRow>(sql`
       WITH accounts AS (
         SELECT id, name, code, type, sub_type, status, is_control_account,
           control_account_id, accounting_entity_id

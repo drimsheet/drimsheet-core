@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 
 import type { TGetLedgerTotalDebitsAndCreditsByCurrencyRepoQuery } from '@app/ledger/usecases/reporting/ledger-total-debits-and-credits-by-currency/ledger-total-debits-and-credits-by-currency.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 interface IAggregateRow extends Record<string, unknown> {
   currency_code: string;
@@ -12,7 +12,7 @@ interface IAggregateRow extends Record<string, unknown> {
 
 const ledgerTotalDebitsAndCreditsByCurrencyRepoQuery: TGetLedgerTotalDebitsAndCreditsByCurrencyRepoQuery =
   async (criteria, options) => {
-    const result = await getDbQuery(options).execute<IAggregateRow>(sql`
+    const result = await getDbQueryHelper(options).execute<IAggregateRow>(sql`
     SELECT line.currency_code,
       coalesce(sum(line.amount) FILTER (WHERE line.side = 'debit'), 0)::text AS debits,
       coalesce(sum(line.amount) FILTER (WHERE line.side = 'credit'), 0)::text AS credits

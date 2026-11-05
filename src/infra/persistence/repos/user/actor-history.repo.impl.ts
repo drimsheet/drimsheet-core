@@ -1,12 +1,12 @@
 import IActorHistoryRepo from '@domain/user/repos/actor-history.repo';
 
 import { actorHistoryInAudit } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import actorHistoryMapper from '@infra/persistence/repos/user/mappers/actor-history.mapper';
 
 const actorHistoryRepo: IActorHistoryRepo = {
   save: async (history, options) => {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .insert(actorHistoryInAudit)
       .values(actorHistoryMapper.toRepo(history));
   },

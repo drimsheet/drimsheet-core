@@ -7,12 +7,12 @@ import repoError from '@shared/values/errors/repo.error';
 import { IFxCostBasisLot } from '@domain/subledger/fx-cost-basis/types/lot.types';
 
 import { subledgerFxCostBasisLotsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import fxCostBasisLotRepo from '@infra/persistence/repos/subledger/fx-cost-basis/lot.repo.impl';
 import fxCostBasisLotHistoryMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/lot-history.mapper';
 import fxCostBasisLotMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/lot.mapper';
 
-jest.mock('../../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/lot.mapper');
 jest.mock('../mappers/lot-history.mapper');
 jest.mock('drizzle-orm', () => {
@@ -38,9 +38,9 @@ describe('FX Cost-Basis Lot Repo', () => {
     const where = jest.fn().mockReturnValue({ orderBy });
     const from = jest.fn().mockReturnValue({ where });
     const select = jest.fn().mockReturnValue({ from });
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       select,
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
     jest.mocked(fxCostBasisLotMapper.toDomain).mockReturnValue(lot);
     const accountingEntityId = generateUUID();
     const accountId = generateUUID();
@@ -54,7 +54,7 @@ describe('FX Cost-Basis Lot Repo', () => {
       )
     ).resolves.toEqual([lot]);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(orderBy).toHaveBeenCalledTimes(1);
     expect(jest.mocked(fxCostBasisLotMapper.toDomain).mock.calls[0][0]).toBe(
       row
@@ -84,9 +84,9 @@ describe('FX Cost-Basis Lot Repo', () => {
     const values = jest.fn().mockResolvedValue(undefined);
     const insert = jest.fn().mockReturnValue({ values });
     const tx = { update, insert };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
     jest.mocked(fxCostBasisLotMapper.toRepo).mockReturnValue(lotRow);
     jest.mocked(fxCostBasisLotHistoryMapper.toRepo).mockReturnValue(historyRow);
 
@@ -115,9 +115,9 @@ describe('FX Cost-Basis Lot Repo', () => {
     const values = jest.fn().mockResolvedValue(undefined);
     const insert = jest.fn().mockReturnValue({ values });
     const tx = { update, insert };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
 
     await expect(
       fxCostBasisLotRepo.update(lot, {
@@ -150,6 +150,6 @@ describe('FX Cost-Basis Lot Repo', () => {
       })
     ).rejects.toBeInstanceOf(repoError.VersionMismatch);
 
-    expect(getDbQuery).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
   });
 });

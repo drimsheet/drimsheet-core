@@ -18,6 +18,7 @@ Read this before changing the repository.
     reporter events.
 11. Follow `.agents/rules/controller-ordering.md` when adding, changing, or
     reviewing controller endpoints.
+12. Follow `.agents/rules/helpers.md` for helpers in every layer.
 
 For reporting use-case work, load
 `.agents/skills/reporting-usecase-creation/SKILL.md`.

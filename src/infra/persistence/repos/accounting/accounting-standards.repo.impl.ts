@@ -1,12 +1,12 @@
 import { IAccountingStandardRepo } from '@domain/accounting/repos/accounting-standards.repo';
 
 import { accountingStandardsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import accountingStandardMapper from '@infra/persistence/repos/accounting/mappers/accounting-standard.mapper';
 
 const accountingStandardRepo: IAccountingStandardRepo = {
   create: async (domain, createdBy, options) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
 
     const values = Array.isArray(domain)
       ? domain.map((value) => accountingStandardMapper.toRepo(value, createdBy))

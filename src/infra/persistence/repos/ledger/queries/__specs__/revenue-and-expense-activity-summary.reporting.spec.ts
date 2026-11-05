@@ -5,10 +5,10 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IGetRevenueAndExpenseActivitySummaryRepoQueryInput } from '@app/ledger/usecases/reporting/revenue-and-expense-activity-summary/revenue-and-expense-activity-summary.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import revenueAndExpenseActivitySummaryRepoQuery from '@infra/persistence/repos/ledger/queries/revenue-and-expense-activity-summary.reporting';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('revenueAndExpenseActivitySummaryRepoQuery', () => {
   const criteria: IGetRevenueAndExpenseActivitySummaryRepoQueryInput = {
@@ -28,15 +28,17 @@ describe('revenueAndExpenseActivitySummaryRepoQuery', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ execute } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ execute } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     execute.mockResolvedValue({ rows: [] });
   });
 
   it('binds both inclusive periods, tenant and functional currency in one query', async () => {
     await revenueAndExpenseActivitySummaryRepoQuery(criteria, options);
     const compiled = compiledSql();
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(execute).toHaveBeenCalledTimes(1);
     expect(compiled.params).toEqual([
       '2026-10-01',

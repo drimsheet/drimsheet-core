@@ -2,7 +2,7 @@ import { ErrorEvent, Event } from '@sentry/node';
 
 import { sanitizeData } from '@shared/utils/sanitizer';
 
-import { sanitizeTelemetryErrorText } from '@infra/observability/helpers/telemetry-error';
+import sanitizeTelemetryErrorTextHelper from '@infra/observability/helpers/sanitize-telemetry-error-text.helper';
 
 const EXTRA_STRING_FIELDS = [
   'operation',
@@ -33,7 +33,7 @@ function sanitizeErrorString(value: unknown): string | undefined {
   if (typeof value !== 'string') {
     return undefined;
   }
-  return sanitizeTelemetryErrorText(value, '');
+  return sanitizeTelemetryErrorTextHelper(value, '');
 }
 
 function projectSdk(sdk: Event['sdk']): Event['sdk'] {

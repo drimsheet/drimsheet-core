@@ -3,12 +3,12 @@ import { eq } from 'drizzle-orm';
 import ICurrencyRepo from '@domain/money/repos/currency.repo';
 
 import { currenciesInCore as currencies } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import currencyMapper from '@infra/persistence/repos/money/mappers/currency.mapper';
 
 const currencyRepo: ICurrencyRepo = {
   create: async (payload, createdBy, options) => {
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     await dbQuery
       .insert(currencies)
@@ -17,7 +17,7 @@ const currencyRepo: ICurrencyRepo = {
   },
 
   findByCode: async (code, options) => {
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const [currency] = await dbQuery
       .select()
@@ -28,7 +28,7 @@ const currencyRepo: ICurrencyRepo = {
   },
 
   findAll: async (options) => {
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const allCurrencies = await dbQuery.select().from(currencies);
     return allCurrencies.map(currencyMapper.toDomain);

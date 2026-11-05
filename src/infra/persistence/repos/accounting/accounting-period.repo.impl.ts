@@ -1,6 +1,6 @@
 import { and, eq, getTableColumns, gt, lt, lte } from 'drizzle-orm';
 
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 
 import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 
@@ -9,7 +9,7 @@ import {
   accountingPeriodsInCore,
 } from '@infra/config/drizzle/schema';
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import mapAccountingPeriodOverlapErrorHelper from '@infra/persistence/helpers/map-accounting-period-overlap-error.helper';
 import accountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/accounting-period.mapper';
 
@@ -17,7 +17,7 @@ import accountingPeriodHistoryRepo from './accounting-period-history.repo.impl';
 
 const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   findAllByFiscalYear: async (accountingEntityId, fiscalYearId, options) => {
-    const periods = await getDbQuery(options)
+    const periods = await getDbQueryHelper(options)
       .select(getTableColumns(accountingPeriodsInCore))
       .from(accountingPeriodsInCore)
       .innerJoin(
@@ -37,7 +37,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   },
 
   findById: async (accountingEntityId, id, options) => {
-    const [period] = await getDbQuery(options)
+    const [period] = await getDbQueryHelper(options)
       .select()
       .from(accountingPeriodsInCore)
       .where(
@@ -53,7 +53,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
 
   findByDate: async (accountingEntityId, date, options) => {
     const repoDate = toRepoDate(date);
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select()
       .from(accountingPeriodsInCore)
       .where(
@@ -71,7 +71,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
 
   findAllByDate: async (accountingEntityId, date, options) => {
     const repoDate = toRepoDate(date);
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select()
       .from(accountingPeriodsInCore)
       .where(
@@ -88,7 +88,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
   },
 
   findByRange: async (accountingEntityId, range, options) => {
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select()
       .from(accountingPeriodsInCore)
       .where(
@@ -105,7 +105,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
 
   create: async (payload, options) => {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         const valuesArray = payload.map(accountingPeriodMapper.toRepo);
 
         await tx.insert(accountingPeriodsInCore).values(valuesArray);
@@ -113,7 +113,7 @@ const accountingPeriodRepoImpl: IAccountingPeriodRepo = {
         await accountingPeriodHistoryRepo.save(
           payload,
           options.history,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {

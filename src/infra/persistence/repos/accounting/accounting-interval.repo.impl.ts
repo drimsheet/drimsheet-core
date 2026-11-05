@@ -8,14 +8,14 @@ import {
   accountingPeriodsInCore,
 } from '@infra/config/drizzle/schema';
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import mapAccountingIntervalConflictErrorHelper from '@infra/persistence/helpers/map-accounting-interval-conflict-error.helper';
 import accountingIntervalMapper from '@infra/persistence/repos/accounting/mappers/accounting-interval.mapper';
 
 const accountingIntervalRepo: IAccountingIntervalRepo = {
   async create(interval, options) {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         await tx
           .insert(accountingIntervalsInCore)
           .values(accountingIntervalMapper.toRepo(interval));
@@ -39,7 +39,7 @@ const accountingIntervalRepo: IAccountingIntervalRepo = {
   },
 
   async update(interval, options) {
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       await tx
         .update(accountingIntervalsInCore)
         .set(accountingIntervalMapper.toRepo(interval))
@@ -72,7 +72,7 @@ const accountingIntervalRepo: IAccountingIntervalRepo = {
    * @deprecated: use findByFiscalYear instead
    */
   async existsByFiscalYear(accountingEntityId, fiscalYearId, options) {
-    const rows = await getDbQuery(options)
+    const rows = await getDbQueryHelper(options)
       .select({ id: accountingIntervalsInCore.id })
       .from(accountingIntervalsInCore)
       .where(
@@ -86,7 +86,7 @@ const accountingIntervalRepo: IAccountingIntervalRepo = {
   },
 
   async findByFiscalYear(accountingEntityId, fiscalYearId, options) {
-    const interval = await getDbQuery(
+    const interval = await getDbQueryHelper(
       options
     ).query.accountingIntervalsInCore.findFirst({
       where: and(
@@ -104,7 +104,7 @@ const accountingIntervalRepo: IAccountingIntervalRepo = {
   },
 
   async findById(accountingEntityId, id, options) {
-    const interval = await getDbQuery(
+    const interval = await getDbQueryHelper(
       options
     ).query.accountingIntervalsInCore.findFirst({
       where: and(

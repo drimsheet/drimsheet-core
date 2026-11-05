@@ -1,3 +1,4 @@
+// TODO: check if this is truly needed or if it's a glorified helper
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
@@ -27,9 +28,12 @@ import IJournalEntryRectificationPreparationAppService, {
   IJournalEntryRectificationPreparationPayload,
 } from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
 import { TJournalEntryRectificationReq } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
-import getLedgerAccount from '@app/journal-entry/helpers/account-getter.helper';
-import getCounterpartiesHelper from '@app/journal-entry/helpers/get-counterparties.helper';
-import transferHelpers from '@app/journal-entry/helpers/transfer-entry.helpers';
+import getLedgerAccount from '@app/journal-entry/usecases/helpers/account-getter.helper';
+import getCounterpartiesHelper from '@app/journal-entry/usecases/helpers/get-counterparties.helper';
+import getTransferChargeAccountsHelper from '@app/journal-entry/usecases/helpers/get-transfer-charge-accounts.helper';
+import getTransferDestinationLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-destination-line-payload.helper';
+import getTransferSourceLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-source-line-payload.helper';
+import transformTransferChargeLinesToJournalLinesHelper from '@app/journal-entry/usecases/helpers/transform-transfer-charge-lines-to-journal-lines.helper';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
 import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
@@ -294,7 +298,7 @@ async function prepareTransfer(
     repo: deps.ledgerAccountRepo,
     repoOptions,
   });
-  const chargeAccounts = await transferHelpers.getChargeAccounts(
+  const chargeAccounts = await getTransferChargeAccountsHelper(
     requestedEntry.chargeLines,
     accountingEntity,
     deps.ledgerAccountRepo,
@@ -309,13 +313,16 @@ async function prepareTransfer(
   const transferPayload: ICreateTransferEntryPayload = {
     header: getHeader(preparation),
     attachments: requestedEntry.attachments,
-    sourceLine: transferHelpers.getSourceLinePayload(
+    sourceLine: getTransferSourceLinePayloadHelper(
       requestedEntry,
       sourceAccount
     ),
     destinationLines: [
-      transferHelpers.getDestinationPayload(requestedEntry, destinationAccount),
-      ...transferHelpers.transformChargeLineToJournalLine(
+      getTransferDestinationLinePayloadHelper(
+        requestedEntry,
+        destinationAccount
+      ),
+      ...transformTransferChargeLinesToJournalLinesHelper(
         requestedEntry,
         counterparties,
         chargeAccounts

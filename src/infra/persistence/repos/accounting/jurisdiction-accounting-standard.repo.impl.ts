@@ -1,13 +1,13 @@
 import IJurisdictionAccountingStandardRepo from '@domain/accounting/repos/jurisdiction-accounting-standard.repo';
 
 import { jurisdictionAccountingStandardsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import jurisdictionAccountingStandardMapper from '@infra/persistence/repos/accounting/mappers/jurisdiction-accounting-standard.mapper';
 
 const jurisdictionAccountingStandardRepo: IJurisdictionAccountingStandardRepo =
   {
     create: async (domain, options) => {
-      const query = getDbQuery(options);
+      const query = getDbQueryHelper(options);
 
       const values = Array.isArray(domain)
         ? domain.map(jurisdictionAccountingStandardMapper.toRepo)

@@ -23,8 +23,8 @@
   call site unless extraction establishes meaningful ownership or reuse.
 - Document non-trivial helpers with their purpose, output, and important failure
   or consistency behavior.
-- Exported functions in `*.helper.ts` files must end with `Helper`.
-- Domain validation objects and helper functions follow
+- Helper module naming, exports, and placement follow [Helper Rules](helpers.md)
+  in every layer. Domain validation objects follow
   [Domain Validations And Helpers](domain-validations.md).
 - In `for...of` loops, use a named loop variable and access its fields
   explicitly instead of destructuring in the loop declaration.

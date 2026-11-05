@@ -1,6 +1,5 @@
 import { and, eq, ilike, sql } from 'drizzle-orm';
 
-import drizzleFilters from '@shared/helpers/drizzle-filters';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
 import IAccountTransactionQueryRepo from '@app/ledger/contracts/account-transaction.query.repo.contract';
@@ -9,7 +8,8 @@ import {
   journalEntriesInCore,
   journalLinesInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
+import getDrizzleSortDirectionHelper from '@infra/persistence/helpers/get-drizzle-sort-direction.helper';
 import accountTransactionMapper from '@infra/persistence/repos/ledger/mappers/account-transaction.mapper';
 
 const accountTransactionQueryRepo: IAccountTransactionQueryRepo = {
@@ -23,7 +23,7 @@ const accountTransactionQueryRepo: IAccountTransactionQueryRepo = {
     }
 
     const whereClause = and(...conditions);
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const [countResult] = await dbQuery
       .select({ count: sql<number>`cast(count(*) as integer)` })
@@ -40,7 +40,7 @@ const accountTransactionQueryRepo: IAccountTransactionQueryRepo = {
       return paginationValue.getPaginatedResponse([], 0, options);
     }
 
-    const direction = drizzleFilters.getSortDirection(
+    const direction = getDrizzleSortDirectionHelper(
       paginationValue.getSortDirection(options.sortDirection)
     );
 
