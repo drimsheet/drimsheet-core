@@ -473,7 +473,7 @@ describe('makeJournalEntryRectificationService', () => {
     );
   });
 
-  it('voids and replaces a posted journal entry when its memo changes', async () => {
+  it('updates posted metadata in place when its memo changes', async () => {
     const [originalEntry] = makeEntry({ posted: true, memo: 'Before' });
     const newEntry = makeEntry({ posted: true, memo: 'After' });
 
@@ -481,7 +481,7 @@ describe('makeJournalEntryRectificationService', () => {
       correlationId: 'test-correlation-id',
     });
 
-    expect(result.mode).toBe(EJournalEntryRectificationMode.VoidAndReplace);
+    expect(result.mode).toBe(EJournalEntryRectificationMode.UpdateMeta);
   });
 
   it('uses the original lines when a replacement omits lines', async () => {
@@ -772,7 +772,10 @@ describe('makeJournalEntryRectificationService', () => {
             {
               actorId: createdBy,
               originalEntry: original,
-              newEntry: { id: generateUUID(), memo: 'Correction' },
+              newEntry: {
+                id: generateUUID(),
+                lines: makeEntry({ posted: true, amount: 125 })[0].lines,
+              },
             },
             repoOptions
           )

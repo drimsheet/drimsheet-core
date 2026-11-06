@@ -5180,6 +5180,116 @@
         }
       }
     },
+    "/journal-entries/{id}/meta": {
+      "patch": {
+        "operationId": "updateJournalEntryMeta",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Updates the memo and existing line descriptions without financial changes.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IJournalEntryMetaUpdateReq"
+              }
+            }
+          }
+        }
+      }
+    },
     "/journal-entries/{id}/rectify": {
       "post": {
         "operationId": "rectifyJournalEntry",
@@ -12427,6 +12537,37 @@
           "postedAt",
           "memo"
         ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IJournalEntryMetaUpdateReq": {
+        "properties": {
+          "header": {
+            "properties": {
+              "memo": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "type": "object"
+          },
+          "lines": {
+            "items": {
+              "properties": {
+                "description": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "id": {
+                  "$ref": "#/components/schemas/TEntityId"
+                }
+              },
+              "required": ["id"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
         "type": "object",
         "additionalProperties": false
       },

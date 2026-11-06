@@ -495,7 +495,7 @@ describe('JournalEntry Entity', () => {
       }
     );
 
-    it('compares normalized memo values before rejecting posted accounting changes', () => {
+    it('compares normalized memo values before updating posted metadata', () => {
       const entry = makeEntry(new Date('2026-04-01T00:00:00Z'));
       const [unchanged, events, audit] = journalEntryEntity.update(
         entry,
@@ -505,13 +505,12 @@ describe('JournalEntry Entity', () => {
       expect(unchanged).toBe(entry);
       expect(events).toEqual([]);
       expect(audit).toBeNull();
-      expect(() =>
-        journalEntryEntity.update(
-          entry,
-          { id: entry.id, memo: 'Different' },
-          entry.createdBy
-        )
-      ).toThrow(journalEntryError.RectificationNotPermitted);
+      const [updated] = journalEntryEntity.update(
+        entry,
+        { id: entry.id, memo: 'Different' },
+        entry.createdBy
+      );
+      expect(updated.memo).toBe('Different');
     });
 
     it('returns an archived journal unchanged on repeated archival', () => {

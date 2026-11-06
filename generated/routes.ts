@@ -2598,6 +2598,41 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJournalEntryMetaUpdateReq: {
+    dataType: 'refObject',
+    properties: {
+      header: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          memo: {
+            dataType: 'union',
+            subSchemas: [
+              { dataType: 'string' },
+              { dataType: 'enum', enums: [null] },
+            ],
+          },
+        },
+      },
+      lines: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            description: {
+              dataType: 'union',
+              subSchemas: [
+                { dataType: 'string' },
+                { dataType: 'enum', enums: [null] },
+              ],
+            },
+            id: { ref: 'TEntityId', required: true },
+          },
+        },
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   UJournalEntryRectificationMode: {
     dataType: 'refAlias',
     type: {
@@ -6463,6 +6498,56 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 201,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_updateJournalEntryMeta: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IJournalEntryMetaUpdateReq',
+    },
+  };
+  app.patch(
+    '/api/v1/journal-entries/:id/meta',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.updateJournalEntryMeta
+    ),
+
+    async function JournalEntryController_updateJournalEntryMeta(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_updateJournalEntryMeta,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'updateJournalEntryMeta',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
         });
       } catch (err) {
         return next(err);

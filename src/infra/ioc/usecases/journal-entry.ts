@@ -11,6 +11,7 @@ import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-
 import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
+import makeUpdateJournalEntryMetaUsecase from '@app/journal-entry/usecases/update-journal-entry-meta.usecase';
 
 import { fileManagementAppService } from '@infra/ioc/services/file';
 import {
@@ -32,6 +33,17 @@ import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import appContext from '@infra/services/app-context.service';
+
+export const updateJournalEntryMetaUseCase = makeTracedUseCase(
+  'journalEntry.updateJournalEntryMetaUseCase',
+  makeUpdateJournalEntryMetaUsecase({
+    appContext,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    journalLineRepo: journalEntryRepos.journalLine,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
 
 export const postDraftOpeningBalanceUseCase = makeTracedUseCase(
   'journalEntry.postDraftOpeningBalanceUseCase',
