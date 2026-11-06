@@ -20,10 +20,7 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -119,8 +116,9 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
         preparedRectification.rectification
       );
 
-    const transactionFn: TRepoTransactionFn = async (tx) => {
-      const writeOptions = { correlationId, tx };
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeOptions = { correlationId, tx: transaction.context };
 
       await deps.journalEntryPersistenceAppService.rectify(
         rectificationPersistencePayload,
@@ -154,26 +152,28 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
           writeOptions
         );
       }
-    };
 
-    await deps.repoService.runInTransaction(transactionFn);
+      await transaction.commit();
 
-    for (const journalEntry of entriesForBalancePropagation) {
-      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
-        journalEntryId: journalEntry.id,
-      });
+      const events: IEvent<unknown>[] = [
+        ...preparedRectification.rectification.events,
+        ...(preparedRectification.fxReversal?.events ?? []),
+        ...(preparedRectification.fxDisposition?.events ?? []),
+        ...(preparedRectification.fxAcquisition?.events ?? []),
+      ];
+      await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
+
+      for (const journalEntry of entriesForBalancePropagation) {
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
+          journalEntryId: journalEntry.id,
+        });
+      }
+
+      return journalEntryRectificationDtoMapper.toDto(
+        preparedRectification.rectification
+      );
+    } catch (error) {
+      return await transaction.handleError(error);
     }
-
-    const events: IEvent<unknown>[] = [
-      ...preparedRectification.rectification.events,
-      ...(preparedRectification.fxReversal?.events ?? []),
-      ...(preparedRectification.fxDisposition?.events ?? []),
-      ...(preparedRectification.fxAcquisition?.events ?? []),
-    ];
-    await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
-
-    return journalEntryRectificationDtoMapper.toDto(
-      preparedRectification.rectification
-    );
   };
 }

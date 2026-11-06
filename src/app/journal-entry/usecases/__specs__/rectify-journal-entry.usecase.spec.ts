@@ -1,6 +1,7 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
+import mockRepoService, {
+  mockRepoTransaction,
+} from '@shared/contracts/__mocks__/repo.mock';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
@@ -183,9 +184,15 @@ describe('makeRectifyJournalEntryUsecase', () => {
       },
       clientSession: mockClientSession,
     } as unknown as IAppContextData);
-    mockRepoService.runInTransaction.mockImplementation(async (fn) =>
-      fn('mock-tx' as unknown as ITransactionContext)
-    );
+    mockRepoService.createTransaction
+      .mockReset()
+      .mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.commit.mockReset().mockResolvedValue();
+    mockRepoTransaction.handleError
+      .mockReset()
+      .mockImplementation(async (error) => {
+        throw error;
+      });
     mockEventBus.publish.mockResolvedValue();
     mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerAccountBalanceAdjustmentQueue.add.mockResolvedValue();
@@ -213,7 +220,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
       }
     );
     await getUsecase()(originalEntry.id, makePayload(originalEntry));
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(
       mockJournalEntryPersistenceAppService.rectify
     ).not.toHaveBeenCalled();
@@ -312,7 +319,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
           }),
         }),
       }),
-      expect.objectContaining({ tx: 'mock-tx' })
+      expect.objectContaining({ tx: mockRepoTransaction.context })
     );
     expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledTimes(
       2
@@ -483,7 +490,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
         getUsecase()(originalEntry.id, makePayload(originalEntry))
       ).rejects.toBe(error);
 
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
       expect(
         mockJournalEntryPersistenceAppService.rectify
@@ -541,7 +548,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
       expect.objectContaining({ originalEntry, requestedEntry: payload }),
       { correlationId, idempotencyKey }
     );
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(
       mockJournalEntryPersistenceAppService.rectify
     ).not.toHaveBeenCalled();
@@ -609,7 +616,8 @@ describe('makeRectifyJournalEntryUsecase', () => {
         idempotencyKey,
       });
       expect(originalEntry).toEqual(snapshot);
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
       expect(
         mockJournalEntryPersistenceAppService.rectify
@@ -632,4 +640,79 @@ describe('makeRectifyJournalEntryUsecase', () => {
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
+  it.each(['acquisition', 'persistence', 'outbox', 'commit'] as const)(
+    'handles transaction %s failure without publishing or enqueueing',
+    async (phase) => {
+      const [originalEntry] = makeEntry(100);
+      const [replacement] = makeEntry(150);
+      const newEntry = {
+        ...replacement,
+        lines: replacement.lines.map((line, index) => ({
+          ...line,
+          id: originalEntry.lines[index].id,
+        })),
+      };
+      const rectification = await rectificationService.rectify(
+        { actorId: actor.id, originalEntry, newEntry },
+        { correlationId }
+      );
+      mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
+      mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
+        {
+          rectification,
+          fxReversal: null,
+          fxDisposition: null,
+          fxAcquisition: null,
+        }
+      );
+      const failure = new Error('transaction failed');
+      const failures = {
+        acquisition: mockRepoService.createTransaction,
+        persistence: mockJournalEntryPersistenceAppService.rectify,
+        outbox: mockOutboxAppService.createBalancePropagation,
+        commit: mockRepoTransaction.commit,
+      };
+      failures[phase].mockRejectedValueOnce(failure);
+
+      await expect(
+        getUsecase()(originalEntry.id, makePayload(originalEntry))
+      ).rejects.toBe(failure);
+
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      if (phase === 'acquisition') {
+        expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+        expect(
+          mockJournalEntryPersistenceAppService.rectify
+        ).not.toHaveBeenCalled();
+      } else {
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+      }
+      if (phase !== 'commit') {
+        expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  afterEach(() => {
+    if (mockLedgerAccountBalanceAdjustmentQueue.add.mock.calls.length === 0) {
+      return;
+    }
+
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    const outboxCalls =
+      mockOutboxAppService.createBalancePropagation.mock.invocationCallOrder;
+    expect(outboxCalls[outboxCalls.length - 1]).toBeLessThan(
+      mockRepoTransaction.commit.mock.invocationCallOrder[0]
+    );
+    expect(mockRepoTransaction.commit.mock.invocationCallOrder[0]).toBeLessThan(
+      mockEventBus.publish.mock.invocationCallOrder[0]
+    );
+    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
+      mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
+    );
+  });
 });

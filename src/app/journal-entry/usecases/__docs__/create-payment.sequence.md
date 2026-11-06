@@ -25,11 +25,11 @@ sequenceDiagram
     FX-->>CreateUseCase: Applicable FX records and events, or no effect
     CreateUseCase->>Records: Save journal, audits, FX effects, and pending balance work together
     Records-->>CreateUseCase: Changes committed
+    CreateUseCase->>Events: Journal and applicable FX events
     opt Journal posted
         CreateUseCase->>Balances: Request journal balance propagation
         Balances-->>CreateUseCase: Request accepted
     end
-    CreateUseCase->>Events: Journal and applicable FX events
     CreateUseCase-->>Caller: Created journal
     Note over CreateUseCase,Balances: Derived balances are applied separately after posting
 ```

@@ -34,11 +34,11 @@ sequenceDiagram
     else Journal changes prepared
         Rectify->>Records: Save correction, audits, FX effects, and pending balance work together
         Records-->>Rectify: Changes committed
+        Rectify->>Events: Correction and applicable FX events
         opt Entries require balance propagation
             Rectify->>Balances: Request propagation for affected posted entries
             Balances-->>Rectify: Requests accepted
         end
-        Rectify->>Events: Correction and applicable FX events
         Rectify-->>Caller: Current entry, original and reversal IDs, and correction mode
     end
 ```

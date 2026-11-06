@@ -27,9 +27,9 @@ sequenceDiagram
         FX-->>Delete: Reversal records and events, or no effect
         Delete->>Records: Save voided original, reversing journal, audits, FX reversal, and pending balance work together
         Records-->>Delete: Changes committed
+        Delete->>Events: Journal reversal and applicable FX events
         Delete->>Balances: Request reversing journal balance propagation
         Balances-->>Delete: Request accepted
-        Delete->>Events: Journal reversal and applicable FX events
         Delete-->>Caller: Complete
     end
     Note over Removal,Records: Archived entries follow their original posting history

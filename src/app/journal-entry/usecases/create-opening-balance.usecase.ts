@@ -19,10 +19,7 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
@@ -111,8 +108,9 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
 
     const fxAcquisition = openingBalanceCreation.fxAcquisition;
 
-    const transactionFn: TRepoTransactionFn = async (tx) => {
-      const writeRepoOptions = { ...repoOptions, tx };
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeRepoOptions = { ...repoOptions, tx: transaction.context };
 
       if (accountHistory) {
         await deps.ledgerAccountRepo.update(updatedAccount, {
@@ -142,22 +140,24 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
           writeRepoOptions
         );
       }
-    };
 
-    await deps.repoService.runInTransaction(transactionFn);
+      await transaction.commit();
 
-    for (const entry of openingBalanceCreation.entriesForBalancePropagation) {
-      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
-        journalEntryId: entry.id,
-      });
+      const allEvents: IEvent<unknown>[] = [
+        ...accountEvents,
+        ...journalEvents,
+        ...(fxAcquisition?.events ?? []),
+      ];
+
+      await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
+
+      for (const entry of openingBalanceCreation.entriesForBalancePropagation) {
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
+          journalEntryId: entry.id,
+        });
+      }
+    } catch (error) {
+      return await transaction.handleError(error);
     }
-
-    const allEvents: IEvent<unknown>[] = [
-      ...accountEvents,
-      ...journalEvents,
-      ...(fxAcquisition?.events ?? []),
-    ];
-
-    await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
   };
 }

@@ -1,6 +1,7 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
+import mockRepoService, {
+  mockRepoTransaction,
+} from '@shared/contracts/__mocks__/repo.mock';
 import { TEntityId } from '@shared/types/uuid';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
@@ -147,11 +148,15 @@ describe('createOpeningBalanceUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRepoService.runInTransaction
+    mockRepoService.createTransaction
       .mockReset()
-      .mockImplementation(async (transactionFn) =>
-        transactionFn('mock-tx' as unknown as ITransactionContext)
-      );
+      .mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.commit.mockReset().mockResolvedValue();
+    mockRepoTransaction.handleError
+      .mockReset()
+      .mockImplementation(async (error) => {
+        throw error;
+      });
     mockOutboxAppService.createBalancePropagation
       .mockReset()
       .mockResolvedValue();
@@ -283,7 +288,7 @@ describe('createOpeningBalanceUseCase', () => {
       mockAccountingEntity.id,
       { correlationId }
     );
-    expect(mockRepoService.runInTransaction).toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
       expect.objectContaining({
         id: mockAssetAccount.id,
@@ -325,9 +330,7 @@ describe('createOpeningBalanceUseCase', () => {
         journalEntryId: persistedJournalEntry.id,
       }
     );
-    expect(
-      mockRepoService.runInTransaction.mock.invocationCallOrder[0]
-    ).toBeLessThan(
+    expect(mockRepoTransaction.commit.mock.invocationCallOrder[0]).toBeLessThan(
       mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
     );
     expect(mockEventBus.publish).toHaveBeenCalled();
@@ -356,11 +359,11 @@ describe('createOpeningBalanceUseCase', () => {
         correlationId,
       }),
       expect.any(Array),
-      { correlationId, tx: 'mock-tx' }
+      { correlationId, tx: mockRepoTransaction.context }
     );
     expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
       mockJournalCreation[0].id,
-      { correlationId, tx: 'mock-tx' }
+      { correlationId, tx: mockRepoTransaction.context }
     );
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
@@ -486,7 +489,7 @@ describe('createOpeningBalanceUseCase', () => {
 
     await expect(useCase(payload)).rejects.toThrow('Entry creation failed');
 
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -506,6 +509,65 @@ describe('createOpeningBalanceUseCase', () => {
 
     await expect(useCase(payload)).rejects.toThrow(
       ledgerAppError.AccountNotFound
+    );
+  });
+
+  it.each(['acquisition', 'persistence', 'outbox', 'commit'] as const)(
+    'handles transaction %s failure without publishing or enqueueing',
+    async (phase) => {
+      const failure = new Error('transaction failed');
+      const failures = {
+        acquisition: mockRepoService.createTransaction,
+        persistence: mockJournalEntryPersistenceAppService.create,
+        outbox: mockOutboxAppService.createBalancePropagation,
+        commit: mockRepoTransaction.commit,
+      };
+      failures[phase].mockRejectedValueOnce(failure);
+
+      await expect(
+        getUseCase()({
+          accountId: mockAssetAccount.id,
+          amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
+          date: new Date('2026-04-24T00:00:00.000Z'),
+          exchangeRate: null,
+        })
+      ).rejects.toBe(failure);
+
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      if (phase === 'acquisition') {
+        expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+        expect(
+          mockJournalEntryPersistenceAppService.create
+        ).not.toHaveBeenCalled();
+      } else {
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+      }
+      if (phase !== 'commit') {
+        expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  afterEach(() => {
+    if (mockLedgerAccountBalanceAdjustmentQueue.add.mock.calls.length === 0) {
+      return;
+    }
+
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    const outboxCalls =
+      mockOutboxAppService.createBalancePropagation.mock.invocationCallOrder;
+    expect(outboxCalls[outboxCalls.length - 1]).toBeLessThan(
+      mockRepoTransaction.commit.mock.invocationCallOrder[0]
+    );
+    expect(mockRepoTransaction.commit.mock.invocationCallOrder[0]).toBeLessThan(
+      mockEventBus.publish.mock.invocationCallOrder[0]
+    );
+    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
+      mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
     );
   });
 });

@@ -19,10 +19,7 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
@@ -177,8 +174,9 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
     const shouldUpdateBalance =
       journalEntry.status === EJournalEntryStatus.Posted;
 
-    const dbTransactionFn: TRepoTransactionFn = async (tx) => {
-      const writeOptions = { correlationId, tx };
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeOptions = { correlationId, tx: transaction.context };
 
       await deps.journalEntryPersistenceAppService.create(
         journalEntry,
@@ -207,24 +205,26 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
           writeOptions
         );
       }
-    };
 
-    await deps.repoService.runInTransaction(dbTransactionFn);
+      await transaction.commit();
 
-    if (shouldUpdateBalance) {
-      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
-        journalEntryId: journalEntry.id,
-      });
+      const fxEvents: IEvent<unknown>[] = [
+        ...(dispositionResult?.events ?? []),
+        ...(acquisitionResult?.events ?? []),
+      ];
+
+      const allEvents: IEvent<unknown>[] = [...journalEntryEvents, ...fxEvents];
+      await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
+
+      if (shouldUpdateBalance) {
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
+          journalEntryId: journalEntry.id,
+        });
+      }
+
+      return journalEntryDtoMapper.toDto(journalEntry);
+    } catch (error) {
+      return await transaction.handleError(error);
     }
-
-    const fxEvents: IEvent<unknown>[] = [
-      ...(dispositionResult?.events ?? []),
-      ...(acquisitionResult?.events ?? []),
-    ];
-
-    const allEvents: IEvent<unknown>[] = [...journalEntryEvents, ...fxEvents];
-    await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
-
-    return journalEntryDtoMapper.toDto(journalEntry);
   };
 }

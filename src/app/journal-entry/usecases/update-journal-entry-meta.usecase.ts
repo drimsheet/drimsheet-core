@@ -117,8 +117,9 @@ export default function makeUpdateJournalEntryMetaUsecase(deps: IDependencies) {
       history: historyValue.make(lineAudit, actor.id, correlationId),
     }));
 
-    await deps.repoService.runInTransaction(async (tx) => {
-      const writeOptions = { correlationId, tx };
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeOptions = { correlationId, tx: transaction.context };
 
       await deps.journalEntryRepo.update(header, {
         ...writeOptions,
@@ -134,10 +135,14 @@ export default function makeUpdateJournalEntryMetaUsecase(deps: IDependencies) {
           history: lineUpdate.history,
         });
       }
-    });
 
-    await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
+      await transaction.commit();
 
-    return journalEntryDtoMapper.toDto(updatedEntry);
+      await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
+
+      return journalEntryDtoMapper.toDto(updatedEntry);
+    } catch (error) {
+      return await transaction.handleError(error);
+    }
   };
 }

@@ -19,10 +19,7 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 import eventValue from '@shared/values/events/event.vo';
@@ -111,8 +108,9 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
     );
     const reversingJournalEntry = removal.reversingJournalEntry;
 
-    const transactionFn: TRepoTransactionFn = async (tx) => {
-      const writeOptions = { correlationId, tx };
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeOptions = { correlationId, tx: transaction.context };
 
       await deps.journalEntryPersistenceAppService.rectify(
         journalPersistencePayload,
@@ -130,19 +128,21 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
         reversingJournalEntry.id,
         writeOptions
       );
-    };
 
-    await deps.repoService.runInTransaction(transactionFn);
+      await transaction.commit();
 
-    await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
-      journalEntryId: reversingJournalEntry.id,
-    });
+      const events: IEvent<unknown>[] = [
+        ...removal.events,
+        ...(fxReversal?.events ?? []),
+      ];
 
-    const events: IEvent<unknown>[] = [
-      ...removal.events,
-      ...(fxReversal?.events ?? []),
-    ];
+      await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
-    await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
+      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
+        journalEntryId: reversingJournalEntry.id,
+      });
+    } catch (error) {
+      return await transaction.handleError(error);
+    }
   };
 }

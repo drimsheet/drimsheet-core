@@ -91,9 +91,15 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
     jest.useFakeTimers();
     jest.setSystemTime(now);
     jest.resetAllMocks();
-    mockRepoService.runInTransaction.mockImplementation(async (fn) =>
-      fn(mockRepoTransaction.context)
-    );
+    mockRepoService.createTransaction
+      .mockReset()
+      .mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.commit.mockReset().mockResolvedValue();
+    mockRepoTransaction.handleError
+      .mockReset()
+      .mockImplementation(async (error) => {
+        throw error;
+      });
     mockAppContext.get.mockReturnValue({
       actor,
       correlationId,
@@ -153,6 +159,14 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
           history: expect.objectContaining({ actorId: actor.id }),
         })
       );
+      expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(
+        mockJournalLineRepo.update.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
+      expect(
+        mockRepoTransaction.commit.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
       expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
       expect(
         mockJournalLineRepo.update.mock.invocationCallOrder[0]
@@ -175,7 +189,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
       const entry = makeEntry();
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
       await usecase(entry.id, payload);
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
       expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
@@ -207,7 +221,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
       await expect(usecase(entry.id, {})).rejects.toThrow(
         appError.ResourceNotFound
       );
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     }
   );
 
@@ -223,7 +237,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
       await expect(usecase(entry.id, { lines })).rejects.toThrow(
         journalEntryError.RectificationLineId
       );
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     }
   );
 
@@ -266,7 +280,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
     ]) {
       await usecase(entry.id, payload);
     }
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -282,15 +296,18 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
         journalEntryError.RectificationNotPermitted
       );
     }
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
 
-  it.each(['header', 'line', 'commit'])(
+  it.each(['acquisition', 'header', 'line', 'commit'])(
     'does not publish when the %s write fails',
     async (phase) => {
       const entry = makeEntry();
       const failure = new appError.Conflict();
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
+      if (phase === 'acquisition') {
+        mockRepoService.createTransaction.mockRejectedValueOnce(failure);
+      }
       if (phase === 'header') {
         mockJournalEntryRepo.update.mockRejectedValueOnce(failure);
       }
@@ -298,7 +315,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
         mockJournalLineRepo.update.mockRejectedValueOnce(failure);
       }
       if (phase === 'commit') {
-        mockRepoService.runInTransaction.mockRejectedValueOnce(failure);
+        mockRepoTransaction.commit.mockRejectedValueOnce(failure);
       }
       await expect(
         usecase(entry.id, {
@@ -306,6 +323,11 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
         })
       ).rejects.toBe(failure);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
+      if (phase === 'acquisition') {
+        expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+      } else {
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+      }
     }
   );
 });

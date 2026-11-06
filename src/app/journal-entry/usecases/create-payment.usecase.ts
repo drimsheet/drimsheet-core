@@ -18,10 +18,7 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -198,8 +195,9 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
     );
     const fxEvents: IEvent<unknown>[] = fxResult?.events ?? [];
 
-    const dbTransactionFn: TRepoTransactionFn = async (tx) => {
-      const writeOptions = { correlationId, tx };
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeOptions = { correlationId, tx: transaction.context };
 
       await deps.journalEntryPersistenceAppService.create(
         journalEntry,
@@ -221,19 +219,21 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
           writeOptions
         );
       }
-    };
 
-    await deps.repoService.runInTransaction(dbTransactionFn);
+      await transaction.commit();
 
-    if (shouldUpdateBalance) {
-      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
-        journalEntryId: journalEntry.id,
-      });
+      const allEvents: IEvent<unknown>[] = [...journalEntryEvents, ...fxEvents];
+      await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
+
+      if (shouldUpdateBalance) {
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
+          journalEntryId: journalEntry.id,
+        });
+      }
+
+      return journalEntryDtoMapper.toDto(journalEntry);
+    } catch (error) {
+      return await transaction.handleError(error);
     }
-
-    const allEvents: IEvent<unknown>[] = [...journalEntryEvents, ...fxEvents];
-    await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
-
-    return journalEntryDtoMapper.toDto(journalEntry);
   };
 }

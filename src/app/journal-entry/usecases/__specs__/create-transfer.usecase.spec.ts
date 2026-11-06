@@ -1,6 +1,7 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
+import mockRepoService, {
+  mockRepoTransaction,
+} from '@shared/contracts/__mocks__/repo.mock';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
@@ -280,9 +281,15 @@ describe('makeCreateTransferUsecase', () => {
       journalEntry: postedJournalEntry,
       destinationAssetAccount: destinationAccount,
     });
-    mockRepoService.runInTransaction.mockImplementation(async (transactionFn) =>
-      transactionFn('mock-tx' as unknown as ITransactionContext)
-    );
+    mockRepoService.createTransaction
+      .mockReset()
+      .mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.commit.mockReset().mockResolvedValue();
+    mockRepoTransaction.handleError
+      .mockReset()
+      .mockImplementation(async (error) => {
+        throw error;
+      });
     mockJournalEntryPersistenceAppService.create.mockResolvedValue();
     mockCounterpartyRepo.create.mockResolvedValue();
     mockOutboxAppService.createBalancePropagation.mockResolvedValue();
@@ -371,11 +378,11 @@ describe('makeCreateTransferUsecase', () => {
       postedJournalEntry[0],
       expect.any(Object),
       expect.any(Array),
-      { correlationId, tx: 'mock-tx' }
+      { correlationId, tx: mockRepoTransaction.context }
     );
     expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
       postedJournalEntry[0].id,
-      { correlationId, tx: 'mock-tx' }
+      { correlationId, tx: mockRepoTransaction.context }
     );
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
@@ -709,7 +716,7 @@ describe('makeCreateTransferUsecase', () => {
       fileAppError.InvalidUploadReference
     );
     expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -719,7 +726,7 @@ describe('makeCreateTransferUsecase', () => {
     );
 
     await expect(getUseCase()(makePayload())).rejects.toThrow('domain failure');
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -734,7 +741,7 @@ describe('makeCreateTransferUsecase', () => {
 
       await expect(getUseCase()(makePayload())).rejects.toBe(error);
 
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
       expect(
         mockJournalEntryPersistenceAppService.create
@@ -758,7 +765,7 @@ describe('makeCreateTransferUsecase', () => {
   );
 
   it('does not run post-commit effects when the transaction fails', async () => {
-    mockRepoService.runInTransaction.mockRejectedValueOnce(
+    mockRepoTransaction.commit.mockRejectedValueOnce(
       new Error('transaction failure')
     );
 
@@ -857,7 +864,7 @@ describe('makeCreateTransferUsecase', () => {
 
     await getUseCase()(payload);
 
-    const writeOptions = { correlationId, tx: 'mock-tx' };
+    const writeOptions = { correlationId, tx: mockRepoTransaction.context };
     expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
       {
         journalEntry: foreignJournalEntry[0],
@@ -920,7 +927,10 @@ describe('makeCreateTransferUsecase', () => {
 
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
-    ).toHaveBeenCalledWith(records, { correlationId, tx: 'mock-tx' });
+    ).toHaveBeenCalledWith(records, {
+      correlationId,
+      tx: mockRepoTransaction.context,
+    });
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
@@ -939,7 +949,10 @@ describe('makeCreateTransferUsecase', () => {
     ).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
-    ).toHaveBeenCalledWith(records, { correlationId, tx: 'mock-tx' });
+    ).toHaveBeenCalledWith(records, {
+      correlationId,
+      tx: mockRepoTransaction.context,
+    });
   });
 
   it('prevents persistence when disposition preparation fails', async () => {
@@ -949,7 +962,7 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
 
     expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -959,7 +972,7 @@ describe('makeCreateTransferUsecase', () => {
 
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
 
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -999,7 +1012,7 @@ describe('makeCreateTransferUsecase', () => {
 
     expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
   it('rejects a charge ID omitted from a partial repository result before uploads or writes', async () => {
@@ -1030,7 +1043,59 @@ describe('makeCreateTransferUsecase', () => {
 
     expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it.each(['acquisition', 'persistence', 'outbox', 'commit'] as const)(
+    'handles transaction %s failure without publishing or enqueueing',
+    async (phase) => {
+      const failure = new Error('transaction failed');
+      const failures = {
+        acquisition: mockRepoService.createTransaction,
+        persistence: mockJournalEntryPersistenceAppService.create,
+        outbox: mockOutboxAppService.createBalancePropagation,
+        commit: mockRepoTransaction.commit,
+      };
+      failures[phase].mockRejectedValueOnce(failure);
+
+      await expect(getUseCase()(makePayload())).rejects.toBe(failure);
+
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      if (phase === 'acquisition') {
+        expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+        expect(
+          mockJournalEntryPersistenceAppService.create
+        ).not.toHaveBeenCalled();
+      } else {
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+      }
+      if (phase !== 'commit') {
+        expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  afterEach(() => {
+    if (mockLedgerAccountBalanceAdjustmentQueue.add.mock.calls.length === 0) {
+      return;
+    }
+
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    const outboxCalls =
+      mockOutboxAppService.createBalancePropagation.mock.invocationCallOrder;
+    expect(outboxCalls[outboxCalls.length - 1]).toBeLessThan(
+      mockRepoTransaction.commit.mock.invocationCallOrder[0]
+    );
+    expect(mockRepoTransaction.commit.mock.invocationCallOrder[0]).toBeLessThan(
+      mockEventBus.publish.mock.invocationCallOrder[0]
+    );
+    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
+      mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
+    );
   });
 });

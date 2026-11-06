@@ -25,11 +25,11 @@ sequenceDiagram
         Note over Opening,CreateUseCase: Draft accounts produce drafts#59; other eligible accounts produce posted entries
         CreateUseCase->>Records: Save journal, changed opening date, audits, FX effect, and pending balance work together
         Records-->>CreateUseCase: Changes committed
+        CreateUseCase->>Events: Account, journal, and applicable FX events
         opt Opening journal posted
             CreateUseCase->>Balances: Request opening balance propagation
             Balances-->>CreateUseCase: Request accepted
         end
-        CreateUseCase->>Events: Account, journal, and applicable FX events
         CreateUseCase-->>Caller: Complete
     end
 ```
