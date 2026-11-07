@@ -7,6 +7,7 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
 import {
   TAuditedJournalEntry,
+  TAuditedJournalEntryTransition,
   TAuditedJournalEntryUpdate,
 } from './journal-entry-audit.types';
 import {
@@ -14,7 +15,7 @@ import {
   IJournalEntryHeaderPayload,
   IJournalEntryLinePayload,
 } from './journal-entry.service.types';
-import { IJournalEntry } from './journal-entry.types';
+import { IJournalEntry, IVoidJournalEntryPayload } from './journal-entry.types';
 
 export interface ICreateTransferEntryPayload {
   header: IJournalEntryHeaderPayload;
@@ -51,5 +52,22 @@ export interface ITransferEntryService {
     journalEntry: TAuditedJournalEntryUpdate;
     sourceAccount: ILedgerAccount;
     destinationAssetAccount: ILedgerAccount;
+  }>;
+
+  /**
+   * Uses the supplied reversing journal ID to void a transfer and prepares a
+   * posted replacement with its destination asset on the original effective
+   * date. A retry with the same reversing journal ID returns a null replacement.
+   */
+  voidAndReplace(
+    payload: Pick<
+      ICreateTransferEntryPayload,
+      'sourceLine' | 'destinationLines'
+    > &
+      IVoidJournalEntryPayload & { entry: IJournalEntry; createdBy: TEntityId },
+    repoOptions: IReadRepoOptions
+  ): Promise<{
+    voided: TAuditedJournalEntryTransition;
+    replacement: ICreateTransferEntryResult | null;
   }>;
 }

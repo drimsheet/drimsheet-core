@@ -164,12 +164,57 @@ function makePostDraft(deps: IDependencies): IReceiptEntryService['postDraft'] {
   };
 }
 
+/** Voids a receipt and prepares a posted replacement on its effective date. */
+function makeVoidAndReplace(
+  create: IReceiptEntryService['create']
+): IReceiptEntryService['voidAndReplace'] {
+  return async (
+    { entry, voidingEntryId, sourceLines, destinationLine, createdBy },
+    repoOptions
+  ) => {
+    if (entry.sourceType !== EJournalEntrySourceType.Receipt) {
+      throw new journalEntryError.RectificationNotPermitted({
+        journalEntryId: entry.id,
+        sourceType: entry.sourceType,
+      });
+    }
+
+    const voided = journalEntryEntity.void(entry, { voidingEntryId });
+    const [, , audit] = voided;
+
+    if (audit === null) {
+      return { voided, replacement: null };
+    }
+
+    const replacement = await create(
+      {
+        header: {
+          accountingEntityId: entry.accountingEntityId,
+          effectiveDate: entry.effectiveDate,
+          postedAt: new Date(),
+          memo: entry.memo,
+          functionalCurrencyCode: entry.lines[0].functionalAmount.currency.code,
+          createdBy,
+        },
+        sourceLines,
+        destinationLine,
+        attachments: entry.attachments,
+      },
+      repoOptions
+    );
+
+    return { voided, replacement };
+  };
+}
+
 export default function makeReceiptEntryService(
   deps: IDependencies
 ): IReceiptEntryService {
+  const create = makeCreate(deps);
   const service: IReceiptEntryService = {
-    create: makeCreate(deps),
+    create,
     postDraft: makePostDraft(deps),
+    voidAndReplace: makeVoidAndReplace(create),
   };
 
   return Object.freeze(service);

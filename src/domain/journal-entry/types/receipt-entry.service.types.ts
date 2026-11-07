@@ -7,13 +7,14 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
 import {
   TAuditedJournalEntry,
+  TAuditedJournalEntryTransition,
   TAuditedJournalEntryUpdate,
 } from './journal-entry-audit.types';
 import {
   IJournalEntryHeaderPayload,
   IJournalEntryLinePayload,
 } from './journal-entry.service.types';
-import { IJournalEntry } from './journal-entry.types';
+import { IJournalEntry, IVoidJournalEntryPayload } from './journal-entry.types';
 
 export interface ICreateReceiptEntryPayload {
   header: IJournalEntryHeaderPayload;
@@ -44,5 +45,22 @@ export interface IReceiptEntryService {
   ): Promise<{
     journalEntry: TAuditedJournalEntryUpdate;
     destinationAccount: ILedgerAccount;
+  }>;
+
+  /**
+   * Uses the supplied reversing journal ID to void a receipt and prepares a
+   * posted replacement on its original effective date. A repeated void with
+   * the same reversing journal ID returns a null replacement.
+   */
+  voidAndReplace(
+    payload: Pick<
+      ICreateReceiptEntryPayload,
+      'sourceLines' | 'destinationLine'
+    > &
+      IVoidJournalEntryPayload & { entry: IJournalEntry; createdBy: TEntityId },
+    repoOptions: IReadRepoOptions
+  ): Promise<{
+    voided: TAuditedJournalEntryTransition;
+    replacement: TAuditedJournalEntry | null;
   }>;
 }

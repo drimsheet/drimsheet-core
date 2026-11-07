@@ -8,6 +8,7 @@ import { EAccountingEntityType } from '@domain/accounting/types/accounting-entit
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
+import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { EJournalEntryEvent } from '@domain/journal-entry/events/journal-entry.events';
 import { EJournalLineItemEvent } from '@domain/journal-entry/events/journal-line-item.events';
@@ -769,6 +770,195 @@ describe('transferEntryService', () => {
         );
       }
     );
+  });
+
+  describe('voidAndReplace', () => {
+    async function makeReplacementFixture(postedAt: Date | null = timestamp) {
+      const { payload, bankChargeAccount, bankCounterparty } =
+        makeTransferFixture(postedAt);
+      const original = await service.create(payload, repoOptions);
+      const [entry] = original.journalEntry;
+      mockLedgerAccountBalanceRepo.findByAccountId.mockClear();
+      mockAccountingPeriodService.validatePostingPeriod.mockClear();
+
+      return {
+        entry,
+        voidingEntryId: generateUUID(),
+        createdBy: generateUUID(),
+        sourceLine: {
+          ...payload.sourceLine,
+          amount: moneyValue.make(9_000n, SYSTEM_CURRENCIES.NGN, true),
+        },
+        destinationLines: [
+          {
+            account: bankChargeAccount,
+            counterparty: bankCounterparty,
+            sequenceOrder: 2,
+            amount: moneyValue.make(500n, SYSTEM_CURRENCIES.NGN, true),
+            exchangeRate: null,
+            description: 'Transfer fee',
+            meta: null,
+          },
+          {
+            ...payload.destinationLines[0],
+            sequenceOrder: 3,
+            amount: moneyValue.make(8_500n, SYSTEM_CURRENCIES.NGN, true),
+          },
+        ],
+      };
+    }
+
+    it('returns the audited void, posted replacement, and replacement destination asset', async () => {
+      const payload = await makeReplacementFixture();
+      const { entry } = payload;
+      const replacementPostedAt = new Date('2026-08-05T10:00:00.000Z');
+      jest.setSystemTime(replacementPostedAt);
+
+      const { voided, replacement } = await service.voidAndReplace(
+        payload,
+        repoOptions
+      );
+
+      const [voidedEntry, voidEvents, voidAudit] = voided;
+      expect(voidedEntry).toMatchObject({
+        id: entry.id,
+        status: EJournalEntryStatus.Voided,
+        lines: entry.lines,
+        voidingEntryId: payload.voidingEntryId,
+      });
+      expect(voidEvents.map((event) => event.type)).toEqual([
+        EJournalEntryEvent.Voided,
+      ]);
+      expect(voidAudit?.action).toBe(EJournalEntryAuditAction.Voided);
+      expect(entry.status).toBe(EJournalEntryStatus.Posted);
+
+      const replacementTransfer = replacement!;
+      const [replacementEntry, replacementEvents, replacementAudit] =
+        replacementTransfer.journalEntry;
+      expect(replacementTransfer.destinationAssetAccount).toBe(
+        payload.destinationLines[1].account
+      );
+      expect(replacementEntry.id).not.toBe(entry.id);
+      expect(replacementEntry).toMatchObject({
+        accountingEntityId: entry.accountingEntityId,
+        sourceType: EJournalEntrySourceType.Transfer,
+        status: EJournalEntryStatus.Posted,
+        effectiveDate: entry.effectiveDate,
+        postedAt: replacementPostedAt,
+        memo: entry.memo,
+        attachments: entry.attachments,
+        createdBy: payload.createdBy,
+        lines: [
+          {
+            accountId: payload.sourceLine.account.id,
+            amount: payload.sourceLine.amount,
+            side: EJournalSide.Credit,
+          },
+          ...payload.destinationLines.map((line) => ({
+            accountId: line.account.id,
+            amount: line.amount,
+            side: EJournalSide.Debit,
+          })),
+        ],
+      });
+      expect(replacementEvents[0].type).toBe(EJournalEntryEvent.Created);
+      expect(replacementAudit.header.action).toBe(
+        EJournalEntryAuditAction.Created
+      );
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod.mock.calls
+      ).toEqual([[entry.accountingEntityId, entry.effectiveDate, repoOptions]]);
+    });
+
+    it('returns the original voided transfer on retry with the same reversal', async () => {
+      const payload = await makeReplacementFixture();
+      const firstCorrection = await service.voidAndReplace(
+        payload,
+        repoOptions
+      );
+      const [entry] = firstCorrection.voided;
+      mockLedgerAccountBalanceRepo.findByAccountId.mockClear();
+      mockAccountingPeriodService.validatePostingPeriod.mockClear();
+
+      const { voided, replacement } = await service.voidAndReplace(
+        { ...payload, entry },
+        repoOptions
+      );
+
+      expect(voided[0]).toBe(entry);
+      expect(voided.slice(1)).toEqual([[], null]);
+      expect(replacement).toBeNull();
+      expect(
+        mockLedgerAccountBalanceRepo.findByAccountId
+      ).not.toHaveBeenCalled();
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects a draft transfer', async () => {
+      const payload = await makeReplacementFixture(null);
+
+      await expect(
+        service.voidAndReplace(payload, repoOptions)
+      ).rejects.toThrow(journalEntryError.InvalidStatusTransition);
+    });
+
+    it('rejects a non-transfer entry', async () => {
+      const payload = await makeReplacementFixture();
+      const transfer = payload.entry;
+      const functionalCurrency = SYSTEM_CURRENCIES.NGN;
+      const [entry] = journalEntryEntity.make({
+        accountingEntityId: transfer.accountingEntityId,
+        effectiveDate: transfer.effectiveDate,
+        postedAt: transfer.postedAt,
+        memo: transfer.memo,
+        createdBy: transfer.createdBy,
+        sourceType: EJournalEntrySourceType.Adjustment,
+        functionalCurrency,
+        lines: transfer.lines.map((line) => ({ ...line, functionalCurrency })),
+      });
+
+      await expect(
+        service.voidAndReplace({ ...payload, entry }, repoOptions)
+      ).rejects.toThrow(journalEntryError.RectificationNotPermitted);
+    });
+
+    it('rejects a replacement when its source balance is insufficient', async () => {
+      const payload = await makeReplacementFixture();
+      const { account, amount } = payload.sourceLine;
+      mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValueOnce(
+        makeSourceAccountBalance(
+          account.id,
+          account.accountingEntityId,
+          amount.currency,
+          8_999n
+        )
+      );
+
+      await expect(
+        service.voidAndReplace(payload, repoOptions)
+      ).rejects.toThrow(journalEntryError.InsufficientSourceAccountBalance);
+      expect(mockLedgerAccountBalanceRepo.findByAccountId).toHaveBeenCalledWith(
+        account.id,
+        payload.entry.accountingEntityId,
+        repoOptions
+      );
+      expect(payload.entry.status).toBe(EJournalEntryStatus.Posted);
+    });
+
+    it('rejects a replacement in a closed effective period', async () => {
+      const payload = await makeReplacementFixture();
+      const failure = new periodError.PostingPeriodNotOpen();
+      mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
+        failure
+      );
+
+      await expect(service.voidAndReplace(payload, repoOptions)).rejects.toBe(
+        failure
+      );
+      expect(payload.entry.status).toBe(EJournalEntryStatus.Posted);
+    });
   });
 
   describe('postDraft', () => {

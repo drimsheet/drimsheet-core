@@ -215,12 +215,57 @@ function makePostDraft(
   };
 }
 
+/** Voids a transfer and prepares a posted replacement on its effective date. */
+function makeVoidAndReplace(
+  create: ITransferEntryService['create']
+): ITransferEntryService['voidAndReplace'] {
+  return async (
+    { entry, voidingEntryId, sourceLine, destinationLines, createdBy },
+    repoOptions
+  ) => {
+    if (entry.sourceType !== EJournalEntrySourceType.Transfer) {
+      throw new journalEntryError.RectificationNotPermitted({
+        journalEntryId: entry.id,
+        sourceType: entry.sourceType,
+      });
+    }
+
+    const voided = journalEntryEntity.void(entry, { voidingEntryId });
+    const [, , audit] = voided;
+
+    if (audit === null) {
+      return { voided, replacement: null };
+    }
+
+    const replacement = await create(
+      {
+        header: {
+          accountingEntityId: entry.accountingEntityId,
+          effectiveDate: entry.effectiveDate,
+          postedAt: new Date(),
+          memo: entry.memo,
+          functionalCurrencyCode: entry.lines[0].functionalAmount.currency.code,
+          createdBy,
+        },
+        sourceLine,
+        destinationLines,
+        attachments: entry.attachments,
+      },
+      repoOptions
+    );
+
+    return { voided, replacement };
+  };
+}
+
 export default function makeTransferEntryService(
   deps: IDependencies
 ): ITransferEntryService {
+  const create = makeCreate(deps);
   const service: ITransferEntryService = {
-    create: makeCreate(deps),
+    create,
     postDraft: makePostDraft(deps),
+    voidAndReplace: makeVoidAndReplace(create),
   };
 
   return Object.freeze(service);
