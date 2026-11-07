@@ -7,13 +7,14 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
 import {
   TAuditedJournalEntry,
+  TAuditedJournalEntryTransition,
   TAuditedJournalEntryUpdate,
 } from './journal-entry-audit.types';
 import {
   IJournalEntryHeaderPayload,
   IJournalEntryLinePayload,
 } from './journal-entry.service.types';
-import { IJournalEntry } from './journal-entry.types';
+import { IJournalEntry, IVoidJournalEntryPayload } from './journal-entry.types';
 
 export interface ICreatePaymentEntryPayload {
   header: IJournalEntryHeaderPayload;
@@ -23,7 +24,7 @@ export interface ICreatePaymentEntryPayload {
 }
 
 export interface IPaymentEntryService {
-  /** Builds an audited payment entry after checking its posting eligibility. */
+  /** Builds an audited payment and checks posting eligibility when posting. */
   create(
     payload: ICreatePaymentEntryPayload,
     repoOptions: IReadRepoOptions
@@ -44,5 +45,22 @@ export interface IPaymentEntryService {
   ): Promise<{
     journalEntry: TAuditedJournalEntryUpdate;
     sourceAccount: ILedgerAccount;
+  }>;
+
+  /**
+   * Uses the supplied reversing journal ID to void a payment and prepares a
+   * posted replacement on its original effective date. A repeated void with
+   * the same reversing journal ID returns a null replacement.
+   */
+  voidAndReplace(
+    payload: Pick<
+      ICreatePaymentEntryPayload,
+      'sourceLine' | 'destinationLines'
+    > &
+      IVoidJournalEntryPayload & { entry: IJournalEntry; createdBy: TEntityId },
+    repoOptions: IReadRepoOptions
+  ): Promise<{
+    voided: TAuditedJournalEntryTransition;
+    replacement: TAuditedJournalEntry | null;
   }>;
 }

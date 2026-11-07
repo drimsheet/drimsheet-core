@@ -39,12 +39,14 @@ function makeCreate(deps: IDependencies): IPaymentEntryService['create'] {
 
     journalEntryServiceValidation.validateAccounts(header, journalLines);
 
+    // Prevent overdrafts on posted FX payments by checking the ledger balance
+    // in the source currency before the separate cost-basis lot allocation.
     const sourceAccountCurrencyCode = sourceLine.account.currency?.code ?? null;
     const isForexSourceAccount =
       sourceAccountCurrencyCode !== null &&
       sourceAccountCurrencyCode !== header.functionalCurrencyCode;
-    const shouldValidateSourceBalance =
-      header.postedAt !== null && isForexSourceAccount;
+    const isPosting = header.postedAt !== null;
+    const shouldValidateSourceBalance = isPosting && isForexSourceAccount;
 
     if (shouldValidateSourceBalance) {
       const sourceAccountBalance =
@@ -60,11 +62,13 @@ function makeCreate(deps: IDependencies): IPaymentEntryService['create'] {
       );
     }
 
-    await deps.accountingPeriodService.validatePostingPeriod(
-      header.accountingEntityId,
-      header.effectiveDate,
-      repoOptions
-    );
+    if (isPosting) {
+      await deps.accountingPeriodService.validatePostingPeriod(
+        header.accountingEntityId,
+        header.effectiveDate,
+        repoOptions
+      );
+    }
 
     journalEntryServiceValidation.validateCounterparties(header, journalLines);
 
@@ -161,6 +165,8 @@ function makePostDraft(deps: IDependencies): IPaymentEntryService['postDraft'] {
     journalEntryServiceValidation.validateAccounts(header, journalLines);
     journalEntryServiceValidation.validateCounterparties(header, journalLines);
 
+    // Prevent overdrafts on posted FX payments by checking the ledger balance
+    // in the source currency before the separate cost-basis lot allocation.
     const sourceCurrencyCode = sourceLine.account.currency?.code ?? null;
     const isForexSourceAccount =
       sourceCurrencyCode !== null &&
@@ -204,12 +210,57 @@ function makePostDraft(deps: IDependencies): IPaymentEntryService['postDraft'] {
   };
 }
 
+/** Voids a payment and prepares a posted replacement on its effective date. */
+function makeVoidAndReplace(
+  create: IPaymentEntryService['create']
+): IPaymentEntryService['voidAndReplace'] {
+  return async (
+    { entry, voidingEntryId, sourceLine, destinationLines, createdBy },
+    repoOptions
+  ) => {
+    if (entry.sourceType !== EJournalEntrySourceType.Payment) {
+      throw new journalEntryError.RectificationNotPermitted({
+        journalEntryId: entry.id,
+        sourceType: entry.sourceType,
+      });
+    }
+
+    const voided = journalEntryEntity.void(entry, { voidingEntryId });
+    const [, , audit] = voided;
+
+    if (audit === null) {
+      return { voided, replacement: null };
+    }
+
+    const replacement = await create(
+      {
+        header: {
+          accountingEntityId: entry.accountingEntityId,
+          effectiveDate: entry.effectiveDate,
+          postedAt: new Date(),
+          memo: entry.memo,
+          functionalCurrencyCode: entry.lines[0].functionalAmount.currency.code,
+          createdBy,
+        },
+        sourceLine,
+        destinationLines,
+        attachments: entry.attachments,
+      },
+      repoOptions
+    );
+
+    return { voided, replacement };
+  };
+}
+
 export default function makePaymentEntryService(
   deps: IDependencies
 ): IPaymentEntryService {
+  const create = makeCreate(deps);
   const service: IPaymentEntryService = {
-    create: makeCreate(deps),
+    create,
     postDraft: makePostDraft(deps),
+    voidAndReplace: makeVoidAndReplace(create),
   };
 
   return Object.freeze(service);

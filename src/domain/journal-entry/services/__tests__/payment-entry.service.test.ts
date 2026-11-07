@@ -294,6 +294,7 @@ describe('paymentEntryService', () => {
           accountingEntityId: payload.header.accountingEntityId,
           sourceType: EJournalEntrySourceType.Payment,
           status: EJournalEntryStatus.Draft,
+          effectiveDate,
           postedAt: null,
         })
       );
@@ -325,11 +326,7 @@ describe('paymentEntryService', () => {
       expect(audit?.lines).toHaveLength(3);
       expect(
         mockAccountingPeriodService.validatePostingPeriod
-      ).toHaveBeenCalledWith(
-        payload.header.accountingEntityId,
-        payload.header.effectiveDate,
-        repoOptions
-      );
+      ).not.toHaveBeenCalled();
     });
 
     it('creates a posted payment when a posting date is provided', async () => {
@@ -342,6 +339,13 @@ describe('paymentEntryService', () => {
       expect(
         mockLedgerAccountBalanceRepo.findByAccountId
       ).not.toHaveBeenCalled();
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).toHaveBeenCalledWith(
+        payload.header.accountingEntityId,
+        payload.header.effectiveDate,
+        repoOptions
+      );
     });
 
     it('creates a posted payment from an un-denominated source account without reading its balance', async () => {
@@ -425,7 +429,7 @@ describe('paymentEntryService', () => {
     });
 
     it('rejects a non-permitted source account before period validation', async () => {
-      const { payload, rentAccount } = makePaymentFixture();
+      const { payload, rentAccount } = makePaymentFixture(timestamp);
       payload.sourceLine = { ...payload.sourceLine, account: rentAccount };
 
       await expect(service.create(payload, repoOptions)).rejects.toThrow(
@@ -512,6 +516,135 @@ describe('paymentEntryService', () => {
         );
       }
     );
+  });
+
+  describe('voidAndReplace', () => {
+    async function makeReplacementFixture(postedAt: Date | null = timestamp) {
+      const { payload } = makePaymentFixture(postedAt);
+      const [entry] = await service.create(payload, repoOptions);
+      mockAccountingPeriodService.validatePostingPeriod.mockClear();
+      const [rentLine, payableLine] = payload.destinationLines;
+
+      return {
+        entry,
+        voidingEntryId: generateUUID(),
+        createdBy: generateUUID(),
+        sourceLine: payload.sourceLine,
+        destinationLines: [
+          {
+            ...rentLine,
+            amount: moneyValue.make(8_000n, SYSTEM_CURRENCIES.NGN, true),
+          },
+          {
+            ...payableLine,
+            amount: moneyValue.make(2_000n, SYSTEM_CURRENCIES.NGN, true),
+          },
+        ],
+      };
+    }
+
+    it('returns the audited void and a separately posted payment with corrected lines', async () => {
+      const payload = await makeReplacementFixture();
+      const { entry } = payload;
+      const replacementPostedAt = new Date('2026-08-05T10:00:00.000Z');
+      jest.setSystemTime(replacementPostedAt);
+
+      const { voided, replacement } = await service.voidAndReplace(
+        payload,
+        repoOptions
+      );
+
+      const [voidedEntry, voidEvents, voidAudit] = voided;
+      expect(voidedEntry).toMatchObject({
+        id: entry.id,
+        status: EJournalEntryStatus.Voided,
+        lines: entry.lines,
+        voidingEntryId: payload.voidingEntryId,
+      });
+      expect(voidEvents.map((event) => event.type)).toEqual([
+        EJournalEntryEvent.Voided,
+      ]);
+      expect(voidAudit?.action).toBe(EJournalEntryAuditAction.Voided);
+      expect(entry.status).toBe(EJournalEntryStatus.Posted);
+
+      const [replacementEntry, replacementEvents, replacementAudit] =
+        replacement!;
+      expect(replacementEntry.id).not.toBe(entry.id);
+      expect(replacementEntry).toMatchObject({
+        accountingEntityId: entry.accountingEntityId,
+        sourceType: EJournalEntrySourceType.Payment,
+        status: EJournalEntryStatus.Posted,
+        effectiveDate: entry.effectiveDate,
+        postedAt: replacementPostedAt,
+        memo: entry.memo,
+        attachments: entry.attachments,
+        createdBy: payload.createdBy,
+      });
+      expect(replacementEntry.lines.map((line) => line.amount)).toEqual([
+        payload.sourceLine.amount,
+        ...payload.destinationLines.map((line) => line.amount),
+      ]);
+      expect(replacementEvents[0].type).toBe(EJournalEntryEvent.Created);
+      expect(replacementAudit.header.action).toBe(
+        EJournalEntryAuditAction.Created
+      );
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod.mock.calls
+      ).toEqual([[entry.accountingEntityId, entry.effectiveDate, repoOptions]]);
+    });
+
+    it('returns the original voided payment on retry with the same reversal', async () => {
+      const payload = await makeReplacementFixture();
+      const {
+        voided: [entry],
+      } = await service.voidAndReplace(payload, repoOptions);
+      mockAccountingPeriodService.validatePostingPeriod.mockClear();
+
+      const { voided, replacement } = await service.voidAndReplace(
+        { ...payload, entry },
+        repoOptions
+      );
+
+      expect(voided[0]).toBe(entry);
+      expect(voided.slice(1)).toEqual([[], null]);
+      expect(replacement).toBeNull();
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects a draft payment', async () => {
+      const payload = await makeReplacementFixture(null);
+
+      await expect(
+        service.voidAndReplace(payload, repoOptions)
+      ).rejects.toThrow(journalEntryError.InvalidStatusTransition);
+    });
+
+    it('rejects a non-payment entry', async () => {
+      const payload = await makeReplacementFixture();
+      const entry = {
+        ...payload.entry,
+        sourceType: EJournalEntrySourceType.Receipt,
+      };
+
+      await expect(
+        service.voidAndReplace({ ...payload, entry }, repoOptions)
+      ).rejects.toThrow(journalEntryError.RectificationNotPermitted);
+    });
+
+    it('rejects a replacement in a closed effective period', async () => {
+      const payload = await makeReplacementFixture();
+      const failure = new periodError.PostingPeriodNotOpen();
+      mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
+        failure
+      );
+
+      await expect(service.voidAndReplace(payload, repoOptions)).rejects.toBe(
+        failure
+      );
+      expect(payload.entry.status).toBe(EJournalEntryStatus.Posted);
+    });
   });
 
   describe('postDraft', () => {
