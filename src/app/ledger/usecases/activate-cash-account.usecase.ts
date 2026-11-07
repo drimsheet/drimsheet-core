@@ -24,11 +24,11 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import historyValue from '@shared/values/history/history.vo';
 
-import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
 import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
 } from '@domain/journal-entry/types/journal-entry.types';
+import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
@@ -51,7 +51,7 @@ interface IDependencies {
   repoService: IRepoService;
   eventBus: IEventBus;
   journalEntryQueryRepo: IJournalEntryQueryRepo;
-  journalEntryService: IJournalEntryService;
+  openingBalanceEntryService: IOpeningBalanceEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   fxLotAppService: IFxLotAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;

@@ -26,11 +26,11 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
+import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import {
   ICreateReceiptEntryPayload,
-  IJournalEntryService,
-} from '@domain/journal-entry/types/journal-entry.service.types';
-import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
+  IReceiptEntryService,
+} from '@domain/journal-entry/types/receipt-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
@@ -55,7 +55,7 @@ interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   counterpartyRepo: ICounterpartyRepo;
   fileManagementAppService: IFileManagementAppService;
-  journalEntryService: IJournalEntryService;
+  receiptEntryService: IReceiptEntryService;
   ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
@@ -179,7 +179,7 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
     };
 
     const [journalEntry, journalEntryEvents, journalEntryAudit] =
-      await deps.journalEntryService.createReceipt(receiptPayload, repoOptions);
+      await deps.receiptEntryService.create(receiptPayload, repoOptions);
 
     const journalHeaderHistory = historyValue.make(
       journalEntryAudit.header,

@@ -10,8 +10,8 @@ import periodError from '@domain/accounting/errors/period.error';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
-import { EJournalEntryRectificationMode } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
+  EJournalEntryRectificationMode,
   EJournalEntrySourceType,
   EJournalEntryStatus,
 } from '@domain/journal-entry/types/journal-entry.types';
@@ -350,43 +350,21 @@ describe('makeRectifyJournalEntryUsecase', () => {
     });
   });
 
-  it('updates posted metadata without FX or balance propagation', async () => {
+  it('does not persist metadata requests rejected by rectification preparation', async () => {
     const [originalEntry] = makeEntry(100);
-    const newEntryResult = makeEntry(100, 'Corrected description');
-    const newEntry = {
-      ...newEntryResult[0],
-      lines: newEntryResult[0].lines.map((line, index) => ({
-        ...line,
-        id: originalEntry.lines[index].id,
-      })),
-    };
-    const result = await rectificationService.rectify(
-      {
-        actorId: actor.id,
-        originalEntry,
-        newEntry,
-      },
-      { correlationId }
-    );
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-    mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
-      {
-        rectification: result,
-        fxReversal: null,
-        fxDisposition: null,
-        fxAcquisition: null,
-      }
+    mockJournalEntryRectificationPreparationAppService.prepare.mockRejectedValueOnce(
+      new journalEntryError.RectificationHasNoChanges()
     );
-
-    const response = await getUsecase()(
-      originalEntry.id,
-      makePayload(originalEntry, 100, 'Corrected description')
-    );
-
-    expect(response.mode).toBe(EJournalEntryRectificationMode.UpdateMeta);
-    expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledTimes(
-      1
-    );
+    await expect(
+      getUsecase()(
+        originalEntry.id,
+        makePayload(originalEntry, 100, 'Corrected description')
+      )
+    ).rejects.toThrow(journalEntryError.RectificationHasNoChanges);
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
     expect(
       mockOutboxAppService.createBalancePropagation
     ).not.toHaveBeenCalled();
@@ -617,7 +595,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
       });
       expect(originalEntry).toEqual(snapshot);
       expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
-
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
       expect(
         mockJournalEntryPersistenceAppService.rectify
@@ -640,6 +617,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
+
   it.each(['acquisition', 'persistence', 'outbox', 'commit'] as const)(
     'handles transaction %s failure without publishing or enqueueing',
     async (phase) => {

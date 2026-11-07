@@ -1,8 +1,6 @@
+import { IJournalEntryRectificationResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
   EJournalEntryRectificationMode,
-  IJournalEntryRectificationResult,
-} from '@domain/journal-entry/types/journal-entry-rectification.types';
-import {
   EJournalEntryStatus,
   IJournalEntry,
 } from '@domain/journal-entry/types/journal-entry.types';

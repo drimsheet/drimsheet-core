@@ -26,11 +26,11 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
+import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import {
   ICreateTransferEntryPayload,
-  IJournalEntryService,
-} from '@domain/journal-entry/types/journal-entry.service.types';
-import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
+  ITransferEntryService,
+} from '@domain/journal-entry/types/transfer-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -56,7 +56,7 @@ interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   counterpartyRepo: ICounterpartyRepo;
   fileManagementAppService: IFileManagementAppService;
-  journalEntryService: IJournalEntryService;
+  transferEntryService: ITransferEntryService;
   ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
@@ -148,10 +148,7 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
     const {
       journalEntry: [journalEntry, journalEntryEvents, journalEntryAudit],
       destinationAssetAccount,
-    } = await deps.journalEntryService.createTransfer(
-      transferPayload,
-      repoOptions
-    );
+    } = await deps.transferEntryService.create(transferPayload, repoOptions);
 
     const journalHeaderHistory = historyValue.make(
       journalEntryAudit.header,

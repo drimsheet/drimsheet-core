@@ -8,17 +8,11 @@ import {
   IJournalLineAudit,
   TAuditedJournalEntry,
 } from '@domain/journal-entry/types/journal-entry-audit.types';
-import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
+import {
+  IJournalEntry,
+  UJournalEntryRectificationMode,
+} from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
-
-export const EJournalEntryRectificationMode = {
-  UpdateDraft: 'update_draft',
-  UpdateMeta: 'update_meta',
-  VoidAndReplace: 'void_and_replace',
-} as const;
-
-export type UJournalEntryRectificationMode =
-  (typeof EJournalEntryRectificationMode)[keyof typeof EJournalEntryRectificationMode];
 
 export interface IJournalEntryRectificationPayload {
   actorId: TEntityId;

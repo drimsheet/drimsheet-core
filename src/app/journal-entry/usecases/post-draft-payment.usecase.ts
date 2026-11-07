@@ -26,7 +26,7 @@ import eventValue from '@shared/values/events/event.vo';
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
-import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
+import { IPaymentEntryService } from '@domain/journal-entry/types/payment-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -43,7 +43,7 @@ interface IDependencies {
   counterpartyRepo: ICounterpartyRepo;
   ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryRepo: IJournalEntryRepo;
-  journalEntryService: IJournalEntryService;
+  paymentEntryService: IPaymentEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   fxLotAppService: IFxLotAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
@@ -105,7 +105,7 @@ export default function makePostDraftPaymentUsecase(deps: IDependencies) {
         originalEntry.accountingEntityId,
         lockedReadOptions
       );
-      const posting = await deps.journalEntryService.postDraftPayment(
+      const posting = await deps.paymentEntryService.postDraft(
         { entry: originalEntry, accounts, counterparties, actor: actor.id },
         transactionOptions
       );

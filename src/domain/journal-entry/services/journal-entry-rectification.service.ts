@@ -4,19 +4,20 @@ import { TEntityId } from '@shared/types/uuid';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalEntryRectificationValidation from '@domain/journal-entry/services/validations/journal-entry-rectification.validation';
 import journalEntryValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
 import {
-  EJournalEntryRectificationMode,
   IJournalEntryRectificationPayload,
   IJournalEntryRectificationResult,
   IJournalEntryRectificationService,
   IJournalEntryReversalResult,
-  UJournalEntryRectificationMode,
 } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
+  EJournalEntryRectificationMode,
   EJournalEntrySourceType,
   EJournalEntryStatus,
+  UJournalEntryRectificationMode,
 } from '@domain/journal-entry/types/journal-entry.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
@@ -41,21 +42,6 @@ async function validateAccounts(
   journalEntryValidation.validateArchivedAccounts(accounts);
 }
 
-function determineAction(
-  payload: IJournalEntryRectificationPayload
-): UJournalEntryRectificationMode {
-  if (payload.originalEntry.status === EJournalEntryStatus.Draft) {
-    return EJournalEntryRectificationMode.UpdateDraft;
-  }
-
-  return journalEntryEntity.hasOnlyMetadataChanges(
-    payload.originalEntry,
-    payload.newEntry
-  )
-    ? EJournalEntryRectificationMode.UpdateMeta
-    : EJournalEntryRectificationMode.VoidAndReplace;
-}
-
 function updateEntry(
   payload: IJournalEntryRectificationPayload,
   mode: Exclude<UJournalEntryRectificationMode, 'void_and_replace'>
@@ -65,6 +51,7 @@ function updateEntry(
     payload.newEntry,
     payload.actorId
   );
+
   const originalLineIds = new Set(
     payload.originalEntry.lines.map((line) => line.id)
   );
@@ -85,33 +72,50 @@ function updateEntry(
     .filter((line) => !currentLineIds.has(line.id))
     .map((line) => line.id);
 
+  const entryUpdate = audit
+    ? {
+        entry: currentJournalEntry,
+        expectedVersion: payload.originalEntry.version,
+        headerAudit: audit.header,
+        lineAudits: audit.lines,
+        linesToCreate,
+        linesToUpdate,
+        lineIdsToDelete,
+      }
+    : null;
+
   return {
     mode,
     originalJournalEntryId: payload.originalEntry.id,
     currentJournalEntry,
     reversingJournalEntry: null,
     entriesToCreate: [],
-    entryUpdate: audit
-      ? {
-          entry: currentJournalEntry,
-          expectedVersion: payload.originalEntry.version,
-          headerAudit: audit.header,
-          lineAudits: audit.lines,
-          linesToCreate,
-          linesToUpdate,
-          lineIdsToDelete,
-        }
-      : null,
+    entryUpdate,
     events,
   };
 }
 
+// TODO: add doc
 async function voidAndReplace(
   deps: IDependencies,
   payload: IJournalEntryRectificationPayload,
   repoOptions: IReadRepoOptions
 ): Promise<IJournalEntryRectificationResult> {
   const { originalEntry, newEntry } = payload;
+
+  const accountIdsToValidate = [
+    ...originalEntry.lines,
+    ...(newEntry.lines ?? []),
+  ].map((line) => line.accountId);
+
+  const accounts = await deps.ledgerAccountRepo.findAllByIds(
+    [...new Set(accountIdsToValidate)],
+    payload.originalEntry.accountingEntityId,
+    repoOptions
+  );
+
+  journalEntryValidation.validateArchivedAccounts(accounts);
+
   const timestamp = new Date();
   const effectiveDate = newEntry.effectiveDate ?? originalEntry.effectiveDate;
 
@@ -123,6 +127,7 @@ async function voidAndReplace(
 
   const correctedLines = newEntry.lines ?? originalEntry.lines;
   const functionalCurrency = correctedLines[0].functionalAmount.currency;
+
   const correctedEntry = journalEntryEntity.make({
     id: newEntry.id,
     accountingEntityId: originalEntry.accountingEntityId,
@@ -144,7 +149,9 @@ async function voidAndReplace(
       functionalCurrency,
     })),
   });
+
   const [correctedJournalEntry, correctedEvents] = correctedEntry;
+
   const reversal = await reverseEntry(
     deps,
     originalEntry,
@@ -184,7 +191,7 @@ async function reverseEntry(
     sourceType: EJournalEntrySourceType.Reversal,
     effectiveDate: timestamp,
     postedAt: timestamp,
-    memo: 'Journal entry reversal',
+    memo: null, // TODO: add memo if received by the caller
     createdBy: actorId,
     functionalCurrency,
     lines: originalEntry.lines.map((line) => ({
@@ -236,32 +243,35 @@ function makeRectify(
   return async (payload, repoOptions) => {
     journalEntryRectificationValidation.validatePayload(payload);
 
-    const action = determineAction(payload);
+    const action = journalEntryEntity.determineUpdateAction(
+      payload.originalEntry,
+      payload.newEntry
+    );
+
+    if (action === EJournalEntryRectificationMode.UpdateMeta) {
+      throw new journalEntryError.RectificationHasNoChanges({
+        id: payload.originalEntry.id,
+      });
+    }
 
     if (action === EJournalEntryRectificationMode.VoidAndReplace) {
-      await validateAccounts(
-        deps,
-        [...payload.originalEntry.lines, ...(payload.newEntry.lines ?? [])].map(
-          (line) => line.accountId
-        ),
-        payload.originalEntry.accountingEntityId,
-        repoOptions
-      );
       return voidAndReplace(deps, payload, repoOptions);
     }
 
-    if (action === EJournalEntryRectificationMode.UpdateDraft) {
-      await validateAccounts(
-        deps,
-        (payload.newEntry.lines ?? payload.originalEntry.lines).map(
-          (line) => line.accountId
-        ),
-        payload.originalEntry.accountingEntityId,
-        repoOptions
-      );
-    }
+    const accountIdsToValidate = (
+      payload.newEntry.lines ?? payload.originalEntry.lines
+    ).map((line) => line.accountId);
+
+    const accounts = await deps.ledgerAccountRepo.findAllByIds(
+      [...new Set(accountIdsToValidate)],
+      payload.originalEntry.accountingEntityId,
+      repoOptions
+    );
+
+    journalEntryValidation.validateArchivedAccounts(accounts);
 
     const rectification = updateEntry(payload, action);
+
     const isPostingDraft =
       action === EJournalEntryRectificationMode.UpdateDraft &&
       rectification.currentJournalEntry.status === EJournalEntryStatus.Posted;

@@ -9,15 +9,13 @@ import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
-import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
+import makePaymentEntryService from '@domain/journal-entry/services/payment-entry.service';
+import { IJournalEntryRectificationResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
   EJournalEntryRectificationMode,
-  IJournalEntryRectificationResult,
-  UJournalEntryRectificationMode,
-} from '@domain/journal-entry/types/journal-entry-rectification.types';
-import {
   EJournalEntrySourceType,
   IJournalEntry,
+  UJournalEntryRectificationMode,
   UJournalEntrySourceType,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
@@ -36,7 +34,9 @@ import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import {
   mockJournalEntryRectificationService,
-  mockJournalEntryService,
+  mockPaymentEntryService,
+  mockReceiptEntryService,
+  mockTransferEntryService,
 } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import {
   IPaymentJournalEntryRectificationReq,
@@ -88,7 +88,9 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
   const actor = userId;
   const service = makeJournalEntryRectificationPreparationAppService({
     counterpartyRepo: mockCounterpartyRepo,
-    journalEntryService: mockJournalEntryService,
+    paymentEntryService: mockPaymentEntryService,
+    receiptEntryService: mockReceiptEntryService,
+    transferEntryService: mockTransferEntryService,
     journalEntryRectificationService: mockJournalEntryRectificationService,
     ledgerAccountRepo: mockLedgerAccountRepo,
     fxLotAppService: mockFxLotAppService,
@@ -219,7 +221,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           },
         ],
       };
-      mockJournalEntryService.createPayment.mockResolvedValue(candidate);
+      mockPaymentEntryService.create.mockResolvedValue(candidate);
 
       const result = await service.prepare(
         {
@@ -237,8 +239,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         accountingEntityId,
         repoOptions
       );
-      expect(mockJournalEntryService.createPayment).toHaveBeenCalledTimes(1);
-      expect(mockJournalEntryService.createPayment).toHaveBeenCalledWith(
+      expect(mockPaymentEntryService.create).toHaveBeenCalledTimes(1);
+      expect(mockPaymentEntryService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           header: expect.objectContaining({
             postedAt: originalPostedAt ?? requestedPostedAt,
@@ -315,8 +317,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
                 },
               ],
             };
-      mockJournalEntryService.createReceipt.mockResolvedValue(candidate);
-      mockJournalEntryService.createTransfer.mockResolvedValue({
+      mockReceiptEntryService.create.mockResolvedValue(candidate);
+      mockTransferEntryService.create.mockResolvedValue({
         journalEntry: candidate,
         destinationAssetAccount: destinationAccount,
       });
@@ -331,8 +333,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       );
       const creation =
         sourceType === 'receipt'
-          ? mockJournalEntryService.createReceipt
-          : mockJournalEntryService.createTransfer;
+          ? mockReceiptEntryService.create
+          : mockTransferEntryService.create;
       expect(creation).toHaveBeenCalledWith(
         expect.objectContaining({
           header: expect.objectContaining({ postedAt }),
@@ -402,15 +404,16 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
             Object.freeze({ ...counterparty, status: 'draft' as const }),
           ]);
         }
-        const domainService = makeJournalEntryService({
-          ledgerAccountRepo: mockLedgerAccountRepo,
+        const paymentEntryService = makePaymentEntryService({
           accountingPeriodService: mockAccountingPeriodService,
           ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
         });
         const guardedPreparation =
           makeJournalEntryRectificationPreparationAppService({
             counterpartyRepo: mockCounterpartyRepo,
-            journalEntryService: domainService,
+            paymentEntryService,
+            receiptEntryService: mockReceiptEntryService,
+            transferEntryService: mockTransferEntryService,
             journalEntryRectificationService:
               mockJournalEntryRectificationService,
             ledgerAccountRepo: mockLedgerAccountRepo,
@@ -503,7 +506,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         sequenceOrder: 2,
       },
     };
-    mockJournalEntryService.createReceipt.mockResolvedValue(candidate);
+    mockReceiptEntryService.create.mockResolvedValue(candidate);
     mockJournalEntryRectificationService.rectify.mockImplementation(
       async ({ originalEntry: entryToReplace, newEntry }) =>
         makeRectificationResult(
@@ -524,7 +527,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       repoOptions
     );
 
-    expect(mockJournalEntryService.createReceipt).toHaveBeenCalledTimes(1);
+    expect(mockReceiptEntryService.create).toHaveBeenCalledTimes(1);
     expect(
       result.rectification.currentJournalEntry.lines.map((line) => line.id)
     ).toEqual(candidate[0].lines.map((line) => line.id));
@@ -577,7 +580,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         },
       ],
     };
-    mockJournalEntryService.createTransfer.mockResolvedValue({
+    mockTransferEntryService.create.mockResolvedValue({
       journalEntry: candidate,
       destinationAssetAccount: destinationAccount,
     });
@@ -601,7 +604,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       repoOptions
     );
 
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledTimes(1);
+    expect(mockTransferEntryService.create).toHaveBeenCalledTimes(1);
     expect(
       result.rectification.currentJournalEntry.lines.map((line) => line.id)
     ).toEqual(candidate[0].lines.map((line) => line.id));
@@ -631,9 +634,9 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       )
     ).rejects.toBeInstanceOf(appError.BadRequest);
 
-    expect(mockJournalEntryService.createPayment).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockPaymentEntryService.create).not.toHaveBeenCalled();
+    expect(mockReceiptEntryService.create).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
   });
 
   it('prepares the FX-lot reversal before corrected source effects', async () => {
@@ -669,7 +672,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       correctedEntry,
       EJournalEntryRectificationMode.VoidAndReplace
     );
-    mockJournalEntryService.createPayment.mockResolvedValue([
+    mockPaymentEntryService.create.mockResolvedValue([
       correctedEntry,
       [],
       { header: {} as never, lines: [] },
@@ -737,7 +740,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         },
       ],
     };
-    mockJournalEntryService.createPayment.mockResolvedValue([
+    mockPaymentEntryService.create.mockResolvedValue([
       correctedEntry,
       [],
       { header: {} as never, lines: [] },
@@ -806,7 +809,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       postedEntry,
       EJournalEntryRectificationMode.UpdateDraft
     );
-    mockJournalEntryService.createPayment.mockResolvedValue([
+    mockPaymentEntryService.create.mockResolvedValue([
       postedEntry,
       [],
       { header: {} as never, lines: [] },
@@ -865,7 +868,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         },
       ],
     };
-    mockJournalEntryService.createPayment.mockResolvedValue([
+    mockPaymentEntryService.create.mockResolvedValue([
       unsupportedEntry,
       [],
       { header: {} as never, lines: [] },
@@ -927,7 +930,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           },
           chargeLines: [],
         };
-        mockJournalEntryService.createTransfer.mockResolvedValueOnce({
+        mockTransferEntryService.create.mockResolvedValueOnce({
           journalEntry: candidate,
           destinationAssetAccount: destinationAccount,
         });
@@ -1035,9 +1038,9 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         cause: { id: missingId },
       });
 
-      expect(mockJournalEntryService.createPayment).not.toHaveBeenCalled();
-      expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
-      expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+      expect(mockPaymentEntryService.create).not.toHaveBeenCalled();
+      expect(mockReceiptEntryService.create).not.toHaveBeenCalled();
+      expect(mockTransferEntryService.create).not.toHaveBeenCalled();
       expect(
         mockJournalEntryRectificationService.rectify
       ).not.toHaveBeenCalled();

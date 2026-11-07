@@ -1,4 +1,4 @@
-import { ICreateTransferEntryPayload } from '@domain/journal-entry/types/journal-entry.service.types';
+import { ICreateTransferEntryPayload } from '@domain/journal-entry/types/transfer-entry.service.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 

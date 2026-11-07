@@ -52,7 +52,7 @@ import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-man
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockPaymentEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
@@ -236,7 +236,7 @@ describe('makeCreatePaymentUsecase', () => {
       appContext: mockAppContext,
       counterpartyRepo: mockCounterpartyRepo,
       fileManagementAppService: mockFileManagementAppService,
-      journalEntryService: mockJournalEntryService,
+      paymentEntryService: mockPaymentEntryService,
       ledgerAccountRepo: mockLedgerAccountRepo,
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
@@ -277,7 +277,7 @@ describe('makeCreatePaymentUsecase', () => {
       existingCounterparty[0],
     ]);
     mockFileManagementAppService.claimUploads.mockResolvedValue([]);
-    mockJournalEntryService.createPayment.mockResolvedValue([
+    mockPaymentEntryService.create.mockResolvedValue([
       postedJournalEntry,
       postedEvents,
       postedAudit,
@@ -304,7 +304,7 @@ describe('makeCreatePaymentUsecase', () => {
   ])(
     'does not persist or publish when journal creation rejects: %s',
     async (failure) => {
-      mockJournalEntryService.createPayment.mockRejectedValueOnce(failure);
+      mockPaymentEntryService.create.mockRejectedValueOnce(failure);
       await expect(getUseCase()(makePayload())).rejects.toBe(failure);
       expect(
         mockJournalEntryPersistenceAppService.create
@@ -405,7 +405,7 @@ describe('makeCreatePaymentUsecase', () => {
       purpose: EFileUploadPurpose.JournalEntryAttachment,
       references: attachmentReferences,
     });
-    expect(mockJournalEntryService.createPayment).toHaveBeenCalledWith(
+    expect(mockPaymentEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         attachments,
         sourceLine: expect.objectContaining({
@@ -471,7 +471,7 @@ describe('makeCreatePaymentUsecase', () => {
       postedAt: null,
     };
     mockCounterpartyRepo.findByIds.mockResolvedValue([existingCounterparty[0]]);
-    mockJournalEntryService.createPayment.mockResolvedValue([
+    mockPaymentEntryService.create.mockResolvedValue([
       draftJournalEntry,
       postedEvents,
       postedAudit,
@@ -490,7 +490,7 @@ describe('makeCreatePaymentUsecase', () => {
     expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith(
       expect.objectContaining({ references: [] })
     );
-    expect(mockJournalEntryService.createPayment).toHaveBeenCalledWith(
+    expect(mockPaymentEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceLine: expect.objectContaining({
           counterparty: existingCounterparty[0],
@@ -515,7 +515,7 @@ describe('makeCreatePaymentUsecase', () => {
       counterpartyError.InvalidCounterpartyId
     );
 
-    expect(mockJournalEntryService.createPayment).not.toHaveBeenCalled();
+    expect(mockPaymentEntryService.create).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -529,7 +529,7 @@ describe('makeCreatePaymentUsecase', () => {
     );
 
     expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createPayment).not.toHaveBeenCalled();
+    expect(mockPaymentEntryService.create).not.toHaveBeenCalled();
   });
 
   it('rejects a missing destination account before resolving counterparties', async () => {
@@ -542,7 +542,7 @@ describe('makeCreatePaymentUsecase', () => {
     );
 
     expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createPayment).not.toHaveBeenCalled();
+    expect(mockPaymentEntryService.create).not.toHaveBeenCalled();
   });
 
   it('prevents persistence when attachment claiming fails', async () => {
@@ -551,13 +551,13 @@ describe('makeCreatePaymentUsecase', () => {
 
     await expect(getUseCase()(makePayload())).rejects.toBe(error);
 
-    expect(mockJournalEntryService.createPayment).not.toHaveBeenCalled();
+    expect(mockPaymentEntryService.create).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('prevents persistence when domain creation fails', async () => {
-    mockJournalEntryService.createPayment.mockRejectedValue(
+    mockPaymentEntryService.create.mockRejectedValue(
       new ledgerAppError.AccountNotFound()
     );
 
@@ -576,7 +576,7 @@ describe('makeCreatePaymentUsecase', () => {
     'stops before journal, FX, and propagation writes when a draft %s blocks posting',
     async (_, ErrorType) => {
       const error = new ErrorType();
-      mockJournalEntryService.createPayment.mockRejectedValueOnce(error);
+      mockPaymentEntryService.create.mockRejectedValueOnce(error);
 
       await expect(getUseCase()(makePayload())).rejects.toBe(error);
 
@@ -617,7 +617,7 @@ describe('makeCreatePaymentUsecase', () => {
 
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
 
-    expect(mockJournalEntryService.createPayment).not.toHaveBeenCalled();
+    expect(mockPaymentEntryService.create).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();

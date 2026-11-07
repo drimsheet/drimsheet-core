@@ -37,7 +37,7 @@ import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-man
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockReceiptEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import makeCreateReceiptUsecase from '@app/journal-entry/usecases/create-receipt.usecase';
@@ -233,7 +233,7 @@ describe('makeCreateReceiptUsecase', () => {
 
     const counterparties = [selectedCounterparty[0]];
     mockCounterpartyRepo.findByIds.mockResolvedValue(counterparties);
-    mockJournalEntryService.createReceipt.mockResolvedValue([
+    mockReceiptEntryService.create.mockResolvedValue([
       journalEntry,
       journalEntryEvents,
       journalEntryAudit,
@@ -260,7 +260,7 @@ describe('makeCreateReceiptUsecase', () => {
       appContext: mockAppContext,
       counterpartyRepo: mockCounterpartyRepo,
       fileManagementAppService: mockFileManagementAppService,
-      journalEntryService: mockJournalEntryService,
+      receiptEntryService: mockReceiptEntryService,
       ledgerAccountRepo: mockLedgerAccountRepo,
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
@@ -280,7 +280,7 @@ describe('makeCreateReceiptUsecase', () => {
   ])(
     'does not persist or publish when journal creation rejects: %s',
     async (failure) => {
-      mockJournalEntryService.createReceipt.mockRejectedValueOnce(failure);
+      mockReceiptEntryService.create.mockRejectedValueOnce(failure);
       await expect(
         getUseCase()({
           sourceLines: [
@@ -409,7 +409,7 @@ describe('makeCreateReceiptUsecase', () => {
       references: attachmentReferences,
     });
 
-    expect(mockJournalEntryService.createReceipt).toHaveBeenCalledWith(
+    expect(mockReceiptEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         header: expect.objectContaining({
           accountingEntityId: accountingEntity.id,
@@ -540,7 +540,7 @@ describe('makeCreateReceiptUsecase', () => {
       })
     ).rejects.toBe(error);
 
-    expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
+    expect(mockReceiptEntryService.create).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
@@ -554,7 +554,7 @@ describe('makeCreateReceiptUsecase', () => {
   it('orchestrates successfully with existing counterparties', async () => {
     const counterparties = [existingCounterparty[0]];
     mockCounterpartyRepo.findByIds.mockResolvedValue(counterparties);
-    mockJournalEntryService.createReceipt.mockResolvedValue([
+    mockReceiptEntryService.create.mockResolvedValue([
       journalEntry,
       [],
       journalEntryAudit,
@@ -588,7 +588,7 @@ describe('makeCreateReceiptUsecase', () => {
 
     await usecase(payload);
 
-    expect(mockJournalEntryService.createReceipt).toHaveBeenCalledWith(
+    expect(mockReceiptEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceLines: [
           expect.objectContaining({ counterparty: existingCounterparty[0] }),
@@ -638,7 +638,7 @@ describe('makeCreateReceiptUsecase', () => {
     );
 
     expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
+    expect(mockReceiptEntryService.create).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(
       mockOutboxAppService.createBalancePropagation
@@ -686,7 +686,7 @@ describe('makeCreateReceiptUsecase', () => {
     );
 
     expect(mockCounterpartyRepo.findByIds).toHaveBeenCalled();
-    expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
+    expect(mockReceiptEntryService.create).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(
       mockOutboxAppService.createBalancePropagation
@@ -704,7 +704,7 @@ describe('makeCreateReceiptUsecase', () => {
     async (_, error) => {
       const usecase = getUseCase();
 
-      mockJournalEntryService.createReceipt.mockRejectedValueOnce(error);
+      mockReceiptEntryService.create.mockRejectedValueOnce(error);
 
       const payload = {
         sourceLines: [
@@ -798,7 +798,7 @@ describe('makeCreateReceiptUsecase', () => {
 
     await usecase(payload);
 
-    expect(mockJournalEntryService.createReceipt).toHaveBeenCalledWith(
+    expect(mockReceiptEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceLines: expect.arrayContaining([
           expect.objectContaining({
@@ -844,7 +844,7 @@ describe('makeCreateReceiptUsecase', () => {
       })
     ).rejects.toThrow(counterpartyError.InvalidCounterpartyId);
 
-    expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
+    expect(mockReceiptEntryService.create).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -856,7 +856,7 @@ describe('makeCreateReceiptUsecase', () => {
       status: EJournalEntryStatus.Draft,
       postedAt: null,
     };
-    mockJournalEntryService.createReceipt.mockResolvedValue([
+    mockReceiptEntryService.create.mockResolvedValue([
       draftJournalEntry,
       journalEntryEvents,
       journalEntryAudit,
@@ -955,7 +955,7 @@ describe('makeCreateReceiptUsecase', () => {
       })
     ).rejects.toBe(failure);
 
-    expect(mockJournalEntryService.createReceipt).not.toHaveBeenCalled();
+    expect(mockReceiptEntryService.create).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();

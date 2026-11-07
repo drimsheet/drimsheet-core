@@ -159,7 +159,7 @@ function validateVoid(entry: IJournalEntry) {
 
 function hasOnlyMetadataChanges(
   entry: IJournalEntry,
-  newEntry: Partial<IJournalEntry> & { id: TEntityId }
+  newEntry: Partial<IJournalEntry>
 ) {
   const lines = newEntry.lines ?? entry.lines;
   const hasHeaderAccountingChange =

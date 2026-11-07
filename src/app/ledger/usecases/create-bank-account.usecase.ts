@@ -26,6 +26,7 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
+import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
 import { IBankDetails } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
@@ -33,7 +34,6 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
-import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening-balance-entry.service.contract';
 import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { IBankAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
@@ -52,7 +52,7 @@ interface IDependencies {
   eventBus: IEventBus;
   cashAccountService: ICashAccountService;
   bankAccountRepo: IBankAccountRepo;
-  openingBalanceEntryAppService: IOpeningBalanceEntryAppService;
+  openingBalanceEntryService: IOpeningBalanceEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
@@ -172,7 +172,7 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
       };
 
       const [journalEntry, journalEvents, journalAudit] =
-        await deps.openingBalanceEntryAppService.createInitialOpeningBalance(
+        await deps.openingBalanceEntryService.createInitial(
           journalEntryCreationInput,
           transactionOptions
         );

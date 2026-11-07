@@ -58,6 +58,10 @@ interface IDependencies {
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
+/**
+ *
+ * @deprecated use the specialized action use cases instead
+ */
 export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
   return async (
     id: string,

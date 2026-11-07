@@ -3,11 +3,11 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
+import { IJournalEntryRectificationResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
   EJournalEntryRectificationMode,
-  IJournalEntryRectificationResult,
-} from '@domain/journal-entry/types/journal-entry-rectification.types';
-import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
+  EJournalEntrySourceType,
+} from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';

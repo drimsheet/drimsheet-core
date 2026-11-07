@@ -1,6 +1,6 @@
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import { UJournalEntryRectificationMode } from '@domain/journal-entry/types/journal-entry-rectification.types';
+import { UJournalEntryRectificationMode } from '@domain/journal-entry/types/journal-entry.types';
 
 import {
   IJournalEntryDto,

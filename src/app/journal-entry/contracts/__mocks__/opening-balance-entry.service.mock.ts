@@ -2,7 +2,6 @@ import IOpeningBalanceEntryAppService from '@app/journal-entry/contracts/opening
 
 const mockOpeningBalanceEntryAppService: jest.Mocked<IOpeningBalanceEntryAppService> =
   {
-    createInitialOpeningBalance: jest.fn(),
     create: jest.fn(),
     createOrRevise: jest.fn(),
   };

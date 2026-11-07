@@ -71,3 +71,12 @@ export interface IJournalEntryMakePayload extends Pick<
 export interface IVoidJournalEntryPayload {
   voidingEntryId: TEntityId;
 }
+
+export const EJournalEntryRectificationMode = {
+  UpdateDraft: 'update_draft',
+  UpdateMeta: 'update_meta',
+  VoidAndReplace: 'void_and_replace',
+} as const;
+
+export type UJournalEntryRectificationMode =
+  (typeof EJournalEntryRectificationMode)[keyof typeof EJournalEntryRectificationMode];

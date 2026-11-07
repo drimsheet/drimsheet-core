@@ -1,13 +1,5 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 
-import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
-import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
-import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
-import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
-import openingBalanceEntryRule from '@domain/journal-entry/rules/opening-balance-entry.rule';
-import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
-import openingBalanceRevisionValidation from '@domain/journal-entry/services/validations/opening-balance-revision.validation';
-import openingBalanceValidation from '@domain/journal-entry/services/validations/opening-balance.validation';
 import {
   TAuditedJournalEntry,
   TAuditedJournalEntryUpdate,
@@ -17,23 +9,15 @@ import {
   EJournalEntryStatus,
   IJournalEntry,
 } from '@domain/journal-entry/types/journal-entry.types';
-import { IJournalLineMakePayload } from '@domain/journal-entry/types/journal-line.types';
-import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
-import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
-import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
-import openingBalanceCurrencyInvarianceRule from '@domain/ledger/rules/opening-balance-currency-invariance.rule';
-import { EEquitySubType } from '@domain/ledger/types/equity-account.types';
 import {
-  ELedgerAccountStatus,
-  ELedgerType,
-} from '@domain/ledger/types/ledger.types';
-import currencyEntity from '@domain/money/entities/currency.entity';
+  IOpeningBalanceEntryService,
+  IOpeningBalanceJournalPayload,
+} from '@domain/journal-entry/types/opening-balance-entry.service.types';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
-import moneyValue from '@domain/money/values/money.vo';
 
 import IJournalEntryQueryRepo from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
 import IOpeningBalanceEntryAppService, {
-  IInitialOpeningBalancePayload,
   IOpeningBalanceEntryPayload,
   IOpeningBalanceJournalMutation,
 } from '@app/journal-entry/contracts/opening-balance-entry.service.contract';
@@ -42,225 +26,14 @@ import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.serv
 
 interface IDependencies {
   journalEntryQueryRepo: IJournalEntryQueryRepo;
-  accountingPeriodService: IAccountingPeriodService;
-  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
-  ledgerAccountRepo: ILedgerAccountRepo;
+  openingBalanceEntryService: IOpeningBalanceEntryService;
   fxLotAppService: IFxLotAppService;
 }
 
-/**
- * Builds the two-sided opening journal from the configured equity account.
- * Reads existing balance adjustments and equity configuration using the caller's
- * repository options, then delegates validity checks and creation to domain
- * rules and entities. Draft accounts produce draft journals; active accounts
- * produce posted journals. Returns events and audits without persisting them.
- */
-async function makeOpeningBalance(
-  deps: IDependencies,
-  payload: IInitialOpeningBalancePayload,
-  repoOptions: IReadRepoOptions
-) {
-  const {
-    accountingEntityId,
-    account,
-    functionalCurrencyCode,
-    amount,
-    effectiveDate,
-    exchangeRate,
-    createdBy,
-  } = payload;
-
-  const functionalCurrency = currencyEntity.getByCode(functionalCurrencyCode);
-
-  openingBalanceCurrencyInvarianceRule.validate(account, amount.currency);
-
-  const functionalAmount = exchangeRate
-    ? moneyValue.convert(amount, exchangeRate, functionalCurrency)
-    : amount;
-
-  openingBalanceValidation.validatePostingAccount(account);
-
-  const [existingBalanceAdjustment] =
-    await deps.ledgerAccountBalanceRepo.findAdjustmentsByAccountId(
-      account.id,
-      repoOptions
-    );
-
-  openingBalanceValidation.validateNoBalanceAdjustments(
-    account.id,
-    Boolean(existingBalanceAdjustment)
-  );
-
-  const [equityAccount] = await deps.ledgerAccountRepo.findBySubType(
-    accountingEntityId,
-    ELedgerType.Equity,
-    EEquitySubType.OpeningBalance,
-    repoOptions
-  );
-
-  openingBalanceValidation.validateEquityAccount(equityAccount);
-
-  journalEntryServiceValidation.validateAccountsAgainstRule(
-    [account],
-    [equityAccount],
-    openingBalanceEntryRule
-  );
-
-  const postedAt =
-    account.status === ELedgerAccountStatus.Draft ? null : effectiveDate;
-  const headerValidationPayload = {
-    accountingEntityId,
-    effectiveDate,
-    postedAt,
-  };
-  const accountValidationPayload = {
-    account,
-    amount,
-  };
-  const equityValidationPayload = {
-    account: equityAccount,
-    amount: functionalAmount,
-  };
-  journalEntryServiceValidation.validateAccounts(headerValidationPayload, [
-    accountValidationPayload,
-    equityValidationPayload,
-  ]);
-
-  const accountSide: IJournalLineMakePayload = {
-    accountId: account.id,
-    counterpartyId: null,
-    functionalCurrency,
-    amount,
-    exchangeRate,
-    sequenceOrder: 1,
-    side: account.normalBalance,
-    description: 'Opening balance',
-  };
-
-  const equitySide: IJournalLineMakePayload = {
-    accountId: equityAccount.id,
-    counterpartyId: null,
-    functionalCurrency,
-    amount: functionalAmount,
-    exchangeRate: null,
-    sequenceOrder: 2,
-    description: null,
-    side: getOppositeJournalSideHelper(account.normalBalance),
-  };
-
-  return journalEntryEntity.make({
-    accountingEntityId,
-    sourceType: EJournalEntrySourceType.OpeningBalance,
-    effectiveDate,
-    postedAt,
-    memo: 'Opening balance',
-    createdBy,
-    functionalCurrency,
-    lines: [accountSide, equitySide],
-  });
-}
-
-/**
- * Creates an initial journal for an unpersisted account within the caller's
- * transaction. Validates its opening date and posting period before building
- * the journal. Rejects invalid state or read failures; returns an audited
- * journal tuple without persistence, event publication or FX acquisition.
- */
-function makeCreateInitialOpeningBalance(
-  deps: IDependencies
-): IOpeningBalanceEntryAppService['createInitialOpeningBalance'] {
-  return async (payload, repoOptions) => {
-    if (!repoOptions.tx) {
-      throw new journalEntryError.InitialOpeningBalanceTransactionRequired();
-    }
-    const { account } = payload;
-    openingBalanceValidation.validateInitialDate(
-      account,
-      payload.effectiveDate
-    );
-    const existing = await deps.ledgerAccountRepo.findById(
-      account.id,
-      account.accountingEntityId,
-      repoOptions
-    );
-    openingBalanceValidation.validateUnpersistedAccount(
-      account.id,
-      Boolean(existing)
-    );
-
-    await deps.accountingPeriodService.validatePostingPeriod(
-      payload.accountingEntityId,
-      payload.effectiveDate,
-      repoOptions
-    );
-
-    return makeOpeningBalance(deps, payload, repoOptions);
-  };
-}
-
-/** Revises the draft aggregate in place, retaining entry and line identities.
- * Domain validation and period failures reject before any result is returned.
- * This operation only reads; the caller persists the returned audit and events.
- */
-async function reviseOpeningBalanceEntry(
-  deps: IDependencies,
-  {
-    originalEntry,
-    ...payload
-  }: IInitialOpeningBalancePayload & { originalEntry: IJournalEntry },
-  repoOptions: IReadRepoOptions
-) {
-  openingBalanceRevisionValidation.validateSourceType(originalEntry);
-  openingBalanceRevisionValidation.validateStatus(originalEntry);
-  openingBalanceRevisionValidation.validateAccountAssociation(
-    originalEntry,
-    payload.account
-  );
-
-  await deps.accountingPeriodService.validatePostingPeriod(
-    payload.accountingEntityId,
-    payload.effectiveDate,
-    repoOptions
-  );
-
-  const [revisedOpeningBalance] = await makeOpeningBalance(
-    deps,
-    {
-      ...payload,
-      account: {
-        ...payload.account,
-        openingBalanceDate: payload.effectiveDate,
-      },
-    },
-    repoOptions
-  );
-  openingBalanceRevisionValidation.validateLineSequences(
-    originalEntry,
-    revisedOpeningBalance
-  );
-  const lines = revisedOpeningBalance.lines.map((line) => {
-    const originalLine = originalEntry.lines.find(
-      (candidate) => candidate.sequenceOrder === line.sequenceOrder
-    )!;
-
-    return Object.freeze({ ...line, id: originalLine.id });
-  });
-
-  return journalEntryEntity.update(
-    originalEntry,
-    {
-      id: originalEntry.id,
-      effectiveDate: revisedOpeningBalance.effectiveDate,
-      postedAt: revisedOpeningBalance.postedAt,
-      status: revisedOpeningBalance.status,
-      lines,
-    },
-    payload.createdBy
-  );
-}
-
 /** Maps the application request to the money and exchange-rate domain values. */
-function getDomainPayload(payload: IOpeningBalanceEntryPayload) {
+function getDomainPayload(
+  payload: IOpeningBalanceEntryPayload
+): IOpeningBalanceJournalPayload {
   return {
     accountingEntityId: payload.accountingEntity.id,
     functionalCurrencyCode: payload.accountingEntity.functionalCurrencyCode,
@@ -272,17 +45,6 @@ function getDomainPayload(payload: IOpeningBalanceEntryPayload) {
       : null,
     createdBy: payload.actor,
   };
-}
-
-/** Rejects an existing opening date before building a new account opening journal. */
-async function createOpeningBalance(
-  deps: IDependencies,
-  payload: IOpeningBalanceEntryPayload,
-  repoOptions: IReadRepoOptions
-) {
-  openingBalanceValidation.validateNoOpeningBalance(payload.account);
-
-  return makeOpeningBalance(deps, getDomainPayload(payload), repoOptions);
 }
 
 /**
@@ -362,8 +124,7 @@ async function reviseOpeningBalance(
   originalEntry: IJournalEntry,
   repoOptions: IReadRepoOptions
 ) {
-  const revision = await reviseOpeningBalanceEntry(
-    deps,
+  const revision = await deps.openingBalanceEntryService.reviseDraft(
     { originalEntry, ...getDomainPayload(payload) },
     repoOptions
   );
@@ -380,7 +141,10 @@ async function createOpeningBalanceMutation(
   payload: IOpeningBalanceEntryPayload,
   repoOptions: IReadRepoOptions
 ) {
-  const creation = await createOpeningBalance(deps, payload, repoOptions);
+  const creation = await deps.openingBalanceEntryService.create(
+    getDomainPayload(payload),
+    repoOptions
+  );
 
   return {
     mutation: getCreationMutation(creation),
@@ -426,7 +190,10 @@ function makeCreate(
   deps: IDependencies
 ): IOpeningBalanceEntryAppService['create'] {
   return async (payload, repoOptions) => {
-    const creation = await createOpeningBalance(deps, payload, repoOptions);
+    const creation = await deps.openingBalanceEntryService.create(
+      getDomainPayload(payload),
+      repoOptions
+    );
     const entryEffects = await getEntryEffects(
       deps,
       payload,
@@ -483,7 +250,6 @@ export default function makeOpeningBalanceEntryAppService(
   deps: IDependencies
 ): IOpeningBalanceEntryAppService {
   return Object.freeze({
-    createInitialOpeningBalance: makeCreateInitialOpeningBalance(deps),
     create: makeCreate(deps),
     createOrRevise: makeCreateOrRevise(deps),
   });

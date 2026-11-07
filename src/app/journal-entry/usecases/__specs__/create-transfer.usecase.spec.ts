@@ -45,7 +45,7 @@ import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-man
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockTransferEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 import makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transfer.usecase';
@@ -234,7 +234,7 @@ describe('makeCreateTransferUsecase', () => {
       appContext: mockAppContext,
       counterpartyRepo: mockCounterpartyRepo,
       fileManagementAppService: mockFileManagementAppService,
-      journalEntryService: mockJournalEntryService,
+      transferEntryService: mockTransferEntryService,
       ledgerAccountRepo: mockLedgerAccountRepo,
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
@@ -277,7 +277,7 @@ describe('makeCreateTransferUsecase', () => {
     });
     mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);
     mockCounterpartyRepo.findByIds.mockResolvedValue([]);
-    mockJournalEntryService.createTransfer.mockResolvedValue({
+    mockTransferEntryService.create.mockResolvedValue({
       journalEntry: postedJournalEntry,
       destinationAssetAccount: destinationAccount,
     });
@@ -309,7 +309,7 @@ describe('makeCreateTransferUsecase', () => {
   ])(
     'does not persist or publish when journal creation rejects: %s',
     async (failure) => {
-      mockJournalEntryService.createTransfer.mockRejectedValueOnce(failure);
+      mockTransferEntryService.create.mockRejectedValueOnce(failure);
       await expect(getUseCase()(makePayload())).rejects.toBe(failure);
       expect(
         mockJournalEntryPersistenceAppService.create
@@ -347,7 +347,7 @@ describe('makeCreateTransferUsecase', () => {
       purpose: EFileUploadPurpose.JournalEntryAttachment,
       references: payload.attachmentReferences,
     });
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       {
         attachments,
         header: {
@@ -468,7 +468,7 @@ describe('makeCreateTransferUsecase', () => {
       accountingEntity.id,
       { correlationId, idempotencyKey }
     );
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         destinationLines: [
           expect.objectContaining({
@@ -526,7 +526,7 @@ describe('makeCreateTransferUsecase', () => {
 
     await getUseCase()(payload);
 
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         destinationLines: expect.arrayContaining([
           expect.objectContaining({
@@ -559,7 +559,7 @@ describe('makeCreateTransferUsecase', () => {
 
     await getUseCase()(payload);
 
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         destinationLines: expect.arrayContaining([
           expect.objectContaining({
@@ -577,7 +577,7 @@ describe('makeCreateTransferUsecase', () => {
     const payload = makePayload();
     payload.postedAt = null;
     const draftJournalEntry = makeJournalEntry(null);
-    mockJournalEntryService.createTransfer.mockResolvedValue({
+    mockTransferEntryService.create.mockResolvedValue({
       journalEntry: draftJournalEntry,
       destinationAssetAccount: destinationAccount,
     });
@@ -626,7 +626,7 @@ describe('makeCreateTransferUsecase', () => {
 
     await getUseCase()(payload);
 
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceLine: expect.objectContaining({
           exchangeRate: expect.objectContaining({
@@ -665,7 +665,7 @@ describe('makeCreateTransferUsecase', () => {
       cause: { id: payload.sourceLine.accountId },
     });
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
   });
 
   it('rejects a missing destination account before claiming uploads', async () => {
@@ -679,7 +679,7 @@ describe('makeCreateTransferUsecase', () => {
       cause: { id: payload.destinationLine.accountId },
     });
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
   });
 
   it('rejects the exact missing charge account before resolving counterparties', async () => {
@@ -704,7 +704,7 @@ describe('makeCreateTransferUsecase', () => {
     });
     expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
   });
 
   it('prevents domain creation and persistence when attachment claiming fails', async () => {
@@ -715,13 +715,13 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(makePayload())).rejects.toThrow(
       fileAppError.InvalidUploadReference
     );
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('prevents persistence when domain creation fails', async () => {
-    mockJournalEntryService.createTransfer.mockRejectedValueOnce(
+    mockTransferEntryService.create.mockRejectedValueOnce(
       new Error('domain failure')
     );
 
@@ -737,7 +737,7 @@ describe('makeCreateTransferUsecase', () => {
     'stops before journal, FX, and propagation writes when a draft %s blocks posting',
     async (_, ErrorType) => {
       const error = new ErrorType();
-      mockJournalEntryService.createTransfer.mockRejectedValueOnce(error);
+      mockTransferEntryService.create.mockRejectedValueOnce(error);
 
       await expect(getUseCase()(makePayload())).rejects.toBe(error);
 
@@ -831,7 +831,7 @@ describe('makeCreateTransferUsecase', () => {
         },
       ],
     });
-    mockJournalEntryService.createTransfer.mockResolvedValueOnce({
+    mockTransferEntryService.create.mockResolvedValueOnce({
       journalEntry: foreignJournalEntry,
       destinationAssetAccount: usdDestinationAccount,
     });
@@ -1010,7 +1010,7 @@ describe('makeCreateTransferUsecase', () => {
 
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
 
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -1041,7 +1041,7 @@ describe('makeCreateTransferUsecase', () => {
       cause: { id: missingId },
     });
 
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();

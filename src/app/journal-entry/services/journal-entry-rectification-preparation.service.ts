@@ -5,21 +5,28 @@ import appError from '@shared/values/errors/app.error';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import {
-  EJournalEntryRectificationMode,
   IJournalEntryRectificationResult,
   IJournalEntryRectificationService,
 } from '@domain/journal-entry/types/journal-entry-rectification.types';
+import { IJournalEntryHeaderPayload } from '@domain/journal-entry/types/journal-entry.service.types';
 import {
-  ICreatePaymentEntryPayload,
-  ICreateReceiptEntryPayload,
-  ICreateTransferEntryPayload,
-  IJournalEntryService,
-} from '@domain/journal-entry/types/journal-entry.service.types';
-import {
+  EJournalEntryRectificationMode,
   EJournalEntrySourceType,
   EJournalEntryStatus,
   IJournalEntry,
 } from '@domain/journal-entry/types/journal-entry.types';
+import {
+  ICreatePaymentEntryPayload,
+  IPaymentEntryService,
+} from '@domain/journal-entry/types/payment-entry.service.types';
+import {
+  ICreateReceiptEntryPayload,
+  IReceiptEntryService,
+} from '@domain/journal-entry/types/receipt-entry.service.types';
+import {
+  ICreateTransferEntryPayload,
+  ITransferEntryService,
+} from '@domain/journal-entry/types/transfer-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
@@ -45,7 +52,9 @@ import {
 
 interface IDependencies {
   counterpartyRepo: ICounterpartyRepo;
-  journalEntryService: IJournalEntryService;
+  paymentEntryService: IPaymentEntryService;
+  receiptEntryService: IReceiptEntryService;
+  transferEntryService: ITransferEntryService;
   journalEntryRectificationService: IJournalEntryRectificationService;
   ledgerAccountRepo: ILedgerAccountRepo;
   fxLotAppService: IFxLotAppService;
@@ -84,7 +93,7 @@ function getExchangeRate(exchangeRate: IExchangeRateDto | null) {
 
 function getHeader(
   preparation: IJournalEntryRectificationPreparationPayload
-): ICreatePaymentEntryPayload['header'] {
+): IJournalEntryHeaderPayload {
   const { requestedEntry, originalEntry, accountingEntity, actor } =
     preparation;
 
@@ -178,7 +187,7 @@ async function preparePayment(
       meta: null,
     })),
   };
-  const [journalEntry] = await deps.journalEntryService.createPayment(
+  const [journalEntry] = await deps.paymentEntryService.create(
     paymentPayload,
     repoOptions
   );
@@ -260,7 +269,7 @@ async function prepareReceipt(
       meta: null,
     },
   };
-  const [journalEntry] = await deps.journalEntryService.createReceipt(
+  const [journalEntry] = await deps.receiptEntryService.create(
     receiptPayload,
     repoOptions
   );
@@ -329,7 +338,7 @@ async function prepareTransfer(
       ),
     ],
   };
-  const transferResult = await deps.journalEntryService.createTransfer(
+  const transferResult = await deps.transferEntryService.create(
     transferPayload,
     repoOptions
   );

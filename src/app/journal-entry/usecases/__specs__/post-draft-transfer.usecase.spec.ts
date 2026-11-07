@@ -18,7 +18,7 @@ import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockTransferEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
@@ -133,7 +133,7 @@ const usecase = makePostDraftTransferUsecase({
   counterpartyRepo: mockCounterpartyRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
   journalEntryRepo: mockJournalEntryRepo,
-  journalEntryService: mockJournalEntryService,
+  transferEntryService: mockTransferEntryService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
   fxLotAppService: mockFxLotAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
@@ -158,7 +158,7 @@ describe('post draft transfer use case', () => {
       chargeAccount,
     ]);
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-    mockJournalEntryService.postDraftTransfer.mockResolvedValue({
+    mockTransferEntryService.postDraft.mockResolvedValue({
       journalEntry: posting,
       sourceAccount: account,
       destinationAssetAccount: destinationAccount,
@@ -174,7 +174,7 @@ describe('post draft transfer use case', () => {
 
   it('commits without writes or downstream effects when posting returns no audit', async () => {
     mockJournalEntryRepo.findById.mockResolvedValue(posting[0]);
-    mockJournalEntryService.postDraftTransfer.mockResolvedValue({
+    mockTransferEntryService.postDraft.mockResolvedValue({
       journalEntry: [posting[0], [], null],
       sourceAccount: account,
       destinationAssetAccount: destinationAccount,
@@ -182,7 +182,7 @@ describe('post draft transfer use case', () => {
 
     await expect(usecase(posting[0].id)).resolves.toBeUndefined();
 
-    expect(mockJournalEntryService.postDraftTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.postDraft).toHaveBeenCalledWith(
       expect.objectContaining({ entry: posting[0], actor: actorId }),
       transactionOptions
     );
@@ -284,7 +284,7 @@ describe('post draft transfer use case', () => {
         originalEntry.id,
         repoOptions
       );
-      expect(mockJournalEntryService.postDraftTransfer).toHaveBeenCalledWith(
+      expect(mockTransferEntryService.postDraft).toHaveBeenCalledWith(
         {
           entry: originalEntry,
           accounts: [account, destinationAccount, chargeAccount],
@@ -305,7 +305,7 @@ describe('post draft transfer use case', () => {
       expect(
         mockLedgerAccountRepo.findAllByIds.mock.invocationCallOrder[0]
       ).toBeLessThan(
-        mockJournalEntryService.postDraftTransfer.mock.invocationCallOrder[0]
+        mockTransferEntryService.postDraft.mock.invocationCallOrder[0]
       );
       expect(
         mockFxLotAppService.dispose.mock.invocationCallOrder[0]
@@ -428,7 +428,7 @@ describe('post draft transfer use case', () => {
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
     await usecase(entry.id);
     expect(mockCounterpartyRepo.findById).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.postDraftTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.postDraft).toHaveBeenCalledWith(
       {
         entry,
         accounts: [account, destinationAccount, chargeAccount],
@@ -459,7 +459,7 @@ describe('post draft transfer use case', () => {
         journal: mockJournalEntryRepo.findById,
         counterparty: mockCounterpartyRepo.findById,
         account: mockLedgerAccountRepo.findAllByIds,
-        posting: mockJournalEntryService.postDraftTransfer,
+        posting: mockTransferEntryService.postDraft,
         FX: mockFxLotAppService.dispose,
         persistence: mockJournalEntryPersistenceAppService.rectify,
         'FX persistence':

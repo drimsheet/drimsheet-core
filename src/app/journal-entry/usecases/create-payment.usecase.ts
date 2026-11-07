@@ -27,11 +27,11 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
+import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import {
   ICreatePaymentEntryPayload,
-  IJournalEntryService,
-} from '@domain/journal-entry/types/journal-entry.service.types';
-import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
+  IPaymentEntryService,
+} from '@domain/journal-entry/types/payment-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
@@ -56,7 +56,7 @@ interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   counterpartyRepo: ICounterpartyRepo;
   fileManagementAppService: IFileManagementAppService;
-  journalEntryService: IJournalEntryService;
+  paymentEntryService: IPaymentEntryService;
   ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
@@ -174,7 +174,7 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
     };
 
     const [journalEntry, journalEntryEvents, journalEntryAudit] =
-      await deps.journalEntryService.createPayment(paymentPayload, repoOptions);
+      await deps.paymentEntryService.create(paymentPayload, repoOptions);
 
     const journalHeaderHistory = historyValue.make(
       journalEntryAudit.header,
@@ -214,6 +214,7 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
       }
 
       if (shouldUpdateBalance) {
+        // WHY??? Why not add directly to the queue
         await deps.outboxAppService.createBalancePropagation(
           journalEntry.id,
           writeOptions

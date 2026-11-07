@@ -28,7 +28,7 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import journalEntryRuleValidator from '@domain/journal-entry/rules/entry-rule.validator';
 import openingBalanceEntryRule from '@domain/journal-entry/rules/opening-balance-entry.rule';
-import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
+import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -44,7 +44,7 @@ interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryRepo: IJournalEntryRepo;
-  journalEntryService: IJournalEntryService;
+  openingBalanceEntryService: IOpeningBalanceEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   fxLotAppService: IFxLotAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;

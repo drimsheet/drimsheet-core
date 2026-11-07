@@ -10,7 +10,7 @@ import eventValue from '@shared/values/events/event.vo';
 
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
-import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
+import makeOpeningBalanceEntryService from '@domain/journal-entry/services/opening-balance-entry.service';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
@@ -18,7 +18,7 @@ import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post-draft-opening-balance.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
@@ -104,7 +104,7 @@ const usecase = makePostDraftOpeningBalanceUsecase({
   appContext: mockAppContext,
   ledgerAccountRepo: mockLedgerAccountRepo,
   journalEntryRepo: mockJournalEntryRepo,
-  journalEntryService: mockJournalEntryService,
+  openingBalanceEntryService: mockOpeningBalanceEntryService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
   fxLotAppService: mockFxLotAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
@@ -128,7 +128,7 @@ describe('post draft opening balance use case', () => {
       equityAccount,
     ]);
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-    mockJournalEntryService.postDraftOpeningBalance.mockResolvedValue(posting);
+    mockOpeningBalanceEntryService.postDraft.mockResolvedValue(posting);
     mockFxLotAppService.acquire.mockResolvedValue(null);
     mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
@@ -138,7 +138,7 @@ describe('post draft opening balance use case', () => {
 
   it('commits without writes or downstream effects when posting returns no audit', async () => {
     mockJournalEntryRepo.findById.mockResolvedValue(posting[0]);
-    mockJournalEntryService.postDraftOpeningBalance.mockResolvedValue([
+    mockOpeningBalanceEntryService.postDraft.mockResolvedValue([
       posting[0],
       [],
       null,
@@ -146,9 +146,7 @@ describe('post draft opening balance use case', () => {
 
     await expect(usecase(posting[0].id)).resolves.toBeUndefined();
 
-    expect(
-      mockJournalEntryService.postDraftOpeningBalance
-    ).toHaveBeenCalledWith(
+    expect(mockOpeningBalanceEntryService.postDraft).toHaveBeenCalledWith(
       expect.objectContaining({ entry: posting[0], actor: actorId }),
       transactionOptions
     );
@@ -200,9 +198,7 @@ describe('post draft opening balance use case', () => {
         originalEntry.id,
         repoOptions
       );
-      expect(
-        mockJournalEntryService.postDraftOpeningBalance
-      ).toHaveBeenCalledWith(
+      expect(mockOpeningBalanceEntryService.postDraft).toHaveBeenCalledWith(
         { entry: originalEntry, account, actor: actorId },
         transactionOptions
       );
@@ -218,8 +214,7 @@ describe('post draft opening balance use case', () => {
       expect(
         mockLedgerAccountRepo.findAllByIds.mock.invocationCallOrder[0]
       ).toBeLessThan(
-        mockJournalEntryService.postDraftOpeningBalance.mock
-          .invocationCallOrder[0]
+        mockOpeningBalanceEntryService.postDraft.mock.invocationCallOrder[0]
       );
       expect(
         mockFxLotAppService.acquire.mock.invocationCallOrder[0]
@@ -314,9 +309,7 @@ describe('post draft opening balance use case', () => {
     await expect(usecase(originalEntry.id)).rejects.toBeInstanceOf(
       journalEntryError.AccountNotFound
     );
-    expect(
-      mockJournalEntryService.postDraftOpeningBalance
-    ).not.toHaveBeenCalled();
+    expect(mockOpeningBalanceEntryService.postDraft).not.toHaveBeenCalled();
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
       expect.any(journalEntryError.AccountNotFound)
     );
@@ -343,15 +336,11 @@ describe('post draft opening balance use case', () => {
     async (entry) => {
       const failure = new journalEntryError.RectificationNotPermitted();
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
-      mockJournalEntryService.postDraftOpeningBalance.mockRejectedValue(
-        failure
-      );
+      mockOpeningBalanceEntryService.postDraft.mockRejectedValue(failure);
 
       await expect(usecase(entry.id)).rejects.toBe(failure);
 
-      expect(
-        mockJournalEntryService.postDraftOpeningBalance
-      ).toHaveBeenCalledWith(
+      expect(mockOpeningBalanceEntryService.postDraft).toHaveBeenCalledWith(
         { entry, account, actor: actorId },
         transactionOptions
       );
@@ -393,9 +382,7 @@ describe('post draft opening balance use case', () => {
         originalEntry.accountingEntityId,
         lockedReadOptions
       );
-      expect(
-        mockJournalEntryService.postDraftOpeningBalance
-      ).toHaveBeenCalledWith(
+      expect(mockOpeningBalanceEntryService.postDraft).toHaveBeenCalledWith(
         { entry: reorderedEntry, account, actor: actorId },
         transactionOptions
       );
@@ -418,13 +405,9 @@ describe('post draft opening balance use case', () => {
         status === 'draft'
           ? new journalEntryError.DraftLedgerAccountNotAllowed()
           : new journalEntryError.ArchivedLedgerAccountNotAllowed();
-      mockJournalEntryService.postDraftOpeningBalance.mockRejectedValue(
-        failure
-      );
+      mockOpeningBalanceEntryService.postDraft.mockRejectedValue(failure);
       await expect(usecase(originalEntry.id)).rejects.toBe(failure);
-      expect(
-        mockJournalEntryService.postDraftOpeningBalance
-      ).toHaveBeenCalledWith(
+      expect(mockOpeningBalanceEntryService.postDraft).toHaveBeenCalledWith(
         { entry: originalEntry, account: unpostableAccount, actor: actorId },
         transactionOptions
       );
@@ -445,9 +428,7 @@ describe('post draft opening balance use case', () => {
         mockJournalEntryRepo.findById.mockRejectedValue(failure);
       }
       if (phase === 'posting') {
-        mockJournalEntryService.postDraftOpeningBalance.mockRejectedValue(
-          failure
-        );
+        mockOpeningBalanceEntryService.postDraft.mockRejectedValue(failure);
       }
       if (phase === 'FX') {
         mockFxLotAppService.acquire.mockRejectedValue(failure);
@@ -482,13 +463,13 @@ describe('post draft opening balance use case', () => {
       mockLedgerAccountRepo.findAllByIds.mockImplementation(async (ids) =>
         currentAccounts.filter((candidate) => ids.includes(candidate.id))
       );
-      const domainService = makeJournalEntryService({
+      const domainService = makeOpeningBalanceEntryService({
+        ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
         ledgerAccountRepo: mockLedgerAccountRepo,
         accountingPeriodService: mockAccountingPeriodService,
-        ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
       });
-      mockJournalEntryService.postDraftOpeningBalance.mockImplementation(
-        domainService.postDraftOpeningBalance
+      mockOpeningBalanceEntryService.postDraft.mockImplementation(
+        domainService.postDraft
       );
 
       await expect(usecase(originalEntry.id)).rejects.toBeInstanceOf(
@@ -553,14 +534,12 @@ describe('post draft opening balance use case', () => {
         currentAccount = archivedAccount;
         commits.push('archival');
       };
-      mockJournalEntryService.postDraftOpeningBalance.mockImplementation(
-        async () => {
-          archival = archiveAccount();
-          await Promise.resolve();
-          expect(currentAccount.status).toBe('active');
-          return posting;
-        }
-      );
+      mockOpeningBalanceEntryService.postDraft.mockImplementation(async () => {
+        archival = archiveAccount();
+        await Promise.resolve();
+        expect(currentAccount.status).toBe('active');
+        return posting;
+      });
       mockRepoTransaction.commit.mockImplementation(async () => {
         expect(currentAccount.status).toBe('active');
         expect(heldAccountLocks).toEqual(

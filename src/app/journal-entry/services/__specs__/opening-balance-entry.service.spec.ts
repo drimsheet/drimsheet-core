@@ -2,6 +2,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
+import makeOpeningBalanceEntryService from '@domain/journal-entry/services/opening-balance-entry.service';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { IPettyCashAccount } from '@domain/ledger/types/asset-account.types';
@@ -110,11 +111,14 @@ function getPayload(account: IPettyCashAccount) {
 }
 
 describe('opening balance entry service', () => {
-  const service = makeOpeningBalanceEntryAppService({
-    journalEntryQueryRepo: mockJournalEntryQueryRepo,
+  const openingBalanceEntryService = makeOpeningBalanceEntryService({
     accountingPeriodService: mockAccountingPeriodService,
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
+  });
+  const service = makeOpeningBalanceEntryAppService({
+    journalEntryQueryRepo: mockJournalEntryQueryRepo,
+    openingBalanceEntryService,
     fxLotAppService: mockFxLotAppService,
   });
 

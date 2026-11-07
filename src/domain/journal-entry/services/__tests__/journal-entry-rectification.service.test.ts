@@ -12,11 +12,9 @@ import {
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
+import { IJournalEntryRectificationPayload } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
   EJournalEntryRectificationMode,
-  IJournalEntryRectificationPayload,
-} from '@domain/journal-entry/types/journal-entry-rectification.types';
-import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
   IJournalEntry,
@@ -278,12 +276,11 @@ describe('makeJournalEntryRectificationService', () => {
       ledgerAccountEntity.archive(makeAccount(debitAccountId))[0],
     ]);
 
-    const result = await service.rectify(payload, {
-      correlationId: 'historical-metadata',
-    });
-
-    expect(result.mode).toBe(EJournalEntryRectificationMode.UpdateMeta);
-    expect(result.entriesToCreate).toEqual([]);
+    await expect(
+      service.rectify(payload, {
+        correlationId: 'historical-metadata',
+      })
+    ).rejects.toThrow(journalEntryError.RectificationHasNoChanges);
     expect(ledgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
   });
 
@@ -407,7 +404,7 @@ describe('makeJournalEntryRectificationService', () => {
     ]);
   });
 
-  it('updates only descriptions and attachments on a posted journal entry', async () => {
+  it('rejects description and attachment updates on a posted journal entry', async () => {
     const [originalEntry] = makeEntry({ posted: true });
     const newEntry = makeEntry({
       posted: true,
@@ -422,21 +419,11 @@ describe('makeJournalEntryRectificationService', () => {
       ],
     });
 
-    const result = await service.rectify(makePayload(originalEntry, newEntry), {
-      correlationId: 'test-correlation-id',
-    });
-
-    expect(result.mode).toBe(EJournalEntryRectificationMode.UpdateMeta);
-    expect(result.currentJournalEntry.id).toBe(originalEntry.id);
-    expect(result.currentJournalEntry.status).toBe(EJournalEntryStatus.Posted);
-    expect(result.currentJournalEntry.postedAt).toEqual(originalEntry.postedAt);
-    expect(result.currentJournalEntry.lines[0].description).toBe(
-      'Corrected description'
-    );
-    expect(result.currentJournalEntry.attachments).toHaveLength(1);
-    expect(result.entryUpdate?.headerAudit.diff.before).toMatchObject({
-      attachments: originalEntry.attachments,
-    });
+    await expect(
+      service.rectify(makePayload(originalEntry, newEntry), {
+        correlationId: 'test-correlation-id',
+      })
+    ).rejects.toThrow(journalEntryError.RectificationHasNoChanges);
   });
 
   it('voids and replaces a posted journal entry when an accounting value changes', async () => {
@@ -473,15 +460,18 @@ describe('makeJournalEntryRectificationService', () => {
     );
   });
 
-  it('updates posted metadata in place when its memo changes', async () => {
+  it('rejects memo-only corrections in favor of the metadata operation', async () => {
     const [originalEntry] = makeEntry({ posted: true, memo: 'Before' });
-    const newEntry = makeEntry({ posted: true, memo: 'After' });
-
-    const result = await service.rectify(makePayload(originalEntry, newEntry), {
-      correlationId: 'test-correlation-id',
-    });
-
-    expect(result.mode).toBe(EJournalEntryRectificationMode.UpdateMeta);
+    await expect(
+      service.rectify(
+        {
+          actorId: createdBy,
+          originalEntry,
+          newEntry: { id: originalEntry.id, memo: 'After' },
+        },
+        { correlationId: 'test-correlation-id' }
+      )
+    ).rejects.toThrow(journalEntryError.RectificationHasNoChanges);
   });
 
   it('uses the original lines when a replacement omits lines', async () => {
@@ -491,7 +481,11 @@ describe('makeJournalEntryRectificationService', () => {
       {
         actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
         originalEntry,
-        newEntry: { id: generateUUID(), memo: null },
+        newEntry: {
+          id: generateUUID(),
+          memo: null,
+          effectiveDate: new Date(effectiveDate.getTime() + 86_400_000),
+        },
       },
       { correlationId: 'test-correlation-id' }
     );
@@ -835,14 +829,22 @@ describe('makeJournalEntryRectificationService', () => {
       async (posted) => {
         const [original] = makeEntry({ posted });
         periods = [];
-        const result = await service.rectify(
+        const rectification = service.rectify(
           makePayload(
             original,
             makeEntry({ posted, description: 'Metadata correction' })
           ),
           repoOptions
         );
-        expect(result.entriesToCreate).toEqual([]);
+        if (posted) {
+          await expect(rectification).rejects.toThrow(
+            journalEntryError.RectificationHasNoChanges
+          );
+        } else {
+          await expect(rectification).resolves.toMatchObject({
+            entriesToCreate: [],
+          });
+        }
         expect(periodRepo.findAllByDate).not.toHaveBeenCalled();
       }
     );

@@ -17,7 +17,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockAssetAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
@@ -74,7 +74,7 @@ const usecase = makeActivateCashAccountUsecase({
   repoService: mockRepoService,
   eventBus: mockEventBus,
   journalEntryQueryRepo: mockJournalEntryQueryRepo,
-  journalEntryService: mockJournalEntryService,
+  openingBalanceEntryService: mockOpeningBalanceEntryService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
   fxLotAppService: mockFxLotAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
@@ -167,9 +167,7 @@ describe('activate cash account use case', () => {
       }),
     ]);
     expect(mockRepoTransaction.dispose).not.toHaveBeenCalled();
-    expect(
-      mockJournalEntryService.postDraftOpeningBalance
-    ).not.toHaveBeenCalled();
+    expect(mockOpeningBalanceEntryService.postDraft).not.toHaveBeenCalled();
     expect(
       mockJournalEntryPersistenceAppService.rectify
     ).not.toHaveBeenCalled();
@@ -294,9 +292,7 @@ describe('activate cash account use case', () => {
         data: [details],
         meta: { page: 1, limit: 1, total: 1, totalPages: 1 },
       });
-      mockJournalEntryService.postDraftOpeningBalance.mockResolvedValue(
-        posting
-      );
+      mockOpeningBalanceEntryService.postDraft.mockResolvedValue(posting);
     });
 
     it('posts the opening balance without rewriting an already active account', async () => {
@@ -310,9 +306,7 @@ describe('activate cash account use case', () => {
       await usecase(activated.id, { activateOpeningBalance: true });
 
       expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-      expect(
-        mockJournalEntryService.postDraftOpeningBalance
-      ).toHaveBeenCalledWith(
+      expect(mockOpeningBalanceEntryService.postDraft).toHaveBeenCalledWith(
         { entry: details, account: activated, actor: actorId },
         repoOptions
       );
@@ -363,9 +357,7 @@ describe('activate cash account use case', () => {
       );
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
       expect(mockJournalEntryQueryRepo.findAll).not.toHaveBeenCalled();
-      expect(
-        mockJournalEntryService.postDraftOpeningBalance
-      ).not.toHaveBeenCalled();
+      expect(mockOpeningBalanceEntryService.postDraft).not.toHaveBeenCalled();
       expect(
         mockJournalEntryPersistenceAppService.rectify
       ).not.toHaveBeenCalled();
@@ -413,9 +405,7 @@ describe('activate cash account use case', () => {
             limit: 1,
           }
         );
-        expect(
-          mockJournalEntryService.postDraftOpeningBalance
-        ).toHaveBeenCalledWith(
+        expect(mockOpeningBalanceEntryService.postDraft).toHaveBeenCalledWith(
           { entry: details, account: activated, actor: actorId },
           repoOptions
         );
@@ -496,9 +486,7 @@ describe('activate cash account use case', () => {
           mockJournalEntryQueryRepo.findAll.mockRejectedValue(failure);
         }
         if (phase === 'posting') {
-          mockJournalEntryService.postDraftOpeningBalance.mockRejectedValue(
-            failure
-          );
+          mockOpeningBalanceEntryService.postDraft.mockRejectedValue(failure);
         }
         if (phase === 'FX') {
           mockFxLotAppService.acquire.mockRejectedValue(failure);

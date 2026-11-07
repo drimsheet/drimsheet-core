@@ -38,8 +38,8 @@ import {
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceAppService,
-  journalEntryService,
   openingBalanceEntryAppService,
+  openingBalanceEntryService,
 } from '@infra/ioc/services/journal-entry';
 import {
   assetDisposalLossAccountService,
@@ -124,7 +124,7 @@ export const activateCashAccountUseCase = makeTracedUseCase(
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     cashAccountService,
     journalEntryQueryRepo: journalEntryRepos.queries.journalEntry,
-    journalEntryService,
+    openingBalanceEntryService,
     journalEntryPersistenceAppService,
     fxLotAppService,
     fxCostBasisPersistenceAppService,
@@ -263,7 +263,7 @@ export const createPettyCashAccountUseCase = makeTracedUseCase(
     appContext: appContext,
     eventBus: messaging.eventBus,
     cashAccountService,
-    openingBalanceEntryAppService,
+    openingBalanceEntryService,
     journalEntryPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -320,7 +320,7 @@ export const createBankAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     cashAccountService,
     bankAccountRepo: ledgerRepos.bankAccount,
-    openingBalanceEntryAppService,
+    openingBalanceEntryService,
     journalEntryPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
