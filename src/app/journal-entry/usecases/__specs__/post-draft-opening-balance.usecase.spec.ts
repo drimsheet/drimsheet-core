@@ -464,6 +464,7 @@ describe('post draft opening balance use case', () => {
         currentAccounts.filter((candidate) => ids.includes(candidate.id))
       );
       const domainService = makeOpeningBalanceEntryService({
+        journalEntryRepo: mockJournalEntryRepo,
         ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
         ledgerAccountRepo: mockLedgerAccountRepo,
         accountingPeriodService: mockAccountingPeriodService,

@@ -1,14 +1,4 @@
-import {
-  and,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNotNull,
-  lte,
-  ne,
-  sql,
-} from 'drizzle-orm';
+import { and, eq, gte, ilike, inArray, lte, ne, sql } from 'drizzle-orm';
 
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
@@ -31,26 +21,6 @@ import getDrizzleSortDirectionHelper from '@infra/persistence/helpers/get-drizzl
 import journalEntryDetailsMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-details.mapper';
 
 const journalEntryQueryRepo: IJournalEntryQueryRepo = {
-  async existsPostedByAccountId(accountId, accountingEntityId, options) {
-    const references = await getDbQueryHelper(options)
-      .select({ id: journalLinesInCore.id })
-      .from(journalLinesInCore)
-      .innerJoin(
-        journalEntriesInCore,
-        eq(journalEntriesInCore.id, journalLinesInCore.entryId)
-      )
-      .where(
-        and(
-          eq(journalLinesInCore.accountId, accountId),
-          eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
-          isNotNull(journalEntriesInCore.postedAt)
-        )
-      )
-      .limit(1);
-
-    return references.length > 0;
-  },
-
   async existsByCounterpartyId(counterpartyId, accountingEntityId, options) {
     const references = await getDbQueryHelper(options)
       .select({ id: journalLinesInCore.id })

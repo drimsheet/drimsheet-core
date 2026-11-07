@@ -55,12 +55,6 @@ export interface IJournalEntryDetails extends Omit<IJournalEntry, 'lines'> {
 }
 
 export default interface IJournalEntryQueryRepo {
-  existsPostedByAccountId(
-    accountId: TEntityId,
-    accountingEntityId: TEntityId,
-    options: IReadRepoOptions
-  ): Promise<boolean>;
-
   existsByCounterpartyId(
     counterpartyId: TEntityId,
     accountingEntityId: TEntityId,

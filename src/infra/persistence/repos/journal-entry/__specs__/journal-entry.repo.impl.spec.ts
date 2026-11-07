@@ -182,6 +182,65 @@ describe('journalEntryRepo', () => {
     expect(journalEntriesInCore.id).toBeDefined();
   });
 
+  it.each([false, true])(
+    'looks up the newest draft opening journal for the account (found: %s)',
+    async (found) => {
+      const accountId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
+      const transactionOptions = { ...options, tx: {} };
+      const storedEntry = found ? { id: journalEntryId } : undefined;
+      const entry = { id: journalEntryId, lines: [], attachments: [] };
+      const builder = new QueryBuilder();
+      findFirst.mockResolvedValue(storedEntry);
+      jest.mocked(getDbQueryHelper).mockReturnValue({
+        ...query,
+        select: builder.select.bind(builder),
+      } as never);
+      jest.mocked(journalEntryMapper.toDomain).mockReturnValue(entry as never);
+
+      await expect(
+        journalEntryRepo.findDraftOpeningBalanceByAccountId(
+          accountId,
+          journalEntryId,
+          transactionOptions
+        )
+      ).resolves.toBe(found ? entry : null);
+
+      expect(getDbQueryHelper).toHaveBeenCalledWith(transactionOptions);
+      expect(findFirst).toHaveBeenCalledWith({
+        where: expect.anything(),
+        with: {
+          journalEntryAttachmentsInCores: true,
+          journalLinesInCores: true,
+        },
+        orderBy: [expect.anything(), expect.anything()],
+      });
+      const dialect = new PgDialect();
+      const draftQuery = findFirst.mock.calls[0][0];
+      const predicate = dialect.sqlToQuery(draftQuery.where as SQL);
+      expect(predicate.sql).toContain('"accounting_entity_id" = $1');
+      expect(predicate.sql).toContain('"source_type" = $2');
+      expect(predicate.sql).toContain('"status" = $3');
+      expect(predicate.sql).toContain('"account_id" = $4');
+      expect(predicate.params).toEqual([
+        journalEntryId,
+        'opening_balance',
+        'draft',
+        accountId,
+      ]);
+      expect(
+        draftQuery.orderBy.map((order: SQL) => dialect.sqlToQuery(order).sql)
+      ).toEqual([
+        '"core"."journal_entries"."created_at" desc',
+        '"core"."journal_entries"."id" desc',
+      ]);
+      if (found) {
+        expect(journalEntryMapper.toDomain).toHaveBeenCalledWith(storedEntry);
+      } else {
+        expect(journalEntryMapper.toDomain).not.toHaveBeenCalled();
+      }
+    }
+  );
+
   it('returns null when the journal entry does not exist', async () => {
     findFirst.mockResolvedValue(undefined);
 

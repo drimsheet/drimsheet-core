@@ -20,7 +20,7 @@ export const mockOpeningBalanceEntryService: jest.Mocked<IOpeningBalanceEntrySer
   {
     create: jest.fn(),
     createInitial: jest.fn(),
-    reviseDraft: jest.fn(),
+    createOrRevise: jest.fn(),
     postDraft: jest.fn(),
   };
 

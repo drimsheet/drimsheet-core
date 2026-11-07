@@ -30,7 +30,7 @@ import mockAppContext, {
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
+import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import makeCreateOpeningBalanceUseCase from '@app/journal-entry/usecases/create-opening-balance.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
@@ -41,6 +41,7 @@ import {
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const actor = {
@@ -200,11 +201,10 @@ describe('createOpeningBalanceUseCase', () => {
         },
       ],
     });
-    mockOpeningBalanceEntryAppService.create.mockResolvedValue({
-      creation: mockJournalCreation,
-      fxAcquisition: null,
-      entriesForBalancePropagation: [mockJournalCreation[0]],
-    });
+    mockOpeningBalanceEntryService.create
+      .mockReset()
+      .mockResolvedValue(mockJournalCreation);
+    mockFxLotAppService.acquire.mockReset().mockResolvedValue(null);
   });
 
   const getUseCase = () =>
@@ -212,7 +212,8 @@ describe('createOpeningBalanceUseCase', () => {
       appContext: mockAppContext,
       ledgerAccountRepo: mockLedgerAccountRepo,
       eventBus: mockEventBus,
-      openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
+      openingBalanceEntryService: mockOpeningBalanceEntryService,
+      fxLotAppService: mockFxLotAppService,
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
@@ -229,7 +230,7 @@ describe('createOpeningBalanceUseCase', () => {
   ])(
     'does not persist or publish when journal creation rejects: %s',
     async (failure) => {
-      mockOpeningBalanceEntryAppService.create.mockRejectedValueOnce(failure);
+      mockOpeningBalanceEntryService.create.mockRejectedValueOnce(failure);
       await expect(
         getUseCase()({
           accountId: mockAssetAccount.id,
@@ -253,10 +254,9 @@ describe('createOpeningBalanceUseCase', () => {
     const fxRecords = {
       missingOfficialRateOutbox: null,
     } as unknown as TFxLotAcquisitionAppResult['records'];
-    mockOpeningBalanceEntryAppService.create.mockResolvedValueOnce({
-      creation: mockJournalCreation,
-      fxAcquisition: { records: fxRecords, events: [] },
-      entriesForBalancePropagation: [mockJournalCreation[0]],
+    mockFxLotAppService.acquire.mockResolvedValueOnce({
+      records: fxRecords,
+      events: [],
     });
     const useCase = getUseCase();
 
@@ -269,15 +269,23 @@ describe('createOpeningBalanceUseCase', () => {
 
     await useCase(payload);
 
-    expect(mockOpeningBalanceEntryAppService.create).toHaveBeenCalledWith(
+    expect(mockOpeningBalanceEntryService.create).toHaveBeenCalledWith(
       {
+        accountingEntityId: mockAccountingEntity.id,
+        functionalCurrencyCode: mockAccountingEntity.functionalCurrencyCode,
         account: mockAssetAccount,
-        openingBalance: {
-          amount: payload.amount,
-          exchangeRate: payload.exchangeRate,
-          date: payload.date,
-        },
-        accountingEntity: mockAccountingEntity,
+        amount: { amount: 1000n, currency: SYSTEM_CURRENCIES.NGN },
+        exchangeRate: null,
+        effectiveDate: payload.date,
+        createdBy: mockUser.actorId,
+      },
+      { correlationId }
+    );
+
+    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
+      {
+        journalEntry: mockJournalCreation[0],
+        account: mockAssetAccount,
         actor: mockUser.actorId,
       },
       { correlationId }
@@ -452,11 +460,7 @@ describe('createOpeningBalanceUseCase', () => {
       journalEvents,
       audit,
     ] as ReturnType<typeof journalEntryEntity.make>;
-    mockOpeningBalanceEntryAppService.create.mockResolvedValueOnce({
-      creation: draftCreation,
-      fxAcquisition: null,
-      entriesForBalancePropagation: [],
-    });
+    mockOpeningBalanceEntryService.create.mockResolvedValueOnce(draftCreation);
 
     await getUseCase()({
       accountId: mockAssetAccount.id,
@@ -465,6 +469,7 @@ describe('createOpeningBalanceUseCase', () => {
       date: new Date('2026-04-24T00:00:00.000Z'),
     });
 
+    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
     expect(
       mockOutboxAppService.createBalancePropagation
@@ -476,7 +481,7 @@ describe('createOpeningBalanceUseCase', () => {
   it('should not persist or publish events when opening balance entry creation fails', async () => {
     const useCase = getUseCase();
 
-    mockOpeningBalanceEntryAppService.create.mockRejectedValueOnce(
+    mockOpeningBalanceEntryService.create.mockRejectedValueOnce(
       new Error('Entry creation failed')
     );
 

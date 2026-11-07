@@ -25,7 +25,7 @@ import { IUser } from '@domain/user/types/user.types';
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
+import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockBalanceQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
@@ -38,6 +38,7 @@ import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-
 import makeUpdatePettyCashAccountUsecase from '@app/ledger/usecases/update-petty-cash-account.usecase';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import mockFxCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
@@ -176,7 +177,8 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
         ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
         ledgerAccountBalanceService: makeLedgerAccountBalanceService(),
         cashAccountService,
-        openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
+        openingBalanceEntryService: mockOpeningBalanceEntryService,
+        fxLotAppService: mockFxLotAppService,
         journalEntryPersistenceAppService:
           mockJournalEntryPersistenceAppService,
         balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
@@ -250,7 +252,7 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
           })
         );
         expect(
-          mockOpeningBalanceEntryAppService.createOrRevise
+          mockOpeningBalanceEntryService.createOrRevise
         ).not.toHaveBeenCalled();
       }
     );
@@ -286,15 +288,11 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
             },
           ],
         });
-        mockOpeningBalanceEntryAppService.createOrRevise.mockResolvedValue({
-          mutation: {
-            entriesToCreate: [creation],
-            entryUpdate: null,
-            events: creation[1],
-          },
+        mockOpeningBalanceEntryService.createOrRevise.mockResolvedValue({
+          entriesToCreate: [creation],
+          entryUpdate: null,
+          events: creation[1],
           currentJournalEntry: creation[0],
-          fxAcquisition: null,
-          entriesForBalancePropagation: [],
         });
         const response = await patch({
           openingBalance,
@@ -307,9 +305,17 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
           openingBalanceDate: openingBalance.date.toISOString(),
         });
         expect(
-          mockOpeningBalanceEntryAppService.createOrRevise
+          mockOpeningBalanceEntryService.createOrRevise
         ).toHaveBeenCalledWith(
-          { account, openingBalance, accountingEntity, actor: actor.id },
+          {
+            accountingEntityId: accountingEntity.id,
+            functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
+            account,
+            amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
+            exchangeRate: null,
+            effectiveDate: openingBalance.date,
+            createdBy: actor.id,
+          },
           expect.objectContaining({ tx: mockRepoTransaction.context })
         );
         expect(

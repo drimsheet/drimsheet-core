@@ -20,8 +20,8 @@ import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
 import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import {
@@ -39,6 +39,7 @@ import makeLedgerBalancePropagationPreparationAppService from '@app/ledger/servi
 import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const [actor] = actorEntity.makeUser({
@@ -100,7 +101,8 @@ const deps = {
   ledgerAccountBalanceService: mockLedgerAccountBalanceService,
   bankAccountRepo: mockBankAccountRepo,
   cashAccountService: mockAssetAccountService,
-  openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
+  openingBalanceEntryService: mockOpeningBalanceEntryService,
+  fxLotAppService: mockFxLotAppService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
   balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
@@ -282,7 +284,7 @@ describe('update bank account workflow', () => {
       transactionOptions
     );
     expect(
-      mockOpeningBalanceEntryAppService.createOrRevise
+      mockOpeningBalanceEntryService.createOrRevise
     ).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Branch cash', version: 2 }),
@@ -307,7 +309,7 @@ describe('update bank account workflow', () => {
 
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
     expect(
-      mockOpeningBalanceEntryAppService.createOrRevise
+      mockOpeningBalanceEntryService.createOrRevise
     ).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
   });
@@ -409,15 +411,11 @@ describe('update bank account workflow', () => {
         },
       ],
     });
-    mockOpeningBalanceEntryAppService.createOrRevise.mockResolvedValueOnce({
-      mutation: {
-        entriesToCreate: [creation],
-        entryUpdate: null,
-        events: creation[1],
-      },
+    mockOpeningBalanceEntryService.createOrRevise.mockResolvedValueOnce({
+      entriesToCreate: [creation],
+      entryUpdate: null,
+      events: creation[1],
       currentJournalEntry: creation[0],
-      fxAcquisition: null,
-      entriesForBalancePropagation: [],
     });
 
     await makeUpdateBankAccountUsecase(deps)(account.id, {
@@ -425,12 +423,19 @@ describe('update bank account workflow', () => {
       openingBalance,
     });
 
-    expect(
-      mockOpeningBalanceEntryAppService.createOrRevise
-    ).toHaveBeenCalledWith(
-      { account, openingBalance, accountingEntity, actor: actor.id },
+    expect(mockOpeningBalanceEntryService.createOrRevise).toHaveBeenCalledWith(
+      {
+        accountingEntityId: accountingEntity.id,
+        functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
+        account,
+        amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
+        exchangeRate: null,
+        effectiveDate: openingBalance.date,
+        createdBy: actor.id,
+      },
       transactionOptions
     );
+    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledWith(
       expect.objectContaining({
         entriesToCreate: [expect.objectContaining({ entry: creation[0] })],
@@ -502,15 +507,16 @@ describe('update bank account workflow', () => {
       occurredAt: openingBalanceDate,
       enrichedAt: null,
     };
-    mockOpeningBalanceEntryAppService.createOrRevise.mockResolvedValueOnce({
-      mutation: {
-        entriesToCreate: [creation],
-        entryUpdate: null,
-        events: creation[1],
-      },
+    mockOpeningBalanceEntryService.createOrRevise.mockResolvedValueOnce({
+      entriesToCreate: [creation],
+      entryUpdate: null,
+      events: creation[1],
       currentJournalEntry: creation[0],
-      fxAcquisition: { records, events: [fxEvent] },
-      entriesForBalancePropagation: [creation[0]],
+    });
+
+    mockFxLotAppService.acquire.mockResolvedValueOnce({
+      records,
+      events: [fxEvent],
     });
 
     const response = await makeUpdateBankAccountUsecase(deps)(account.id, {
@@ -518,15 +524,24 @@ describe('update bank account workflow', () => {
       openingBalance: foreignOpeningBalance,
     });
 
-    expect(
-      mockOpeningBalanceEntryAppService.createOrRevise
-    ).toHaveBeenCalledWith(
+    expect(mockOpeningBalanceEntryService.createOrRevise).toHaveBeenCalledWith(
       expect.objectContaining({
         account: expect.objectContaining({
           currency: SYSTEM_CURRENCIES.USD,
           openingBalanceDate: null,
         }),
       }),
+      transactionOptions
+    );
+    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
+      {
+        journalEntry: creation[0],
+        account: expect.objectContaining({
+          currency: SYSTEM_CURRENCIES.USD,
+          openingBalanceDate: null,
+        }),
+        actor: actor.id,
+      },
       transactionOptions
     );
     expect(response).toMatchObject({
@@ -672,7 +687,7 @@ describe('update bank account workflow', () => {
 
   it('delegates failures to the transaction without disposing it again', async () => {
     const failure = new Error('journal update failed');
-    mockOpeningBalanceEntryAppService.createOrRevise.mockRejectedValueOnce(
+    mockOpeningBalanceEntryService.createOrRevise.mockRejectedValueOnce(
       failure
     );
 

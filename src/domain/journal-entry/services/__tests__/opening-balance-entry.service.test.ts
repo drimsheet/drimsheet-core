@@ -10,6 +10,7 @@ import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.ent
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 import { EJournalEntryEvent } from '@domain/journal-entry/events/journal-entry.events';
+import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import makeOpeningBalanceEntryService from '@domain/journal-entry/services/opening-balance-entry.service';
 import { EJournalEntryAuditAction } from '@domain/journal-entry/types/journal-entry-audit.types';
 import {
@@ -41,6 +42,18 @@ import userEntity from '@domain/user/entities/user.entity';
 
 const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
   validatePostingPeriod: jest.fn(),
+};
+
+const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
+  existsByAccountingEntityId: jest.fn(),
+  existsPostedByAccountId: jest.fn(),
+  findDraftOpeningBalanceByAccountId: jest.fn(),
+  existsByAccountId: jest.fn(),
+  findAllByAccountIds: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  findById: jest.fn(),
 };
 
 const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
@@ -92,6 +105,7 @@ describe('openingBalanceEntryService', () => {
     correlationId: 'opening-balance-entry-service-test',
   };
   const service = makeOpeningBalanceEntryService({
+    journalEntryRepo: mockJournalEntryRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
     accountingPeriodService: mockAccountingPeriodService,
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
@@ -408,61 +422,169 @@ describe('openingBalanceEntryService', () => {
       });
     });
 
-    it('revises a draft opening balance with persisted IDs retained', async () => {
-      const fixture = await makeOpeningBalanceFixture();
-      const revisedDate = new Date('2026-08-02T00:00:00.000Z');
-      const [draftAccount] = ledgerAccountEntity.make({
-        ...fixture.postingAccount,
-        status: ELedgerAccountStatus.Draft,
-        openingBalanceDate: effectiveDate,
-      });
-      mockLedgerAccountRepo.findBySubType.mockResolvedValue([
-        fixture.equityAccount,
-      ]);
-      mockLedgerAccountRepo.findById.mockResolvedValue(null);
-      const [originalEntry] = await service.createInitial(
-        {
-          ...makeOpeningBalancePayload(fixture),
-          account: draftAccount,
-          effectiveDate,
-        },
-        { ...repoOptions, tx: {} }
-      );
-      const revisedAmount = moneyValue.make(
-        250_000n,
-        SYSTEM_CURRENCIES.NGN,
-        true
-      );
+    describe('createOrRevise', () => {
+      const transactionOptions = { ...repoOptions, tx: {} };
 
-      const [revisedEntry, events, audit] = await service.reviseDraft(
-        {
-          ...makeOpeningBalancePayload(fixture),
-          account: draftAccount,
-          amount: revisedAmount,
-          effectiveDate: revisedDate,
-          originalEntry,
-        },
-        repoOptions
-      );
-
-      expect(revisedEntry).toMatchObject({
-        id: originalEntry.id,
-        status: EJournalEntryStatus.Draft,
-        postedAt: null,
-        effectiveDate: revisedDate,
+      beforeEach(() => {
+        mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(false);
+        mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValue(
+          null
+        );
       });
-      expect(revisedEntry.lines.map((line) => line.id)).toEqual(
-        originalEntry.lines.map((line) => line.id)
-      );
-      expect(revisedEntry.lines[0].amount).toEqual(revisedAmount);
-      expect(events).not.toHaveLength(0);
-      expect(audit?.header.diff.before).toMatchObject(originalEntry);
-      expect(
-        mockAccountingPeriodService.validatePostingPeriod
-      ).toHaveBeenCalledWith(
-        fixture.accountingEntity.id,
-        revisedDate,
-        repoOptions
+
+      it('rejects historical posted activity before looking up the draft', async () => {
+        const fixture = await makeOpeningBalanceFixture();
+        const payload = makeOpeningBalancePayload(fixture);
+        mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(true);
+
+        await expect(
+          service.createOrRevise(payload, transactionOptions)
+        ).rejects.toBeInstanceOf(ledgerAccountError.OpeningBalanceLocked);
+        expect(
+          mockJournalEntryRepo.existsPostedByAccountId
+        ).toHaveBeenCalledWith(
+          payload.account.id,
+          payload.accountingEntityId,
+          transactionOptions
+        );
+        expect(
+          mockJournalEntryRepo.findDraftOpeningBalanceByAccountId
+        ).not.toHaveBeenCalled();
+        expect(mockLedgerAccountRepo.findBySubType).not.toHaveBeenCalled();
+      });
+
+      it('creates an audited opening journal when no draft exists', async () => {
+        const fixture = await makeOpeningBalanceFixture();
+        const payload = makeOpeningBalancePayload(fixture);
+        mockLedgerAccountRepo.findBySubType.mockResolvedValue([
+          fixture.equityAccount,
+        ]);
+
+        const mutation = await service.createOrRevise(
+          payload,
+          transactionOptions
+        );
+
+        expect(
+          mockJournalEntryRepo.findDraftOpeningBalanceByAccountId
+        ).toHaveBeenCalledWith(
+          payload.account.id,
+          payload.accountingEntityId,
+          transactionOptions
+        );
+        expect(mutation.currentJournalEntry.status).toBe(
+          EJournalEntryStatus.Posted
+        );
+        expect(mutation.entriesToCreate).toHaveLength(1);
+        const [entry, events] = mutation.entriesToCreate[0];
+        expect(mutation.currentJournalEntry).toBe(entry);
+        expect(mutation.events).toBe(events);
+        expect(mutation.entryUpdate).toBeNull();
+      });
+
+      it('returns the original draft and no changes for an identical revision', async () => {
+        const fixture = await makeOpeningBalanceFixture();
+        const payload = {
+          ...makeOpeningBalancePayload(fixture),
+          account: {
+            ...fixture.postingAccount,
+            status: ELedgerAccountStatus.Draft,
+          },
+        };
+        mockLedgerAccountRepo.findBySubType.mockResolvedValue([
+          fixture.equityAccount,
+        ]);
+        const [originalEntry] = await service.create(
+          payload,
+          transactionOptions
+        );
+        mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValue(
+          originalEntry
+        );
+
+        const mutation = await service.createOrRevise(
+          payload,
+          transactionOptions
+        );
+
+        expect(mutation.currentJournalEntry).toBe(originalEntry);
+        expect(mutation.entriesToCreate).toEqual([]);
+        expect(mutation.entryUpdate).toBeNull();
+        expect(mutation.events).toEqual([]);
+      });
+
+      it.each([false, true])(
+        'revises a draft in place when the amount changes: %s',
+        async (changesAmount) => {
+          const fixture = await makeOpeningBalanceFixture();
+          const revisedDate = new Date('2026-08-02T00:00:00.000Z');
+          const [draftAccount] = ledgerAccountEntity.make({
+            ...fixture.postingAccount,
+            status: ELedgerAccountStatus.Draft,
+            openingBalanceDate: effectiveDate,
+          });
+          mockLedgerAccountRepo.findBySubType.mockResolvedValue([
+            fixture.equityAccount,
+          ]);
+          mockLedgerAccountRepo.findById.mockResolvedValue(null);
+          const [originalEntry] = await service.createInitial(
+            {
+              ...makeOpeningBalancePayload(fixture),
+              account: draftAccount,
+              effectiveDate,
+            },
+            transactionOptions
+          );
+          mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValue(
+            originalEntry
+          );
+          const revisedAmount = changesAmount
+            ? moneyValue.make(250_000n, SYSTEM_CURRENCIES.NGN, true)
+            : fixture.amount;
+
+          const mutation = await service.createOrRevise(
+            {
+              ...makeOpeningBalancePayload(fixture),
+              account: draftAccount,
+              amount: revisedAmount,
+              effectiveDate: revisedDate,
+            },
+            transactionOptions
+          );
+          const {
+            currentJournalEntry: revisedEntry,
+            events,
+            entryUpdate,
+          } = mutation;
+
+          expect(revisedEntry).toMatchObject({
+            id: originalEntry.id,
+            status: EJournalEntryStatus.Draft,
+            postedAt: null,
+            effectiveDate: revisedDate,
+          });
+          expect(revisedEntry.lines.map((line) => line.id)).toEqual(
+            originalEntry.lines.map((line) => line.id)
+          );
+          expect(revisedEntry.lines[0].amount).toEqual(revisedAmount);
+          expect(events).not.toHaveLength(0);
+          expect(mutation.entriesToCreate).toEqual([]);
+          expect(entryUpdate).toMatchObject({
+            entry: revisedEntry,
+            expectedVersion: originalEntry.version,
+            headerAudit: { diff: { before: originalEntry } },
+            linesToUpdate: changesAmount ? revisedEntry.lines : [],
+            linesToCreate: [],
+            lineIdsToDelete: [],
+          });
+          expect(
+            mockAccountingPeriodService.validatePostingPeriod
+          ).toHaveBeenCalledWith(
+            fixture.accountingEntity.id,
+            revisedDate,
+            transactionOptions
+          );
+        }
       );
     });
 
@@ -517,25 +639,53 @@ describe('openingBalanceEntryService', () => {
       );
     });
 
-    it.each(['active', 'draft'] as const)(
-      'creates a balanced foreign opening with preserved exchange rate for %s',
-      async (status) => {
-        const fixture = await makeOpeningBalanceFixture(SYSTEM_CURRENCIES.USD);
+    it.each([
+      {
+        status: 'active',
+        currency: SYSTEM_CURRENCIES.USD,
+        minorAmount: 10_000n,
+        rate: 1_350,
+        functionalMinorAmount: 13_500_000n,
+      },
+      {
+        status: 'draft',
+        currency: SYSTEM_CURRENCIES.USD,
+        minorAmount: 10_000n,
+        rate: 1_350,
+        functionalMinorAmount: 13_500_000n,
+      },
+      {
+        status: 'active',
+        currency: SYSTEM_CURRENCIES.JPY,
+        minorAmount: 150n,
+        rate: 0.006,
+        functionalMinorAmount: 90n,
+      },
+    ] as const)(
+      'creates a balanced $currency.code opening with preserved exchange rate for a $status account',
+      async ({
+        status,
+        currency,
+        minorAmount,
+        rate,
+        functionalMinorAmount,
+      }) => {
+        const fixture = await makeOpeningBalanceFixture(currency);
         const [account] = ledgerAccountEntity.make({
           ...fixture.postingAccount,
           status,
           openingBalanceDate: new Date(timestamp.getTime() - 1),
         });
-        const amount = moneyValue.make(100, SYSTEM_CURRENCIES.USD, false);
+        const amount = moneyValue.make(minorAmount, currency, true);
         const functionalAmount = moneyValue.make(
-          135_000,
+          functionalMinorAmount,
           SYSTEM_CURRENCIES.NGN,
-          false
+          true
         );
         const exchangeRate = exchangeRateValue.make({
-          baseCurrencyCode: SYSTEM_CURRENCIES.USD.code,
+          baseCurrencyCode: currency.code,
           targetCurrencyCode: SYSTEM_CURRENCIES.NGN.code,
-          rate: 1350,
+          rate,
           type: EExchangeRateType.Market,
           asOf: new Date('2026-08-03T10:00:00.000Z'),
           source: 'Test Source',

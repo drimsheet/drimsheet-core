@@ -28,6 +28,13 @@ export default interface IJournalEntryRepo {
     options: IReadRepoOptions
   ): Promise<boolean>;
 
+  /** Returns the newest draft opening journal associated with the account. */
+  findDraftOpeningBalanceByAccountId(
+    accountId: TEntityId,
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<IJournalEntry | null>;
+
   /** Checks for any associated journal entry, without filtering by state. */
   existsByAccountId(
     accountId: TEntityId,

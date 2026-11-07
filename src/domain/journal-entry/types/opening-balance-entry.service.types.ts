@@ -3,6 +3,7 @@ import {
   ITransactionContext,
 } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import { IEvent } from '@shared/values/events/types/event.types';
 
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
@@ -12,6 +13,7 @@ import {
   TAuditedJournalEntry,
   TAuditedJournalEntryUpdate,
 } from './journal-entry-audit.types';
+import { IJournalEntryRectificationUpdate } from './journal-entry-rectification.types';
 import { IJournalEntry } from './journal-entry.types';
 
 export interface IOpeningBalanceJournalPayload {
@@ -22,6 +24,13 @@ export interface IOpeningBalanceJournalPayload {
   effectiveDate: Date;
   exchangeRate: IExchangeRate | null;
   createdBy: TEntityId;
+}
+
+interface IOpeningBalanceJournalMutation {
+  currentJournalEntry: IJournalEntry;
+  entriesToCreate: TAuditedJournalEntry[];
+  entryUpdate: IJournalEntryRectificationUpdate | null;
+  events: IEvent<unknown>[];
 }
 
 export interface IOpeningBalanceEntryService {
@@ -43,11 +52,15 @@ export interface IOpeningBalanceEntryService {
     repoOptions: IReadRepoOptions & { tx: ITransactionContext }
   ): Promise<TAuditedJournalEntry>;
 
-  /** Revises the opening draft while preserving entry and line identities. */
-  reviseDraft(
-    payload: IOpeningBalanceJournalPayload & { originalEntry: IJournalEntry },
-    repoOptions: IReadRepoOptions
-  ): Promise<TAuditedJournalEntryUpdate>;
+  /**
+   * Creates an opening journal or revises the existing draft in place.
+   * Rejects historical posted activity. Uses the caller's account-lock
+   * transaction for reads and returns the audited changes without writes.
+   */
+  createOrRevise(
+    payload: IOpeningBalanceJournalPayload,
+    repoOptions: IReadRepoOptions & { tx: ITransactionContext }
+  ): Promise<IOpeningBalanceJournalMutation>;
 
   /**
    * Posts a draft opening journal using the prepared active account. Preserves

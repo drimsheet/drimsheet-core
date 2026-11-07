@@ -5,7 +5,7 @@ sequenceDiagram
     actor Caller
     participant CreateUseCase as Create Opening Balance
     participant Records as Accounting Records
-    participant Opening as Opening Balance Preparation
+    participant Opening as Opening Balance Domain Service
     participant FX as Foreign Exchange Accounting
     participant Balances as Balance Processing
     participant Events as Event Subscribers
@@ -19,10 +19,12 @@ sequenceDiagram
         CreateUseCase->>Opening: Request opening journal for account
         Opening->>Records: Request opening equity account and eligibility facts
         Records-->>Opening: Required accounts and existing activity
-        Opening->>FX: Prepare applicable opening acquisition
-        FX-->>Opening: FX effect or no effect
-        Opening-->>CreateUseCase: Validated opening journal, audit, and associated effects
+        Opening-->>CreateUseCase: Validated opening journal, events, and audit
         Note over Opening,CreateUseCase: Draft accounts produce drafts#59; other eligible accounts produce posted entries
+        opt Opening journal posted
+            CreateUseCase->>FX: Prepare applicable opening acquisition
+            FX-->>CreateUseCase: FX effect or no effect
+        end
         CreateUseCase->>Records: Save journal, changed opening date, audits, FX effect, and pending balance work together
         Records-->>CreateUseCase: Changes committed
         CreateUseCase->>Events: Account, journal, and applicable FX events

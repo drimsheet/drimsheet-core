@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
 
 import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
@@ -67,6 +67,39 @@ const journalEntryRepo: IJournalEntryRepo = {
       .limit(1);
 
     return references.length > 0;
+  },
+
+  async findDraftOpeningBalanceByAccountId(
+    accountId,
+    accountingEntityId,
+    options
+  ) {
+    const db = getDbQueryHelper(options);
+    const entryIds = db
+      .select({ id: journalLinesInCore.entryId })
+      .from(journalLinesInCore)
+      .where(eq(journalLinesInCore.accountId, accountId));
+    const entry = await db.query.journalEntriesInCore.findFirst({
+      where: and(
+        eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
+        eq(
+          journalEntriesInCore.sourceType,
+          EJournalEntrySourceType.OpeningBalance
+        ),
+        eq(journalEntriesInCore.status, EJournalEntryStatus.Draft),
+        inArray(journalEntriesInCore.id, entryIds)
+      ),
+      with: {
+        journalEntryAttachmentsInCores: true,
+        journalLinesInCores: true,
+      },
+      orderBy: [
+        desc(journalEntriesInCore.createdAt),
+        desc(journalEntriesInCore.id),
+      ],
+    });
+
+    return entry ? journalEntryMapper.toDomain(entry) : null;
   },
 
   async findAllByAccountIds(accountIds, accountingEntityId, options) {

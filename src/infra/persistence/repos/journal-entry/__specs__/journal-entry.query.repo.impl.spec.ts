@@ -57,38 +57,6 @@ describe('journalEntryQueryRepo', () => {
     { references: [], expected: false },
     { references: [{ id: journalEntryId }], expected: true },
   ])(
-    'reports historical posted account activity as $expected',
-    async ({ references, expected }) => {
-      const limit = jest.fn().mockResolvedValue(references);
-      const where = jest.fn().mockReturnValue({ limit });
-      const innerJoin = jest.fn().mockReturnValue({ where });
-      const from = jest.fn().mockReturnValue({ innerJoin });
-      const select = jest.fn().mockReturnValue({ from });
-      jest.mocked(getDbQueryHelper).mockReturnValue({
-        select,
-      } as unknown as ReturnType<typeof getDbQueryHelper>);
-
-      const result = await journalEntryQueryRepo.existsPostedByAccountId(
-        accountId,
-        accountingEntityId,
-        options
-      );
-
-      expect(limit).toHaveBeenCalledWith(1);
-      const dialect = new PgDialect();
-      const predicate = dialect.sqlToQuery(where.mock.calls[0][0] as SQL);
-      expect(predicate.sql).toContain('"account_id" = $1');
-      expect(predicate.sql).toContain('"accounting_entity_id" = $2');
-      expect(predicate.sql).toContain('"posted_at" is not null');
-      expect(predicate.params).toEqual([accountId, accountingEntityId]);
-      expect(result).toBe(expected);
-    }
-  );
-
-  it.each([
-    { references: [], expected: false },
-    { references: [{ id: journalEntryId }], expected: true },
-  ])(
     'reports counterparty reference existence as $expected',
     async ({ references, expected }) => {
       const limit = jest.fn().mockResolvedValue(references);
