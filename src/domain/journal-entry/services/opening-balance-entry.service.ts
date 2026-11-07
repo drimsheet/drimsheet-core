@@ -214,12 +214,13 @@ function makeCreateDraft(
   };
 }
 
+// TODO: remove. Draft updates should be usecase specific only
 /** Updates a draft in place without posting it or changing its line identities. */
 function makeUpdateDraft(
   deps: IDependencies
 ): IOpeningBalanceEntryService['updateDraft'] {
   return async ({ entry, ...payload }, repoOptions) => {
-    const { account, accountingEntityId, effectiveDate } = payload;
+    const { account, effectiveDate } = payload;
     openingBalanceRevisionValidation.validateSourceType(entry);
     openingBalanceRevisionValidation.validateStatus(entry);
     openingBalanceRevisionValidation.validateAccountAssociation(entry, account);
@@ -229,28 +230,6 @@ function makeUpdateDraft(
     dateUtils.validateDate(
       effectiveDate,
       journalEntryError.InvalidEffectiveDate
-    );
-
-    const hasEarlierPosting =
-      await deps.journalEntryRepo.existsPostedByAccountId(
-        account.id,
-        accountingEntityId,
-        repoOptions,
-        effectiveDate
-      );
-    if (hasEarlierPosting) {
-      throw new ledgerAccountError.OpeningBalanceLocked({
-        accountId: account.id,
-      });
-    }
-
-    const periodReadOptions = repoOptions.tx
-      ? { ...repoOptions, lock: ERepoLock.Share }
-      : repoOptions;
-    await deps.accountingPeriodService.validatePostingPeriod(
-      accountingEntityId,
-      effectiveDate,
-      periodReadOptions
     );
 
     const [revised] = await makeOpeningBalance(

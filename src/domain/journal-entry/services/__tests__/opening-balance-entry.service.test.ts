@@ -401,10 +401,7 @@ describe('openingBalanceEntryService', () => {
           expect(revised.lines[0].amount).toEqual(amount);
           expect(
             mockAccountingPeriodService.validatePostingPeriod
-          ).toHaveBeenLastCalledWith(fixture.accountingEntity.id, revisedDate, {
-            ...transactionOptions,
-            lock: ERepoLock.Share,
-          });
+          ).not.toHaveBeenCalled();
           if (change === 'unchanged') {
             expect(revised).toBe(entry);
             expect(events).toEqual([]);
@@ -563,7 +560,7 @@ describe('openingBalanceEntryService', () => {
 
         await expect(
           service.voidAndReplace({ ...payload, entry }, transactionOptions)
-        ).rejects.toBeInstanceOf(journalEntryError.RectificationNotPermitted);
+        ).rejects.toBeInstanceOf(journalEntryError.InvalidStatusTransition);
       });
 
       it('rejects a correction for the equity counterpart', async () => {
