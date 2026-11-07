@@ -10,6 +10,7 @@ import accountingEntityEntity from '@domain/accounting/entities/accounting-entit
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ledgerAccountBalanceAdjustmentService from '@domain/ledger/services/ledger-account-balance-adjustment.service';
 import makeLedgerAccountBalanceService from '@domain/ledger/services/ledger-account-balance.service';
 import { IBankAccount } from '@domain/ledger/types/asset-account.types';
@@ -101,6 +102,7 @@ const deps = {
   ledgerAccountBalanceService: mockLedgerAccountBalanceService,
   bankAccountRepo: mockBankAccountRepo,
   cashAccountService: mockAssetAccountService,
+  journalEntryRepo: mockJournalEntryRepo,
   openingBalanceEntryService: mockOpeningBalanceEntryService,
   fxLotAppService: mockFxLotAppService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
@@ -115,6 +117,10 @@ describe('update bank account workflow', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(false);
+    mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValue(
+      null
+    );
     account = makeAccount();
     mockLedgerAccountBalanceService.updateBalance.mockImplementation(
       makeLedgerAccountBalanceService().updateBalance
@@ -283,9 +289,7 @@ describe('update bank account workflow', () => {
       }),
       transactionOptions
     );
-    expect(
-      mockOpeningBalanceEntryService.createOrRevise
-    ).not.toHaveBeenCalled();
+    expect(mockOpeningBalanceEntryService.create).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Branch cash', version: 2 }),
       expect.objectContaining({
@@ -308,9 +312,7 @@ describe('update bank account workflow', () => {
     });
 
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-    expect(
-      mockOpeningBalanceEntryService.createOrRevise
-    ).not.toHaveBeenCalled();
+    expect(mockOpeningBalanceEntryService.create).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
   });
 
@@ -381,70 +383,114 @@ describe('update bank account workflow', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('persists an opening-balance mutation prepared by the entry service', async () => {
-    const creation = journalEntryEntity.make({
-      accountingEntityId: accountingEntity.id,
-      sourceType: 'opening_balance',
-      effectiveDate: openingBalanceDate,
-      postedAt: null,
-      memo: 'Opening balance',
-      createdBy: actor.id,
-      functionalCurrency: SYSTEM_CURRENCIES.NGN,
-      lines: [
-        {
-          accountId: account.id,
-          sequenceOrder: 1,
-          amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
-          exchangeRate: null,
-          side: 'debit',
-          description: 'Opening balance',
-          functionalCurrency: SYSTEM_CURRENCIES.NGN,
-        },
-        {
-          accountId: 'd4444444-4444-4444-8444-444444444444' as TEntityId,
-          sequenceOrder: 2,
-          amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
-          exchangeRate: null,
-          side: 'credit',
-          description: null,
-          functionalCurrency: SYSTEM_CURRENCIES.NGN,
-        },
-      ],
-    });
-    mockOpeningBalanceEntryService.createOrRevise.mockResolvedValueOnce({
-      entriesToCreate: [creation],
-      entryUpdate: null,
-      events: creation[1],
-      currentJournalEntry: creation[0],
-    });
+  it.each(['create', 'update', 'unchanged'] as const)(
+    'handles an opening-balance draft %s',
+    async (operation) => {
+      const creation = journalEntryEntity.make({
+        accountingEntityId: accountingEntity.id,
+        sourceType: 'opening_balance',
+        effectiveDate:
+          operation === 'update'
+            ? new Date('2026-02-28T00:00:00.000Z')
+            : openingBalanceDate,
+        postedAt: null,
+        memo: 'Opening balance',
+        createdBy: actor.id,
+        functionalCurrency: SYSTEM_CURRENCIES.NGN,
+        lines: [
+          {
+            accountId: account.id,
+            sequenceOrder: 1,
+            amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
+            exchangeRate: null,
+            side: 'debit',
+            description: 'Opening balance',
+            functionalCurrency: SYSTEM_CURRENCIES.NGN,
+          },
+          {
+            accountId: 'd4444444-4444-4444-8444-444444444444' as TEntityId,
+            sequenceOrder: 2,
+            amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
+            exchangeRate: null,
+            side: 'credit',
+            description: null,
+            functionalCurrency: SYSTEM_CURRENCIES.NGN,
+          },
+        ],
+      });
+      const [draft] = creation;
+      const revised = journalEntryEntity.update(
+        draft,
+        { id: draft.id, effectiveDate: openingBalanceDate },
+        actor.id
+      );
+      if (operation === 'create') {
+        mockOpeningBalanceEntryService.createDraft.mockResolvedValueOnce(
+          creation
+        );
+      } else {
+        mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValueOnce(
+          draft
+        );
+        mockOpeningBalanceEntryService.updateDraft.mockResolvedValueOnce(
+          operation === 'update' ? revised : [draft, [], null]
+        );
+      }
 
-    await makeUpdateBankAccountUsecase(deps)(account.id, {
-      name: 'Branch cash',
-      openingBalance,
-    });
+      await makeUpdateBankAccountUsecase(deps)(account.id, {
+        name: 'Branch cash',
+        openingBalance,
+      });
 
-    expect(mockOpeningBalanceEntryService.createOrRevise).toHaveBeenCalledWith(
-      {
+      const expectedPayload = {
         accountingEntityId: accountingEntity.id,
         functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
-        account,
+        account: expect.objectContaining({
+          id: account.id,
+          openingBalanceDate: openingBalance.date,
+        }),
         amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
         exchangeRate: null,
         effectiveDate: openingBalance.date,
         createdBy: actor.id,
-      },
-      transactionOptions
-    );
-    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entriesToCreate: [expect.objectContaining({ entry: creation[0] })],
-        entryUpdate: null,
-      }),
-      transactionOptions
-    );
-    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
-  });
+      };
+      if (operation === 'create') {
+        expect(mockOpeningBalanceEntryService.createDraft).toHaveBeenCalledWith(
+          expectedPayload,
+          transactionOptions
+        );
+      } else {
+        expect(mockOpeningBalanceEntryService.updateDraft).toHaveBeenCalledWith(
+          { ...expectedPayload, entry: draft },
+          transactionOptions
+        );
+      }
+      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      if (operation === 'unchanged') {
+        expect(
+          mockJournalEntryPersistenceAppService.rectify
+        ).not.toHaveBeenCalled();
+      } else {
+        const persistence =
+          operation === 'create'
+            ? {
+                entriesToCreate: [expect.objectContaining({ entry: draft })],
+                entryUpdate: null,
+              }
+            : {
+                entriesToCreate: [],
+                entryUpdate: expect.objectContaining({
+                  entry: revised[0],
+                  expectedVersion: draft.version,
+                }),
+              };
+        expect(
+          mockJournalEntryPersistenceAppService.rectify
+        ).toHaveBeenCalledWith(persistence, transactionOptions);
+      }
+      expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    }
+  );
 
   it('persists FX and balance propagation atomically before publishing and queueing', async () => {
     [account] = ledgerAccountEntity.make<IBankAccount>({
@@ -507,12 +553,7 @@ describe('update bank account workflow', () => {
       occurredAt: openingBalanceDate,
       enrichedAt: null,
     };
-    mockOpeningBalanceEntryService.createOrRevise.mockResolvedValueOnce({
-      entriesToCreate: [creation],
-      entryUpdate: null,
-      events: creation[1],
-      currentJournalEntry: creation[0],
-    });
+    mockOpeningBalanceEntryService.create.mockResolvedValueOnce(creation);
 
     mockFxLotAppService.acquire.mockResolvedValueOnce({
       records,
@@ -524,11 +565,11 @@ describe('update bank account workflow', () => {
       openingBalance: foreignOpeningBalance,
     });
 
-    expect(mockOpeningBalanceEntryService.createOrRevise).toHaveBeenCalledWith(
+    expect(mockOpeningBalanceEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         account: expect.objectContaining({
           currency: SYSTEM_CURRENCIES.USD,
-          openingBalanceDate: null,
+          openingBalanceDate,
         }),
       }),
       transactionOptions
@@ -538,7 +579,7 @@ describe('update bank account workflow', () => {
         journalEntry: creation[0],
         account: expect.objectContaining({
           currency: SYSTEM_CURRENCIES.USD,
-          openingBalanceDate: null,
+          openingBalanceDate,
         }),
         actor: actor.id,
       },
@@ -685,11 +726,25 @@ describe('update bank account workflow', () => {
     });
   });
 
+  it('locks opening-balance edits after any posting', async () => {
+    mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValueOnce(true);
+
+    await expect(
+      makeUpdateBankAccountUsecase(deps)(account.id, { openingBalance })
+    ).rejects.toBeInstanceOf(ledgerAccountError.OpeningBalanceLocked);
+
+    expect(
+      mockJournalEntryRepo.findDraftOpeningBalanceByAccountId
+    ).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+  });
+
   it('delegates failures to the transaction without disposing it again', async () => {
     const failure = new Error('journal update failed');
-    mockOpeningBalanceEntryService.createOrRevise.mockRejectedValueOnce(
-      failure
-    );
+    mockOpeningBalanceEntryService.createDraft.mockRejectedValueOnce(failure);
 
     await expect(
       makeUpdateBankAccountUsecase(deps)(account.id, {

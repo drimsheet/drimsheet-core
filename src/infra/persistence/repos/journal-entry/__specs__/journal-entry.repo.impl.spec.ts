@@ -113,11 +113,20 @@ describe('journalEntryRepo', () => {
   );
 
   it.each([
-    { references: [], expected: false },
-    { references: [{ id: journalEntryId }], expected: true },
+    { references: [], expected: false, effectiveBefore: undefined },
+    {
+      references: [{ id: journalEntryId }],
+      expected: true,
+      effectiveBefore: undefined,
+    },
+    {
+      references: [{ id: journalEntryId }],
+      expected: true,
+      effectiveBefore: new Date('2026-05-01T12:30:00Z'),
+    },
   ])(
     'reports historical posted activity as $expected, excluding drafts',
-    async ({ references, expected }) => {
+    async ({ references, expected, effectiveBefore }) => {
       const accountId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
       const limit = jest.fn().mockResolvedValue(references);
       const where = jest.fn().mockReturnValue({ limit });
@@ -130,7 +139,8 @@ describe('journalEntryRepo', () => {
         journalEntryRepo.existsPostedByAccountId(
           accountId,
           journalEntryId,
-          options
+          options,
+          effectiveBefore
         )
       ).resolves.toBe(expected);
 
@@ -150,10 +160,55 @@ describe('journalEntryRepo', () => {
       const predicate = dialect.sqlToQuery(where.mock.calls[0][0] as SQL);
       expect(predicate.sql).toContain('"account_id" = $1');
       expect(predicate.sql).toContain('"accounting_entity_id" = $2');
-      expect(predicate.params).toEqual([accountId, journalEntryId]);
+      if (effectiveBefore) {
+        expect(predicate.sql).toContain('"effective_date" < $3');
+        expect(predicate.params).toEqual([
+          accountId,
+          journalEntryId,
+          '2026-05-01',
+        ]);
+      } else {
+        expect(predicate.params).toEqual([accountId, journalEntryId]);
+      }
       expect(predicate.sql).toContain('"posted_at" is not null');
       expect(predicate.sql).not.toMatch(/status|deleted_at/);
       expect(journalEntryMapper.toDomain).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    { references: [], expected: false },
+    { references: [{ id: journalEntryId }], expected: true },
+  ])(
+    'reports existing opening journals as $expected',
+    async ({ references, expected }) => {
+      const accountId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
+      const limit = jest.fn().mockResolvedValue(references);
+      const where = jest.fn().mockReturnValue({ limit });
+      const innerJoin = jest.fn().mockReturnValue({ where });
+      const from = jest.fn().mockReturnValue({ innerJoin });
+      const select = jest.fn().mockReturnValue({ from });
+      jest.mocked(getDbQueryHelper).mockReturnValue({ select } as never);
+
+      await expect(
+        journalEntryRepo.existsOpeningBalanceByAccountId(
+          accountId,
+          journalEntryId,
+          options
+        )
+      ).resolves.toBe(expected);
+
+      expect(limit).toHaveBeenCalledWith(1);
+      const predicate = new PgDialect().sqlToQuery(
+        where.mock.calls[0][0] as SQL
+      );
+      expect(predicate.sql).toContain('"source_type" = $3');
+      expect(predicate.sql).not.toMatch(/status|posted_at/);
+      expect(predicate.params).toEqual([
+        accountId,
+        journalEntryId,
+        'opening_balance',
+      ]);
     }
   );
 

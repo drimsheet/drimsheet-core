@@ -17,8 +17,11 @@ function validateSourceType(entry: IJournalEntry) {
   });
 }
 
-function validateStatus(entry: IJournalEntry) {
-  if (entry.status === EJournalEntryStatus.Draft) {
+function validateStatus(
+  entry: IJournalEntry,
+  expectedStatus: IJournalEntry['status'] = EJournalEntryStatus.Draft
+) {
+  if (entry.status === expectedStatus) {
     return;
   }
 
@@ -46,6 +49,17 @@ function validateAccountAssociation(
   });
 }
 
+/** The opening journal's first line identifies the account being opened. */
+function validateOpeningAccount(entry: IJournalEntry, account: ILedgerAccount) {
+  const openingLine = entry.lines.find((line) => line.sequenceOrder === 1);
+  if (openingLine?.accountId !== account.id) {
+    throw new journalEntryError.RectificationNotPermitted({
+      journalEntryId: entry.id,
+      accountId: account.id,
+    });
+  }
+}
+
 /** Requires every revised line to retain a corresponding original sequence. */
 function validateLineSequences(
   originalEntry: IJournalEntry,
@@ -68,6 +82,7 @@ const openingBalanceRevisionValidation = Object.freeze({
   validateSourceType,
   validateStatus,
   validateAccountAssociation,
+  validateOpeningAccount,
   validateLineSequences,
 });
 

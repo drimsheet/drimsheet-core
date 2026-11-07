@@ -27,6 +27,7 @@ import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
+import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
@@ -48,6 +49,7 @@ import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-accoun
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import openingBalanceExchangeRateGetterHelper from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
+import prepareOpeningBalanceEditHelper from '@app/ledger/usecases/helpers/prepare-opening-balance-edit.helper';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
@@ -62,6 +64,7 @@ interface IDependencies {
   ledgerAccountBalanceService: ILedgerAccountBalanceService;
   bankAccountRepo: IBankAccountRepo;
   cashAccountService: ICashAccountService;
+  journalEntryRepo: IJournalEntryRepo;
   openingBalanceEntryService: IOpeningBalanceEntryService;
   fxLotAppService: IFxLotAppService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
@@ -112,18 +115,14 @@ export default function makeUpdateBankAccountUsecase(
       const [account, accountEvents, accountAudit] = update;
       const existingAccount = accountAudit?.diff.before ?? account;
 
-      // Use the original opening date and requested currency under the account lock.
-      const openingBalanceAccount = {
-        ...existingAccount,
-        currency: account.currency,
-      };
       const openingBalance = payload.openingBalance;
       const openingBalanceEntryMutation = openingBalance
-        ? await deps.openingBalanceEntryService.createOrRevise(
+        ? await prepareOpeningBalanceEditHelper(
+            deps,
             {
               accountingEntityId: accountingEntity.id,
               functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
-              account: openingBalanceAccount,
+              account,
               amount: moneyMapper.fromDto(openingBalance.amount),
               effectiveDate: openingBalance.date,
               exchangeRate:
@@ -143,7 +142,7 @@ export default function makeUpdateBankAccountUsecase(
         ? await deps.fxLotAppService.acquire(
             {
               journalEntry: postedJournal,
-              account: openingBalanceAccount,
+              account,
               actor: actor.id,
             },
             transactionOptions
@@ -198,7 +197,11 @@ export default function makeUpdateBankAccountUsecase(
         );
       }
 
-      if (openingBalanceEntryMutation) {
+      if (
+        openingBalanceEntryMutation &&
+        (openingBalanceEntryMutation.entryUpdate ||
+          openingBalanceEntryMutation.entriesToCreate.length > 0)
+      ) {
         const journalPersistencePayload =
           getJournalEntryPersistencePayloadHelper(
             openingBalanceEntryMutation,

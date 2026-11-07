@@ -28,6 +28,7 @@ import historyValue from '@shared/values/history/history.vo';
 import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
+import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -154,8 +155,12 @@ export default function makeCreatePettyCashAccountUseCase(deps: IDependencies) {
         createdBy: actor.id,
       };
 
+      const createOpeningBalance =
+        account.status === ELedgerAccountStatus.Draft
+          ? deps.openingBalanceEntryService.createDraft
+          : deps.openingBalanceEntryService.create;
       const [journalEntry, journalEvents, journalAudit] =
-        await deps.openingBalanceEntryService.createInitial(
+        await createOpeningBalance(
           journalEntryCreationInput,
           transactionOptions
         );

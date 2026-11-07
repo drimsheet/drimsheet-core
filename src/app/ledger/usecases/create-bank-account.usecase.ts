@@ -30,6 +30,7 @@ import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening
 import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
 import { IBankDetails } from '@domain/ledger/types/asset-account.types';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
+import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -171,8 +172,12 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
         createdBy: actor.id,
       };
 
+      const createOpeningBalance =
+        account.status === ELedgerAccountStatus.Draft
+          ? deps.openingBalanceEntryService.createDraft
+          : deps.openingBalanceEntryService.create;
       const [journalEntry, journalEvents, journalAudit] =
-        await deps.openingBalanceEntryService.createInitial(
+        await createOpeningBalance(
           journalEntryCreationInput,
           transactionOptions
         );

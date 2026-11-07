@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, lt, ne } from 'drizzle-orm';
 
 import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
@@ -14,6 +14,7 @@ import {
   journalEntriesInCore,
   journalLinesInCore,
 } from '@infra/config/drizzle/schema';
+import { toRepoDateOnly } from '@infra/persistence/helpers/date.mapper';
 import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import mapJournalFunctionalCurrencyErrorHelper from '@infra/persistence/helpers/map-journal-functional-currency-error.helper';
 import journalEntryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry.mapper';
@@ -30,7 +31,12 @@ const journalEntryRepo: IJournalEntryRepo = {
     return entries.length > 0;
   },
 
-  async existsPostedByAccountId(accountId, accountingEntityId, options) {
+  async existsPostedByAccountId(
+    accountId,
+    accountingEntityId,
+    options,
+    effectiveBefore
+  ) {
     const references = await getDbQueryHelper(options)
       .select({ id: journalLinesInCore.id })
       .from(journalLinesInCore)
@@ -42,7 +48,40 @@ const journalEntryRepo: IJournalEntryRepo = {
         and(
           eq(journalLinesInCore.accountId, accountId),
           eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
-          isNotNull(journalEntriesInCore.postedAt)
+          isNotNull(journalEntriesInCore.postedAt),
+          effectiveBefore === undefined
+            ? undefined
+            : lt(
+                journalEntriesInCore.effectiveDate,
+                toRepoDateOnly(effectiveBefore)
+              )
+        )
+      )
+      .limit(1);
+
+    return references.length > 0;
+  },
+
+  async existsOpeningBalanceByAccountId(
+    accountId,
+    accountingEntityId,
+    options
+  ) {
+    const references = await getDbQueryHelper(options)
+      .select({ id: journalLinesInCore.id })
+      .from(journalLinesInCore)
+      .innerJoin(
+        journalEntriesInCore,
+        eq(journalEntriesInCore.id, journalLinesInCore.entryId)
+      )
+      .where(
+        and(
+          eq(journalLinesInCore.accountId, accountId),
+          eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
+          eq(
+            journalEntriesInCore.sourceType,
+            EJournalEntrySourceType.OpeningBalance
+          )
         )
       )
       .limit(1);

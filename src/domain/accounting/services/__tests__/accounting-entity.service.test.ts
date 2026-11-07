@@ -29,6 +29,7 @@ describe('accountingEntityService', () => {
     existsByAccountingEntityId: jest.fn(),
     existsByAccountId: jest.fn(),
     existsPostedByAccountId: jest.fn(),
+    existsOpeningBalanceByAccountId: jest.fn(),
     findDraftOpeningBalanceByAccountId: jest.fn(),
     findAllByAccountIds: jest.fn(),
     create: jest.fn(),

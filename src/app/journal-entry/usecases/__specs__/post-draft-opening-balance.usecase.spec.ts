@@ -22,10 +22,7 @@ import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__m
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post-draft-opening-balance.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
-import {
-  mockLedgerAccountBalanceRepo,
-  mockLedgerAccountRepo,
-} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
@@ -465,7 +462,6 @@ describe('post draft opening balance use case', () => {
       );
       const domainService = makeOpeningBalanceEntryService({
         journalEntryRepo: mockJournalEntryRepo,
-        ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
         ledgerAccountRepo: mockLedgerAccountRepo,
         accountingPeriodService: mockAccountingPeriodService,
       });

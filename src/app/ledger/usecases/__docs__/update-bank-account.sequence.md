@@ -17,11 +17,15 @@ sequenceDiagram
     Records-->>Accounts: Account, hierarchy, and journal references
     Accounts-->>Update: Updated account and any audit
     opt Opening balance supplied
-        Update->>Opening: Original opening date, requested currency, and opening balance
-        Opening->>Records: Check historical posting activity under the account lock
-        Records-->>Opening: Posting history check
-        Opening->>Records: Find draft opening journal if eligible
-        Records-->>Opening: Draft journal or no draft
+        Update->>Records: Check historical posting activity under the account lock
+        Records-->>Update: Posting history check
+        Update->>Records: Find draft opening journal if eligible
+        Records-->>Update: Draft journal or no draft
+        Update->>Opening: Update the draft or create a draft or posted journal
+        Opening->>Records: Check journal eligibility
+        opt Creating a posted journal or updating a draft
+            Opening->>Records: Validate the effective accounting period
+        end
         Opening-->>Update: Current journal, events, and audited changes
         opt Opening journal posted
             Update->>FX: Prepare applicable opening acquisition

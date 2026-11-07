@@ -14,10 +14,6 @@ class JournalEntryError<K extends TErrorPrefix> extends DomainError<K> {
 const EErrorKeys = {
   ArchivedLedgerAccountNotAllowed:
     'journal_entry_error_archived_ledger_account_not_allowed_invalid',
-  InitialOpeningBalanceTransactionRequired:
-    'journal_entry_error_initial_opening_balance_transaction_required_unexpected',
-  InitialOpeningBalanceAccountAlreadyExists:
-    'journal_entry_error_initial_opening_balance_account_already_exists_conflict',
   InvalidCreatedBy: 'journal_entry_error_created_by_invalid',
   InvalidAccountingEntityId: 'journal_entry_error_accounting_entity_id_invalid',
   InvalidVoidingEntryId: 'journal_entry_error_voiding_entry_id_invalid',

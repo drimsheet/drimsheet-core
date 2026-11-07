@@ -279,7 +279,7 @@ describe('createOpeningBalanceUseCase', () => {
         effectiveDate: payload.date,
         createdBy: mockUser.actorId,
       },
-      { correlationId }
+      { correlationId, tx: mockRepoTransaction.context }
     );
 
     expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
@@ -288,13 +288,13 @@ describe('createOpeningBalanceUseCase', () => {
         account: mockAssetAccount,
         actor: mockUser.actorId,
       },
-      { correlationId }
+      { correlationId, tx: mockRepoTransaction.context }
     );
 
     expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
       mockAssetAccount.id,
       mockAccountingEntity.id,
-      { correlationId }
+      { correlationId, tx: mockRepoTransaction.context, lock: 'update' }
     );
     expect(mockRepoService.createTransaction).toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
@@ -460,7 +460,13 @@ describe('createOpeningBalanceUseCase', () => {
       journalEvents,
       audit,
     ] as ReturnType<typeof journalEntryEntity.make>;
-    mockOpeningBalanceEntryService.create.mockResolvedValueOnce(draftCreation);
+    mockLedgerAccountRepo.findById.mockReset().mockResolvedValueOnce({
+      ...mockAssetAccount,
+      status: 'draft',
+    });
+    mockOpeningBalanceEntryService.createDraft.mockResolvedValueOnce(
+      draftCreation
+    );
 
     await getUseCase()({
       accountId: mockAssetAccount.id,
@@ -494,7 +500,9 @@ describe('createOpeningBalanceUseCase', () => {
 
     await expect(useCase(payload)).rejects.toThrow('Entry creation failed');
 
-    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
+      expect.any(Error)
+    );
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();

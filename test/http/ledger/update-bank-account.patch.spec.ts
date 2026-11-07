@@ -26,6 +26,7 @@ import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/ac
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockBalanceQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
@@ -183,6 +184,7 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
         ledgerAccountBalanceService: makeLedgerAccountBalanceService(),
         bankAccountRepo: mockBankAccountRepo,
         cashAccountService,
+        journalEntryRepo: mockJournalEntryRepo,
         openingBalanceEntryService: mockOpeningBalanceEntryService,
         fxLotAppService: mockFxLotAppService,
         journalEntryPersistenceAppService:
@@ -289,7 +291,7 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
           })
         );
         expect(
-          mockOpeningBalanceEntryService.createOrRevise
+          mockOpeningBalanceEntryService.createDraft
         ).not.toHaveBeenCalled();
       }
     );
@@ -325,12 +327,7 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
             },
           ],
         });
-        mockOpeningBalanceEntryService.createOrRevise.mockResolvedValue({
-          entriesToCreate: [creation],
-          entryUpdate: null,
-          events: creation[1],
-          currentJournalEntry: creation[0],
-        });
+        mockOpeningBalanceEntryService.createDraft.mockResolvedValue(creation);
         const response = await patch({
           openingBalance,
           ...(includeName
@@ -350,13 +347,14 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
           name: includeName ? 'Updated account' : account.name,
           openingBalanceDate: openingBalance.date.toISOString(),
         });
-        expect(
-          mockOpeningBalanceEntryService.createOrRevise
-        ).toHaveBeenCalledWith(
+        expect(mockOpeningBalanceEntryService.createDraft).toHaveBeenCalledWith(
           {
             accountingEntityId: accountingEntity.id,
             functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
-            account,
+            account: expect.objectContaining({
+              id: account.id,
+              openingBalanceDate: openingBalance.date,
+            }),
             amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
             exchangeRate: null,
             effectiveDate: openingBalance.date,

@@ -18,7 +18,6 @@ import { repoService } from './repo';
 
 export const openingBalanceEntryService = makeOpeningBalanceEntryService({
   journalEntryRepo: journalEntryRepos.journalEntry,
-  ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
   accountingPeriodService,
 });

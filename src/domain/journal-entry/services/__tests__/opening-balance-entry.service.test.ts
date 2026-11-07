@@ -1,4 +1,4 @@
-import { IReadRepoOptions } from '@shared/types/repo.types';
+import { ERepoLock, IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
@@ -18,11 +18,9 @@ import {
   EJournalEntryStatus,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
-import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import IBankAccountRepo from '@domain/ledger/repos/bank-account.repo';
-import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import makeEquityAccountService from '@domain/ledger/services/equity-account/equity-account.service';
@@ -47,6 +45,7 @@ const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
 const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
   existsByAccountingEntityId: jest.fn(),
   existsPostedByAccountId: jest.fn(),
+  existsOpeningBalanceByAccountId: jest.fn(),
   findDraftOpeningBalanceByAccountId: jest.fn(),
   existsByAccountId: jest.fn(),
   findAllByAccountIds: jest.fn(),
@@ -68,17 +67,6 @@ const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
   findBySubType: jest.fn(),
   findByBehavior: jest.fn(),
   findLatestBySubType: jest.fn(),
-};
-
-const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
-  create: jest.fn(),
-  update: jest.fn(),
-  adjustBalance: jest.fn(),
-  findByAccountId: jest.fn(),
-  findAdjustmentsByAccountId: jest.fn(),
-  createWithAdjustments: jest.fn(),
-  findAllByAccountingEntityId: jest.fn(),
-  findAllByAccountIds: jest.fn(),
 };
 
 const mockBankAccountRepo: jest.Mocked<IBankAccountRepo> = {
@@ -108,7 +96,6 @@ describe('openingBalanceEntryService', () => {
     journalEntryRepo: mockJournalEntryRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
     accountingPeriodService: mockAccountingPeriodService,
-    ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   });
   const cashAccountService = makeCashAccountService({
     ledgerAccountRepo: mockLedgerAccountRepo,
@@ -123,9 +110,10 @@ describe('openingBalanceEntryService', () => {
     jest.useFakeTimers();
     jest.setSystemTime(timestamp);
     jest.resetAllMocks();
-    mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId.mockResolvedValue(
-      []
+    mockJournalEntryRepo.existsOpeningBalanceByAccountId.mockResolvedValue(
+      false
     );
+    mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(false);
     mockAccountingPeriodService.validatePostingPeriod.mockResolvedValue(
       undefined
     );
@@ -255,337 +243,372 @@ describe('openingBalanceEntryService', () => {
       }
     );
 
-    describe('createInitial', () => {
-      const transactionOptions = { ...repoOptions, tx: {} };
-      async function initialPayload(status: 'active' | 'draft' = 'active') {
-        const fixture = await makeOpeningBalanceFixture();
-        const [account] = ledgerAccountEntity.make({
-          ...fixture.postingAccount,
-          status,
-          openingBalanceDate: new Date(timestamp.getTime() - 1),
-        });
-        mockLedgerAccountRepo.findBySubType.mockResolvedValue([
-          fixture.equityAccount,
-        ]);
-        mockLedgerAccountRepo.findById.mockResolvedValue(null);
-        return { ...makeOpeningBalancePayload(fixture), account };
+    it.each(['create', 'createDraft'] as const)(
+      '%s rejects an existing opening journal',
+      async (operation) => {
+        const payload = makeOpeningBalancePayload(
+          await makeOpeningBalanceFixture()
+        );
+        mockJournalEntryRepo.existsOpeningBalanceByAccountId.mockResolvedValueOnce(
+          true
+        );
+
+        await expect(
+          service[operation](payload, repoOptions)
+        ).rejects.toBeInstanceOf(journalEntryError.ExistingOpeningBalance);
       }
-      it.each(['active', 'draft'] as const)(
-        'prepares the initial journal and audit for a %s account',
-        async (status) => {
-          const payload = await initialPayload(status);
-          const [entry, events, audit] = await service.createInitial(
-            payload,
-            transactionOptions
-          );
-          expect(entry.status).toBe(
-            status === 'draft'
-              ? EJournalEntryStatus.Draft
-              : EJournalEntryStatus.Posted
-          );
-          expect(entry.postedAt).toEqual(
-            status === 'draft' ? null : payload.effectiveDate
-          );
-          expect(entry.effectiveDate).toEqual(payload.effectiveDate);
-          expect(entry.lines[0].amount).toEqual(payload.amount);
-          expect(events[0].data).toEqual(entry);
-          expect(audit.header.diff.after).toMatchObject({
-            status: entry.status,
-            postedAt: entry.postedAt,
-          });
-          expect(entry.lines[0].accountId).toBe(payload.account.id);
-          expect(
-            mockAccountingPeriodService.validatePostingPeriod
-          ).toHaveBeenCalledWith(
-            payload.accountingEntityId,
-            payload.effectiveDate,
-            transactionOptions
-          );
-          expect(
-            mockAccountingPeriodService.validatePostingPeriod.mock
-              .invocationCallOrder[0]
-          ).toBeLessThan(
-            mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId.mock
-              .invocationCallOrder[0]
-          );
-          expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
-            payload.account.id,
-            payload.account.accountingEntityId,
-            transactionOptions
-          );
-          expect(mockLedgerAccountRepo.create).not.toHaveBeenCalled();
-          await expect(
-            service.create(payload, transactionOptions)
-          ).rejects.toBeInstanceOf(journalEntryError.ExistingOpeningBalance);
-        }
-      );
+    );
+
+    describe('posted creation eligibility', () => {
+      const transactionOptions = { ...repoOptions, tx: {} };
+
       it.each([
         new periodError.PostingDateNotCovered(),
         new periodError.PostingPeriodAmbiguous(),
         new periodError.PostingPeriodNotOpen(),
         new Error('Period lookup failed'),
-      ])(
-        'rejects before preparing the journal when period validation fails: %s',
-        async (failure) => {
-          const payload = await initialPayload();
-          mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
-            failure
-          );
-
-          await expect(
-            service.createInitial(payload, transactionOptions)
-          ).rejects.toBe(failure);
-          expect(
-            mockAccountingPeriodService.validatePostingPeriod
-          ).toHaveBeenCalledWith(
-            payload.accountingEntityId,
-            payload.effectiveDate,
-            transactionOptions
-          );
-          expect(
-            mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId
-          ).not.toHaveBeenCalled();
-        }
-      );
-      it('requires a caller transaction', async () => {
-        const payload = await initialPayload();
-        await expect(
-          // @ts-expect-error Exercise runtime guard.
-          service.createInitial(payload, repoOptions)
-        ).rejects.toBeInstanceOf(
-          journalEntryError.InitialOpeningBalanceTransactionRequired
-        );
-      });
-      it.each([null, new Date('2020-01-01')])(
-        'rejects a missing or mismatched date: %s',
-        async (openingBalanceDate) => {
-          const payload = await initialPayload();
-          const [account] = ledgerAccountEntity.make({
-            ...payload.account,
-            openingBalanceDate,
-          });
-          await expect(
-            service.createInitial({ ...payload, account }, transactionOptions)
-          ).rejects.toBeInstanceOf(journalEntryError.InvalidOpeningBalanceDate);
-        }
-      );
-      it('rejects an already-persisted account', async () => {
-        const payload = await initialPayload();
-        mockLedgerAccountRepo.findById.mockResolvedValue(payload.account);
-        await expect(
-          service.createInitial(payload, transactionOptions)
-        ).rejects.toBeInstanceOf(
-          journalEntryError.InitialOpeningBalanceAccountAlreadyExists
-        );
-      });
-      it('rejects control accounts', async () => {
-        const payload = await initialPayload();
-        await expect(
-          service.createInitial(
-            {
-              ...payload,
-              account: { ...payload.account, isControlAccount: true },
-            },
-            transactionOptions
-          )
-        ).rejects.toBeInstanceOf(
-          journalEntryError.ControlAccountOpeningBalanceNotAllowed
-        );
-      });
-      it('retains existing-adjustment protection', async () => {
-        const payload = await initialPayload();
-        mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId.mockResolvedValueOnce(
-          [{}] as Awaited<
-            ReturnType<ILedgerAccountBalanceRepo['findAdjustmentsByAccountId']>
-          >
-        );
-        await expect(
-          service.createInitial(payload, transactionOptions)
-        ).rejects.toBeInstanceOf(journalEntryError.ExistingOpeningBalance);
-      });
-      it('retains equity configuration protection', async () => {
-        const payload = await initialPayload();
-        mockLedgerAccountRepo.findBySubType.mockResolvedValue([]);
-        await expect(
-          service.createInitial(payload, transactionOptions)
-        ).rejects.toBeInstanceOf(
-          journalEntryError.UnConfiguredOpeningBalanceAccount
-        );
-      });
-      it('propagates account lookup failure', async () => {
-        const payload = await initialPayload();
-        const failure = new Error('database unavailable');
-        mockLedgerAccountRepo.findById.mockRejectedValue(failure);
-        await expect(
-          service.createInitial(payload, transactionOptions)
-        ).rejects.toBe(failure);
-      });
-    });
-
-    describe('createOrRevise', () => {
-      const transactionOptions = { ...repoOptions, tx: {} };
-
-      beforeEach(() => {
-        mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(false);
-        mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValue(
-          null
-        );
-      });
-
-      it('rejects historical posted activity before looking up the draft', async () => {
+      ])('rejects when period validation fails: %s', async (failure) => {
         const fixture = await makeOpeningBalanceFixture();
         const payload = makeOpeningBalancePayload(fixture);
-        mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(true);
+        mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
+          failure
+        );
+
+        await expect(service.create(payload, transactionOptions)).rejects.toBe(
+          failure
+        );
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod
+        ).toHaveBeenCalledWith(
+          payload.accountingEntityId,
+          payload.effectiveDate,
+          { ...transactionOptions, lock: ERepoLock.Share }
+        );
+        expect(mockLedgerAccountRepo.findBySubType).not.toHaveBeenCalled();
+      });
+
+      it('rejects posted activity effective before the opening date', async () => {
+        const payload = makeOpeningBalancePayload(
+          await makeOpeningBalanceFixture()
+        );
+        mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValueOnce(
+          true
+        );
 
         await expect(
-          service.createOrRevise(payload, transactionOptions)
+          service.create(payload, transactionOptions)
         ).rejects.toBeInstanceOf(ledgerAccountError.OpeningBalanceLocked);
         expect(
           mockJournalEntryRepo.existsPostedByAccountId
         ).toHaveBeenCalledWith(
           payload.account.id,
           payload.accountingEntityId,
-          transactionOptions
+          transactionOptions,
+          payload.effectiveDate
         );
-        expect(
-          mockJournalEntryRepo.findDraftOpeningBalanceByAccountId
-        ).not.toHaveBeenCalled();
-        expect(mockLedgerAccountRepo.findBySubType).not.toHaveBeenCalled();
       });
+    });
 
-      it('creates an audited opening journal when no draft exists', async () => {
-        const fixture = await makeOpeningBalanceFixture();
-        const payload = makeOpeningBalancePayload(fixture);
-        mockLedgerAccountRepo.findBySubType.mockResolvedValue([
-          fixture.equityAccount,
-        ]);
+    it('creates a draft and defers the posting history and period checks', async () => {
+      const fixture = await makeOpeningBalanceFixture();
+      const payload = makeOpeningBalancePayload(fixture);
+      const transactionOptions = { ...repoOptions, tx: {} };
+      mockLedgerAccountRepo.findBySubType.mockResolvedValue([
+        fixture.equityAccount,
+      ]);
+      mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(true);
+      mockAccountingPeriodService.validatePostingPeriod.mockRejectedValue(
+        new periodError.PostingPeriodNotOpen()
+      );
 
-        const mutation = await service.createOrRevise(
-          payload,
-          transactionOptions
-        );
+      const [entry] = await service.createDraft(payload, transactionOptions);
 
-        expect(
-          mockJournalEntryRepo.findDraftOpeningBalanceByAccountId
-        ).toHaveBeenCalledWith(
-          payload.account.id,
-          payload.accountingEntityId,
-          transactionOptions
-        );
-        expect(mutation.currentJournalEntry.status).toBe(
-          EJournalEntryStatus.Posted
-        );
-        expect(mutation.entriesToCreate).toHaveLength(1);
-        const [entry, events] = mutation.entriesToCreate[0];
-        expect(mutation.currentJournalEntry).toBe(entry);
-        expect(mutation.events).toBe(events);
-        expect(mutation.entryUpdate).toBeNull();
+      expect(entry).toMatchObject({
+        status: EJournalEntryStatus.Draft,
+        postedAt: null,
+        effectiveDate: payload.effectiveDate,
       });
+      expect(
+        mockJournalEntryRepo.existsOpeningBalanceByAccountId
+      ).toHaveBeenCalledWith(
+        payload.account.id,
+        payload.accountingEntityId,
+        transactionOptions
+      );
+      expect(
+        mockJournalEntryRepo.existsPostedByAccountId
+      ).not.toHaveBeenCalled();
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+    });
 
-      it('returns the original draft and no changes for an identical revision', async () => {
-        const fixture = await makeOpeningBalanceFixture();
-        const payload = {
-          ...makeOpeningBalancePayload(fixture),
-          account: {
-            ...fixture.postingAccount,
-            status: ELedgerAccountStatus.Draft,
-          },
-        };
-        mockLedgerAccountRepo.findBySubType.mockResolvedValue([
-          fixture.equityAccount,
-        ]);
-        const [originalEntry] = await service.create(
-          payload,
-          transactionOptions
-        );
-        mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValue(
-          originalEntry
-        );
+    describe('updateDraft', () => {
+      const transactionOptions = { ...repoOptions, tx: {} };
 
-        const mutation = await service.createOrRevise(
-          payload,
-          transactionOptions
-        );
-
-        expect(mutation.currentJournalEntry).toBe(originalEntry);
-        expect(mutation.entriesToCreate).toEqual([]);
-        expect(mutation.entryUpdate).toBeNull();
-        expect(mutation.events).toEqual([]);
-      });
-
-      it.each([false, true])(
-        'revises a draft in place when the amount changes: %s',
-        async (changesAmount) => {
+      it.each(['unchanged', 'date', 'date and amount'] as const)(
+        'updates the existing draft in place for %s',
+        async (change) => {
           const fixture = await makeOpeningBalanceFixture();
-          const revisedDate = new Date('2026-08-02T00:00:00.000Z');
-          const [draftAccount] = ledgerAccountEntity.make({
-            ...fixture.postingAccount,
-            status: ELedgerAccountStatus.Draft,
-            openingBalanceDate: effectiveDate,
-          });
           mockLedgerAccountRepo.findBySubType.mockResolvedValue([
             fixture.equityAccount,
           ]);
-          mockLedgerAccountRepo.findById.mockResolvedValue(null);
-          const [originalEntry] = await service.createInitial(
-            {
-              ...makeOpeningBalancePayload(fixture),
-              account: draftAccount,
-              effectiveDate,
-            },
+          const originalPayload = {
+            ...makeOpeningBalancePayload(fixture),
+            effectiveDate: new Date('2026-08-02T00:00:00.000Z'),
+          };
+          const [account] = ledgerAccountEntity.make({
+            ...fixture.postingAccount,
+            status: ELedgerAccountStatus.Draft,
+            openingBalanceDate: originalPayload.effectiveDate,
+          });
+          const [entry] = await service.createDraft(
+            { ...originalPayload, account },
             transactionOptions
           );
-          mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValue(
-            originalEntry
-          );
-          const revisedAmount = changesAmount
-            ? moneyValue.make(250_000n, SYSTEM_CURRENCIES.NGN, true)
-            : fixture.amount;
+          const revisedDate =
+            change === 'unchanged'
+              ? originalPayload.effectiveDate
+              : effectiveDate;
+          const amount =
+            change === 'date and amount'
+              ? moneyValue.make(250_000n, SYSTEM_CURRENCIES.NGN, true)
+              : fixture.amount;
+          const [updatedAccount] = ledgerAccountEntity.update(account, {
+            openingBalanceDate: revisedDate,
+          });
 
-          const mutation = await service.createOrRevise(
+          const [revised, events, audit] = await service.updateDraft(
             {
-              ...makeOpeningBalancePayload(fixture),
-              account: draftAccount,
-              amount: revisedAmount,
+              ...originalPayload,
+              entry,
+              account: updatedAccount,
               effectiveDate: revisedDate,
+              amount,
             },
             transactionOptions
           );
-          const {
-            currentJournalEntry: revisedEntry,
-            events,
-            entryUpdate,
-          } = mutation;
 
-          expect(revisedEntry).toMatchObject({
-            id: originalEntry.id,
+          expect(revised).toMatchObject({
+            id: entry.id,
             status: EJournalEntryStatus.Draft,
             postedAt: null,
             effectiveDate: revisedDate,
           });
-          expect(revisedEntry.lines.map((line) => line.id)).toEqual(
-            originalEntry.lines.map((line) => line.id)
+          expect(revised.lines.map((line) => line.id)).toEqual(
+            entry.lines.map((line) => line.id)
           );
-          expect(revisedEntry.lines[0].amount).toEqual(revisedAmount);
-          expect(events).not.toHaveLength(0);
-          expect(mutation.entriesToCreate).toEqual([]);
-          expect(entryUpdate).toMatchObject({
-            entry: revisedEntry,
-            expectedVersion: originalEntry.version,
-            headerAudit: { diff: { before: originalEntry } },
-            linesToUpdate: changesAmount ? revisedEntry.lines : [],
-            linesToCreate: [],
-            lineIdsToDelete: [],
-          });
+          expect(revised.lines[0].amount).toEqual(amount);
           expect(
             mockAccountingPeriodService.validatePostingPeriod
-          ).toHaveBeenCalledWith(
-            fixture.accountingEntity.id,
-            revisedDate,
-            transactionOptions
-          );
+          ).toHaveBeenLastCalledWith(fixture.accountingEntity.id, revisedDate, {
+            ...transactionOptions,
+            lock: ERepoLock.Share,
+          });
+          if (change === 'unchanged') {
+            expect(revised).toBe(entry);
+            expect(events).toEqual([]);
+            expect(audit).toBeNull();
+          } else {
+            expect(events.length).toBeGreaterThan(0);
+            expect(audit?.header.diff.before).toBe(entry);
+            expect(audit?.lines).toHaveLength(
+              change === 'date and amount' ? 2 : 0
+            );
+          }
         }
       );
+    });
+
+    describe('voidAndReplace', () => {
+      const transactionOptions = { ...repoOptions, tx: {} };
+      const lockedReadOptions = {
+        ...transactionOptions,
+        lock: ERepoLock.Share,
+      };
+
+      async function makeCorrectionFixture() {
+        const fixture = await makeOpeningBalanceFixture();
+        const [account] = ledgerAccountEntity.updateOpeningBalanceDate(
+          fixture.postingAccount,
+          effectiveDate
+        );
+        mockLedgerAccountRepo.findBySubType.mockResolvedValue([
+          fixture.equityAccount,
+        ]);
+        const [entry] = await service.create(
+          { ...makeOpeningBalancePayload(fixture), account, effectiveDate },
+          transactionOptions
+        );
+        mockAccountingPeriodService.validatePostingPeriod.mockClear();
+
+        return {
+          entry,
+          voidingEntryId: generateUUID(),
+          account,
+          equity: fixture.equityAccount,
+          createdBy: fixture.user.actorId,
+          exchangeRate: null,
+          amount: moneyValue.make(250_000n, SYSTEM_CURRENCIES.NGN, true),
+        };
+      }
+
+      it('returns the audited void and replacement on the original opening date', async () => {
+        const payload = await makeCorrectionFixture();
+        const result = await service.voidAndReplace(
+          payload,
+          transactionOptions
+        );
+        const { entry } = payload;
+        const { voided, replacement } = result;
+
+        expect(Object.keys(result).sort()).toEqual(['replacement', 'voided']);
+        expect(voided[0]).toMatchObject({
+          id: entry.id,
+          version: entry.version + 1,
+          status: EJournalEntryStatus.Voided,
+          lines: entry.lines,
+          voidingEntryId: payload.voidingEntryId,
+        });
+        expect(voided[1]).toEqual([
+          expect.objectContaining({
+            type: EJournalEntryEvent.Voided,
+            data: voided[0],
+          }),
+        ]);
+        expect(voided[2]).toMatchObject({
+          action: EJournalEntryAuditAction.Voided,
+        });
+        expect(replacement?.[0]).toMatchObject({
+          status: EJournalEntryStatus.Posted,
+          sourceType: EJournalEntrySourceType.OpeningBalance,
+          effectiveDate,
+          postedAt: timestamp,
+          memo: entry.memo,
+        });
+        expect(replacement?.[0].id).not.toBe(entry.id);
+        expect(replacement?.[0].lines.map((line) => line.amount)).toEqual([
+          payload.amount,
+          payload.amount,
+        ]);
+        expect(replacement?.[2].header.action).toBe(
+          EJournalEntryAuditAction.Created
+        );
+        expect(entry.status).toBe(EJournalEntryStatus.Posted);
+        expect(mockJournalEntryRepo.create).not.toHaveBeenCalled();
+        expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod.mock.calls
+        ).toEqual([
+          [entry.accountingEntityId, effectiveDate, lockedReadOptions],
+        ]);
+      });
+
+      it('voids and replaces the original even when the amount is identical', async () => {
+        const payload = await makeCorrectionFixture();
+        const amount = payload.entry.lines[0].amount;
+
+        const { voided, replacement } = await service.voidAndReplace(
+          { ...payload, amount },
+          transactionOptions
+        );
+
+        expect(replacement?.[0].id).not.toBe(payload.entry.id);
+        expect(replacement?.[0].lines[0].amount).toEqual(amount);
+        expect(voided[0]).toMatchObject({
+          id: payload.entry.id,
+          status: EJournalEntryStatus.Voided,
+          voidingEntryId: payload.voidingEntryId,
+        });
+      });
+
+      it('returns the original voided journal and skips replacement on retry', async () => {
+        const payload = await makeCorrectionFixture();
+        const {
+          voided: [entry],
+        } = await service.voidAndReplace(payload, transactionOptions);
+        mockLedgerAccountRepo.findBySubType.mockClear();
+        mockJournalEntryRepo.existsPostedByAccountId.mockClear();
+        mockAccountingPeriodService.validatePostingPeriod.mockClear();
+
+        const { voided, replacement } = await service.voidAndReplace(
+          { ...payload, entry },
+          transactionOptions
+        );
+
+        expect(voided[0]).toBe(entry);
+        expect(voided[1]).toEqual([]);
+        expect(voided[2]).toBeNull();
+        expect(replacement).toBeNull();
+        expect(mockLedgerAccountRepo.findBySubType).not.toHaveBeenCalled();
+        expect(
+          mockJournalEntryRepo.existsPostedByAccountId
+        ).not.toHaveBeenCalled();
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod
+        ).not.toHaveBeenCalled();
+      });
+
+      it('rejects a draft opening journal', async () => {
+        const payload = await makeCorrectionFixture();
+        const [entry] = await service.createDraft(
+          {
+            ...payload,
+            accountingEntityId: payload.entry.accountingEntityId,
+            effectiveDate,
+            functionalCurrencyCode: 'NGN',
+          },
+          transactionOptions
+        );
+
+        await expect(
+          service.voidAndReplace({ ...payload, entry }, transactionOptions)
+        ).rejects.toBeInstanceOf(journalEntryError.RectificationNotPermitted);
+      });
+
+      it('rejects a correction for the equity counterpart', async () => {
+        const payload = await makeCorrectionFixture();
+
+        await expect(
+          service.voidAndReplace(
+            { ...payload, account: payload.equity },
+            transactionOptions
+          )
+        ).rejects.toBeInstanceOf(journalEntryError.RectificationNotPermitted);
+      });
+
+      it('rejects posted history effective before the opening date', async () => {
+        const payload = await makeCorrectionFixture();
+        mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValueOnce(
+          true
+        );
+
+        await expect(
+          service.voidAndReplace(payload, transactionOptions)
+        ).rejects.toBeInstanceOf(ledgerAccountError.OpeningBalanceLocked);
+
+        expect(
+          mockJournalEntryRepo.existsPostedByAccountId
+        ).toHaveBeenLastCalledWith(
+          payload.account.id,
+          payload.entry.accountingEntityId,
+          transactionOptions,
+          effectiveDate
+        );
+      });
+
+      it('rejects a closed replacement period', async () => {
+        const payload = await makeCorrectionFixture();
+        const failure = new periodError.PostingPeriodNotOpen();
+        mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
+          failure
+        );
+
+        await expect(
+          service.voidAndReplace(payload, transactionOptions)
+        ).rejects.toBe(failure);
+        expect(payload.entry.status).toBe(EJournalEntryStatus.Posted);
+      });
     });
 
     it('creates a posted opening balance with the configured equity account', async () => {
@@ -628,9 +651,6 @@ describe('openingBalanceEntryService', () => {
       ]);
       expect(events).toHaveLength(3);
       expect(audit.header.action).toBe(EJournalEntryAuditAction.Created);
-      expect(
-        mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId
-      ).toHaveBeenCalledWith(fixture.postingAccount.id, repoOptions);
       expect(mockLedgerAccountRepo.findBySubType).toHaveBeenCalledWith(
         fixture.accountingEntity.id,
         ELedgerType.Equity,
@@ -694,8 +714,9 @@ describe('openingBalanceEntryService', () => {
           fixture.equityAccount,
         ]);
 
-        mockLedgerAccountRepo.findById.mockResolvedValue(null);
-        const [entry] = await service.createInitial(
+        const create =
+          status === 'draft' ? service.createDraft : service.create;
+        const [entry] = await create(
           {
             ...makeOpeningBalancePayload(fixture),
             account,
@@ -745,12 +766,28 @@ describe('openingBalanceEntryService', () => {
         journalEntryError.ControlAccountOpeningBalanceNotAllowed
       );
       expect(
-        mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId
+        mockJournalEntryRepo.existsOpeningBalanceByAccountId
       ).not.toHaveBeenCalled();
       expect(mockLedgerAccountRepo.findBySubType).not.toHaveBeenCalled();
     });
 
-    it('rejects an account with an existing opening balance date before repository checks', async () => {
+    it('rejects an invalid effective date before reading posting history', async () => {
+      const payload = makeOpeningBalancePayload(
+        await makeOpeningBalanceFixture()
+      );
+
+      await expect(
+        service.create(
+          { ...payload, effectiveDate: new Date(NaN) },
+          repoOptions
+        )
+      ).rejects.toBeInstanceOf(journalEntryError.InvalidEffectiveDate);
+      expect(
+        mockJournalEntryRepo.existsPostedByAccountId
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects an opening date mismatch before repository checks', async () => {
       const fixture = await makeOpeningBalanceFixture();
 
       await expect(
@@ -764,37 +801,10 @@ describe('openingBalanceEntryService', () => {
           },
           repoOptions
         )
-      ).rejects.toThrow(journalEntryError.ExistingOpeningBalance);
+      ).rejects.toThrow(journalEntryError.InvalidOpeningBalanceDate);
       expect(
-        mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId
+        mockJournalEntryRepo.existsOpeningBalanceByAccountId
       ).not.toHaveBeenCalled();
-    });
-
-    it('rejects an account with an existing balance adjustment', async () => {
-      const fixture = await makeOpeningBalanceFixture();
-      const balance = ledgerAccountBalanceEntity.make({
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        ledgerAccountId: fixture.postingAccount.id,
-        accountingEntityId: fixture.accountingEntity.id,
-        accountMaterializedPath: fixture.postingAccount.materializedPath,
-        currencyCode: SYSTEM_CURRENCIES.NGN.code,
-        functionalCurrencyCode: SYSTEM_CURRENCIES.NGN.code,
-      });
-      const { adjustment } = ledgerAccountBalanceEntity.adjust(balance, {
-        ledgerAccountId: fixture.postingAccount.id,
-        amount: fixture.amount,
-        functionalAmount: fixture.amount,
-        journalEntryId: generateUUID(),
-        createdBy: fixture.user.actorId,
-      });
-      mockLedgerAccountBalanceRepo.findAdjustmentsByAccountId.mockResolvedValue(
-        [adjustment]
-      );
-
-      await expect(
-        service.create(makeOpeningBalancePayload(fixture), repoOptions)
-      ).rejects.toThrow(journalEntryError.ExistingOpeningBalance);
-      expect(mockLedgerAccountRepo.findBySubType).not.toHaveBeenCalled();
     });
 
     it('rejects when the opening balance equity account is not configured', async () => {
@@ -1001,7 +1011,7 @@ describe('openingBalanceEntryService', () => {
           mockAccountingPeriodService.validatePostingPeriod
         ).toHaveBeenCalledWith(
           payload.entry.accountingEntityId,
-          timestamp,
+          effectiveDate,
           repoOptions
         );
         expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
@@ -1097,6 +1107,21 @@ describe('openingBalanceEntryService', () => {
           repoOptions
         )
       ).rejects.toBeInstanceOf(journalEntryError.InvalidOpeningBalanceDate);
+    });
+
+    it('rejects posting when existing activity predates the proposed opening date', async () => {
+      const payload = fixture();
+      mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValueOnce(true);
+
+      await expect(
+        service.postDraft(payload, repoOptions)
+      ).rejects.toBeInstanceOf(ledgerAccountError.OpeningBalanceLocked);
+      expect(mockJournalEntryRepo.existsPostedByAccountId).toHaveBeenCalledWith(
+        payload.account.id,
+        payload.entry.accountingEntityId,
+        repoOptions,
+        payload.entry.effectiveDate
+      );
     });
 
     it('rejects a closed posting period', async () => {

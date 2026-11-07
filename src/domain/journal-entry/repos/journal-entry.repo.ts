@@ -21,8 +21,16 @@ export default interface IJournalEntryRepo {
     options: IReadRepoOptions
   ): Promise<boolean>;
 
-  /** Checks historical posting activity, including entries later archived or reversed. */
+  /** Checks historical postings, optionally restricted to dates before effectiveBefore. */
   existsPostedByAccountId(
+    accountId: TEntityId,
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions,
+    effectiveBefore?: Date
+  ): Promise<boolean>;
+
+  /** Checks for an opening journal associated with the account, including drafts. */
+  existsOpeningBalanceByAccountId(
     accountId: TEntityId,
     accountingEntityId: TEntityId,
     options: IReadRepoOptions
@@ -63,6 +71,7 @@ export default interface IJournalEntryRepo {
 
   delete(id: TEntityId, options: IVersionedRepoWriteOptions): Promise<void>;
 
+  // TODO: mandate accounting entity id
   findById(
     id: TEntityId,
     options: IReadRepoOptions

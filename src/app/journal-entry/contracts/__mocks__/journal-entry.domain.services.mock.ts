@@ -19,9 +19,10 @@ export const mockJournalEntryRemovalService: jest.Mocked<IJournalEntryRemovalSer
 export const mockOpeningBalanceEntryService: jest.Mocked<IOpeningBalanceEntryService> =
   {
     create: jest.fn(),
-    createInitial: jest.fn(),
-    createOrRevise: jest.fn(),
+    createDraft: jest.fn(),
+    updateDraft: jest.fn(),
     postDraft: jest.fn(),
+    voidAndReplace: jest.fn(),
   };
 
 export const mockPaymentEntryService: jest.Mocked<IPaymentEntryService> = {

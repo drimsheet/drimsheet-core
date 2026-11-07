@@ -20,6 +20,7 @@
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
+import { ERepoLock } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
@@ -30,6 +31,7 @@ import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.t
 import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
@@ -66,61 +68,66 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
     ]);
     const repoOptions = { correlationId };
 
-    const account = await deps.ledgerAccountRepo.findById(
-      payload.accountId as TEntityId,
-      accountingEntity.id,
-      repoOptions
-    );
-
-    if (!account) {
-      throw new ledgerAppError.AccountNotFound();
-    }
-
-    const openingBalanceCreation = await deps.openingBalanceEntryService.create(
-      {
-        accountingEntityId: accountingEntity.id,
-        functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
-        account,
-        amount: moneyMapper.fromDto(payload.amount),
-        effectiveDate: payload.date,
-        exchangeRate: payload.exchangeRate
-          ? exchangeRateValue.make(payload.exchangeRate)
-          : null,
-        createdBy: actor.id,
-      },
-      repoOptions
-    );
-    const [journalEntry, journalEvents, audit] = openingBalanceCreation;
-
-    const isPosted = journalEntry.status === EJournalEntryStatus.Posted;
-    const fxAcquisition = isPosted
-      ? await deps.fxLotAppService.acquire(
-          { journalEntry, account, actor: actor.id },
-          repoOptions
-        )
-      : null;
-
-    const accountUpdate = ledgerAccountEntity.updateOpeningBalanceDate(
-      account,
-      payload.date
-    );
-    const [updatedAccount, accountEvents, accountAudit] = accountUpdate;
-
-    const accountHistory = accountAudit
-      ? historyValue.make(accountAudit, actor.id, correlationId)
-      : null;
-    const headerHistory = historyValue.make(
-      audit.header,
-      actor.id,
-      correlationId
-    );
-    const lineHistories = audit.lines.map((lineAudit) =>
-      historyValue.make(lineAudit, actor.id, correlationId)
-    );
-
     const transaction = await deps.repoService.createTransaction();
     try {
       const writeRepoOptions = { ...repoOptions, tx: transaction.context };
+
+      // Serialize opening-journal creation and account-date assignment.
+      const account = await deps.ledgerAccountRepo.findById(
+        payload.accountId as TEntityId,
+        accountingEntity.id,
+        { ...writeRepoOptions, lock: ERepoLock.Update }
+      );
+
+      if (!account) {
+        throw new ledgerAppError.AccountNotFound();
+      }
+
+      const createOpeningBalance =
+        account.status === ELedgerAccountStatus.Draft
+          ? deps.openingBalanceEntryService.createDraft
+          : deps.openingBalanceEntryService.create;
+      const openingBalanceCreation = await createOpeningBalance(
+        {
+          accountingEntityId: accountingEntity.id,
+          functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
+          account,
+          amount: moneyMapper.fromDto(payload.amount),
+          effectiveDate: payload.date,
+          exchangeRate: payload.exchangeRate
+            ? exchangeRateValue.make(payload.exchangeRate)
+            : null,
+          createdBy: actor.id,
+        },
+        writeRepoOptions
+      );
+      const [journalEntry, journalEvents, audit] = openingBalanceCreation;
+
+      const isPosted = journalEntry.status === EJournalEntryStatus.Posted;
+      const fxAcquisition = isPosted
+        ? await deps.fxLotAppService.acquire(
+            { journalEntry, account, actor: actor.id },
+            writeRepoOptions
+          )
+        : null;
+
+      const accountUpdate = ledgerAccountEntity.updateOpeningBalanceDate(
+        account,
+        payload.date
+      );
+      const [updatedAccount, accountEvents, accountAudit] = accountUpdate;
+
+      const accountHistory = accountAudit
+        ? historyValue.make(accountAudit, actor.id, correlationId)
+        : null;
+      const headerHistory = historyValue.make(
+        audit.header,
+        actor.id,
+        correlationId
+      );
+      const lineHistories = audit.lines.map((lineAudit) =>
+        historyValue.make(lineAudit, actor.id, correlationId)
+      );
 
       if (accountHistory) {
         await deps.ledgerAccountRepo.update(updatedAccount, {

@@ -1,4 +1,5 @@
-import { IReadRepoOptions } from '@shared/types/repo.types';
+import { ERepoLock, IReadRepoOptions } from '@shared/types/repo.types';
+import dateUtils from '@shared/utils/date';
 
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
@@ -20,34 +21,28 @@ import {
   IOpeningBalanceJournalPayload,
 } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
-import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import openingBalanceCurrencyInvarianceRule from '@domain/ledger/rules/opening-balance-currency-invariance.rule';
 import { EEquitySubType } from '@domain/ledger/types/equity-account.types';
-import {
-  ELedgerAccountStatus,
-  ELedgerType,
-} from '@domain/ledger/types/ledger.types';
+import { ELedgerType } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 import moneyValue from '@domain/money/values/money.vo';
 
 interface IDependencies {
   journalEntryRepo: IJournalEntryRepo;
-  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
   ledgerAccountRepo: ILedgerAccountRepo;
   accountingPeriodService: IAccountingPeriodService;
 }
 
 /**
  * Builds the two-sided opening journal from the configured equity account.
- * Reads existing balance adjustments and equity configuration using the caller's
- * repository options, then delegates validity checks and creation to domain
- * rules and entities. Draft accounts produce draft journals; active accounts
- * produce posted journals. Returns events and audits without persisting them.
+ * Checks the configured accounts and returns the journal, events, and audit.
  */
 async function makeOpeningBalance(
   deps: IDependencies,
-  payload: IOpeningBalanceJournalPayload,
+  payload: IOpeningBalanceJournalPayload &
+    Partial<Pick<IJournalEntry, 'memo' | 'attachments'>>,
+  postedAt: Date | null,
   repoOptions: IReadRepoOptions
 ) {
   const {
@@ -58,6 +53,8 @@ async function makeOpeningBalance(
     effectiveDate,
     exchangeRate,
     createdBy,
+    memo = 'Opening balance',
+    attachments,
   } = payload;
 
   const functionalCurrency = currencyEntity.getByCode(functionalCurrencyCode);
@@ -67,19 +64,6 @@ async function makeOpeningBalance(
   const functionalAmount = exchangeRate
     ? moneyValue.convert(amount, exchangeRate, functionalCurrency)
     : amount;
-
-  openingBalanceValidation.validatePostingAccount(account);
-
-  const [existingBalanceAdjustment] =
-    await deps.ledgerAccountBalanceRepo.findAdjustmentsByAccountId(
-      account.id,
-      repoOptions
-    );
-
-  openingBalanceValidation.validateNoBalanceAdjustments(
-    account.id,
-    Boolean(existingBalanceAdjustment)
-  );
 
   const [equityAccount] = await deps.ledgerAccountRepo.findBySubType(
     accountingEntityId,
@@ -96,8 +80,6 @@ async function makeOpeningBalance(
     openingBalanceEntryRule
   );
 
-  const postedAt =
-    account.status === ELedgerAccountStatus.Draft ? null : effectiveDate;
   const headerValidationPayload = {
     accountingEntityId,
     effectiveDate,
@@ -143,186 +125,155 @@ async function makeOpeningBalance(
     sourceType: EJournalEntrySourceType.OpeningBalance,
     effectiveDate,
     postedAt,
-    memo: 'Opening balance',
+    memo,
+    attachments,
     createdBy,
     functionalCurrency,
     lines: [accountSide, equitySide],
   });
 }
 
-/**
- * Creates an audited journal for an account without a recorded opening date.
- * Draft accounts produce draft journals and active accounts produce postings.
- */
+/** Creates a posted opening journal after checking posting eligibility. */
 function makeCreate(
   deps: IDependencies
 ): IOpeningBalanceEntryService['create'] {
   return async (payload, repoOptions) => {
-    openingBalanceValidation.validateNoOpeningBalance(payload.account);
-
-    return makeOpeningBalance(deps, payload, repoOptions);
-  };
-}
-
-/**
- * Creates an initial journal for an unpersisted account within the caller's
- * transaction. Validates its opening date and posting period before building
- * the journal. Rejects invalid state or read failures; returns an audited
- * journal tuple without persistence, event publication or FX acquisition.
- */
-function makeCreateInitial(
-  deps: IDependencies
-): IOpeningBalanceEntryService['createInitial'] {
-  return async (payload, repoOptions) => {
-    if (!repoOptions.tx) {
-      throw new journalEntryError.InitialOpeningBalanceTransactionRequired();
+    const { account, accountingEntityId, effectiveDate } = payload;
+    openingBalanceValidation.validatePostingAccount(account);
+    if (account.openingBalanceDate !== null) {
+      openingBalanceValidation.validateOpeningDateMatch(account, effectiveDate);
     }
-    const { account } = payload;
-    openingBalanceValidation.validateInitialDate(
-      account,
-      payload.effectiveDate
-    );
-    const existing = await deps.ledgerAccountRepo.findById(
-      account.id,
-      account.accountingEntityId,
-      repoOptions
-    );
-    openingBalanceValidation.validateUnpersistedAccount(
-      account.id,
-      Boolean(existing)
-    );
 
-    await deps.accountingPeriodService.validatePostingPeriod(
-      payload.accountingEntityId,
-      payload.effectiveDate,
-      repoOptions
-    );
-
-    return makeOpeningBalance(deps, payload, repoOptions);
-  };
-}
-
-/**
- * Revises the draft in place, preserving entry and line identities. Rejects
- * invalid state or a closed posting period before returning the audited result.
- */
-async function reviseDraft(
-  deps: IDependencies,
-  payload: IOpeningBalanceJournalPayload,
-  originalEntry: IJournalEntry,
-  repoOptions: IReadRepoOptions
-) {
-  openingBalanceRevisionValidation.validateSourceType(originalEntry);
-  openingBalanceRevisionValidation.validateStatus(originalEntry);
-  openingBalanceRevisionValidation.validateAccountAssociation(
-    originalEntry,
-    payload.account
-  );
-
-  await deps.accountingPeriodService.validatePostingPeriod(
-    payload.accountingEntityId,
-    payload.effectiveDate,
-    repoOptions
-  );
-
-  const [revisedOpeningBalance] = await makeOpeningBalance(
-    deps,
-    {
-      ...payload,
-      account: {
-        ...payload.account,
-        openingBalanceDate: payload.effectiveDate,
-      },
-    },
-    repoOptions
-  );
-  openingBalanceRevisionValidation.validateLineSequences(
-    originalEntry,
-    revisedOpeningBalance
-  );
-  const lines = revisedOpeningBalance.lines.map((line) => {
-    const originalLine = originalEntry.lines.find(
-      (candidate) => candidate.sequenceOrder === line.sequenceOrder
-    )!;
-
-    return Object.freeze({ ...line, id: originalLine.id });
-  });
-
-  return journalEntryEntity.update(
-    originalEntry,
-    {
-      id: originalEntry.id,
-      effectiveDate: revisedOpeningBalance.effectiveDate,
-      postedAt: revisedOpeningBalance.postedAt,
-      status: revisedOpeningBalance.status,
-      lines,
-    },
-    payload.createdBy
-  );
-}
-
-/**
- * Prepares an opening journal change under the caller's account lock. Rejects
- * historical postings before looking for a draft and propagates read failures.
- */
-function makeCreateOrRevise(
-  deps: IDependencies
-): IOpeningBalanceEntryService['createOrRevise'] {
-  const create = makeCreate(deps);
-
-  return async (payload, repoOptions) => {
-    const { account, accountingEntityId } = payload;
-    const hasPostedEntries =
-      await deps.journalEntryRepo.existsPostedByAccountId(
+    const hasOpeningJournal =
+      await deps.journalEntryRepo.existsOpeningBalanceByAccountId(
         account.id,
         accountingEntityId,
         repoOptions
       );
-    if (hasPostedEntries) {
+    if (hasOpeningJournal) {
+      throw new journalEntryError.ExistingOpeningBalance({
+        accountId: account.id,
+      });
+    }
+
+    dateUtils.validateDate(
+      effectiveDate,
+      journalEntryError.InvalidEffectiveDate
+    );
+
+    const hasEarlierPosting =
+      await deps.journalEntryRepo.existsPostedByAccountId(
+        account.id,
+        accountingEntityId,
+        repoOptions,
+        effectiveDate
+      );
+    if (hasEarlierPosting) {
       throw new ledgerAccountError.OpeningBalanceLocked({
         accountId: account.id,
       });
     }
 
-    const originalEntry =
-      await deps.journalEntryRepo.findDraftOpeningBalanceByAccountId(
+    const periodReadOptions = repoOptions.tx
+      ? { ...repoOptions, lock: ERepoLock.Share }
+      : repoOptions;
+    await deps.accountingPeriodService.validatePostingPeriod(
+      accountingEntityId,
+      effectiveDate,
+      periodReadOptions
+    );
+
+    return makeOpeningBalance(deps, payload, effectiveDate, repoOptions);
+  };
+}
+
+/** Creates a draft opening journal after checking for an existing opening journal. */
+function makeCreateDraft(
+  deps: IDependencies
+): IOpeningBalanceEntryService['createDraft'] {
+  return async (payload, repoOptions) => {
+    const { account, accountingEntityId, effectiveDate } = payload;
+    openingBalanceValidation.validatePostingAccount(account);
+    if (account.openingBalanceDate !== null) {
+      openingBalanceValidation.validateOpeningDateMatch(account, effectiveDate);
+    }
+
+    const hasOpeningJournal =
+      await deps.journalEntryRepo.existsOpeningBalanceByAccountId(
         account.id,
         accountingEntityId,
         repoOptions
       );
-    if (!originalEntry) {
-      const creation = await create(payload, repoOptions);
-      const [currentJournalEntry, events] = creation;
-      return {
-        currentJournalEntry,
-        entriesToCreate: [creation],
-        entryUpdate: null,
-        events,
-      };
+    if (hasOpeningJournal) {
+      throw new journalEntryError.ExistingOpeningBalance({
+        accountId: account.id,
+      });
     }
 
-    const revision = await reviseDraft(
+    return makeOpeningBalance(deps, payload, null, repoOptions);
+  };
+}
+
+/** Updates a draft in place without posting it or changing its line identities. */
+function makeUpdateDraft(
+  deps: IDependencies
+): IOpeningBalanceEntryService['updateDraft'] {
+  return async ({ entry, ...payload }, repoOptions) => {
+    const { account, accountingEntityId, effectiveDate } = payload;
+    openingBalanceRevisionValidation.validateSourceType(entry);
+    openingBalanceRevisionValidation.validateStatus(entry);
+    openingBalanceRevisionValidation.validateAccountAssociation(entry, account);
+    openingBalanceValidation.validatePostingAccount(account);
+    openingBalanceValidation.validateOpeningDateMatch(account, effectiveDate);
+
+    dateUtils.validateDate(
+      effectiveDate,
+      journalEntryError.InvalidEffectiveDate
+    );
+
+    const hasEarlierPosting =
+      await deps.journalEntryRepo.existsPostedByAccountId(
+        account.id,
+        accountingEntityId,
+        repoOptions,
+        effectiveDate
+      );
+    if (hasEarlierPosting) {
+      throw new ledgerAccountError.OpeningBalanceLocked({
+        accountId: account.id,
+      });
+    }
+
+    const periodReadOptions = repoOptions.tx
+      ? { ...repoOptions, lock: ERepoLock.Share }
+      : repoOptions;
+    await deps.accountingPeriodService.validatePostingPeriod(
+      accountingEntityId,
+      effectiveDate,
+      periodReadOptions
+    );
+
+    const [revised] = await makeOpeningBalance(
       deps,
       payload,
-      originalEntry,
+      null,
       repoOptions
     );
-    const [currentJournalEntry, events, audit] = revision;
-    const entryUpdate = audit
-      ? {
-          entry: currentJournalEntry,
-          expectedVersion: originalEntry.version,
-          headerAudit: audit.header,
-          lineAudits: audit.lines,
-          linesToCreate: [],
-          linesToUpdate: currentJournalEntry.lines.filter((line) =>
-            audit.lines.some((lineAudit) => lineAudit.entityId === line.id)
-          ),
-          lineIdsToDelete: [],
-        }
-      : null;
+    openingBalanceRevisionValidation.validateLineSequences(entry, revised);
 
-    return { currentJournalEntry, entriesToCreate: [], entryUpdate, events };
+    const lines = revised.lines.map((line) => {
+      const originalLine = entry.lines.find(
+        (candidate) => candidate.sequenceOrder === line.sequenceOrder
+      )!;
+
+      return Object.freeze({ ...line, id: originalLine.id });
+    });
+
+    return journalEntryEntity.update(
+      entry,
+      { id: entry.id, effectiveDate, lines },
+      payload.createdBy
+    );
   };
 }
 
@@ -334,10 +285,12 @@ function makePostDraft(
   deps: IDependencies
 ): IOpeningBalanceEntryService['postDraft'] {
   return async ({ entry, account, actor }, repoOptions) => {
+    const { accountingEntityId, effectiveDate } = entry;
+
     openingBalanceRevisionValidation.validateSourceType(entry);
     openingBalanceRevisionValidation.validateStatus(entry);
     openingBalanceRevisionValidation.validateAccountAssociation(entry, account);
-    openingBalanceValidation.validateInitialDate(account, entry.effectiveDate);
+    openingBalanceValidation.validateOpeningDateMatch(account, effectiveDate);
 
     const counterpartIds = [
       ...new Set(
@@ -348,7 +301,7 @@ function makePostDraft(
     ];
     const counterparts = await deps.ledgerAccountRepo.findAllByIds(
       counterpartIds,
-      entry.accountingEntityId,
+      accountingEntityId,
       repoOptions
     );
 
@@ -375,16 +328,38 @@ function makePostDraft(
     const postingDate = new Date();
     journalEntryServiceValidation.validateAccounts(
       {
-        accountingEntityId: entry.accountingEntityId,
-        effectiveDate: entry.effectiveDate,
+        accountingEntityId,
+        effectiveDate,
         postedAt: postingDate,
       },
       journalLines
     );
+
+    dateUtils.validateDate(
+      effectiveDate,
+      journalEntryError.InvalidEffectiveDate
+    );
+
+    const hasEarlierPosting =
+      await deps.journalEntryRepo.existsPostedByAccountId(
+        account.id,
+        accountingEntityId,
+        repoOptions,
+        effectiveDate
+      );
+    if (hasEarlierPosting) {
+      throw new ledgerAccountError.OpeningBalanceLocked({
+        accountId: account.id,
+      });
+    }
+
+    const periodReadOptions = repoOptions.tx
+      ? { ...repoOptions, lock: ERepoLock.Share }
+      : repoOptions;
     await deps.accountingPeriodService.validatePostingPeriod(
-      entry.accountingEntityId,
-      postingDate,
-      repoOptions
+      accountingEntityId,
+      effectiveDate,
+      periodReadOptions
     );
 
     return journalEntryEntity.update(
@@ -399,14 +374,80 @@ function makePostDraft(
   };
 }
 
+/** Voids a posted opening journal and creates its replacement on the original date. */
+function makeVoidAndReplace(
+  deps: IDependencies
+): IOpeningBalanceEntryService['voidAndReplace'] {
+  return async ({ entry, voidingEntryId, ...payload }, repoOptions) => {
+    const { account } = payload;
+    const { accountingEntityId, effectiveDate } = entry;
+    openingBalanceRevisionValidation.validateSourceType(entry);
+    openingBalanceRevisionValidation.validateOpeningAccount(entry, account);
+    openingBalanceValidation.validatePostingAccount(account);
+    openingBalanceValidation.validateOpeningDateMatch(account, effectiveDate);
+
+    dateUtils.validateDate(
+      effectiveDate,
+      journalEntryError.InvalidEffectiveDate
+    );
+
+    const voided = journalEntryEntity.void(entry, { voidingEntryId });
+    const [, , audit] = voided;
+
+    if (audit === null) {
+      return { voided, replacement: null };
+    }
+
+    const hasEarlierPosting =
+      await deps.journalEntryRepo.existsPostedByAccountId(
+        account.id,
+        accountingEntityId,
+        repoOptions,
+        effectiveDate
+      );
+
+    if (hasEarlierPosting) {
+      throw new ledgerAccountError.OpeningBalanceLocked({
+        accountId: account.id,
+      });
+    }
+
+    const periodReadOptions = repoOptions.tx
+      ? { ...repoOptions, lock: ERepoLock.Share }
+      : repoOptions;
+    await deps.accountingPeriodService.validatePostingPeriod(
+      accountingEntityId,
+      effectiveDate,
+      periodReadOptions
+    );
+
+    const replacement = await makeOpeningBalance(
+      deps,
+      {
+        ...payload,
+        accountingEntityId,
+        effectiveDate,
+        functionalCurrencyCode: entry.lines[0].functionalAmount.currency.code,
+        memo: entry.memo,
+        attachments: entry.attachments,
+      },
+      new Date(),
+      repoOptions
+    );
+
+    return { voided, replacement };
+  };
+}
+
 export default function makeOpeningBalanceEntryService(
   deps: IDependencies
 ): IOpeningBalanceEntryService {
   const service: IOpeningBalanceEntryService = {
     create: makeCreate(deps),
-    createInitial: makeCreateInitial(deps),
-    createOrRevise: makeCreateOrRevise(deps),
+    createDraft: makeCreateDraft(deps),
+    updateDraft: makeUpdateDraft(deps),
     postDraft: makePostDraft(deps),
+    voidAndReplace: makeVoidAndReplace(deps),
   };
 
   return Object.freeze(service);

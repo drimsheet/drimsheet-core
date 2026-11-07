@@ -277,8 +277,6 @@
   "journal_entry_error_entry_predates_account_opening_balance_invalid",
   "journal_entry_error_entry_source_account_invalid",
   "journal_entry_error_existing_opening_balance_conflict",
-  "journal_entry_error_initial_opening_balance_account_already_exists_conflict",
-  "journal_entry_error_initial_opening_balance_transaction_required_unexpected",
   "journal_entry_error_journal_entry_invalid",
   "journal_entry_error_journal_line_account_currency_mismatch_invalid",
   "journal_entry_error_journal_line_account_id_invalid",
