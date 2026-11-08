@@ -20,9 +20,18 @@ import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 import { TJournalEntryRectificationReq } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
 import { IGetJournalEntriesQuery } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { IJournalEntryMetaUpdateReq } from '@app/journal-entry/dtos/meta-update/meta-update.dto';
-import { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
-import { IReceiptEntryReq } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto';
-import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
+import {
+  IPaymentEntryReq,
+  IUpdateDraftPaymentReq,
+} from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
+import {
+  IReceiptEntryReq,
+  IUpdateDraftReceiptReq,
+} from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto';
+import {
+  ITransferEntryReq,
+  IUpdateDraftTransferReq,
+} from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
@@ -38,6 +47,9 @@ import {
   postDraftReceiptUseCase,
   postDraftTransferUseCase,
   rectifyJournalEntryUseCase,
+  updateDraftPaymentUseCase,
+  updateDraftReceiptUseCase,
+  updateDraftTransferUseCase,
   updateJournalEntryMetaUseCase,
 } from '@infra/ioc/usecases/journal-entry';
 
@@ -190,6 +202,75 @@ export class JournalEntryController extends Controller {
     @Body() body: TJournalEntryRectificationReq
   ) {
     return rectifyJournalEntryUseCase(id, body);
+  }
+
+  /** Updates the memo or lines of an existing draft payment. */
+  @Patch('/payment/{id}')
+  @OperationId('updateDraftPayment')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateDraftPayment(
+    @Path() id: string,
+    @Body() body: IUpdateDraftPaymentReq
+  ) {
+    return updateDraftPaymentUseCase(id, body);
+  }
+
+  /** Updates the memo or lines of an existing draft receipt. */
+  @Patch('/receipt/{id}')
+  @OperationId('updateDraftReceipt')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateDraftReceipt(
+    @Path() id: string,
+    @Body() body: IUpdateDraftReceiptReq
+  ) {
+    return updateDraftReceiptUseCase(id, body);
+  }
+
+  /** Updates the memo or lines of an existing draft transfer. */
+  @Patch('/transfer/{id}')
+  @OperationId('updateDraftTransfer')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateDraftTransfer(
+    @Path() id: string,
+    @Body() body: IUpdateDraftTransferReq
+  ) {
+    return updateDraftTransferUseCase(id, body);
   }
 
   /** Posts only the associated draft opening balance, preserving the ledger account's status. Requires a draft opening-balance journal and an active posting account. */

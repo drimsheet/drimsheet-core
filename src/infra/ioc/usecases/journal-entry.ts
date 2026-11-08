@@ -11,6 +11,9 @@ import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-
 import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
+import makeUpdateDraftPaymentUsecase from '@app/journal-entry/usecases/update-draft-payment.usecase';
+import makeUpdateDraftReceiptUsecase from '@app/journal-entry/usecases/update-draft-receipt.usecase';
+import makeUpdateDraftTransferUsecase from '@app/journal-entry/usecases/update-draft-transfer.usecase';
 import makeUpdateJournalEntryMetaUsecase from '@app/journal-entry/usecases/update-journal-entry-meta.usecase';
 
 import { fileManagementAppService } from '@infra/ioc/services/file';
@@ -44,6 +47,45 @@ export const updateJournalEntryMetaUseCase = makeTracedUseCase(
     journalEntryRepo: journalEntryRepos.journalEntry,
     journalLineRepo: journalEntryRepos.journalLine,
     repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const updateDraftPaymentUseCase = makeTracedUseCase(
+  'journalEntry.updateDraftPaymentUseCase',
+  makeUpdateDraftPaymentUsecase({
+    appContext,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    paymentEntryService,
+    journalEntryPersistenceAppService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const updateDraftReceiptUseCase = makeTracedUseCase(
+  'journalEntry.updateDraftReceiptUseCase',
+  makeUpdateDraftReceiptUsecase({
+    appContext,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    receiptEntryService,
+    journalEntryPersistenceAppService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const updateDraftTransferUseCase = makeTracedUseCase(
+  'journalEntry.updateDraftTransferUseCase',
+  makeUpdateDraftTransferUsecase({
+    appContext,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    transferEntryService,
+    journalEntryPersistenceAppService,
     eventBus: messaging.eventBus,
   })
 );

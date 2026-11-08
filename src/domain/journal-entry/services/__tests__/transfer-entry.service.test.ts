@@ -772,6 +772,185 @@ describe('transferEntryService', () => {
     );
   });
 
+  describe('updateDraft', () => {
+    async function makeDraftUpdate(
+      postedAt: Date | null = null,
+      withCharge = false
+    ) {
+      const fixture = makeTransferFixture(postedAt);
+      const { payload, bankChargeAccount, bankCounterparty } = fixture;
+      if (withCharge) {
+        payload.sourceLine.amount = moneyValue.make(
+          10_200n,
+          SYSTEM_CURRENCIES.NGN,
+          true
+        );
+        payload.destinationLines.unshift({
+          account: bankChargeAccount,
+          counterparty: bankCounterparty,
+          sequenceOrder: 3,
+          amount: moneyValue.make(200n, SYSTEM_CURRENCIES.NGN, true),
+          exchangeRate: null,
+          description: 'Bank charge',
+          meta: null,
+        });
+      }
+      const {
+        journalEntry: [entry],
+      } = await service.create(payload, repoOptions);
+      mockAccountingPeriodService.validatePostingPeriod.mockClear();
+      mockLedgerAccountBalanceRepo.findByAccountId.mockClear();
+
+      return {
+        entry,
+        actor: payload.header.createdBy,
+        accounts: [
+          fixture.sourceAccount,
+          fixture.destinationAccount,
+          bankChargeAccount,
+        ],
+        counterparties: [bankCounterparty],
+      };
+    }
+
+    it('adds a charge with a partial source edit and keeps the destination', async () => {
+      const draft = await makeDraftUpdate();
+      const [source, destination] = draft.entry.lines;
+      const [updated, events, audit] = service.updateDraft({
+        ...draft,
+        sourceLine: {
+          amount: moneyValue.make(10_200n, SYSTEM_CURRENCIES.NGN, true),
+        },
+        chargeLines: [
+          {
+            accountId: draft.accounts[2].id,
+            counterpartyId: draft.counterparties[0].id,
+            amount: moneyValue.make(200n, SYSTEM_CURRENCIES.NGN, true),
+            sequenceOrder: 3,
+          },
+        ],
+      });
+
+      expect(updated.id).toBe(draft.entry.id);
+      expect(updated.status).toBe(EJournalEntryStatus.Draft);
+      expect(updated.postedAt).toBeNull();
+      expect(updated.attachments).toEqual(draft.entry.attachments);
+      expect(updated.lines[0].id).toBe(source.id);
+      expect(updated.lines[1]).toBe(destination);
+      expect(updated.lines[2]).toMatchObject({
+        accountId: draft.accounts[2].id,
+        counterpartyId: draft.counterparties[0].id,
+        side: EJournalSide.Debit,
+      });
+      expect(audit?.lines).toHaveLength(2);
+      expect(events).toHaveLength(3);
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceRepo.findByAccountId
+      ).not.toHaveBeenCalled();
+    });
+
+    it('uses the asset account to find the destination when the charge comes first', async () => {
+      const draft = await makeDraftUpdate(null, true);
+      const [, charge, destination] = draft.entry.lines;
+      const [updated] = service.updateDraft({
+        ...draft,
+        destinationLine: { id: destination.id, description: null },
+      });
+
+      expect(updated.lines[1]).toBe(charge);
+      expect(updated.lines[2]).toMatchObject({
+        id: destination.id,
+        description: null,
+      });
+    });
+
+    it('removes all charges when supplied an empty list and the transfer balances', async () => {
+      const draft = await makeDraftUpdate(null, true);
+      const [source, , destination] = draft.entry.lines;
+      const [updated, , audit] = service.updateDraft({
+        ...draft,
+        sourceLine: { amount: destination.amount },
+        chargeLines: [],
+      });
+
+      expect(updated.lines.map((line) => line.id)).toEqual([
+        source.id,
+        destination.id,
+      ]);
+      expect(audit?.header.diff.after.lines).toEqual(updated.lines);
+    });
+
+    it('returns the original draft for an unchanged charge patch', async () => {
+      const draft = await makeDraftUpdate(null, true);
+      const [updated, events, audit] = service.updateDraft({
+        ...draft,
+        chargeLines: [{ id: draft.entry.lines[1].id }],
+      });
+
+      expect(updated).toBe(draft.entry);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it('edits the memo with no account or counterparty facts', async () => {
+      const { entry, actor } = await makeDraftUpdate();
+      const [updated, , audit] = service.updateDraft({
+        entry,
+        actor,
+        memo: null,
+        accounts: [],
+        counterparties: [],
+      });
+
+      expect(updated.memo).toBeNull();
+      expect(updated.lines).toEqual(entry.lines);
+      expect(audit?.lines).toEqual([]);
+    });
+
+    it.each(['sourceLine', 'destinationLine'] as const)(
+      'rejects using a charge ID for %s',
+      async (field) => {
+        const draft = await makeDraftUpdate(null, true);
+        expect(() =>
+          service.updateDraft({
+            ...draft,
+            [field]: { id: draft.entry.lines[1].id },
+          })
+        ).toThrow(journalEntryError.RectificationLineId);
+      }
+    );
+
+    it('rejects a charge account in the destination patch', async () => {
+      const draft = await makeDraftUpdate();
+      expect(() =>
+        service.updateDraft({
+          ...draft,
+          destinationLine: { accountId: draft.accounts[2].id },
+        })
+      ).toThrow(journalEntryError.InvalidDestinationAccount);
+    });
+
+    it('rejects using the same account as source and destination', async () => {
+      const draft = await makeDraftUpdate();
+      expect(() =>
+        service.updateDraft({
+          ...draft,
+          destinationLine: { accountId: draft.accounts[0].id },
+        })
+      ).toThrow(journalEntryError.DuplicateAccountsNotPermitted);
+    });
+
+    it('rejects a posted transfer', async () => {
+      const transfer = await makeDraftUpdate(timestamp);
+      expect(() => service.updateDraft(transfer)).toThrow(
+        journalEntryError.RectificationNotPermitted
+      );
+    });
+  });
+
   describe('voidAndReplace', () => {
     async function makeReplacementFixture(postedAt: Date | null = timestamp) {
       const { payload, bankChargeAccount, bankCounterparty } =

@@ -27,8 +27,10 @@ export interface IPreparedJournalEntryRectification {
 }
 
 // TODO: check the usefulness of this service. Could it be a simple helper?
+
 export default interface IJournalEntryRectificationPreparationAppService {
   /**
+   * @deprecated use the new focused, explicit services instead
    * Prepares the source-specific journal entry, domain rectification, and any
    * required FX-lot reversal and corrected effects. Failures reject and no
    * writes or event publication are initiated.

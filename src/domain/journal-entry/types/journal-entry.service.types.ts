@@ -5,7 +5,7 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 import { IMoney } from '@domain/money/types/money.types';
 
-import { IJournalLineMeta } from './journal-line.types';
+import { IJournalLine, IJournalLineMeta } from './journal-line.types';
 
 export interface IJournalEntryHeaderPayload {
   accountingEntityId: TEntityId;
@@ -28,3 +28,16 @@ export interface IJournalEntryBaseLinePayload {
 export interface IJournalEntryLinePayload extends IJournalEntryBaseLinePayload {
   counterparty: ICounterparty | null;
 }
+
+export type TDraftJournalLinePatch = Partial<
+  Pick<
+    IJournalLine,
+    | 'id'
+    | 'accountId'
+    | 'counterpartyId'
+    | 'sequenceOrder'
+    | 'amount'
+    | 'exchangeRate'
+    | 'description'
+  >
+>;

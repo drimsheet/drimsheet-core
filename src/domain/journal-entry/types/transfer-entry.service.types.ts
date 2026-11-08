@@ -14,6 +14,7 @@ import {
   IJournalEntryBaseLinePayload,
   IJournalEntryHeaderPayload,
   IJournalEntryLinePayload,
+  TDraftJournalLinePatch,
 } from './journal-entry.service.types';
 import { IJournalEntry, IVoidJournalEntryPayload } from './journal-entry.types';
 
@@ -29,12 +30,26 @@ export interface ICreateTransferEntryResult {
   destinationAssetAccount: ILedgerAccount;
 }
 
+type TTransferAssetLinePatch = Omit<TDraftJournalLinePatch, 'counterpartyId'>;
+
 export interface ITransferEntryService {
   /** Builds an audited transfer entry and identifies its destination asset. */
   create(
     payload: ICreateTransferEntryPayload,
     repoOptions: IReadRepoOptions
   ): Promise<ICreateTransferEntryResult>;
+
+  /** Validates and edits a draft transfer in place, returning audit and events. */
+  updateDraft(payload: {
+    entry: IJournalEntry;
+    actor: TEntityId;
+    memo?: string | null;
+    sourceLine?: TTransferAssetLinePatch;
+    destinationLine?: TTransferAssetLinePatch;
+    chargeLines?: TDraftJournalLinePatch[];
+    accounts: ILedgerAccount[];
+    counterparties: ICounterparty[];
+  }): TAuditedJournalEntryUpdate;
 
   /**
    * Posts a draft transfer without writes, preserving its financial content

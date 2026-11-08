@@ -65,11 +65,10 @@ export interface IJournalLineDto {
   updatedAt: Date;
 }
 
-export interface IJournalHeaderDto {
+interface IJournalHeaderFieldsDto {
   sourceType: UJournalEntrySourceType;
   memo: string | null;
   status: UJournalEntryStatus;
-  effectiveDate: Date;
   postedAt: Date | null;
   voidedAt: Date | null;
   voidingEntryId: string | null;
@@ -78,11 +77,21 @@ export interface IJournalHeaderDto {
   updatedAt: Date;
 }
 
-export interface IJournalEntryDto extends IJournalHeaderDto {
+export interface IJournalHeaderDto extends IJournalHeaderFieldsDto {
+  effectiveDate: Date;
+}
+
+interface IJournalEntryFieldsDto extends IJournalHeaderFieldsDto {
   id: string;
   accountingEntityId: string;
   attachments: IFileAttachment[];
   lines: IJournalLineDto[];
+}
+
+export type IDraftJournalEntryDto = IJournalEntryFieldsDto;
+
+export interface IJournalEntryDto extends IJournalEntryFieldsDto {
+  effectiveDate: Date;
 }
 
 interface IJournalLineListDto {

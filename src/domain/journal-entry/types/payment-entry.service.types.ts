@@ -13,6 +13,7 @@ import {
 import {
   IJournalEntryHeaderPayload,
   IJournalEntryLinePayload,
+  TDraftJournalLinePatch,
 } from './journal-entry.service.types';
 import { IJournalEntry, IVoidJournalEntryPayload } from './journal-entry.types';
 
@@ -29,6 +30,17 @@ export interface IPaymentEntryService {
     payload: ICreatePaymentEntryPayload,
     repoOptions: IReadRepoOptions
   ): Promise<TAuditedJournalEntry>;
+
+  /** Validates and edits a draft payment in place, returning its audit and events. */
+  updateDraft(payload: {
+    entry: IJournalEntry;
+    actor: TEntityId;
+    memo?: string | null;
+    sourceLine?: TDraftJournalLinePatch;
+    destinationLines?: TDraftJournalLinePatch[];
+    accounts: ILedgerAccount[];
+    counterparties: ICounterparty[];
+  }): TAuditedJournalEntryUpdate;
 
   /**
    * Posts a draft payment without writes, preserving its financial content and

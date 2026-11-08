@@ -750,6 +750,125 @@ describe('receiptEntryService', () => {
     });
   });
 
+  describe('updateDraft', () => {
+    async function makeDraftUpdate(postedAt: Date | null = null) {
+      const receipt = await makeReceiptFixture(postedAt);
+      const [entry] = await service.create(receipt.payload, repoOptions);
+      mockAccountingPeriodService.validatePostingPeriod.mockClear();
+
+      return {
+        entry,
+        actor: receipt.user.actorId,
+        accounts: [
+          receipt.sourceAccount,
+          receipt.vatPayableAccount,
+          receipt.destinationAccount,
+        ],
+        counterparties: [receipt.counterparty, receipt.taxAuthority],
+      };
+    }
+
+    it('merges partial edits and audits a replacement source set', async () => {
+      const draft = await makeDraftUpdate();
+      const [sales, tax, cash] = draft.entry.lines;
+      const [updated, events, audit] = service.updateDraft({
+        ...draft,
+        sourceLines: [
+          {
+            id: sales.id,
+            amount: moneyValue.make(11_250n, SYSTEM_CURRENCIES.NGN, true),
+          },
+          {
+            accountId: tax.accountId,
+            sequenceOrder: tax.sequenceOrder,
+            amount: tax.amount,
+          },
+        ],
+        destinationLine: {
+          amount: moneyValue.make(12_000n, SYSTEM_CURRENCIES.NGN, true),
+          description: null,
+        },
+      });
+
+      expect(updated.id).toBe(draft.entry.id);
+      expect(updated.status).toBe(EJournalEntryStatus.Draft);
+      expect(updated.postedAt).toBeNull();
+      expect(updated.effectiveDate).toBe(draft.entry.effectiveDate);
+      expect(updated.attachments).toEqual(draft.entry.attachments);
+      expect(updated.lines).toEqual([
+        expect.objectContaining({ id: sales.id, accountId: sales.accountId }),
+        expect.objectContaining({ id: cash.id, description: null }),
+        expect.objectContaining({
+          id: expect.any(String),
+          accountId: tax.accountId,
+          side: EJournalSide.Credit,
+        }),
+      ]);
+      expect(updated.lines.some((line) => line.id === tax.id)).toBe(false);
+      expect(audit?.lines).toHaveLength(3);
+      expect(events).toHaveLength(4);
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+    });
+
+    it('edits the memo without loading any participants', async () => {
+      const { entry, actor } = await makeDraftUpdate();
+      const [updated, , audit] = service.updateDraft({
+        entry,
+        actor,
+        memo: null,
+        accounts: [],
+        counterparties: [],
+      });
+
+      expect(updated.memo).toBeNull();
+      expect(updated.lines).toEqual(entry.lines);
+      expect(audit?.lines).toEqual([]);
+    });
+
+    it('returns the original draft when retained lines are supplied in a different order', async () => {
+      const draft = await makeDraftUpdate();
+      const [sales, tax, cash] = draft.entry.lines;
+      const [updated, events, audit] = service.updateDraft({
+        ...draft,
+        sourceLines: [{ id: tax.id }, { id: sales.id }],
+        destinationLine: { id: cash.id },
+      });
+
+      expect(updated).toBe(draft.entry);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it('rejects a posted receipt', async () => {
+      const receipt = await makeDraftUpdate(timestamp);
+      expect(() => service.updateDraft(receipt)).toThrow(
+        journalEntryError.RectificationNotPermitted
+      );
+    });
+
+    it('rejects the source line ID as a destination line ID', async () => {
+      const draft = await makeDraftUpdate();
+      expect(() =>
+        service.updateDraft({
+          ...draft,
+          destinationLine: { id: draft.entry.lines[0].id },
+        })
+      ).toThrow(journalEntryError.RectificationLineId);
+    });
+
+    it('rejects a revenue account as the destination', async () => {
+      const draft = await makeDraftUpdate();
+      expect(() =>
+        service.updateDraft({
+          ...draft,
+          destinationLine: { accountId: draft.accounts[0].id },
+        })
+      ).toThrow(journalEntryError.InvalidDestinationAccount);
+    });
+  });
+
   describe('voidAndReplace', () => {
     async function makeReplacementFixture(postedAt: Date | null = timestamp) {
       const { payload } = await makeReceiptFixture(postedAt);

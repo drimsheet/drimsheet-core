@@ -27,18 +27,21 @@ export const mockOpeningBalanceEntryService: jest.Mocked<IOpeningBalanceEntrySer
 
 export const mockPaymentEntryService: jest.Mocked<IPaymentEntryService> = {
   create: jest.fn(),
+  updateDraft: jest.fn(),
   postDraft: jest.fn(),
   voidAndReplace: jest.fn(),
 };
 
 export const mockReceiptEntryService: jest.Mocked<IReceiptEntryService> = {
   create: jest.fn(),
+  updateDraft: jest.fn(),
   postDraft: jest.fn(),
   voidAndReplace: jest.fn(),
 };
 
 export const mockTransferEntryService: jest.Mocked<ITransferEntryService> = {
   create: jest.fn(),
+  updateDraft: jest.fn(),
   postDraft: jest.fn(),
   voidAndReplace: jest.fn(),
 };

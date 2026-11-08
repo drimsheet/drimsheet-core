@@ -3,6 +3,8 @@ import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.ent
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import paymentEntryRule from '@domain/journal-entry/rules/payment-entry.rule';
 import getJournalEntryLinesHelper from '@domain/journal-entry/services/helpers/get-journal-entry-lines.helper';
+import patchDraftJournalLineHelper from '@domain/journal-entry/services/helpers/patch-draft-journal-line.helper';
+import replaceDraftJournalLinesHelper from '@domain/journal-entry/services/helpers/replace-draft-journal-lines.helper';
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
 import { IJournalEntryHeaderPayload } from '@domain/journal-entry/types/journal-entry.service.types';
 import {
@@ -112,23 +114,113 @@ function makeCreate(deps: IDependencies): IPaymentEntryService['create'] {
   };
 }
 
+/** Validates the resulting payment and prepares an audited draft edit. */
+function makeUpdateDraft(): IPaymentEntryService['updateDraft'] {
+  return ({
+    entry,
+    actor,
+    memo,
+    sourceLine,
+    destinationLines,
+    accounts,
+    counterparties,
+  }) => {
+    journalEntryServiceValidation.validateDraftEntry(
+      entry,
+      EJournalEntrySourceType.Payment
+    );
+
+    const hasLineEdits =
+      sourceLine !== undefined || destinationLines !== undefined;
+    if (!hasLineEdits) {
+      return journalEntryEntity.update(entry, { id: entry.id, memo }, actor);
+    }
+
+    const sourceLines = entry.lines.filter(
+      (line) => line.side === EJournalSide.Credit
+    );
+    if (sourceLines.length !== 1) {
+      throw new journalEntryError.InvalidSourceType({
+        journalEntryId: entry.id,
+      });
+    }
+
+    const originalSource = sourceLines[0];
+    const hasInvalidSourceId =
+      sourceLine?.id !== undefined && sourceLine.id !== originalSource.id;
+    if (hasInvalidSourceId) {
+      throw new journalEntryError.RectificationLineId({ id: sourceLine.id });
+    }
+    const source = sourceLine
+      ? patchDraftJournalLineHelper(originalSource, sourceLine)
+      : originalSource;
+
+    const originalDestinations = entry.lines.filter(
+      (line) => line.side === EJournalSide.Debit
+    );
+    const destinations = destinationLines
+      ? replaceDraftJournalLinesHelper({
+          originalLines: originalDestinations,
+          requestedLines: destinationLines,
+          header: {
+            id: entry.id,
+            createdBy: actor,
+            createdAt: new Date(),
+            memo: memo === undefined ? entry.memo : memo,
+          },
+          functionalCurrency: originalSource.functionalAmount.currency,
+          side: EJournalSide.Debit,
+        })
+      : originalDestinations;
+
+    const lines = [source, ...destinations];
+    const journalLines = getJournalEntryLinesHelper(
+      lines,
+      accounts,
+      counterparties
+    );
+    const [resolvedSource, ...resolvedDestinations] = journalLines;
+    const header = {
+      accountingEntityId: entry.accountingEntityId,
+      postedAt: null,
+    };
+
+    journalEntryServiceValidation.validateAccountsAgainstRule(
+      [resolvedSource.account],
+      resolvedDestinations.map((line) => line.account),
+      paymentEntryRule
+    );
+    journalEntryServiceValidation.validateAccounts(header, journalLines);
+    journalEntryServiceValidation.validateCounterparties(header, journalLines);
+
+    // Sequence order is stored on each line. Keep the array stable on a no-op.
+    const storedOrder = new Map(
+      entry.lines.map((line, index) => [line.id, index])
+    );
+    lines.sort(
+      (left, right) =>
+        (storedOrder.get(left.id) ?? entry.lines.length) -
+        (storedOrder.get(right.id) ?? entry.lines.length)
+    );
+
+    return journalEntryEntity.update(
+      entry,
+      { id: entry.id, memo, lines },
+      actor
+    );
+  };
+}
+
 /**
  * Revalidates payment participants, FX funds, and the effective posting period
  * before preparing an audited transition that preserves the draft's identity.
  */
 function makePostDraft(deps: IDependencies): IPaymentEntryService['postDraft'] {
   return async ({ entry, accounts, counterparties, actor }, repoOptions) => {
-    const isDraftPayment =
-      entry.sourceType === EJournalEntrySourceType.Payment &&
-      entry.status === EJournalEntryStatus.Draft &&
-      entry.postedAt === null;
-    if (!isDraftPayment) {
-      throw new journalEntryError.RectificationNotPermitted({
-        journalEntryId: entry.id,
-        sourceType: entry.sourceType,
-        status: entry.status,
-      });
-    }
+    journalEntryServiceValidation.validateDraftEntry(
+      entry,
+      EJournalEntrySourceType.Payment
+    );
 
     const journalLines = getJournalEntryLinesHelper(
       entry.lines,
@@ -259,6 +351,7 @@ export default function makePaymentEntryService(
   const create = makeCreate(deps);
   const service: IPaymentEntryService = {
     create,
+    updateDraft: makeUpdateDraft(),
     postDraft: makePostDraft(deps),
     voidAndReplace: makeVoidAndReplace(create),
   };

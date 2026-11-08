@@ -40,6 +40,19 @@ export const receiptEntryReqValidation = z.object({
   memo: z.string(new journalEntryError.InvalidMemo().errorKey).nullable(),
 });
 
+const updateDraftReceiptLineReqValidation = journalLineReqValidation
+  .partial()
+  .extend({
+    id: z.uuid(new journalEntryError.RectificationLineId().errorKey).optional(),
+  })
+  .strict();
+
+export const updateDraftReceiptReqValidation = z.strictObject({
+  memo: receiptEntryReqValidation.shape.memo.optional(),
+  sourceLines: z.array(updateDraftReceiptLineReqValidation).optional(),
+  destinationLine: updateDraftReceiptLineReqValidation.optional(),
+});
+
 const receiptEntryLineJsonReqValidation = receiptEntryLineReqValidation.extend({
   exchangeRate: exchangeRateJsonDtoValidation.nullable(),
 });

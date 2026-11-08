@@ -3,6 +3,7 @@ import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/jou
 const mockJournalEntryPersistenceAppService: jest.Mocked<IJournalEntryPersistenceAppService> =
   {
     create: jest.fn(),
+    update: jest.fn(),
     rectify: jest.fn(),
     delete: jest.fn(),
   };

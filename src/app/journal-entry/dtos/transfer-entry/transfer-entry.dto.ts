@@ -24,3 +24,24 @@ export interface ITransferEntryReq {
   postedAt: Date | null;
   memo: string | null;
 }
+
+interface IUpdateDraftTransferAssetLineReq {
+  id?: string;
+  accountId?: string;
+  amount?: IMoneyDto;
+  exchangeRate?: IExchangeRateDto | null;
+  description?: string | null;
+  sequenceOrder?: number;
+}
+
+interface IUpdateDraftTransferChargeLineReq extends IUpdateDraftTransferAssetLineReq {
+  counterpartyId?: string | null;
+}
+
+export interface IUpdateDraftTransferReq {
+  sourceLine?: IUpdateDraftTransferAssetLineReq;
+  destinationLine?: IUpdateDraftTransferAssetLineReq;
+  /** When supplied, replaces the charge set. IDs retain existing charges. */
+  chargeLines?: IUpdateDraftTransferChargeLineReq[];
+  memo?: string | null;
+}

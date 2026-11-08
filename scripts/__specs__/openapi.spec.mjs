@@ -78,3 +78,26 @@ it('documents optional flat journal date boundaries without post-processing', ()
     );
   }
 });
+
+for (const [source, operationId] of [
+  ['payment', 'updateDraftPayment'],
+  ['receipt', 'updateDraftReceipt'],
+  ['transfer', 'updateDraftTransfer'],
+]) {
+  it(`documents the draft ${source} update without an effective date`, () => {
+    const update = spec.paths[`/journal-entries/${source}/{id}`].patch;
+    const response = update.responses['200'].content['application/json'].schema;
+    const responseSchema =
+      spec.components.schemas[response.$ref.split('/').at(-1)];
+    const request = update.requestBody.content['application/json'].schema;
+    const requestSchema =
+      spec.components.schemas[request.$ref.split('/').at(-1)];
+
+    assert.equal(update.operationId, operationId);
+    assert.ok(responseSchema.required.includes('id'));
+    assert.ok(responseSchema.required.includes('lines'));
+    assert.equal('effectiveDate' in responseSchema.properties, false);
+    assert.equal('effectiveDate' in requestSchema.properties, false);
+    assert.equal(requestSchema.required, undefined);
+  });
+}

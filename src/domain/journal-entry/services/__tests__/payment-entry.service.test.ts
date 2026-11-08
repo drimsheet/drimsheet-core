@@ -8,6 +8,7 @@ import { EAccountingEntityType } from '@domain/accounting/types/accounting-entit
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
+import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { EJournalEntryEvent } from '@domain/journal-entry/events/journal-entry.events';
 import { EJournalLineItemEvent } from '@domain/journal-entry/events/journal-line-item.events';
@@ -516,6 +517,193 @@ describe('paymentEntryService', () => {
         );
       }
     );
+  });
+
+  describe('updateDraft', () => {
+    async function makeDraftUpdate(postedAt: Date | null = null) {
+      const { payload } = makeForexPaymentFixture(postedAt);
+      const [entry] = await service.create(payload, repoOptions);
+      const lines = [payload.sourceLine, ...payload.destinationLines];
+      return {
+        entry,
+        actor: payload.header.createdBy,
+        accounts: lines.map((line) => line.account),
+        counterparties: [payload.sourceLine.counterparty!],
+        sourceLine: { id: entry.lines[0].id },
+        destinationLines: entry.lines.slice(1).map((line) => ({
+          id: line.id,
+        })),
+      };
+    }
+
+    it('merges partial FX edits and audits changed, added, and removed lines', async () => {
+      const { entry, sourceLine, destinationLines, ...payload } =
+        await makeDraftUpdate();
+      const [updated, events, audit] = service.updateDraft({
+        ...payload,
+        entry,
+        sourceLine: {
+          ...sourceLine,
+          amount: moneyValue.make(200n, SYSTEM_CURRENCIES.USD, true),
+          exchangeRate: exchangeRateValue.make({
+            ...entry.lines[0].exchangeRate!,
+            rate: 1500,
+          }),
+        },
+        destinationLines: [
+          {
+            ...destinationLines[0],
+            amount: moneyValue.make(252_000n, SYSTEM_CURRENCIES.NGN, true),
+          },
+          {
+            accountId: entry.lines[2].accountId,
+            sequenceOrder: entry.lines[2].sequenceOrder,
+            amount: entry.lines[2].amount,
+          },
+        ],
+      });
+
+      expect(updated.id).toBe(entry.id);
+      expect(updated.version).toBe(entry.version + 1);
+      expect(updated.status).toBe(EJournalEntryStatus.Draft);
+      expect(updated.postedAt).toBeNull();
+      expect(updated.effectiveDate).toBe(entry.effectiveDate);
+      expect(updated.memo).toBe(entry.memo);
+      expect(updated.attachments).toEqual(entry.attachments);
+      expect(updated.lines[0].id).toBe(entry.lines[0].id);
+      expect(updated.lines[0].functionalAmount.amount).toBe(300_000n);
+      expect(updated.lines[0].exchangeRate?.rate).toBe(1500);
+      expect(updated.lines[1].id).toBe(entry.lines[1].id);
+      expect(updated.lines[2].id).not.toBe(entry.lines[2].id);
+      expect(updated.lines[2].entryId).toBe(entry.id);
+      expect(updated.lines[2].counterpartyId).toBeNull();
+      expect(audit?.header.diff.before?.lines).toEqual(entry.lines);
+      expect(audit?.header.diff.after.lines).toEqual(updated.lines);
+      expect(audit?.lines).toHaveLength(3);
+      expect(events).toHaveLength(4);
+      expect(
+        mockLedgerAccountBalanceRepo.findByAccountId
+      ).not.toHaveBeenCalled();
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+    });
+
+    it('returns the original draft for equivalent rates and reordered input', async () => {
+      const payload = await makeDraftUpdate();
+      const [entry] = journalEntryEntity.update(
+        payload.entry,
+        {
+          id: payload.entry.id,
+          lines: payload.entry.lines.map((line) => ({
+            ...line,
+            description: null,
+          })),
+        },
+        payload.actor
+      );
+      jest.setSystemTime(new Date('2026-08-05T10:00:00.000Z'));
+      const [unchanged, events, audit] = service.updateDraft({
+        ...payload,
+        entry,
+        sourceLine: {
+          ...payload.sourceLine,
+          description: null,
+          exchangeRate: exchangeRateValue.make(entry.lines[0].exchangeRate!),
+        },
+        destinationLines: payload.destinationLines
+          .map((line) => ({ ...line, description: null }))
+          .reverse(),
+      });
+
+      expect(unchanged).toBe(entry);
+      expect(events).toEqual([]);
+      expect(audit).toBeNull();
+    });
+
+    it.each(['unknown', 'duplicate'])('rejects a %s line ID', async (kind) => {
+      const payload = await makeDraftUpdate();
+      payload.destinationLines[1].id =
+        kind === 'unknown' ? generateUUID() : payload.destinationLines[0].id;
+
+      expect(() => service.updateDraft(payload)).toThrow(
+        journalEntryError.RectificationLineId
+      );
+    });
+
+    it('updates only the memo without loading payment participants', async () => {
+      const { entry, actor } = await makeDraftUpdate();
+      const [updated, , audit] = service.updateDraft({
+        entry,
+        actor,
+        memo: null,
+        accounts: [],
+        counterparties: [],
+      });
+
+      expect(updated.memo).toBeNull();
+      expect(updated.lines).toEqual(entry.lines);
+      expect(audit?.lines).toEqual([]);
+    });
+
+    it('allows a draft to reference an account opened after its stored date', async () => {
+      const { entry, actor, accounts, counterparties } =
+        await makeDraftUpdate();
+      const source = makePaymentAccount({
+        accountingEntityId: entry.accountingEntityId,
+        currency: SYSTEM_CURRENCIES.USD,
+        openingBalanceDate: new Date('2026-08-04T00:00:00.000Z'),
+      });
+
+      const [updated] = service.updateDraft({
+        entry,
+        actor,
+        accounts: [...accounts, source],
+        counterparties,
+        sourceLine: { accountId: source.id },
+      });
+
+      expect(updated.lines[0].accountId).toBe(source.id);
+    });
+
+    it('rejects a destination addition missing its financial fields', async () => {
+      const payload = await makeDraftUpdate();
+      expect(() =>
+        service.updateDraft({
+          ...payload,
+          destinationLines: [{ description: 'Incomplete' }],
+        })
+      ).toThrow(journalEntryError.InvalidJournalLineItem);
+    });
+
+    it('rejects an unbalanced edit', async () => {
+      const payload = await makeDraftUpdate();
+      expect(() =>
+        service.updateDraft({
+          ...payload,
+          sourceLine: {
+            amount: moneyValue.make(200n, SYSTEM_CURRENCIES.USD, true),
+          },
+          destinationLines: undefined,
+        })
+      ).toThrow(journalEntryError.UnbalancedJournalEntry);
+    });
+
+    it('rejects a posted payment', async () => {
+      mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValueOnce(
+        makeSourceAccountBalance(
+          generateUUID(),
+          generateUUID(),
+          SYSTEM_CURRENCIES.USD,
+          1_000n
+        )
+      );
+      const payload = await makeDraftUpdate(timestamp);
+
+      expect(() => service.updateDraft(payload)).toThrow(
+        journalEntryError.RectificationNotPermitted
+      );
+    });
   });
 
   describe('voidAndReplace', () => {

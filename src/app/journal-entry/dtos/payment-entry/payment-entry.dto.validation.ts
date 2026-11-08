@@ -40,6 +40,19 @@ export const paymentEntryReqValidation = z.object({
   memo: z.string(new journalEntryError.InvalidMemo().errorKey).nullable(),
 });
 
+const updateDraftPaymentLineReqValidation = journalLineReqValidation
+  .partial()
+  .extend({
+    id: z.uuid(new journalEntryError.RectificationLineId().errorKey).optional(),
+  })
+  .strict();
+
+export const updateDraftPaymentReqValidation = z.strictObject({
+  memo: paymentEntryReqValidation.shape.memo.optional(),
+  sourceLine: updateDraftPaymentLineReqValidation.optional(),
+  destinationLines: z.array(updateDraftPaymentLineReqValidation).optional(),
+});
+
 const paymentEntryLineJsonReqValidation = paymentEntryLineReqValidation.extend({
   exchangeRate: exchangeRateJsonDtoValidation.nullable(),
 });

@@ -38,6 +38,22 @@ export const transferEntryReqValidation = z.object({
   memo: z.string(new journalEntryError.InvalidMemo().errorKey).nullable(),
 });
 
+const updateDraftTransferChargeLineReqValidation = journalLineReqValidation
+  .partial()
+  .extend({
+    id: z.uuid(new journalEntryError.RectificationLineId().errorKey).optional(),
+  })
+  .strict();
+const updateDraftTransferAssetLineReqValidation =
+  updateDraftTransferChargeLineReqValidation.omit({ counterpartyId: true });
+
+export const updateDraftTransferReqValidation = z.strictObject({
+  memo: transferEntryReqValidation.shape.memo.optional(),
+  sourceLine: updateDraftTransferAssetLineReqValidation.optional(),
+  destinationLine: updateDraftTransferAssetLineReqValidation.optional(),
+  chargeLines: z.array(updateDraftTransferChargeLineReqValidation).optional(),
+});
+
 const transferEntryLineJsonReqValidation =
   transferEntryLineReqValidation.extend({
     exchangeRate: exchangeRateJsonDtoValidation.nullable(),
