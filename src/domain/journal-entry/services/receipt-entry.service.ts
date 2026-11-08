@@ -261,8 +261,10 @@ function makePostDraft(deps: IDependencies): IReceiptEntryService['postDraft'] {
 
 /** Voids a receipt and prepares a posted replacement on its effective date. */
 function makeVoidAndReplace(
-  create: IReceiptEntryService['create']
+  deps: IDependencies
 ): IReceiptEntryService['voidAndReplace'] {
+  const create = makeCreate(deps);
+
   return async (
     { entry, voidingEntryId, sourceLines, destinationLine, createdBy },
     repoOptions
@@ -305,12 +307,11 @@ function makeVoidAndReplace(
 export default function makeReceiptEntryService(
   deps: IDependencies
 ): IReceiptEntryService {
-  const create = makeCreate(deps);
   const service: IReceiptEntryService = {
-    create,
+    create: makeCreate(deps),
     updateDraft: makeUpdateDraft(),
     postDraft: makePostDraft(deps),
-    voidAndReplace: makeVoidAndReplace(create),
+    voidAndReplace: makeVoidAndReplace(deps),
   };
 
   return Object.freeze(service);

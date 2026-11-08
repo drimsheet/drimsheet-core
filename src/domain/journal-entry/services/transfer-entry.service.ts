@@ -338,8 +338,10 @@ function makePostDraft(
 
 /** Voids a transfer and prepares a posted replacement on its effective date. */
 function makeVoidAndReplace(
-  create: ITransferEntryService['create']
+  deps: IDependencies
 ): ITransferEntryService['voidAndReplace'] {
+  const create = makeCreate(deps);
+
   return async (
     { entry, voidingEntryId, sourceLine, destinationLines, createdBy },
     repoOptions
@@ -382,12 +384,11 @@ function makeVoidAndReplace(
 export default function makeTransferEntryService(
   deps: IDependencies
 ): ITransferEntryService {
-  const create = makeCreate(deps);
   const service: ITransferEntryService = {
-    create,
+    create: makeCreate(deps),
     updateDraft: makeUpdateDraft(),
     postDraft: makePostDraft(deps),
-    voidAndReplace: makeVoidAndReplace(create),
+    voidAndReplace: makeVoidAndReplace(deps),
   };
 
   return Object.freeze(service);
