@@ -15,7 +15,7 @@ import {
   IJournalEntryLinePayload,
   TDraftJournalLinePatch,
 } from './journal-entry.service.types';
-import { IJournalEntry, IVoidJournalEntryPayload } from './journal-entry.types';
+import { IJournalEntry } from './journal-entry.types';
 
 export interface ICreatePaymentEntryPayload {
   header: IJournalEntryHeaderPayload;
@@ -60,19 +60,16 @@ export interface IPaymentEntryService {
   }>;
 
   /**
-   * Uses the supplied reversing journal ID to void a payment and prepares a
-   * posted replacement on its original effective date. A repeated void with
-   * the same reversing journal ID returns a null replacement.
+   * Prepares an audited reversal and void, plus a replacement using the
+   * ordinary payment creation rules. Performs no writes.
    */
   voidAndReplace(
-    payload: Pick<
-      ICreatePaymentEntryPayload,
-      'sourceLine' | 'destinationLines'
-    > &
-      IVoidJournalEntryPayload & { entry: IJournalEntry; createdBy: TEntityId },
+    existing: IJournalEntry,
+    replacement: ICreatePaymentEntryPayload,
     repoOptions: IReadRepoOptions
   ): Promise<{
     voided: TAuditedJournalEntryTransition;
+    reversal: TAuditedJournalEntry | null;
     replacement: TAuditedJournalEntry | null;
   }>;
 }

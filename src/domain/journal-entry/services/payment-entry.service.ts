@@ -1,4 +1,5 @@
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
+import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import paymentEntryRule from '@domain/journal-entry/rules/payment-entry.rule';
@@ -17,11 +18,13 @@ import {
 } from '@domain/journal-entry/types/journal-line.types';
 import { IPaymentEntryService } from '@domain/journal-entry/types/payment-entry.service.types';
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
+import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   accountingPeriodService: IAccountingPeriodService;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
+  ledgerAccountRepo: ILedgerAccountRepo;
 }
 
 /**
@@ -302,58 +305,80 @@ function makePostDraft(deps: IDependencies): IPaymentEntryService['postDraft'] {
   };
 }
 
-/** Voids a payment and prepares a posted replacement on its effective date. */
+/** Prepares a reversal, links it to the void, and validates the replacement. */
 function makeVoidAndReplace(
-  create: IPaymentEntryService['create']
+  deps: IDependencies
 ): IPaymentEntryService['voidAndReplace'] {
-  return async (
-    { entry, voidingEntryId, sourceLine, destinationLines, createdBy },
-    repoOptions
-  ) => {
-    if (entry.sourceType !== EJournalEntrySourceType.Payment) {
+  const create = makeCreate(deps);
+
+  return async (existing, replacementPayload, repoOptions) => {
+    if (existing.sourceType !== EJournalEntrySourceType.Payment) {
       throw new journalEntryError.RectificationNotPermitted({
-        journalEntryId: entry.id,
-        sourceType: entry.sourceType,
+        journalEntryId: existing.id,
+        sourceType: existing.sourceType,
       });
     }
 
-    const voided = journalEntryEntity.void(entry, { voidingEntryId });
+    const reversalDate = new Date();
+    const functionalCurrency = existing.lines[0].functionalAmount.currency;
+    const reversal = journalEntryEntity.make({
+      accountingEntityId: existing.accountingEntityId,
+      sourceType: EJournalEntrySourceType.Reversal,
+      effectiveDate: reversalDate,
+      postedAt: reversalDate,
+      memo: null,
+      createdBy: replacementPayload.header.createdBy,
+      functionalCurrency,
+      lines: existing.lines.map((line) => ({
+        accountId: line.accountId,
+        counterpartyId: line.counterpartyId,
+        sequenceOrder: line.sequenceOrder,
+        amount: line.amount,
+        exchangeRate: line.exchangeRate,
+        side: getOppositeJournalSideHelper(line.side),
+        description: line.description,
+        functionalCurrency,
+      })),
+    });
+    const [reversingEntry] = reversal;
+    const voided = journalEntryEntity.void(existing, {
+      voidingEntryId: reversingEntry.id,
+    });
     const [, , audit] = voided;
 
     if (audit === null) {
-      return { voided, replacement: null };
+      return { voided, reversal: null, replacement: null };
     }
 
-    const replacement = await create(
-      {
-        header: {
-          accountingEntityId: entry.accountingEntityId,
-          effectiveDate: entry.effectiveDate,
-          postedAt: new Date(),
-          memo: entry.memo,
-          functionalCurrencyCode: entry.lines[0].functionalAmount.currency.code,
-          createdBy,
-        },
-        sourceLine,
-        destinationLines,
-        attachments: entry.attachments,
-      },
+    const accountIds = [
+      ...new Set(existing.lines.map((line) => line.accountId)),
+    ];
+    const accounts = await deps.ledgerAccountRepo.findAllByIds(
+      accountIds,
+      existing.accountingEntityId,
       repoOptions
     );
+    journalEntryServiceValidation.validateArchivedAccounts(accounts);
 
-    return { voided, replacement };
+    await deps.accountingPeriodService.validatePostingPeriod(
+      existing.accountingEntityId,
+      reversalDate,
+      repoOptions
+    );
+    const replacement = await create(replacementPayload, repoOptions);
+
+    return { voided, reversal, replacement };
   };
 }
 
 export default function makePaymentEntryService(
   deps: IDependencies
 ): IPaymentEntryService {
-  const create = makeCreate(deps);
   const service: IPaymentEntryService = {
-    create,
+    create: makeCreate(deps),
     updateDraft: makeUpdateDraft(),
     postDraft: makePostDraft(deps),
-    voidAndReplace: makeVoidAndReplace(create),
+    voidAndReplace: makeVoidAndReplace(deps),
   };
 
   return Object.freeze(service);

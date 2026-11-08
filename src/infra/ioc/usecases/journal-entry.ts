@@ -15,6 +15,7 @@ import makeUpdateDraftPaymentUsecase from '@app/journal-entry/usecases/update-dr
 import makeUpdateDraftReceiptUsecase from '@app/journal-entry/usecases/update-draft-receipt.usecase';
 import makeUpdateDraftTransferUsecase from '@app/journal-entry/usecases/update-draft-transfer.usecase';
 import makeUpdateJournalEntryMetaUsecase from '@app/journal-entry/usecases/update-journal-entry-meta.usecase';
+import makeVoidAndReplacePaymentUsecase from '@app/journal-entry/usecases/void-and-replace-payment.usecase';
 
 import { fileManagementAppService } from '@infra/ioc/services/file';
 import {
@@ -73,6 +74,26 @@ export const updateDraftReceiptUseCase = makeTracedUseCase(
     counterpartyRepo: counterpartyRepos.counterparty,
     receiptEntryService,
     journalEntryPersistenceAppService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const voidAndReplacePaymentUseCase = makeTracedUseCase(
+  'journalEntry.voidAndReplacePaymentUseCase',
+  makeVoidAndReplacePaymentUsecase({
+    appContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    fileManagementAppService,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    paymentEntryService,
+    journalEntryPersistenceAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
+    fxCostBasisPersistenceAppService,
+    outboxAppService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    repoService,
     eventBus: messaging.eventBus,
   })
 );

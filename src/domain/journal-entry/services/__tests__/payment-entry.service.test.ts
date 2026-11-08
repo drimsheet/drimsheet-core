@@ -24,6 +24,7 @@ import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
+import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -61,6 +62,20 @@ const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
   findAllByAccountIds: jest.fn(),
 };
 
+const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  create: jest.fn(),
+  delete: jest.fn(),
+  update: jest.fn(),
+  findById: jest.fn(),
+  findAllByIds: jest.fn(),
+  findDescendants: jest.fn(),
+  findAllByMaterializedPath: jest.fn(),
+  findByCode: jest.fn(),
+  findBySubType: jest.fn(),
+  findByBehavior: jest.fn(),
+  findLatestBySubType: jest.fn(),
+};
+
 describe('paymentEntryService', () => {
   const timestamp = new Date('2026-08-04T10:00:00.000Z');
   const effectiveDate = new Date('2026-08-03T10:00:00.000Z');
@@ -70,6 +85,7 @@ describe('paymentEntryService', () => {
   const service = makePaymentEntryService({
     accountingPeriodService: mockAccountingPeriodService,
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
+    ledgerAccountRepo: mockLedgerAccountRepo,
   });
 
   function makePaymentAccount(
@@ -707,16 +723,29 @@ describe('paymentEntryService', () => {
   });
 
   describe('voidAndReplace', () => {
-    async function makeReplacementFixture(postedAt: Date | null = timestamp) {
-      const { payload } = makePaymentFixture(postedAt);
-      const [entry] = await service.create(payload, repoOptions);
-      mockAccountingPeriodService.validatePostingPeriod.mockClear();
-      const [rentLine, payableLine] = payload.destinationLines;
+    const correctionDate = new Date('2026-08-05T10:00:00.000Z');
+    const replacementEffectiveDate = new Date('2026-08-02T10:00:00.000Z');
 
-      return {
-        entry,
-        voidingEntryId: generateUUID(),
-        createdBy: generateUUID(),
+    async function makeReplacementFixture(postedAt: Date | null = timestamp) {
+      const { payload, sourceAccount, rentAccount, payableAccount } =
+        makePaymentFixture(postedAt);
+      const [existing] = await service.create(payload, repoOptions);
+      mockAccountingPeriodService.validatePostingPeriod.mockClear();
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValue([
+        sourceAccount,
+        rentAccount,
+        payableAccount,
+      ]);
+      jest.setSystemTime(correctionDate);
+      const [rentLine, payableLine] = payload.destinationLines;
+      const replacement: ICreatePaymentEntryPayload = {
+        header: {
+          ...payload.header,
+          effectiveDate: replacementEffectiveDate,
+          postedAt: correctionDate,
+          createdBy: generateUUID(),
+        },
+        attachments: payload.attachments,
         sourceLine: payload.sourceLine,
         destinationLines: [
           {
@@ -729,48 +758,72 @@ describe('paymentEntryService', () => {
           },
         ],
       };
+      return { existing, replacement, sourceAccount };
     }
 
-    it('returns the audited void and a separately posted payment with corrected lines', async () => {
-      const payload = await makeReplacementFixture();
-      const { entry } = payload;
-      const replacementPostedAt = new Date('2026-08-05T10:00:00.000Z');
-      jest.setSystemTime(replacementPostedAt);
-
-      const { voided, replacement } = await service.voidAndReplace(
-        payload,
+    it('returns a linked reversal, audited void, and posted replacement with corrected lines', async () => {
+      const { existing, replacement: replacementPayload } =
+        await makeReplacementFixture();
+      const { voided, reversal, replacement } = await service.voidAndReplace(
+        existing,
+        replacementPayload,
         repoOptions
+      );
+
+      const [reversingEntry, , reversalAudit] = reversal!;
+      expect(reversingEntry).toMatchObject({
+        accountingEntityId: existing.accountingEntityId,
+        sourceType: EJournalEntrySourceType.Reversal,
+        status: EJournalEntryStatus.Posted,
+        effectiveDate: correctionDate,
+        postedAt: correctionDate,
+        createdBy: replacementPayload.header.createdBy,
+      });
+      expect(reversingEntry.lines).toMatchObject(
+        existing.lines.map((line) => ({
+          accountId: line.accountId,
+          counterpartyId: line.counterpartyId,
+          amount: line.amount,
+          functionalAmount: line.functionalAmount,
+          side:
+            line.side === EJournalSide.Credit
+              ? EJournalSide.Debit
+              : EJournalSide.Credit,
+        }))
+      );
+      expect(reversalAudit.header.action).toBe(
+        EJournalEntryAuditAction.Created
       );
 
       const [voidedEntry, voidEvents, voidAudit] = voided;
       expect(voidedEntry).toMatchObject({
-        id: entry.id,
+        id: existing.id,
         status: EJournalEntryStatus.Voided,
-        lines: entry.lines,
-        voidingEntryId: payload.voidingEntryId,
+        lines: existing.lines,
+        voidingEntryId: reversingEntry.id,
       });
       expect(voidEvents.map((event) => event.type)).toEqual([
         EJournalEntryEvent.Voided,
       ]);
       expect(voidAudit?.action).toBe(EJournalEntryAuditAction.Voided);
-      expect(entry.status).toBe(EJournalEntryStatus.Posted);
+      expect(existing.status).toBe(EJournalEntryStatus.Posted);
 
       const [replacementEntry, replacementEvents, replacementAudit] =
         replacement!;
-      expect(replacementEntry.id).not.toBe(entry.id);
+      expect(replacementEntry.id).not.toBe(existing.id);
       expect(replacementEntry).toMatchObject({
-        accountingEntityId: entry.accountingEntityId,
+        accountingEntityId: existing.accountingEntityId,
         sourceType: EJournalEntrySourceType.Payment,
         status: EJournalEntryStatus.Posted,
-        effectiveDate: entry.effectiveDate,
-        postedAt: replacementPostedAt,
-        memo: entry.memo,
-        attachments: entry.attachments,
-        createdBy: payload.createdBy,
+        effectiveDate: replacementEffectiveDate,
+        postedAt: correctionDate,
+        memo: existing.memo,
+        attachments: existing.attachments,
+        createdBy: replacementPayload.header.createdBy,
       });
       expect(replacementEntry.lines.map((line) => line.amount)).toEqual([
-        payload.sourceLine.amount,
-        ...payload.destinationLines.map((line) => line.amount),
+        replacementPayload.sourceLine.amount,
+        ...replacementPayload.destinationLines.map((line) => line.amount),
       ]);
       expect(replacementEvents[0].type).toBe(EJournalEntryEvent.Created);
       expect(replacementAudit.header.action).toBe(
@@ -778,60 +831,133 @@ describe('paymentEntryService', () => {
       );
       expect(
         mockAccountingPeriodService.validatePostingPeriod.mock.calls
-      ).toEqual([[entry.accountingEntityId, entry.effectiveDate, repoOptions]]);
+      ).toEqual([
+        [existing.accountingEntityId, correctionDate, repoOptions],
+        [existing.accountingEntityId, replacementEffectiveDate, repoOptions],
+      ]);
     });
 
-    it('returns the original voided payment on retry with the same reversal', async () => {
-      const payload = await makeReplacementFixture();
+    it('rejects a second correction of a voided payment', async () => {
+      const { existing, replacement } = await makeReplacementFixture();
       const {
-        voided: [entry],
-      } = await service.voidAndReplace(payload, repoOptions);
+        voided: [voidedEntry],
+      } = await service.voidAndReplace(existing, replacement, repoOptions);
       mockAccountingPeriodService.validatePostingPeriod.mockClear();
 
-      const { voided, replacement } = await service.voidAndReplace(
-        { ...payload, entry },
-        repoOptions
-      );
-
-      expect(voided[0]).toBe(entry);
-      expect(voided.slice(1)).toEqual([[], null]);
-      expect(replacement).toBeNull();
+      await expect(
+        service.voidAndReplace(voidedEntry, replacement, repoOptions)
+      ).rejects.toThrow(journalEntryError.InvalidStatusTransition);
       expect(
         mockAccountingPeriodService.validatePostingPeriod
       ).not.toHaveBeenCalled();
     });
 
     it('rejects a draft payment', async () => {
-      const payload = await makeReplacementFixture(null);
+      const { existing, replacement } = await makeReplacementFixture(null);
 
       await expect(
-        service.voidAndReplace(payload, repoOptions)
+        service.voidAndReplace(existing, replacement, repoOptions)
       ).rejects.toThrow(journalEntryError.InvalidStatusTransition);
     });
 
     it('rejects a non-payment entry', async () => {
-      const payload = await makeReplacementFixture();
-      const entry = {
-        ...payload.entry,
+      const { existing, replacement } = await makeReplacementFixture();
+      const receipt = {
+        ...existing,
         sourceType: EJournalEntrySourceType.Receipt,
       };
 
       await expect(
-        service.voidAndReplace({ ...payload, entry }, repoOptions)
+        service.voidAndReplace(receipt, replacement, repoOptions)
       ).rejects.toThrow(journalEntryError.RectificationNotPermitted);
     });
 
-    it('rejects a replacement in a closed effective period', async () => {
-      const payload = await makeReplacementFixture();
-      const failure = new periodError.PostingPeriodNotOpen();
-      mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
-        failure
+    it.each([
+      ['the reversal', correctionDate],
+      ['the replacement', replacementEffectiveDate],
+    ])(
+      'rejects %s in a closed posting period',
+      async (_posting, closedDate) => {
+        const { existing, replacement } = await makeReplacementFixture();
+        const failure = new periodError.PostingPeriodNotOpen();
+        mockAccountingPeriodService.validatePostingPeriod.mockImplementation(
+          async (_entityId, date) => {
+            if (date.getTime() === closedDate.getTime()) {
+              throw failure;
+            }
+          }
+        );
+
+        await expect(
+          service.voidAndReplace(existing, replacement, repoOptions)
+        ).rejects.toBe(failure);
+        expect(existing.status).toBe(EJournalEntryStatus.Posted);
+      }
+    );
+
+    it('rejects a reversal against an archived original account', async () => {
+      const { existing, replacement, sourceAccount } =
+        await makeReplacementFixture();
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValue([
+        { ...sourceAccount, status: ELedgerAccountStatus.Archived },
+      ]);
+
+      await expect(
+        service.voidAndReplace(existing, replacement, repoOptions)
+      ).rejects.toThrow(journalEntryError.ArchivedLedgerAccountNotAllowed);
+    });
+
+    it('reverses the recorded FX amounts and creates a draft with its own effective date', async () => {
+      const { payload, sourceAccount, rentAccount, payableAccount } =
+        makeForexPaymentFixture(timestamp);
+      mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(
+        makeSourceAccountBalance(
+          sourceAccount.id,
+          payload.header.accountingEntityId,
+          SYSTEM_CURRENCIES.USD,
+          100n
+        )
+      );
+      const [existing] = await service.create(payload, repoOptions);
+      mockAccountingPeriodService.validatePostingPeriod.mockClear();
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValue([
+        sourceAccount,
+        rentAccount,
+        payableAccount,
+      ]);
+      jest.setSystemTime(correctionDate);
+      const correction = await service.voidAndReplace(
+        existing,
+        {
+          ...payload,
+          header: {
+            ...payload.header,
+            effectiveDate: replacementEffectiveDate,
+            postedAt: null,
+          },
+        },
+        repoOptions
       );
 
-      await expect(service.voidAndReplace(payload, repoOptions)).rejects.toBe(
-        failure
+      const [reversal] = correction.reversal!;
+      expect(reversal.status).toBe(EJournalEntryStatus.Posted);
+      expect(reversal.lines[0]).toMatchObject({
+        amount: existing.lines[0].amount,
+        exchangeRate: existing.lines[0].exchangeRate,
+        functionalAmount: existing.lines[0].functionalAmount,
+        side: EJournalSide.Debit,
+      });
+      expect(correction.voided[0].voidingEntryId).toBe(
+        correction.reversal?.[0].id
       );
-      expect(payload.entry.status).toBe(EJournalEntryStatus.Posted);
+      expect(correction.replacement?.[0]).toMatchObject({
+        status: EJournalEntryStatus.Draft,
+        effectiveDate: replacementEffectiveDate,
+        postedAt: null,
+      });
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod.mock.calls
+      ).toEqual([[existing.accountingEntityId, correctionDate, repoOptions]]);
     });
   });
 

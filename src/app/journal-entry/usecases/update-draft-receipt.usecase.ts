@@ -31,8 +31,8 @@ import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal
 import { IUpdateDraftReceiptReq } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto';
 import { updateDraftReceiptReqValidation } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto.validation';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
-import getDraftJournalAccountsHelper from '@app/journal-entry/usecases/helpers/get-draft-journal-accounts.helper';
 import getDraftJournalCounterpartiesHelper from '@app/journal-entry/usecases/helpers/get-draft-journal-counterparties.helper';
+import getJournalAccountsHelper from '@app/journal-entry/usecases/helpers/get-journal-accounts.helper';
 import getJournalLineChangesHelper from '@app/journal-entry/usecases/helpers/get-journal-line-changes.helper';
 import mapDraftJournalLinePatchHelper from '@app/journal-entry/usecases/helpers/map-draft-journal-line-patch.helper';
 
@@ -84,10 +84,9 @@ export default function makeUpdateDraftReceiptUsecase(deps: IDependencies) {
       sourceLines !== undefined || destinationLine !== undefined;
 
     const accounts = hasLineEdits
-      ? await getDraftJournalAccountsHelper({
+      ? await getJournalAccountsHelper({
           accountingEntityId: entry.accountingEntityId,
-          storedLines: entry.lines,
-          requestedLines,
+          lines: [...entry.lines, ...requestedLines],
           repo: deps.ledgerAccountRepo,
           repoOptions,
         })

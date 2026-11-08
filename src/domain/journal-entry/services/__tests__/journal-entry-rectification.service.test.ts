@@ -284,7 +284,7 @@ describe('makeJournalEntryRectificationService', () => {
     expect(ledgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
   });
 
-  it('exposes only the rectify operation', () => {
+  it('exposes the rectification and reversal operations', () => {
     expect(Object.keys(service)).toEqual(['rectify', 'reverse']);
     expect(Object.isFrozen(service)).toBe(true);
   });

@@ -26,6 +26,7 @@ export const openingBalanceEntryService = makeOpeningBalanceEntryService({
 export const paymentEntryService = makePaymentEntryService({
   accountingPeriodService,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
+  ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });
 
 export const receiptEntryService = makeReceiptEntryService({
