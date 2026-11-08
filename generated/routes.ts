@@ -2898,6 +2898,33 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftOpeningBalanceReq: {
+    dataType: 'refObject',
+    properties: {
+      amount: { ref: 'IMoneyDto' },
+      effectiveDate: { dataType: 'datetime' },
+      exchangeRate: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IExchangeRateDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      memo: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      attachmentReferences: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IUpdateDraftPaymentLineReq: {
     dataType: 'refObject',
     properties: {
@@ -6790,6 +6817,56 @@ export function RegisterRoutes(app: Router) {
 
         await templateService.apiHandler({
           methodName: 'rectifyJournalEntry',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_updateDraftOpeningBalance: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IUpdateDraftOpeningBalanceReq',
+    },
+  };
+  app.patch(
+    '/api/v1/journal-entries/opening-balance/:id',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.updateDraftOpeningBalance
+    ),
+
+    async function JournalEntryController_updateDraftOpeningBalance(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_updateDraftOpeningBalance,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'updateDraftOpeningBalance',
           controller,
           response,
           next,

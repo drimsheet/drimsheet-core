@@ -82,7 +82,7 @@ async function makeOpeningBalance(
 
   const headerValidationPayload = {
     accountingEntityId,
-    effectiveDate,
+    effectiveDate: postedAt === null ? undefined : effectiveDate,
     postedAt,
   };
   const accountValidationPayload = {
@@ -192,11 +192,8 @@ function makeCreateDraft(
   deps: IDependencies
 ): IOpeningBalanceEntryService['createDraft'] {
   return async (payload, repoOptions) => {
-    const { account, accountingEntityId, effectiveDate } = payload;
+    const { account, accountingEntityId } = payload;
     openingBalanceValidation.validatePostingAccount(account);
-    if (account.openingBalanceDate !== null) {
-      openingBalanceValidation.validateOpeningDateMatch(account, effectiveDate);
-    }
 
     const hasOpeningJournal =
       await deps.journalEntryRepo.existsOpeningBalanceByAccountId(
@@ -214,27 +211,67 @@ function makeCreateDraft(
   };
 }
 
-// TODO: remove. Draft updates should be usecase specific only
-/** Updates a draft in place without posting it or changing its line identities. */
+/** Updates a draft in place, preserving its line identities and account. */
 function makeUpdateDraft(
   deps: IDependencies
 ): IOpeningBalanceEntryService['updateDraft'] {
-  return async ({ entry, ...payload }, repoOptions) => {
-    const { account, effectiveDate } = payload;
+  return async (payload, repoOptions) => {
+    const {
+      entry,
+      createdBy,
+      account: preparedAccount,
+      amount,
+      exchangeRate,
+      memo,
+      attachments,
+    } = payload;
+    const effectiveDate = payload.effectiveDate ?? entry.effectiveDate;
     openingBalanceRevisionValidation.validateSourceType(entry);
     openingBalanceRevisionValidation.validateStatus(entry);
-    openingBalanceRevisionValidation.validateAccountAssociation(entry, account);
-    openingBalanceValidation.validatePostingAccount(account);
-    openingBalanceValidation.validateOpeningDateMatch(account, effectiveDate);
 
-    dateUtils.validateDate(
-      effectiveDate,
-      journalEntryError.InvalidEffectiveDate
-    );
+    const changes = { id: entry.id, effectiveDate, memo, attachments };
+    const hasLineEdits =
+      preparedAccount !== undefined ||
+      amount !== undefined ||
+      exchangeRate !== undefined;
+    if (!hasLineEdits) {
+      return journalEntryEntity.update(entry, changes, createdBy);
+    }
+
+    const openingLine = entry.lines.find((line) => line.sequenceOrder === 1);
+    if (!openingLine) {
+      throw new journalEntryError.MismatchedJournalLines({
+        journalEntryId: entry.id,
+      });
+    }
+
+    const account =
+      preparedAccount ??
+      (await deps.ledgerAccountRepo.findById(
+        openingLine.accountId,
+        entry.accountingEntityId,
+        repoOptions
+      ));
+    if (!account) {
+      throw new journalEntryError.AccountNotFound({
+        accountId: openingLine.accountId,
+      });
+    }
+    openingBalanceRevisionValidation.validateOpeningAccount(entry, account);
+    openingBalanceValidation.validatePostingAccount(account);
 
     const [revised] = await makeOpeningBalance(
       deps,
-      payload,
+      {
+        account,
+        accountingEntityId: entry.accountingEntityId,
+        functionalCurrencyCode: openingLine.functionalAmount.currency.code,
+        amount: amount ?? openingLine.amount,
+        effectiveDate,
+        exchangeRate:
+          exchangeRate === undefined ? openingLine.exchangeRate : exchangeRate,
+        createdBy,
+      },
       null,
       repoOptions
     );
@@ -245,14 +282,14 @@ function makeUpdateDraft(
         (candidate) => candidate.sequenceOrder === line.sequenceOrder
       )!;
 
-      return Object.freeze({ ...line, id: originalLine.id });
+      return Object.freeze({
+        ...line,
+        id: originalLine.id,
+        description: originalLine.description,
+      });
     });
 
-    return journalEntryEntity.update(
-      entry,
-      { id: entry.id, effectiveDate, lines },
-      payload.createdBy
-    );
+    return journalEntryEntity.update(entry, { ...changes, lines }, createdBy);
   };
 }
 

@@ -80,6 +80,7 @@ it('documents optional flat journal date boundaries without post-processing', ()
 });
 
 for (const [source, operationId] of [
+  ['opening-balance', 'updateDraftOpeningBalance'],
   ['payment', 'updateDraftPayment'],
   ['receipt', 'updateDraftReceipt'],
   ['transfer', 'updateDraftTransfer'],

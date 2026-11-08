@@ -309,9 +309,13 @@ describe('openingBalanceEntryService', () => {
       });
     });
 
-    it('creates a draft and defers the posting history and period checks', async () => {
+    it('creates a draft and defers the opening date, posting history, and period checks', async () => {
       const fixture = await makeOpeningBalanceFixture();
-      const payload = makeOpeningBalancePayload(fixture);
+      const payload = {
+        ...makeOpeningBalancePayload(fixture),
+        account: { ...fixture.postingAccount, openingBalanceDate: timestamp },
+        effectiveDate,
+      };
       const transactionOptions = { ...repoOptions, tx: {} };
       mockLedgerAccountRepo.findBySubType.mockResolvedValue([
         fixture.equityAccount,
@@ -346,6 +350,47 @@ describe('openingBalanceEntryService', () => {
     describe('updateDraft', () => {
       const transactionOptions = { ...repoOptions, tx: {} };
 
+      it('allows a proposed date before the account opened and checks it at posting', async () => {
+        const fixture = await makeOpeningBalanceFixture();
+        const account = {
+          ...fixture.postingAccount,
+          openingBalanceDate: timestamp,
+        };
+        mockLedgerAccountRepo.findBySubType.mockResolvedValue([
+          fixture.equityAccount,
+        ]);
+        const [entry] = await service.createDraft(
+          { ...makeOpeningBalancePayload(fixture), account },
+          transactionOptions
+        );
+
+        const [updated, , audit] = await service.updateDraft(
+          { entry, createdBy: fixture.user.actorId, effectiveDate },
+          transactionOptions
+        );
+
+        expect(updated).toMatchObject({
+          id: entry.id,
+          status: EJournalEntryStatus.Draft,
+          effectiveDate,
+          lines: entry.lines,
+        });
+        expect(audit?.lines).toEqual([]);
+        expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+        expect(
+          mockJournalEntryRepo.existsPostedByAccountId
+        ).not.toHaveBeenCalled();
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod
+        ).not.toHaveBeenCalled();
+        await expect(
+          service.postDraft(
+            { entry: updated, account, actor: fixture.user.actorId },
+            transactionOptions
+          )
+        ).rejects.toBeInstanceOf(journalEntryError.InvalidOpeningBalanceDate);
+      });
+
       it.each(['unchanged', 'date', 'date and amount'] as const)(
         'updates the existing draft in place for %s',
         async (change) => {
@@ -374,15 +419,13 @@ describe('openingBalanceEntryService', () => {
             change === 'date and amount'
               ? moneyValue.make(250_000n, SYSTEM_CURRENCIES.NGN, true)
               : fixture.amount;
-          const [updatedAccount] = ledgerAccountEntity.update(account, {
-            openingBalanceDate: revisedDate,
-          });
+          mockLedgerAccountRepo.findById.mockResolvedValue(account);
 
           const [revised, events, audit] = await service.updateDraft(
             {
               ...originalPayload,
               entry,
-              account: updatedAccount,
+              account: change === 'date and amount' ? undefined : account,
               effectiveDate: revisedDate,
               amount,
             },
@@ -399,6 +442,13 @@ describe('openingBalanceEntryService', () => {
             entry.lines.map((line) => line.id)
           );
           expect(revised.lines[0].amount).toEqual(amount);
+          if (change === 'date and amount') {
+            expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
+              account.id,
+              entry.accountingEntityId,
+              transactionOptions
+            );
+          }
           expect(
             mockAccountingPeriodService.validatePostingPeriod
           ).not.toHaveBeenCalled();

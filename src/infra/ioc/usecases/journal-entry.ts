@@ -11,6 +11,7 @@ import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-
 import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
 import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
+import makeUpdateDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/update-draft-opening-balance.usecase';
 import makeUpdateDraftPaymentUsecase from '@app/journal-entry/usecases/update-draft-payment.usecase';
 import makeUpdateDraftReceiptUsecase from '@app/journal-entry/usecases/update-draft-receipt.usecase';
 import makeUpdateDraftTransferUsecase from '@app/journal-entry/usecases/update-draft-transfer.usecase';
@@ -50,6 +51,18 @@ export const updateJournalEntryMetaUseCase = makeTracedUseCase(
     journalEntryRepo: journalEntryRepos.journalEntry,
     journalLineRepo: journalEntryRepos.journalLine,
     repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const updateDraftOpeningBalanceUseCase = makeTracedUseCase(
+  'journalEntry.updateDraftOpeningBalanceUseCase',
+  makeUpdateDraftOpeningBalanceUsecase({
+    appContext,
+    fileManagementAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    openingBalanceEntryService,
+    journalEntryPersistenceAppService,
     eventBus: messaging.eventBus,
   })
 );

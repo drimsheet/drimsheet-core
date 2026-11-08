@@ -35,9 +35,18 @@ export interface IOpeningBalanceEntryService {
     repoOptions: IReadRepoOptions
   ): Promise<TAuditedJournalEntry>;
 
-  /** Revises a draft in place using the account prepared with the requested opening date. */
+  /** Revises the draft, optionally using an account prepared by an account edit. */
   updateDraft(
-    payload: IOpeningBalanceJournalPayload & { entry: IJournalEntry },
+    payload: {
+      entry: IJournalEntry;
+      createdBy: TEntityId;
+      account?: ILedgerAccount;
+      amount?: IMoney;
+      effectiveDate?: Date;
+      exchangeRate?: IExchangeRate | null;
+      memo?: IJournalEntry['memo'];
+      attachments?: IJournalEntry['attachments'];
+    },
     repoOptions: IReadRepoOptions
   ): Promise<TAuditedJournalEntryUpdate>;
 

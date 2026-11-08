@@ -9,3 +9,12 @@ export interface IOpeningBalanceDto {
 export interface IOpeningBalanceCreationReq extends IOpeningBalanceDto {
   accountId: string;
 }
+
+export interface IUpdateDraftOpeningBalanceReq {
+  amount?: IMoneyDto;
+  effectiveDate?: Date;
+  exchangeRate?: IExchangeRateDto | null;
+  memo?: string | null;
+  /** Replaces the attachments when supplied. An empty list clears them. */
+  attachmentReferences?: string[];
+}

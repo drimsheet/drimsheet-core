@@ -5400,6 +5400,116 @@
         }
       }
     },
+    "/journal-entries/opening-balance/{id}": {
+      "patch": {
+        "operationId": "updateDraftOpeningBalance",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Updates the amount, effective date, exchange rate, memo, or attachments of a draft opening balance.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IUpdateDraftOpeningBalanceReq"
+              }
+            }
+          }
+        }
+      }
+    },
     "/journal-entries/payment/{id}": {
       "patch": {
         "operationId": "updateDraftPayment",
@@ -13547,6 +13657,38 @@
             "$ref": "#/components/schemas/ITransferJournalEntryRectificationReq"
           }
         ]
+      },
+      "IUpdateDraftOpeningBalanceReq": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exchangeRate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IExchangeRateDto"
+              }
+            ],
+            "nullable": true
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "attachmentReferences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Replaces the attachments when supplied. An empty list clears them."
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
       },
       "IUpdateDraftPaymentLineReq": {
         "properties": {
