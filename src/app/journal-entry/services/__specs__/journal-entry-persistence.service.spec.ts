@@ -569,6 +569,46 @@ describe('journalEntryPersistenceAppService', () => {
   });
 
   describe('update', () => {
+    it('clears attachments in the same transaction as the versioned journal update', async () => {
+      const { journalEntry, headerHistory } = await makeFixture(attachments);
+      const updatedEntry = {
+        ...journalEntry,
+        attachments: [],
+        version: journalEntry.version + 1,
+      };
+
+      await service.update(
+        {
+          entry: updatedEntry,
+          expectedVersion: journalEntry.version,
+          headerHistory: {
+            ...headerHistory,
+            entityVersion: updatedEntry.version,
+            diff: { before: journalEntry, after: updatedEntry },
+          },
+          lineHistories: [],
+          linesToCreate: [],
+          linesToUpdate: [],
+          lineIdsToDelete: [],
+        },
+        mockOptions
+      );
+
+      const writeOptions = { ...mockOptions, tx: 'mock-tx' };
+      expect(mockJournalEntryRepo.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: journalEntry.id }),
+        expect.objectContaining({
+          ...writeOptions,
+          expectedVersion: journalEntry.version,
+        })
+      );
+      expect(mockJournalEntryAttachmentRepo.save).toHaveBeenCalledWith(
+        journalEntry.id,
+        [],
+        writeOptions
+      );
+    });
+
     it('locks accounts and saves the versioned header, lines, and history in one transaction', async () => {
       const { headerHistory, journalEntry, linesHistory } =
         await makeFixture(attachments);

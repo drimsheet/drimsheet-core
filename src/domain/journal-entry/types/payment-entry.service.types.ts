@@ -31,16 +31,19 @@ export interface IPaymentEntryService {
     repoOptions: IReadRepoOptions
   ): Promise<TAuditedJournalEntry>;
 
-  /** Validates and edits a draft payment in place, returning its audit and events. */
-  updateDraft(payload: {
-    entry: IJournalEntry;
-    actor: TEntityId;
-    memo?: string | null;
-    sourceLine?: TDraftJournalLinePatch;
-    destinationLines?: TDraftJournalLinePatch[];
-    accounts: ILedgerAccount[];
-    counterparties: ICounterparty[];
-  }): TAuditedJournalEntryUpdate;
+  /** Resolves participants for financial edits and prepares the audited draft. */
+  updateDraft(
+    payload: {
+      entry: IJournalEntry;
+      actor: TEntityId;
+      attachments?: IFileAttachment[];
+      effectiveDate?: Date;
+      memo?: string | null;
+      sourceLine?: TDraftJournalLinePatch;
+      destinationLines?: TDraftJournalLinePatch[];
+    },
+    repoOptions: IReadRepoOptions
+  ): Promise<TAuditedJournalEntryUpdate>;
 
   /**
    * Posts a draft payment without writes, preserving its financial content and

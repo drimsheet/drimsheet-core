@@ -5409,7 +5409,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IJournalEntryFieldsDto"
+                  "$ref": "#/components/schemas/IJournalEntryDto"
                 }
               }
             }
@@ -5485,7 +5485,7 @@
             }
           }
         },
-        "description": "Updates the memo or lines of an existing draft payment.",
+        "description": "Updates the memo, effective date, lines, or attachments of a draft payment.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -13548,6 +13548,72 @@
           }
         ]
       },
+      "IUpdateDraftPaymentLineReq": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "counterpartyId": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "exchangeRate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IExchangeRateDto"
+              }
+            ],
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "sequenceOrder": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IUpdateDraftPaymentReq": {
+        "properties": {
+          "attachmentReferences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Replaces the attachments when supplied. An empty list clears them."
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceLine": {
+            "$ref": "#/components/schemas/IUpdateDraftPaymentLineReq"
+          },
+          "destinationLines": {
+            "items": {
+              "$ref": "#/components/schemas/IUpdateDraftPaymentLineReq"
+            },
+            "type": "array",
+            "description": "When supplied, replaces the destination set. IDs retain existing lines."
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "IJournalEntryFieldsDto": {
         "properties": {
           "sourceType": {
@@ -13619,61 +13685,6 @@
           "attachments",
           "lines"
         ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IUpdateDraftPaymentLineReq": {
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "accountId": {
-            "type": "string"
-          },
-          "counterpartyId": {
-            "type": "string",
-            "nullable": true
-          },
-          "amount": {
-            "$ref": "#/components/schemas/IMoneyDto"
-          },
-          "exchangeRate": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IExchangeRateDto"
-              }
-            ],
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "sequenceOrder": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IUpdateDraftPaymentReq": {
-        "properties": {
-          "sourceLine": {
-            "$ref": "#/components/schemas/IUpdateDraftPaymentLineReq"
-          },
-          "destinationLines": {
-            "items": {
-              "$ref": "#/components/schemas/IUpdateDraftPaymentLineReq"
-            },
-            "type": "array",
-            "description": "When supplied, replaces the destination set. IDs retain existing lines."
-          },
-          "memo": {
-            "type": "string",
-            "nullable": true
-          }
-        },
         "type": "object",
         "additionalProperties": false
       },

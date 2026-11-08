@@ -1,4 +1,5 @@
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
+import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -23,6 +24,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 interface IDependencies {
   accountingPeriodService: IAccountingPeriodService;
+  counterpartyRepo: ICounterpartyRepo;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
   ledgerAccountRepo: ILedgerAccountRepo;
 }
@@ -117,26 +119,34 @@ function makeCreate(deps: IDependencies): IPaymentEntryService['create'] {
   };
 }
 
-/** Validates the resulting payment and prepares an audited draft edit. */
-function makeUpdateDraft(): IPaymentEntryService['updateDraft'] {
-  return ({
-    entry,
-    actor,
-    memo,
-    sourceLine,
-    destinationLines,
-    accounts,
-    counterparties,
-  }) => {
+/** Resolves payment participants and validates requested financial edits. */
+function makeUpdateDraft(
+  deps: IDependencies
+): IPaymentEntryService['updateDraft'] {
+  return async (
+    {
+      entry,
+      actor,
+      attachments,
+      effectiveDate,
+      memo,
+      sourceLine,
+      destinationLines,
+    },
+    repoOptions
+  ) => {
     journalEntryServiceValidation.validateDraftEntry(
       entry,
       EJournalEntrySourceType.Payment
     );
 
-    const hasLineEdits =
-      sourceLine !== undefined || destinationLines !== undefined;
-    if (!hasLineEdits) {
-      return journalEntryEntity.update(entry, { id: entry.id, memo }, actor);
+    const headerUpdate = { id: entry.id, attachments, effectiveDate, memo };
+    const hasFinancialEdits =
+      sourceLine !== undefined ||
+      destinationLines !== undefined ||
+      effectiveDate !== undefined;
+    if (!hasFinancialEdits) {
+      return journalEntryEntity.update(entry, headerUpdate, actor);
     }
 
     const sourceLines = entry.lines.filter(
@@ -177,6 +187,23 @@ function makeUpdateDraft(): IPaymentEntryService['updateDraft'] {
       : originalDestinations;
 
     const lines = [source, ...destinations];
+    const accountIds = [...new Set(lines.map((line) => line.accountId))];
+    const counterpartyIds = [
+      ...new Set(
+        lines.map((line) => line.counterpartyId).filter((id) => id !== null)
+      ),
+    ];
+
+    const accounts = await deps.ledgerAccountRepo.findAllByIds(
+      accountIds,
+      entry.accountingEntityId,
+      repoOptions
+    );
+    const counterparties = await deps.counterpartyRepo.findByIds(
+      counterpartyIds,
+      entry.accountingEntityId,
+      repoOptions
+    );
     const journalLines = getJournalEntryLinesHelper(
       lines,
       accounts,
@@ -185,6 +212,7 @@ function makeUpdateDraft(): IPaymentEntryService['updateDraft'] {
     const [resolvedSource, ...resolvedDestinations] = journalLines;
     const header = {
       accountingEntityId: entry.accountingEntityId,
+      effectiveDate,
       postedAt: null,
     };
 
@@ -206,11 +234,7 @@ function makeUpdateDraft(): IPaymentEntryService['updateDraft'] {
         (storedOrder.get(right.id) ?? entry.lines.length)
     );
 
-    return journalEntryEntity.update(
-      entry,
-      { id: entry.id, memo, lines },
-      actor
-    );
+    return journalEntryEntity.update(entry, { ...headerUpdate, lines }, actor);
   };
 }
 
@@ -376,7 +400,7 @@ export default function makePaymentEntryService(
 ): IPaymentEntryService {
   const service: IPaymentEntryService = {
     create: makeCreate(deps),
-    updateDraft: makeUpdateDraft(),
+    updateDraft: makeUpdateDraft(deps),
     postDraft: makePostDraft(deps),
     voidAndReplace: makeVoidAndReplace(deps),
   };

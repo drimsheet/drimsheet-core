@@ -1,3 +1,5 @@
+import { isEqual } from 'lodash';
+
 import {
   IRepoService,
   TRepoTransactionFn,
@@ -154,7 +156,7 @@ async function persistEntryUpdate(
   }
 }
 
-/** Saves a prepared update with the account currency lock held through commit. */
+/** Saves a prepared update and attachment changes in the same transaction. */
 function makeUpdate(
   deps: IDependencies
 ): IJournalEntryPersistenceAppService['update'] {
@@ -167,6 +169,19 @@ function makeUpdate(
         writeOptions
       );
       await persistEntryUpdate(deps, update, writeOptions);
+
+      const before = update.headerHistory.diff.before;
+      const attachmentsChanged =
+        before !== null &&
+        'attachments' in before &&
+        !isEqual(before.attachments, update.entry.attachments);
+      if (attachmentsChanged) {
+        await deps.journalEntryAttachmentRepo.save(
+          update.entry.id,
+          update.entry.attachments,
+          writeOptions
+        );
+      }
     };
 
     await deps.repoService.runInTransaction(transactionFn, repoOptions.tx);

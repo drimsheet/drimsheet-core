@@ -84,7 +84,7 @@ for (const [source, operationId] of [
   ['receipt', 'updateDraftReceipt'],
   ['transfer', 'updateDraftTransfer'],
 ]) {
-  it(`documents the draft ${source} update without an effective date`, () => {
+  it(`documents the draft ${source} update fields`, () => {
     const update = spec.paths[`/journal-entries/${source}/{id}`].patch;
     const response = update.responses['200'].content['application/json'].schema;
     const responseSchema =
@@ -96,8 +96,19 @@ for (const [source, operationId] of [
     assert.equal(update.operationId, operationId);
     assert.ok(responseSchema.required.includes('id'));
     assert.ok(responseSchema.required.includes('lines'));
-    assert.equal('effectiveDate' in responseSchema.properties, false);
-    assert.equal('effectiveDate' in requestSchema.properties, false);
+    const supportsDateAndAttachments = source === 'payment';
+    assert.equal(
+      'effectiveDate' in responseSchema.properties,
+      supportsDateAndAttachments
+    );
+    assert.equal(
+      'effectiveDate' in requestSchema.properties,
+      supportsDateAndAttachments
+    );
+    assert.equal(
+      'attachmentReferences' in requestSchema.properties,
+      supportsDateAndAttachments
+    );
     assert.equal(requestSchema.required, undefined);
   });
 }

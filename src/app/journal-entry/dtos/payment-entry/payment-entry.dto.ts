@@ -31,6 +31,9 @@ interface IUpdateDraftPaymentLineReq {
 }
 
 export interface IUpdateDraftPaymentReq {
+  /** Replaces the attachments when supplied. An empty list clears them. */
+  attachmentReferences?: string[];
+  effectiveDate?: Date;
   sourceLine?: IUpdateDraftPaymentLineReq;
   /** When supplied, replaces the destination set. IDs retain existing lines. */
   destinationLines?: IUpdateDraftPaymentLineReq[];

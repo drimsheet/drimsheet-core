@@ -48,6 +48,8 @@ const updateDraftPaymentLineReqValidation = journalLineReqValidation
   .strict();
 
 export const updateDraftPaymentReqValidation = z.strictObject({
+  attachmentReferences: paymentEntryReqValidation.shape.attachmentReferences,
+  effectiveDate: paymentEntryReqValidation.shape.effectiveDate.optional(),
   memo: paymentEntryReqValidation.shape.memo.optional(),
   sourceLine: updateDraftPaymentLineReqValidation.optional(),
   destinationLines: z.array(updateDraftPaymentLineReqValidation).optional(),

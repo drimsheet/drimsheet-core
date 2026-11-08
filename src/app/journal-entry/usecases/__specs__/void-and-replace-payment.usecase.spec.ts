@@ -4,6 +4,7 @@ import mockRepoService, {
 } from '@shared/contracts/__mocks__/repo.mock';
 import { ERepoLock } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
+import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -82,6 +83,7 @@ const repoOptions = {
 const transactionOptions = { ...repoOptions, tx: mockRepoTransaction.context };
 const paymentEntryService = makePaymentEntryService({
   accountingPeriodService: mockAccountingPeriodService,
+  counterpartyRepo: mockCounterpartyRepo,
   ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
@@ -119,7 +121,10 @@ const payload: IPaymentEntryReq = {
   ],
 };
 
-async function makeOriginalPayment(postedAt: Date | null) {
+async function makeOriginalPayment(
+  postedAt: Date | null,
+  attachments: IFileAttachment[] = []
+) {
   const line = {
     account: sourceAccount,
     counterparty,
@@ -143,7 +148,7 @@ async function makeOriginalPayment(postedAt: Date | null) {
       destinationLines: [
         { ...line, account: destinationAccount, sequenceOrder: 2 },
       ],
-      attachments: [],
+      attachments,
     },
     repoOptions
   );
@@ -288,6 +293,36 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
     ]);
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
   });
+
+  it.each([false, true])(
+    'uses the requested attachment set when replacing a payment, clear=%s',
+    async (clear) => {
+      const attachment = {
+        url: 'https://files.example.com/original-payment.pdf',
+        name: 'original-payment.pdf',
+        type: 'application/pdf',
+        size: 1024,
+      };
+      const original = await makeOriginalPayment(effectiveDate, [attachment]);
+      mockJournalEntryRepo.findById.mockResolvedValue(original);
+
+      const response = await usecase(original.id, {
+        ...payload,
+        attachmentReferences: clear ? [] : undefined,
+      });
+
+      expect(response.attachments).toEqual(clear ? [] : [attachment]);
+      expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledTimes(
+        clear ? 1 : 0
+      );
+      const [[persistence]] =
+        mockJournalEntryPersistenceAppService.rectify.mock.calls;
+      expect(persistence.entryUpdate?.entry.attachments).toEqual([attachment]);
+      expect(persistence.entriesToCreate[1].entry.attachments).toEqual(
+        response.attachments
+      );
+    }
+  );
 
   it.each([false, true])(
     'allocates from restored FX lots in the same transaction, failure=%s',

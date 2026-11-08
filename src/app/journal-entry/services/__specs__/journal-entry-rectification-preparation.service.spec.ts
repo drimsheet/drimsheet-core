@@ -409,6 +409,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         }
         const paymentEntryService = makePaymentEntryService({
           accountingPeriodService: mockAccountingPeriodService,
+          counterpartyRepo: mockCounterpartyRepo,
           ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
           ledgerAccountRepo: mockLedgerAccountRepo,
         });

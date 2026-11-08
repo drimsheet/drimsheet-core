@@ -207,7 +207,7 @@ export class JournalEntryController extends Controller {
     return rectifyJournalEntryUseCase(id, body);
   }
 
-  /** Updates the memo or lines of an existing draft payment. */
+  /** Updates the memo, effective date, lines, or attachments of a draft payment. */
   @Patch('/payment/{id}')
   @OperationId('updateDraftPayment')
   @SuccessResponse('200')

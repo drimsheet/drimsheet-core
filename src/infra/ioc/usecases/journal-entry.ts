@@ -58,9 +58,8 @@ export const updateDraftPaymentUseCase = makeTracedUseCase(
   'journalEntry.updateDraftPaymentUseCase',
   makeUpdateDraftPaymentUsecase({
     appContext,
+    fileManagementAppService,
     journalEntryRepo: journalEntryRepos.journalEntry,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    counterpartyRepo: counterpartyRepos.counterparty,
     paymentEntryService,
     journalEntryPersistenceAppService,
     eventBus: messaging.eventBus,

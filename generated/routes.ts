@@ -2898,6 +2898,62 @@ const models: TsoaRoute.Models = {
     },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftPaymentLineReq: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string' },
+      accountId: { dataType: 'string' },
+      counterpartyId: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      amount: { ref: 'IMoneyDto' },
+      exchangeRate: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IExchangeRateDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      description: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      sequenceOrder: { dataType: 'double' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftPaymentReq: {
+    dataType: 'refObject',
+    properties: {
+      attachmentReferences: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+      },
+      effectiveDate: { dataType: 'datetime' },
+      sourceLine: { ref: 'IUpdateDraftPaymentLineReq' },
+      destinationLines: {
+        dataType: 'array',
+        array: { dataType: 'refObject', ref: 'IUpdateDraftPaymentLineReq' },
+      },
+      memo: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IJournalEntryFieldsDto: {
     dataType: 'refObject',
     properties: {
@@ -2949,57 +3005,6 @@ const models: TsoaRoute.Models = {
         dataType: 'array',
         array: { dataType: 'refObject', ref: 'IJournalLineDto' },
         required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IUpdateDraftPaymentLineReq: {
-    dataType: 'refObject',
-    properties: {
-      id: { dataType: 'string' },
-      accountId: { dataType: 'string' },
-      counterpartyId: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-      },
-      amount: { ref: 'IMoneyDto' },
-      exchangeRate: {
-        dataType: 'union',
-        subSchemas: [
-          { ref: 'IExchangeRateDto' },
-          { dataType: 'enum', enums: [null] },
-        ],
-      },
-      description: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-      },
-      sequenceOrder: { dataType: 'double' },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IUpdateDraftPaymentReq: {
-    dataType: 'refObject',
-    properties: {
-      sourceLine: { ref: 'IUpdateDraftPaymentLineReq' },
-      destinationLines: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IUpdateDraftPaymentLineReq' },
-      },
-      memo: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
       },
     },
     additionalProperties: false,

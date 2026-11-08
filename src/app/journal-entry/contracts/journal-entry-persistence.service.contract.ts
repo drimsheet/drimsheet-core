@@ -44,7 +44,8 @@ export default interface IJournalEntryPersistenceAppService {
   ): Promise<void>;
 
   /**
-   * Saves one versioned header and its line changes with their history.
+   * Saves a versioned journal update, its line and attachment changes, and
+   * their history together.
    * Locks referenced accounts. Without a caller transaction, resolves after
    * commit.
    */
