@@ -4,6 +4,7 @@ import mockRepoService, {
 } from '@shared/contracts/__mocks__/repo.mock';
 import { ERepoLock } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
+import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -92,6 +93,7 @@ const repoOptions = {
 const transactionOptions = { ...repoOptions, tx: mockRepoTransaction.context };
 const transferEntryService = makeTransferEntryService({
   accountingPeriodService: mockAccountingPeriodService,
+  counterpartyRepo: mockCounterpartyRepo,
   ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
@@ -141,7 +143,10 @@ const payload: ITransferEntryReq = {
   ],
 };
 
-async function makeOriginalTransfer(postedAt: Date | null) {
+async function makeOriginalTransfer(
+  postedAt: Date | null,
+  attachments: IFileAttachment[] = []
+) {
   const line = {
     account: sourceAccount,
     amount: moneyValue.make(10000n, SYSTEM_CURRENCIES.NGN, true),
@@ -171,7 +176,7 @@ async function makeOriginalTransfer(postedAt: Date | null) {
           sequenceOrder: 2,
         },
       ],
-      attachments: [],
+      attachments,
     },
     repoOptions
   );
@@ -344,6 +349,36 @@ describe('makeVoidAndReplaceTransferUsecase', () => {
     ]);
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
   });
+
+  it.each([false, true])(
+    'uses the requested attachment set when replacing a transfer, clear=%s',
+    async (clear) => {
+      const attachment = {
+        url: 'https://files.example.com/original-transfer.pdf',
+        name: 'original-transfer.pdf',
+        type: 'application/pdf',
+        size: 1024,
+      };
+      const original = await makeOriginalTransfer(effectiveDate, [attachment]);
+      mockJournalEntryRepo.findById.mockResolvedValue(original);
+
+      const response = await usecase(original.id, {
+        ...payload,
+        attachmentReferences: clear ? [] : undefined,
+      });
+
+      expect(response.attachments).toEqual(clear ? [] : [attachment]);
+      expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledTimes(
+        clear ? 1 : 0
+      );
+      const [[persistence]] =
+        mockJournalEntryPersistenceAppService.rectify.mock.calls;
+      expect(persistence.entryUpdate?.entry.attachments).toEqual([attachment]);
+      expect(persistence.entriesToCreate[1].entry.attachments).toEqual(
+        response.attachments
+      );
+    }
+  );
 
   it('restores original FX lots before allocating the replacement and persists both FX effects', async () => {
     const original = await makeOriginalTransfer(effectiveDate);

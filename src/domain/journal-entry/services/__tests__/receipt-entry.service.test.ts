@@ -7,6 +7,7 @@ import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
+import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -50,6 +51,16 @@ const mockLedgerAccountService: jest.Mocked<ILedgerAccountService> = {
   promotePostingToControlAccount: jest.fn(),
 };
 
+const mockCounterpartyRepo: jest.Mocked<ICounterpartyRepo> = {
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  deleteByAccountingEntityId: jest.fn(),
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByIds: jest.fn(),
+};
+
 const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
   validatePostingPeriod: jest.fn(),
 };
@@ -76,6 +87,7 @@ describe('receiptEntryService', () => {
   };
   const service = makeReceiptEntryService({
     accountingPeriodService: mockAccountingPeriodService,
+    counterpartyRepo: mockCounterpartyRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
 
@@ -757,39 +769,106 @@ describe('receiptEntryService', () => {
       const [entry] = await service.create(receipt.payload, repoOptions);
       mockAccountingPeriodService.validatePostingPeriod.mockClear();
 
-      return {
-        entry,
-        actor: receipt.user.actorId,
-        accounts: [
-          receipt.sourceAccount,
-          receipt.vatPayableAccount,
-          receipt.destinationAccount,
-        ],
-        counterparties: [receipt.counterparty, receipt.taxAuthority],
-      };
+      const accounts = [
+        receipt.sourceAccount,
+        receipt.vatPayableAccount,
+        receipt.destinationAccount,
+      ];
+      mockLedgerAccountRepo.findAllByIds.mockImplementation(async (ids) =>
+        accounts.filter((account) => ids.includes(account.id))
+      );
+      const counterparties = [receipt.counterparty, receipt.taxAuthority];
+      mockCounterpartyRepo.findByIds.mockImplementation(async (ids) =>
+        counterparties.filter((counterparty) => ids.includes(counterparty.id))
+      );
+
+      return { accounts, draft: { entry, actor: receipt.user.actorId } };
     }
 
-    it('merges partial edits and audits a replacement source set', async () => {
-      const draft = await makeDraftUpdate();
-      const [sales, tax, cash] = draft.entry.lines;
-      const [updated, events, audit] = service.updateDraft({
-        ...draft,
-        sourceLines: [
-          {
-            id: sales.id,
-            amount: moneyValue.make(11_250n, SYSTEM_CURRENCIES.NGN, true),
-          },
-          {
-            accountId: tax.accountId,
-            sequenceOrder: tax.sequenceOrder,
-            amount: tax.amount,
-          },
-        ],
-        destinationLine: {
-          amount: moneyValue.make(12_000n, SYSTEM_CURRENCIES.NGN, true),
-          description: null,
+    it('changes the effective date and clears attachments without posting the draft', async () => {
+      const {
+        draft: { entry, actor },
+      } = await makeDraftUpdate();
+      const newDate = new Date('2026-08-05T00:00:00.000Z');
+      const [updated, , audit] = await service.updateDraft(
+        {
+          entry,
+          actor,
+          effectiveDate: newDate,
+          attachments: [],
         },
+        repoOptions
+      );
+
+      expect(updated).toMatchObject({
+        effectiveDate: newDate,
+        status: EJournalEntryStatus.Draft,
+        postedAt: null,
+        attachments: [],
+        lines: entry.lines,
       });
+      expect(audit?.header.diff.before?.attachments).toEqual(entry.attachments);
+      expect(audit?.header.diff.after.attachments).toEqual([]);
+      expect(audit?.lines).toEqual([]);
+      expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+        expect.arrayContaining(entry.lines.map((line) => line.accountId)),
+        entry.accountingEntityId,
+        repoOptions
+      );
+      expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
+        expect.arrayContaining([entry.lines[0].counterpartyId]),
+        entry.accountingEntityId,
+        repoOptions
+      );
+    });
+
+    it('rejects a date-only edit before an existing account opened', async () => {
+      const {
+        draft: { entry, actor },
+        accounts,
+      } = await makeDraftUpdate();
+      const [source, ...destinations] = accounts;
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
+        { ...source, openingBalanceDate: entry.effectiveDate },
+        ...destinations,
+      ]);
+
+      await expect(
+        service.updateDraft(
+          {
+            entry,
+            actor,
+            effectiveDate: new Date('2026-08-01T00:00:00.000Z'),
+          },
+          repoOptions
+        )
+      ).rejects.toThrow(journalEntryError.EffectiveDateIsBeforeOpeningDate);
+    });
+
+    it('merges partial edits and audits a replacement source set', async () => {
+      const { draft } = await makeDraftUpdate();
+      const [sales, tax, cash] = draft.entry.lines;
+      const [updated, events, audit] = await service.updateDraft(
+        {
+          ...draft,
+          sourceLines: [
+            {
+              id: sales.id,
+              amount: moneyValue.make(11_250n, SYSTEM_CURRENCIES.NGN, true),
+            },
+            {
+              accountId: tax.accountId,
+              sequenceOrder: tax.sequenceOrder,
+              amount: tax.amount,
+            },
+          ],
+          destinationLine: {
+            amount: moneyValue.make(12_000n, SYSTEM_CURRENCIES.NGN, true),
+            description: null,
+          },
+        },
+        repoOptions
+      );
 
       expect(updated.id).toBe(draft.entry.id);
       expect(updated.status).toBe(EJournalEntryStatus.Draft);
@@ -813,29 +892,39 @@ describe('receiptEntryService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('edits the memo without loading any participants', async () => {
-      const { entry, actor } = await makeDraftUpdate();
-      const [updated, , audit] = service.updateDraft({
-        entry,
-        actor,
-        memo: null,
-        accounts: [],
-        counterparties: [],
-      });
+    it('updates memo and attachments without loading payment participants', async () => {
+      const {
+        draft: { entry, actor },
+      } = await makeDraftUpdate();
+      const [updated, , audit] = await service.updateDraft(
+        {
+          entry,
+          actor,
+          memo: null,
+          attachments: [],
+        },
+        repoOptions
+      );
 
       expect(updated.memo).toBeNull();
+      expect(updated.attachments).toEqual([]);
       expect(updated.lines).toEqual(entry.lines);
       expect(audit?.lines).toEqual([]);
+      expect(mockLedgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
+      expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
     });
 
     it('returns the original draft when retained lines are supplied in a different order', async () => {
-      const draft = await makeDraftUpdate();
+      const { draft } = await makeDraftUpdate();
       const [sales, tax, cash] = draft.entry.lines;
-      const [updated, events, audit] = service.updateDraft({
-        ...draft,
-        sourceLines: [{ id: tax.id }, { id: sales.id }],
-        destinationLine: { id: cash.id },
-      });
+      const [updated, events, audit] = await service.updateDraft(
+        {
+          ...draft,
+          sourceLines: [{ id: tax.id }, { id: sales.id }],
+          destinationLine: { id: cash.id },
+        },
+        repoOptions
+      );
 
       expect(updated).toBe(draft.entry);
       expect(events).toEqual([]);
@@ -843,30 +932,36 @@ describe('receiptEntryService', () => {
     });
 
     it('rejects a posted receipt', async () => {
-      const receipt = await makeDraftUpdate(timestamp);
-      expect(() => service.updateDraft(receipt)).toThrow(
+      const { draft } = await makeDraftUpdate(timestamp);
+      await expect(service.updateDraft(draft, repoOptions)).rejects.toThrow(
         journalEntryError.RectificationNotPermitted
       );
     });
 
     it('rejects the source line ID as a destination line ID', async () => {
-      const draft = await makeDraftUpdate();
-      expect(() =>
-        service.updateDraft({
-          ...draft,
-          destinationLine: { id: draft.entry.lines[0].id },
-        })
-      ).toThrow(journalEntryError.RectificationLineId);
+      const { draft } = await makeDraftUpdate();
+      await expect(
+        service.updateDraft(
+          {
+            ...draft,
+            destinationLine: { id: draft.entry.lines[0].id },
+          },
+          repoOptions
+        )
+      ).rejects.toThrow(journalEntryError.RectificationLineId);
     });
 
     it('rejects a revenue account as the destination', async () => {
-      const draft = await makeDraftUpdate();
-      expect(() =>
-        service.updateDraft({
-          ...draft,
-          destinationLine: { accountId: draft.accounts[0].id },
-        })
-      ).toThrow(journalEntryError.InvalidDestinationAccount);
+      const { draft } = await makeDraftUpdate();
+      await expect(
+        service.updateDraft(
+          {
+            ...draft,
+            destinationLine: { accountId: draft.entry.lines[0].accountId },
+          },
+          repoOptions
+        )
+      ).rejects.toThrow(journalEntryError.InvalidDestinationAccount);
     });
   });
 

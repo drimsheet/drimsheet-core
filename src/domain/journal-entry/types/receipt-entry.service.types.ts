@@ -31,16 +31,19 @@ export interface IReceiptEntryService {
     repoOptions: IReadRepoOptions
   ): Promise<TAuditedJournalEntry>;
 
-  /** Validates and edits a draft receipt in place, returning its audit and events. */
-  updateDraft(payload: {
-    entry: IJournalEntry;
-    actor: TEntityId;
-    memo?: string | null;
-    sourceLines?: TDraftJournalLinePatch[];
-    destinationLine?: TDraftJournalLinePatch;
-    accounts: ILedgerAccount[];
-    counterparties: ICounterparty[];
-  }): TAuditedJournalEntryUpdate;
+  /** Resolves participants for financial edits and prepares the audited draft. */
+  updateDraft(
+    payload: {
+      entry: IJournalEntry;
+      actor: TEntityId;
+      attachments?: IFileAttachment[];
+      effectiveDate?: Date;
+      memo?: string | null;
+      sourceLines?: TDraftJournalLinePatch[];
+      destinationLine?: TDraftJournalLinePatch;
+    },
+    repoOptions: IReadRepoOptions
+  ): Promise<TAuditedJournalEntryUpdate>;
 
   /**
    * Posts a draft receipt without writes, preserving its financial content and

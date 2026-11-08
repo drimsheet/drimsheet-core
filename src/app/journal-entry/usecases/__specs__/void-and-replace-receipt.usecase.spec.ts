@@ -4,6 +4,7 @@ import mockRepoService, {
 } from '@shared/contracts/__mocks__/repo.mock';
 import { ERepoLock } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
+import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -79,6 +80,7 @@ const repoOptions = {
 const transactionOptions = { ...repoOptions, tx: mockRepoTransaction.context };
 const receiptEntryService = makeReceiptEntryService({
   accountingPeriodService: mockAccountingPeriodService,
+  counterpartyRepo: mockCounterpartyRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
 const usecase = makeVoidAndReplaceReceiptUsecase({
@@ -117,7 +119,10 @@ const payload: IReceiptEntryReq = {
   },
 };
 
-async function makeOriginalReceipt(postedAt: Date | null) {
+async function makeOriginalReceipt(
+  postedAt: Date | null,
+  attachments: IFileAttachment[] = []
+) {
   const line = {
     account: sourceAccount,
     counterparty,
@@ -143,7 +148,7 @@ async function makeOriginalReceipt(postedAt: Date | null) {
         account: destinationAccount,
         sequenceOrder: 2,
       },
-      attachments: [],
+      attachments,
     },
     repoOptions
   );
@@ -288,6 +293,36 @@ describe('makeVoidAndReplaceReceiptUsecase', () => {
     ]);
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
   });
+
+  it.each([false, true])(
+    'uses the requested attachment set when replacing a receipt, clear=%s',
+    async (clear) => {
+      const attachment = {
+        url: 'https://files.example.com/original-receipt.pdf',
+        name: 'original-receipt.pdf',
+        type: 'application/pdf',
+        size: 1024,
+      };
+      const original = await makeOriginalReceipt(effectiveDate, [attachment]);
+      mockJournalEntryRepo.findById.mockResolvedValue(original);
+
+      const response = await usecase(original.id, {
+        ...payload,
+        attachmentReferences: clear ? [] : undefined,
+      });
+
+      expect(response.attachments).toEqual(clear ? [] : [attachment]);
+      expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledTimes(
+        clear ? 1 : 0
+      );
+      const [[persistence]] =
+        mockJournalEntryPersistenceAppService.rectify.mock.calls;
+      expect(persistence.entryUpdate?.entry.attachments).toEqual([attachment]);
+      expect(persistence.entriesToCreate[1].entry.attachments).toEqual(
+        response.attachments
+      );
+    }
+  );
 
   it('persists the original FX reversal and the replacement acquisition in the journal transaction', async () => {
     const original = await makeOriginalReceipt(effectiveDate);

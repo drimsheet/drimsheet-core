@@ -7,6 +7,7 @@ import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
+import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -47,6 +48,16 @@ import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 import userEntity from '@domain/user/entities/user.entity';
 
+const mockCounterpartyRepo: jest.Mocked<ICounterpartyRepo> = {
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  deleteByAccountingEntityId: jest.fn(),
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByIds: jest.fn(),
+};
+
 const mockAccountingPeriodService: jest.Mocked<IAccountingPeriodService> = {
   validatePostingPeriod: jest.fn(),
 };
@@ -84,6 +95,7 @@ describe('transferEntryService', () => {
   };
   const service = makeTransferEntryService({
     accountingPeriodService: mockAccountingPeriodService,
+    counterpartyRepo: mockCounterpartyRepo,
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
@@ -817,35 +829,105 @@ describe('transferEntryService', () => {
       mockAccountingPeriodService.validatePostingPeriod.mockClear();
       mockLedgerAccountBalanceRepo.findByAccountId.mockClear();
 
+      const accounts = [
+        fixture.sourceAccount,
+        fixture.destinationAccount,
+        bankChargeAccount,
+      ];
+      mockLedgerAccountRepo.findAllByIds.mockImplementation(async (ids) =>
+        accounts.filter((account) => ids.includes(account.id))
+      );
+      mockCounterpartyRepo.findByIds.mockImplementation(async (ids) =>
+        ids.includes(bankCounterparty.id) ? [bankCounterparty] : []
+      );
+
       return {
-        entry,
-        actor: payload.header.createdBy,
-        accounts: [
-          fixture.sourceAccount,
-          fixture.destinationAccount,
-          bankChargeAccount,
-        ],
-        counterparties: [bankCounterparty],
+        accounts,
+        bankCounterparty,
+        draft: { entry, actor: payload.header.createdBy },
       };
     }
 
-    it('adds a charge with a partial source edit and keeps the destination', async () => {
-      const draft = await makeDraftUpdate();
-      const [source, destination] = draft.entry.lines;
-      const [updated, events, audit] = service.updateDraft({
-        ...draft,
-        sourceLine: {
-          amount: moneyValue.make(10_200n, SYSTEM_CURRENCIES.NGN, true),
+    it('changes the effective date and clears attachments without posting the draft', async () => {
+      const {
+        draft: { entry, actor },
+      } = await makeDraftUpdate();
+      const newDate = new Date('2026-08-05T00:00:00.000Z');
+      const [updated, , audit] = await service.updateDraft(
+        {
+          entry,
+          actor,
+          effectiveDate: newDate,
+          attachments: [],
         },
-        chargeLines: [
-          {
-            accountId: draft.accounts[2].id,
-            counterpartyId: draft.counterparties[0].id,
-            amount: moneyValue.make(200n, SYSTEM_CURRENCIES.NGN, true),
-            sequenceOrder: 3,
-          },
-        ],
+        repoOptions
+      );
+
+      expect(updated).toMatchObject({
+        effectiveDate: newDate,
+        status: EJournalEntryStatus.Draft,
+        postedAt: null,
+        attachments: [],
+        lines: entry.lines,
       });
+      expect(audit?.header.diff.before?.attachments).toEqual(entry.attachments);
+      expect(audit?.header.diff.after.attachments).toEqual([]);
+      expect(audit?.lines).toEqual([]);
+      expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+        expect.arrayContaining(entry.lines.map((line) => line.accountId)),
+        entry.accountingEntityId,
+        repoOptions
+      );
+      expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
+        [],
+        entry.accountingEntityId,
+        repoOptions
+      );
+    });
+
+    it('rejects a date-only edit before an existing account opened', async () => {
+      const {
+        draft: { entry, actor },
+        accounts,
+      } = await makeDraftUpdate();
+      const [source, ...destinations] = accounts;
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
+        { ...source, openingBalanceDate: entry.effectiveDate },
+        ...destinations,
+      ]);
+
+      await expect(
+        service.updateDraft(
+          {
+            entry,
+            actor,
+            effectiveDate: new Date('2026-08-01T00:00:00.000Z'),
+          },
+          repoOptions
+        )
+      ).rejects.toThrow(journalEntryError.EffectiveDateIsBeforeOpeningDate);
+    });
+
+    it('adds a charge with a partial source edit and keeps the destination', async () => {
+      const { draft, accounts, bankCounterparty } = await makeDraftUpdate();
+      const [source, destination] = draft.entry.lines;
+      const [updated, events, audit] = await service.updateDraft(
+        {
+          ...draft,
+          sourceLine: {
+            amount: moneyValue.make(10_200n, SYSTEM_CURRENCIES.NGN, true),
+          },
+          chargeLines: [
+            {
+              accountId: accounts[2].id,
+              counterpartyId: bankCounterparty.id,
+              amount: moneyValue.make(200n, SYSTEM_CURRENCIES.NGN, true),
+              sequenceOrder: 3,
+            },
+          ],
+        },
+        repoOptions
+      );
 
       expect(updated.id).toBe(draft.entry.id);
       expect(updated.status).toBe(EJournalEntryStatus.Draft);
@@ -854,8 +936,8 @@ describe('transferEntryService', () => {
       expect(updated.lines[0].id).toBe(source.id);
       expect(updated.lines[1]).toBe(destination);
       expect(updated.lines[2]).toMatchObject({
-        accountId: draft.accounts[2].id,
-        counterpartyId: draft.counterparties[0].id,
+        accountId: accounts[2].id,
+        counterpartyId: bankCounterparty.id,
         side: EJournalSide.Debit,
       });
       expect(audit?.lines).toHaveLength(2);
@@ -869,12 +951,15 @@ describe('transferEntryService', () => {
     });
 
     it('uses the asset account to find the destination when the charge comes first', async () => {
-      const draft = await makeDraftUpdate(null, true);
+      const { draft } = await makeDraftUpdate(null, true);
       const [, charge, destination] = draft.entry.lines;
-      const [updated] = service.updateDraft({
-        ...draft,
-        destinationLine: { id: destination.id, description: null },
-      });
+      const [updated] = await service.updateDraft(
+        {
+          ...draft,
+          destinationLine: { id: destination.id, description: null },
+        },
+        repoOptions
+      );
 
       expect(updated.lines[1]).toBe(charge);
       expect(updated.lines[2]).toMatchObject({
@@ -884,13 +969,16 @@ describe('transferEntryService', () => {
     });
 
     it('removes all charges when supplied an empty list and the transfer balances', async () => {
-      const draft = await makeDraftUpdate(null, true);
+      const { draft } = await makeDraftUpdate(null, true);
       const [source, , destination] = draft.entry.lines;
-      const [updated, , audit] = service.updateDraft({
-        ...draft,
-        sourceLine: { amount: destination.amount },
-        chargeLines: [],
-      });
+      const [updated, , audit] = await service.updateDraft(
+        {
+          ...draft,
+          sourceLine: { amount: destination.amount },
+          chargeLines: [],
+        },
+        repoOptions
+      );
 
       expect(updated.lines.map((line) => line.id)).toEqual([
         source.id,
@@ -900,68 +988,87 @@ describe('transferEntryService', () => {
     });
 
     it('returns the original draft for an unchanged charge patch', async () => {
-      const draft = await makeDraftUpdate(null, true);
-      const [updated, events, audit] = service.updateDraft({
-        ...draft,
-        chargeLines: [{ id: draft.entry.lines[1].id }],
-      });
+      const { draft } = await makeDraftUpdate(null, true);
+      const [updated, events, audit] = await service.updateDraft(
+        {
+          ...draft,
+          chargeLines: [{ id: draft.entry.lines[1].id }],
+        },
+        repoOptions
+      );
 
       expect(updated).toBe(draft.entry);
       expect(events).toEqual([]);
       expect(audit).toBeNull();
     });
 
-    it('edits the memo with no account or counterparty facts', async () => {
-      const { entry, actor } = await makeDraftUpdate();
-      const [updated, , audit] = service.updateDraft({
-        entry,
-        actor,
-        memo: null,
-        accounts: [],
-        counterparties: [],
-      });
+    it('updates memo and attachments without loading payment participants', async () => {
+      const {
+        draft: { entry, actor },
+      } = await makeDraftUpdate();
+      const [updated, , audit] = await service.updateDraft(
+        {
+          entry,
+          actor,
+          memo: null,
+          attachments: [],
+        },
+        repoOptions
+      );
 
       expect(updated.memo).toBeNull();
+      expect(updated.attachments).toEqual([]);
       expect(updated.lines).toEqual(entry.lines);
       expect(audit?.lines).toEqual([]);
+      expect(mockLedgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
+      expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
     });
 
     it.each(['sourceLine', 'destinationLine'] as const)(
       'rejects using a charge ID for %s',
       async (field) => {
-        const draft = await makeDraftUpdate(null, true);
-        expect(() =>
-          service.updateDraft({
-            ...draft,
-            [field]: { id: draft.entry.lines[1].id },
-          })
-        ).toThrow(journalEntryError.RectificationLineId);
+        const { draft } = await makeDraftUpdate(null, true);
+        await expect(
+          service.updateDraft(
+            {
+              ...draft,
+              [field]: { id: draft.entry.lines[1].id },
+            },
+            repoOptions
+          )
+        ).rejects.toThrow(journalEntryError.RectificationLineId);
       }
     );
 
     it('rejects a charge account in the destination patch', async () => {
-      const draft = await makeDraftUpdate();
-      expect(() =>
-        service.updateDraft({
-          ...draft,
-          destinationLine: { accountId: draft.accounts[2].id },
-        })
-      ).toThrow(journalEntryError.InvalidDestinationAccount);
+      const { draft, accounts } = await makeDraftUpdate();
+      await expect(
+        service.updateDraft(
+          {
+            ...draft,
+            destinationLine: { accountId: accounts[2].id },
+          },
+          repoOptions
+        )
+      ).rejects.toThrow(journalEntryError.InvalidDestinationAccount);
     });
 
     it('rejects using the same account as source and destination', async () => {
-      const draft = await makeDraftUpdate();
-      expect(() =>
-        service.updateDraft({
-          ...draft,
-          destinationLine: { accountId: draft.accounts[0].id },
-        })
-      ).toThrow(journalEntryError.DuplicateAccountsNotPermitted);
+      const { draft, accounts } = await makeDraftUpdate();
+      await expect(
+        service.updateDraft(
+          {
+            ...draft,
+            destinationLine: { accountId: accounts[0].id },
+          },
+          repoOptions
+        )
+      ).rejects.toThrow(journalEntryError.DuplicateAccountsNotPermitted);
     });
 
     it('rejects a posted transfer', async () => {
-      const transfer = await makeDraftUpdate(timestamp);
-      expect(() => service.updateDraft(transfer)).toThrow(
+      const { draft } = await makeDraftUpdate(timestamp);
+      await expect(service.updateDraft(draft, repoOptions)).rejects.toThrow(
         journalEntryError.RectificationNotPermitted
       );
     });

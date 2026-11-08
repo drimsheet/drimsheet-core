@@ -88,8 +88,6 @@ interface IJournalEntryFieldsDto extends IJournalHeaderFieldsDto {
   lines: IJournalLineDto[];
 }
 
-export type IDraftJournalEntryDto = IJournalEntryFieldsDto;
-
 export interface IJournalEntryDto extends IJournalEntryFieldsDto {
   effectiveDate: Date;
 }

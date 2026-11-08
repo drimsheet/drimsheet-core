@@ -2954,62 +2954,6 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryFieldsDto: {
-    dataType: 'refObject',
-    properties: {
-      sourceType: { ref: 'UJournalEntrySourceType', required: true },
-      memo: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      status: { ref: 'UJournalEntryStatus', required: true },
-      postedAt: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'datetime' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      voidedAt: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'datetime' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      voidingEntryId: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      createdBy: { ref: 'TEntityId', required: true },
-      createdAt: { dataType: 'datetime', required: true },
-      updatedAt: { dataType: 'datetime', required: true },
-      id: { dataType: 'string', required: true },
-      accountingEntityId: { dataType: 'string', required: true },
-      attachments: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IFileAttachment' },
-        required: true,
-      },
-      lines: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IJournalLineDto' },
-        required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IUpdateDraftReceiptLineReq: {
     dataType: 'refObject',
     properties: {
@@ -3045,6 +2989,11 @@ const models: TsoaRoute.Models = {
   IUpdateDraftReceiptReq: {
     dataType: 'refObject',
     properties: {
+      attachmentReferences: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+      },
+      effectiveDate: { dataType: 'datetime' },
       sourceLines: {
         dataType: 'array',
         array: { dataType: 'refObject', ref: 'IUpdateDraftReceiptLineReq' },
@@ -3121,6 +3070,11 @@ const models: TsoaRoute.Models = {
   IUpdateDraftTransferReq: {
     dataType: 'refObject',
     properties: {
+      attachmentReferences: {
+        dataType: 'array',
+        array: { dataType: 'string' },
+      },
+      effectiveDate: { dataType: 'datetime' },
       sourceLine: { ref: 'IUpdateDraftTransferAssetLineReq' },
       destinationLine: { ref: 'IUpdateDraftTransferAssetLineReq' },
       chargeLines: {

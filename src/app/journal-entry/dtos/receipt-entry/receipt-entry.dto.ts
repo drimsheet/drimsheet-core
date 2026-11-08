@@ -31,6 +31,9 @@ interface IUpdateDraftReceiptLineReq {
 }
 
 export interface IUpdateDraftReceiptReq {
+  /** Replaces the attachments when supplied. An empty list clears them. */
+  attachmentReferences?: string[];
+  effectiveDate?: Date;
   /** When supplied, replaces the source set. IDs retain existing lines. */
   sourceLines?: IUpdateDraftReceiptLineReq[];
   destinationLine?: IUpdateDraftReceiptLineReq;

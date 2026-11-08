@@ -71,6 +71,7 @@ const draft = {
   sourceType: 'receipt',
   memo: 'Revised draft',
   status: 'draft',
+  effectiveDate: now,
   postedAt: null,
   voidedAt: null,
   voidingEntryId: null,
@@ -128,6 +129,7 @@ describe('PATCH /journal-entries/receipt/{id}', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         ...draft,
+        effectiveDate: now.toISOString(),
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       });
@@ -135,6 +137,21 @@ describe('PATCH /journal-entries/receipt/{id}', () => {
         journalEntryId,
         payload
       );
+    });
+
+    it('parses a corrected effective date and accepts an explicit attachment clear', async () => {
+      const payload = {
+        effectiveDate: now.toISOString(),
+        attachmentReferences: [],
+      };
+      const response = await patchDraft().send(payload);
+
+      expect(response.status).toBe(200);
+      expect(response.body.effectiveDate).toBe(payload.effectiveDate);
+      expect(mockUpdateDraftReceipt).toHaveBeenCalledWith(journalEntryId, {
+        effectiveDate: now,
+        attachmentReferences: [],
+      });
     });
 
     it('parses the exchange rate date in a partial line edit', async () => {
@@ -228,7 +245,8 @@ describe('PATCH /journal-entries/receipt/{id}', () => {
 
   describe('422 Response', () => {
     it.each([
-      { effectiveDate: now.toISOString() },
+      { effectiveDate: 'invalid-date' },
+      { attachments: [] },
       { postedAt: now.toISOString() },
       { destinationLine: { side: 'credit' } },
       { sourceLines: [{ sequenceOrder: 'first' }] },

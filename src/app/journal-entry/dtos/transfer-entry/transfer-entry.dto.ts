@@ -39,6 +39,9 @@ interface IUpdateDraftTransferChargeLineReq extends IUpdateDraftTransferAssetLin
 }
 
 export interface IUpdateDraftTransferReq {
+  /** Replaces the attachments when supplied. An empty list clears them. */
+  attachmentReferences?: string[];
+  effectiveDate?: Date;
   sourceLine?: IUpdateDraftTransferAssetLineReq;
   destinationLine?: IUpdateDraftTransferAssetLineReq;
   /** When supplied, replaces the charge set. IDs retain existing charges. */

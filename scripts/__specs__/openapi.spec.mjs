@@ -96,19 +96,9 @@ for (const [source, operationId] of [
     assert.equal(update.operationId, operationId);
     assert.ok(responseSchema.required.includes('id'));
     assert.ok(responseSchema.required.includes('lines'));
-    const supportsDateAndAttachments = source === 'payment';
-    assert.equal(
-      'effectiveDate' in responseSchema.properties,
-      supportsDateAndAttachments
-    );
-    assert.equal(
-      'effectiveDate' in requestSchema.properties,
-      supportsDateAndAttachments
-    );
-    assert.equal(
-      'attachmentReferences' in requestSchema.properties,
-      supportsDateAndAttachments
-    );
+    assert.ok(responseSchema.required.includes('effectiveDate'));
+    assert.ok('effectiveDate' in requestSchema.properties);
+    assert.ok('attachmentReferences' in requestSchema.properties);
     assert.equal(requestSchema.required, undefined);
   });
 }

@@ -48,6 +48,8 @@ const updateDraftTransferAssetLineReqValidation =
   updateDraftTransferChargeLineReqValidation.omit({ counterpartyId: true });
 
 export const updateDraftTransferReqValidation = z.strictObject({
+  attachmentReferences: transferEntryReqValidation.shape.attachmentReferences,
+  effectiveDate: transferEntryReqValidation.shape.effectiveDate.optional(),
   memo: transferEntryReqValidation.shape.memo.optional(),
   sourceLine: updateDraftTransferAssetLineReqValidation.optional(),
   destinationLine: updateDraftTransferAssetLineReqValidation.optional(),

@@ -32,11 +32,13 @@ export const paymentEntryService = makePaymentEntryService({
 
 export const receiptEntryService = makeReceiptEntryService({
   accountingPeriodService,
+  counterpartyRepo: counterpartyRepos.counterparty,
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });
 
 export const transferEntryService = makeTransferEntryService({
   accountingPeriodService,
+  counterpartyRepo: counterpartyRepos.counterparty,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });

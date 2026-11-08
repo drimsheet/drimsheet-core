@@ -48,6 +48,8 @@ const updateDraftReceiptLineReqValidation = journalLineReqValidation
   .strict();
 
 export const updateDraftReceiptReqValidation = z.strictObject({
+  attachmentReferences: receiptEntryReqValidation.shape.attachmentReferences,
+  effectiveDate: receiptEntryReqValidation.shape.effectiveDate.optional(),
   memo: receiptEntryReqValidation.shape.memo.optional(),
   sourceLines: z.array(updateDraftReceiptLineReqValidation).optional(),
   destinationLine: updateDraftReceiptLineReqValidation.optional(),

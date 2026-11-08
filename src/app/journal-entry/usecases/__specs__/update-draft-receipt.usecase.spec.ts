@@ -13,16 +13,17 @@ import moneyValue from '@domain/money/values/money.vo';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
+import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockReceiptEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import { IUpdateDraftReceiptReq } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto';
 import makeUpdateDraftReceiptUsecase from '@app/journal-entry/usecases/update-draft-receipt.usecase';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 
 describe('update draft receipt use case', () => {
   const actorId = generateUUID();
+  const userId = generateUUID();
   const accountingEntityId = generateUUID();
   const effectiveDate = new Date('2026-08-03T10:00:00.000Z');
   const repoOptions = {
@@ -113,11 +114,10 @@ describe('update draft receipt use case', () => {
   );
   const usecase = makeUpdateDraftReceiptUsecase({
     appContext: mockAppContext,
-    counterpartyRepo: mockCounterpartyRepo,
     eventBus: mockEventBus,
+    fileManagementAppService: mockFileManagementAppService,
     journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
     journalEntryRepo: mockJournalEntryRepo,
-    ledgerAccountRepo: mockLedgerAccountRepo,
     receiptEntryService: mockReceiptEntryService,
   });
 
@@ -125,6 +125,7 @@ describe('update draft receipt use case', () => {
     jest.resetAllMocks();
     mockAppContext.get.mockReturnValue({
       actor: { id: actorId },
+      user: { id: userId },
       accountingEntity: {
         id: accountingEntityId,
         functionalCurrencyCode: 'NGN',
@@ -132,15 +133,10 @@ describe('update draft receipt use case', () => {
       ...repoOptions,
     } as IAppContextData);
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockLedgerAccountRepo.findAllByIds.mockResolvedValue([
-      cashAccount,
-      revenueAccount,
-    ] as Awaited<ReturnType<typeof mockLedgerAccountRepo.findAllByIds>>);
-    mockCounterpartyRepo.findByIds.mockResolvedValue([counterparty]);
-    mockReceiptEntryService.updateDraft.mockReturnValue(mutation);
+    mockReceiptEntryService.updateDraft.mockResolvedValue(mutation);
   });
 
-  it('passes resolved receipt data to the domain and persists its audited edit', async () => {
+  it('passes the receipt patch to the domain and persists its audited edit', async () => {
     const [updated, events] = mutation;
     const updatedDraft = await usecase(entry.id, request);
     expect(updatedDraft).toMatchObject({
@@ -148,39 +144,28 @@ describe('update draft receipt use case', () => {
       status: 'draft',
       memo: request.memo,
     });
-    expect(updatedDraft).not.toHaveProperty('effectiveDate');
+    expect(updatedDraft.effectiveDate).toEqual(effectiveDate);
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
 
-    expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
-      [cashAccount.id, revenueAccount.id],
-      accountingEntityId,
+    expect(mockReceiptEntryService.updateDraft).toHaveBeenCalledWith(
+      {
+        entry,
+        actor: actorId,
+        memo: request.memo,
+        destinationLine: expect.objectContaining({
+          id: destination.id,
+          accountId: cashAccount.id,
+          counterpartyId: counterparty.id,
+          amount: destination.amount,
+          exchangeRate: expect.objectContaining(exchangeRate),
+        }),
+        sourceLines: [
+          expect.objectContaining({ id: retainedSource.id }),
+          expect.objectContaining({ id: undefined }),
+        ],
+      },
       repoOptions
     );
-    expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
-      [counterparty.id],
-      accountingEntityId,
-      repoOptions
-    );
-    expect(
-      mockLedgerAccountRepo.findAllByIds.mock.invocationCallOrder[0]
-    ).toBeLessThan(mockCounterpartyRepo.findByIds.mock.invocationCallOrder[0]);
-    expect(mockReceiptEntryService.updateDraft).toHaveBeenCalledWith({
-      entry,
-      actor: actorId,
-      memo: request.memo,
-      accounts: [cashAccount, revenueAccount],
-      counterparties: [counterparty],
-      destinationLine: expect.objectContaining({
-        id: destination.id,
-        accountId: cashAccount.id,
-        counterpartyId: counterparty.id,
-        amount: destination.amount,
-        exchangeRate: expect.objectContaining(exchangeRate),
-      }),
-      sourceLines: [
-        expect.objectContaining({ id: retainedSource.id }),
-        expect.objectContaining({ id: undefined }),
-      ],
-    });
     expect(mockJournalEntryPersistenceAppService.update).toHaveBeenCalledWith(
       {
         entry: updated,
@@ -220,25 +205,72 @@ describe('update draft receipt use case', () => {
   });
 
   it('returns an unchanged draft without persisting or publishing', async () => {
-    mockReceiptEntryService.updateDraft.mockReturnValue([entry, [], null]);
+    mockReceiptEntryService.updateDraft.mockResolvedValue([entry, [], null]);
 
     await expect(usecase(entry.id, {})).resolves.toMatchObject({
       id: entry.id,
       memo: entry.memo,
     });
 
-    expect(mockLedgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
-    expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('resolves upload references and saves date and attachment edits with the draft', async () => {
+    const attachmentReference = generateUUID();
+    const attachments = [
+      {
+        url: 'https://files.example.com/receipt.pdf',
+        name: 'receipt.pdf',
+        type: 'application/pdf',
+        size: 1024,
+      },
+    ];
+    const newDate = new Date('2026-08-04T00:00:00.000Z');
+    const edit = journalEntryEntity.update(
+      entry,
+      { id: entry.id, effectiveDate: newDate, attachments },
+      actorId
+    );
+    mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);
+    mockReceiptEntryService.updateDraft.mockResolvedValue(edit);
+
+    await expect(
+      usecase(entry.id, {
+        effectiveDate: newDate,
+        attachmentReferences: [attachmentReference],
+      })
+    ).resolves.toMatchObject({ effectiveDate: newDate, attachments });
+
+    expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith({
+      userId,
+      purpose: EFileUploadPurpose.JournalEntryAttachment,
+      references: [attachmentReference],
+    });
+    expect(mockReceiptEntryService.updateDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments,
+        effectiveDate: newDate,
+      }),
+      repoOptions
+    );
+    expect(mockJournalEntryPersistenceAppService.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entry: edit[0],
+        expectedVersion: entry.version,
+      }),
+      repoOptions
+    );
   });
 
   it('rejects malformed IDs and dates before reading the journal', async () => {
     await expect(usecase('invalid', request)).rejects.toThrow(
       journalEntryError.InvalidJournalEntry
     );
-    for (const field of ['effectiveDate', 'postedAt']) {
-      const invalidRequest = { ...request, [field]: effectiveDate };
+    for (const invalidRequest of [
+      { ...request, effectiveDate: new Date(NaN) },
+      { ...request, postedAt: effectiveDate },
+    ]) {
       await expect(usecase(entry.id, invalidRequest)).rejects.toThrow(
         appError.UnprocessableEntity
       );
@@ -254,16 +286,16 @@ describe('update draft receipt use case', () => {
     await expect(usecase(entry.id, request)).rejects.toThrow(
       appError.ResourceNotFound
     );
-    expect(mockLedgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
     expect(mockReceiptEntryService.updateDraft).not.toHaveBeenCalled();
   });
 
-  it('stops before fetching counterparties when the account read fails', async () => {
+  it('propagates a domain lookup failure without persisting or publishing', async () => {
     const error = new repoError.TransactionInactive();
-    mockLedgerAccountRepo.findAllByIds.mockRejectedValue(error);
+    mockReceiptEntryService.updateDraft.mockRejectedValueOnce(error);
+
     await expect(usecase(entry.id, request)).rejects.toBe(error);
-    expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
-    expect(mockReceiptEntryService.updateDraft).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.update).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('passes only the requested destination fields and retains omitted sources', async () => {
@@ -278,7 +310,8 @@ describe('update draft receipt use case', () => {
         }),
         sourceLines: undefined,
         memo: undefined,
-      })
+      }),
+      repoOptions
     );
   });
 

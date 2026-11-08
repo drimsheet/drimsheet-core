@@ -253,7 +253,7 @@ export class JournalEntryController extends Controller {
     return voidAndReplacePaymentUseCase(id, body);
   }
 
-  /** Updates the memo or lines of an existing draft receipt. */
+  /** Edits a draft receipt's memo, effective date, lines, or attachments. */
   @Patch('/receipt/{id}')
   @OperationId('updateDraftReceipt')
   @SuccessResponse('200')
@@ -299,7 +299,7 @@ export class JournalEntryController extends Controller {
     return voidAndReplaceReceiptUseCase(id, body);
   }
 
-  /** Updates the memo or lines of an existing draft transfer. */
+  /** Edits a draft transfer's memo, effective date, lines, or attachments. */
   @Patch('/transfer/{id}')
   @OperationId('updateDraftTransfer')
   @SuccessResponse('200')

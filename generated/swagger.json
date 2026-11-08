@@ -5629,7 +5629,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IJournalEntryFieldsDto"
+                  "$ref": "#/components/schemas/IJournalEntryDto"
                 }
               }
             }
@@ -5705,7 +5705,7 @@
             }
           }
         },
-        "description": "Updates the memo or lines of an existing draft receipt.",
+        "description": "Edits a draft receipt's memo, effective date, lines, or attachments.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -5849,7 +5849,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IJournalEntryFieldsDto"
+                  "$ref": "#/components/schemas/IJournalEntryDto"
                 }
               }
             }
@@ -5925,7 +5925,7 @@
             }
           }
         },
-        "description": "Updates the memo or lines of an existing draft transfer.",
+        "description": "Edits a draft transfer's memo, effective date, lines, or attachments.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -13614,80 +13614,6 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IJournalEntryFieldsDto": {
-        "properties": {
-          "sourceType": {
-            "$ref": "#/components/schemas/UJournalEntrySourceType"
-          },
-          "memo": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/UJournalEntryStatus"
-          },
-          "postedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "voidedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "voidingEntryId": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdBy": {
-            "$ref": "#/components/schemas/TEntityId"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "id": {
-            "type": "string"
-          },
-          "accountingEntityId": {
-            "type": "string"
-          },
-          "attachments": {
-            "items": {
-              "$ref": "#/components/schemas/IFileAttachment"
-            },
-            "type": "array"
-          },
-          "lines": {
-            "items": {
-              "$ref": "#/components/schemas/IJournalLineDto"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "sourceType",
-          "memo",
-          "status",
-          "postedAt",
-          "voidedAt",
-          "voidingEntryId",
-          "createdBy",
-          "createdAt",
-          "updatedAt",
-          "id",
-          "accountingEntityId",
-          "attachments",
-          "lines"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
       "IUpdateDraftReceiptLineReq": {
         "properties": {
           "id": {
@@ -13725,6 +13651,17 @@
       },
       "IUpdateDraftReceiptReq": {
         "properties": {
+          "attachmentReferences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Replaces the attachments when supplied. An empty list clears them."
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date-time"
+          },
           "sourceLines": {
             "items": {
               "$ref": "#/components/schemas/IUpdateDraftReceiptLineReq"
@@ -13811,6 +13748,17 @@
       },
       "IUpdateDraftTransferReq": {
         "properties": {
+          "attachmentReferences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Replaces the attachments when supplied. An empty list clears them."
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date-time"
+          },
           "sourceLine": {
             "$ref": "#/components/schemas/IUpdateDraftTransferAssetLineReq"
           },

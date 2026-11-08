@@ -70,9 +70,8 @@ export const updateDraftReceiptUseCase = makeTracedUseCase(
   'journalEntry.updateDraftReceiptUseCase',
   makeUpdateDraftReceiptUsecase({
     appContext,
+    fileManagementAppService,
     journalEntryRepo: journalEntryRepos.journalEntry,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    counterpartyRepo: counterpartyRepos.counterparty,
     receiptEntryService,
     journalEntryPersistenceAppService,
     eventBus: messaging.eventBus,
@@ -123,9 +122,8 @@ export const updateDraftTransferUseCase = makeTracedUseCase(
   'journalEntry.updateDraftTransferUseCase',
   makeUpdateDraftTransferUsecase({
     appContext,
+    fileManagementAppService,
     journalEntryRepo: journalEntryRepos.journalEntry,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    counterpartyRepo: counterpartyRepos.counterparty,
     transferEntryService,
     journalEntryPersistenceAppService,
     eventBus: messaging.eventBus,

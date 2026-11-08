@@ -39,17 +39,20 @@ export interface ITransferEntryService {
     repoOptions: IReadRepoOptions
   ): Promise<ICreateTransferEntryResult>;
 
-  /** Validates and edits a draft transfer in place, returning audit and events. */
-  updateDraft(payload: {
-    entry: IJournalEntry;
-    actor: TEntityId;
-    memo?: string | null;
-    sourceLine?: TTransferAssetLinePatch;
-    destinationLine?: TTransferAssetLinePatch;
-    chargeLines?: TDraftJournalLinePatch[];
-    accounts: ILedgerAccount[];
-    counterparties: ICounterparty[];
-  }): TAuditedJournalEntryUpdate;
+  /** Resolves participants for financial edits and prepares the audited draft. */
+  updateDraft(
+    payload: {
+      entry: IJournalEntry;
+      actor: TEntityId;
+      attachments?: IFileAttachment[];
+      effectiveDate?: Date;
+      memo?: string | null;
+      sourceLine?: TTransferAssetLinePatch;
+      destinationLine?: TTransferAssetLinePatch;
+      chargeLines?: TDraftJournalLinePatch[];
+    },
+    repoOptions: IReadRepoOptions
+  ): Promise<TAuditedJournalEntryUpdate>;
 
   /**
    * Posts a draft transfer without writes, preserving its financial content
