@@ -52,6 +52,7 @@ import {
   updateDraftTransferUseCase,
   updateJournalEntryMetaUseCase,
   voidAndReplacePaymentUseCase,
+  voidAndReplaceReceiptUseCase,
 } from '@infra/ioc/usecases/journal-entry';
 
 @Route('journal-entries')
@@ -272,6 +273,29 @@ export class JournalEntryController extends Controller {
     @Body() body: IUpdateDraftReceiptReq
   ) {
     return updateDraftReceiptUseCase(id, body);
+  }
+
+  /** Voids and reverses a posted receipt and records a draft or posted replacement. */
+  @Post('/receipt/{id}/void-and-replace')
+  @OperationId('voidAndReplaceReceipt')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async voidAndReplaceReceipt(
+    @Path() id: string,
+    @Body() body: IReceiptEntryReq
+  ) {
+    return voidAndReplaceReceiptUseCase(id, body);
   }
 
   /** Updates the memo or lines of an existing draft transfer. */

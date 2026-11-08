@@ -6988,6 +6988,51 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_voidAndReplaceReceipt: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: { in: 'body', name: 'body', required: true, ref: 'IReceiptEntryReq' },
+  };
+  app.post(
+    '/api/v1/journal-entries/receipt/:id/void-and-replace',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.voidAndReplaceReceipt
+    ),
+
+    async function JournalEntryController_voidAndReplaceReceipt(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_voidAndReplaceReceipt,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'voidAndReplaceReceipt',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   const argsJournalEntryController_updateDraftTransfer: Record<
     string,
     TsoaRoute.ParameterSchema
