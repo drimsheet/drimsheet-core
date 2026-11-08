@@ -30,6 +30,11 @@ import {
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
+import IFxCostBasisLotService, {
+  IFxCostBasisAcquisitionResult,
+  IFxCostBasisDispositionResult,
+  IFxCostBasisReversalResult,
+} from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import IJournalEntryRectificationPreparationAppService, {
   IJournalEntryRectificationPreparationPayload,
@@ -41,14 +46,10 @@ import getTransferChargeAccountsHelper from '@app/journal-entry/usecases/helpers
 import getTransferDestinationLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-destination-line-payload.helper';
 import getTransferSourceLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-source-line-payload.helper';
 import transformTransferChargeLinesToJournalLinesHelper from '@app/journal-entry/usecases/helpers/transform-transfer-charge-lines-to-journal-lines.helper';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
-import {
-  TFxLotAcquisitionAppResult,
-  TFxLotDispositionAppResult,
-  TFxLotReversalAppResult,
-} from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
+import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {
   counterpartyRepo: ICounterpartyRepo;
@@ -57,7 +58,8 @@ interface IDependencies {
   transferEntryService: ITransferEntryService;
   journalEntryRectificationService: IJournalEntryRectificationService;
   ledgerAccountRepo: ILedgerAccountRepo;
-  fxLotAppService: IFxLotAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
 }
 
 interface IPreparedSourceJournalEntry {
@@ -67,9 +69,9 @@ interface IPreparedSourceJournalEntry {
 }
 
 interface IPreparedFxRectification {
-  fxReversal: TFxLotReversalAppResult | null;
-  fxDisposition: TFxLotDispositionAppResult | null;
-  fxAcquisition: TFxLotAcquisitionAppResult | null;
+  fxReversal: IFxCostBasisReversalResult | null;
+  fxDisposition: IFxCostBasisDispositionResult | null;
+  fxAcquisition: IFxCostBasisAcquisitionResult | null;
 }
 
 type TPaymentRectificationReq = Extract<
@@ -402,55 +404,55 @@ async function prepareCurrentFxEffects(
   repoOptions: IReadRepoOptions
 ): Promise<Omit<IPreparedFxRectification, 'fxReversal'>> {
   const { currentJournalEntry } = rectification;
+  const { sourceType } = currentJournalEntry;
+  const hasDisposition =
+    sourceType === EJournalEntrySourceType.Payment ||
+    sourceType === EJournalEntrySourceType.Transfer;
+  const hasAcquisition =
+    sourceType === EJournalEntrySourceType.Receipt ||
+    sourceType === EJournalEntrySourceType.Transfer;
+  const isUnsupportedSource = !hasDisposition && !hasAcquisition;
 
-  if (currentJournalEntry.sourceType === EJournalEntrySourceType.Payment) {
-    const fxDisposition = await deps.fxLotAppService.dispose(
-      {
-        journalEntry: currentJournalEntry,
-        account: sourcePreparation.sourceAccount,
-        actor,
-      },
-      repoOptions
-    );
-
-    return { fxDisposition, fxAcquisition: null };
+  if (isUnsupportedSource) {
+    throw new appError.BadRequest({ sourceType });
   }
 
-  if (currentJournalEntry.sourceType === EJournalEntrySourceType.Receipt) {
-    const fxAcquisition = await deps.fxLotAppService.acquire(
-      {
-        journalEntry: currentJournalEntry,
-        account: sourcePreparation.destinationAssetAccount,
-        actor,
-      },
-      repoOptions
-    );
-
-    return { fxDisposition: null, fxAcquisition };
+  if (currentJournalEntry.status === EJournalEntryStatus.Draft) {
+    return { fxDisposition: null, fxAcquisition: null };
   }
 
-  if (currentJournalEntry.sourceType === EJournalEntrySourceType.Transfer) {
-    const fxDisposition = await deps.fxLotAppService.dispose(
-      {
+  const { sourceAccount, destinationAssetAccount } = sourcePreparation;
+  const fxDisposition = hasDisposition
+    ? await deps.fxCostBasisLotService.dispose(
+        {
+          journalEntry: currentJournalEntry,
+          account: sourceAccount,
+          createdBy: actor,
+          officialRate: await resolveOfficialRateHelper(
+            deps.exchangeRateAppService,
+            currentJournalEntry.lines,
+            sourceAccount.id,
+            repoOptions
+          ),
+        },
+        repoOptions
+      )
+    : null;
+  const fxAcquisition = hasAcquisition
+    ? deps.fxCostBasisLotService.acquire({
         journalEntry: currentJournalEntry,
-        account: sourcePreparation.sourceAccount,
-        actor,
-      },
-      repoOptions
-    );
-    const fxAcquisition = await deps.fxLotAppService.acquire(
-      {
-        journalEntry: currentJournalEntry,
-        account: sourcePreparation.destinationAssetAccount,
-        actor,
-      },
-      repoOptions
-    );
+        account: destinationAssetAccount,
+        createdBy: actor,
+        officialRate: await resolveOfficialRateHelper(
+          deps.exchangeRateAppService,
+          currentJournalEntry.lines,
+          destinationAssetAccount.id,
+          repoOptions
+        ),
+      })
+    : null;
 
-    return { fxDisposition, fxAcquisition };
-  }
-
-  throw new appError.BadRequest({ sourceType: currentJournalEntry.sourceType });
+  return { fxDisposition, fxAcquisition };
 }
 
 async function prepareFxRectification(
@@ -462,9 +464,8 @@ async function prepareFxRectification(
   repoOptions: IReadRepoOptions
 ): Promise<IPreparedFxRectification> {
   if (rectification.mode === EJournalEntryRectificationMode.VoidAndReplace) {
-    const fxReversal = await deps.fxLotAppService.reverse(
+    const fxReversal = await deps.fxCostBasisLotService.reverse(
       originalEntry.id,
-      actor,
       repoOptions
     );
     const currentFxEffects = await prepareCurrentFxEffects(

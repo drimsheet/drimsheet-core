@@ -45,6 +45,7 @@ import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
@@ -131,21 +132,24 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
 
       if (preparedRectification.fxReversal) {
         await deps.fxCostBasisPersistenceAppService.persistReversal(
-          preparedRectification.fxReversal.records,
+          preparedRectification.fxReversal,
+          actor.id,
           writeOptions
         );
       }
 
       if (preparedRectification.fxDisposition) {
         await deps.fxCostBasisPersistenceAppService.persistDisposition(
-          preparedRectification.fxDisposition.records,
+          preparedRectification.fxDisposition,
+          actor.id,
           writeOptions
         );
       }
 
       if (preparedRectification.fxAcquisition) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
-          preparedRectification.fxAcquisition.records,
+          preparedRectification.fxAcquisition,
+          actor.id,
           writeOptions
         );
       }
@@ -161,9 +165,9 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
 
       const events: IEvent<unknown>[] = [
         ...preparedRectification.rectification.events,
-        ...(preparedRectification.fxReversal?.events ?? []),
-        ...(preparedRectification.fxDisposition?.events ?? []),
-        ...(preparedRectification.fxAcquisition?.events ?? []),
+        ...getFxLotEventsHelper(preparedRectification.fxReversal),
+        ...getFxLotEventsHelper(preparedRectification.fxDisposition),
+        ...getFxLotEventsHelper(preparedRectification.fxAcquisition),
       ];
       await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 

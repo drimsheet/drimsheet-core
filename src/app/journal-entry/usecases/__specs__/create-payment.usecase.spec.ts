@@ -60,10 +60,11 @@ import makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
+import { makeFxDispositionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
-import { TFxLotDispositionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const actor = {
   ...actorEntity.makeUser({
@@ -243,7 +244,8 @@ describe('makeCreatePaymentUsecase', () => {
       eventBus: mockEventBus,
       outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
-      fxLotAppService: mockFxLotAppService,
+      fxCostBasisLotService: mockFxCostBasisLotService,
+      exchangeRateAppService: mockExchangeRateAppService,
       fxCostBasisPersistenceAppService:
         mockFxLotCostBasisAppService.persistence,
     });
@@ -251,7 +253,8 @@ describe('makeCreatePaymentUsecase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFxLotAppService.dispose.mockResolvedValue(null);
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
+    mockFxCostBasisLotService.dispose.mockResolvedValue(null);
     mockAppContext.get.mockReturnValue({
       actor,
       correlationId,
@@ -348,44 +351,26 @@ describe('makeCreatePaymentUsecase', () => {
       source: 'test-source',
     };
     mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);
-    const lotId = generateUUID();
-    const dispositionId = generateUUID();
-    const fxRecords = {
-      lots: [{ lot: { id: lotId }, history: { entityId: lotId } }],
-      disposition: {
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        id: dispositionId,
-        officialRate: null,
-      },
-      dispositionHistory: {
-        actorId: 'b2222222-2222-4222-8222-222222222222' as TEntityId,
-        onBehalfOf: null,
-        entityId: dispositionId,
-      },
-      allocations: [],
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotDispositionAppResult['records'];
-    const fxResult: TFxLotDispositionAppResult = {
-      records: fxRecords,
-      events: [],
-    };
-    mockFxLotAppService.dispose.mockResolvedValueOnce(fxResult);
+    const fxDisposition = makeFxDispositionResult(null);
+    mockFxCostBasisLotService.dispose.mockResolvedValueOnce(fxDisposition);
 
     const result = await getUseCase()(payload);
     const repoOptions = { correlationId, idempotencyKey };
 
-    expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
+    expect(mockFxCostBasisLotService.dispose).toHaveBeenCalledWith(
       {
         journalEntry: postedJournalEntry,
         account: sourceAccount,
-        actor: actor.id,
+        createdBy: actor.id,
+        officialRate: null,
       },
       { correlationId }
     );
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
     ).toHaveBeenCalledWith(
-      fxRecords,
+      fxDisposition,
+      actor.id,
       expect.objectContaining({
         correlationId,
         tx: mockRepoTransaction.context,
@@ -445,7 +430,7 @@ describe('makeCreatePaymentUsecase', () => {
 
   it('prevents persistence when FX disposition preparation fails', async () => {
     const failure = new Error('FX disposition failed');
-    mockFxLotAppService.dispose.mockRejectedValueOnce(failure);
+    mockFxCostBasisLotService.dispose.mockRejectedValueOnce(failure);
 
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
 
@@ -479,14 +464,7 @@ describe('makeCreatePaymentUsecase', () => {
 
     await getUseCase()(payload);
 
-    expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
-      {
-        journalEntry: draftJournalEntry,
-        account: sourceAccount,
-        actor: actor.id,
-      },
-      { correlationId }
-    );
+    expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith(
       expect.objectContaining({ references: [] })
     );
@@ -585,8 +563,8 @@ describe('makeCreatePaymentUsecase', () => {
       expect(
         mockJournalEntryPersistenceAppService.create
       ).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
       expect(
         mockFxLotCostBasisAppService.persistence.persistDisposition
       ).not.toHaveBeenCalled();

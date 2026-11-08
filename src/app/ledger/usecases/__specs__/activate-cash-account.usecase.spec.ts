@@ -23,10 +23,11 @@ import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__moc
 import { mockAssetAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import makeActivateCashAccountUsecase from '@app/ledger/usecases/activate-cash-account.usecase';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
+import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
-import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const [header] = ledgerAccountEntity.make({
   code: '100000',
@@ -76,7 +77,8 @@ const usecase = makeActivateCashAccountUsecase({
   journalEntryQueryRepo: mockJournalEntryQueryRepo,
   openingBalanceEntryService: mockOpeningBalanceEntryService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
-  fxLotAppService: mockFxLotAppService,
+  fxCostBasisLotService: mockFxCostBasisLotService,
+  exchangeRateAppService: mockExchangeRateAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
   outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
@@ -86,6 +88,7 @@ const repoOptions = { correlationId: 'activate' };
 describe('activate cash account use case', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
     mockAppContext.get.mockReturnValue({
       actor: { id: actorId },
       accountingEntity: { id: account.accountingEntityId },
@@ -96,7 +99,7 @@ describe('activate cash account use case', () => {
       data: [],
       meta: { page: 1, limit: 1, total: 0, totalPages: 0 },
     });
-    mockFxLotAppService.acquire.mockResolvedValue(null);
+    mockFxCostBasisLotService.acquire.mockReturnValue(null);
     mockLedgerAccountRepo.findById.mockResolvedValue(account);
     mockAssetAccountService.activate.mockResolvedValue([
       activated,
@@ -361,7 +364,7 @@ describe('activate cash account use case', () => {
       expect(
         mockJournalEntryPersistenceAppService.rectify
       ).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
       expect(
         mockFxLotCostBasisAppService.persistence.persistAcquisition
       ).not.toHaveBeenCalled();
@@ -382,12 +385,9 @@ describe('activate cash account use case', () => {
     it.each([false, true])(
       'commits the account, existing journal, audits and outbox together, FX=%s',
       async (hasFx) => {
-        const fxRecords = {} as TFxLotAcquisitionAppResult['records'];
+        const fxAcquisition = makeFxAcquisitionResult();
         if (hasFx) {
-          mockFxLotAppService.acquire.mockResolvedValue({
-            records: fxRecords,
-            events: [],
-          });
+          mockFxCostBasisLotService.acquire.mockReturnValue(fxAcquisition);
         }
         await usecase(account.id, { activateOpeningBalance: true });
         const transactionOptions = {
@@ -409,10 +409,12 @@ describe('activate cash account use case', () => {
           { entry: details, account: activated, actor: actorId },
           repoOptions
         );
-        expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-          { journalEntry: posting[0], account: activated, actor: actorId },
-          repoOptions
-        );
+        expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
+          journalEntry: posting[0],
+          account: activated,
+          createdBy: actorId,
+          officialRate: null,
+        });
         expect(
           mockJournalEntryPersistenceAppService.rectify
         ).toHaveBeenCalledWith(
@@ -438,7 +440,7 @@ describe('activate cash account use case', () => {
         if (hasFx) {
           expect(
             mockFxLotCostBasisAppService.persistence.persistAcquisition
-          ).toHaveBeenCalledWith(fxRecords, transactionOptions);
+          ).toHaveBeenCalledWith(fxAcquisition, actorId, transactionOptions);
         } else {
           expect(
             mockFxLotCostBasisAppService.persistence.persistAcquisition
@@ -489,7 +491,9 @@ describe('activate cash account use case', () => {
           mockOpeningBalanceEntryService.postDraft.mockRejectedValue(failure);
         }
         if (phase === 'FX') {
-          mockFxLotAppService.acquire.mockRejectedValue(failure);
+          mockFxCostBasisLotService.acquire.mockImplementation(() => {
+            throw failure;
+          });
         }
         await expect(
           usecase(account.id, { activateOpeningBalance: true })
@@ -507,10 +511,9 @@ describe('activate cash account use case', () => {
       'rolls back on %s write failure without publishing or queueing',
       async (phase) => {
         const failure = new repoError.VersionNotFound();
-        mockFxLotAppService.acquire.mockResolvedValue({
-          records: {} as TFxLotAcquisitionAppResult['records'],
-          events: [],
-        });
+        mockFxCostBasisLotService.acquire.mockReturnValue(
+          makeFxAcquisitionResult()
+        );
         if (phase === 'account') {
           mockLedgerAccountRepo.update.mockRejectedValue(failure);
         }

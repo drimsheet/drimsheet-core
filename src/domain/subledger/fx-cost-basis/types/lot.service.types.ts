@@ -17,7 +17,7 @@ export interface IFxCostBasisLotOperationPayload {
   officialRate: IExchangeRate | null;
 }
 
-interface IFxCostBasisAcquisitionResult {
+export interface IFxCostBasisAcquisitionResult {
   lot: ReturnType<typeof fxCostBasisLotEntity.make>;
   acquisition: ReturnType<typeof fxCostBasisLotAcquisitionEntity.make>;
 }

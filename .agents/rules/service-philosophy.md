@@ -92,8 +92,10 @@ Use cases own request-specific ordering and orchestration.
 - Coordinate domain/app capabilities for one workflow.
 - Solely initiate persistence, whether through repositories or a dedicated
   persistence service.
-- Own the outer workflow transaction, persistence ordering, history creation,
-  app context updates, and event publication.
+- Own the outer workflow transaction, persistence ordering, workflow-specific
+  history creation, app context updates, and event publication. See
+  [Service Ownership](service-ownership.md#persistence-services) for histories
+  derived inside an atomic write bundle.
 
 ### Repositories
 

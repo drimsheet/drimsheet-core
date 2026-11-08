@@ -20,7 +20,11 @@ import {
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
+import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
+import fxCostBasisLotEntity from '@domain/subledger/fx-cost-basis/entities/lot.entity';
+import { EFxCostBasisLotStatus } from '@domain/subledger/fx-cost-basis/types/lot.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
@@ -42,8 +46,8 @@ import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-jo
 import mockLedgerBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 
 const actor = {
   ...actorEntity.makeUser({
@@ -66,8 +70,8 @@ describe('makeDeleteJournalEntryUsecase', () => {
   const usecase = makeDeleteJournalEntryUsecase({
     appContext: mockAppContext,
     eventBus: mockEventBus,
+    fxCostBasisLotService: mockFxCostBasisLotService,
     fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
-    fxLotAppService: mockFxLotAppService,
     journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
     journalEntryRemovalService: mockJournalEntryRemovalService,
     journalEntryRepo: mockJournalEntryRepo,
@@ -159,7 +163,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     );
     mockJournalEntryPersistenceAppService.delete.mockResolvedValue();
     mockJournalEntryPersistenceAppService.rectify.mockResolvedValue();
-    mockFxLotAppService.reverse.mockResolvedValue(null);
+    mockFxCostBasisLotService.reverse.mockResolvedValue(null);
     mockFxLotCostBasisAppService.persistence.persistReversal.mockResolvedValue();
     mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerBalanceAdjustmentQueue.add.mockResolvedValue();
@@ -209,7 +213,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
       expect(
         mockJournalEntryPersistenceAppService.rectify
       ).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
       expect(
         mockOutboxAppService.createBalancePropagation
       ).not.toHaveBeenCalled();
@@ -340,11 +344,13 @@ describe('makeDeleteJournalEntryUsecase', () => {
 
     await expect(usecase(entry.id)).resolves.toBeUndefined();
 
-    expect(mockFxLotAppService.reverse).toHaveBeenCalledWith(
-      entry.id,
-      'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      { correlationId, idempotencyKey }
-    );
+    expect(mockFxCostBasisLotService.reverse).toHaveBeenCalledWith(entry.id, {
+      correlationId,
+      idempotencyKey,
+    });
+    expect(
+      mockFxLotCostBasisAppService.persistence.persistReversal
+    ).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledWith(
       expect.objectContaining({
         entriesToCreate: [
@@ -380,19 +386,48 @@ describe('makeDeleteJournalEntryUsecase', () => {
     );
   });
 
-  it('persists an optional FX reversal in the journal transaction', async () => {
+  it('persists the FX reversal with its history and publishes its event after commit', async () => {
     const entry = makeEntry(now);
     const removal = await prepareReversal(entry);
-    const fxReversal = { records: { lots: [] }, events: [] };
+    const acquisitionDate = new Date('2026-09-21T10:00:00.000Z');
+    const quantity = moneyValue.make(100, SYSTEM_CURRENCIES.USD, false);
+    const costBasis = moneyValue.make(150000, SYSTEM_CURRENCIES.NGN, false);
+    const [lot] = fxCostBasisLotEntity.make({
+      accountingEntityId,
+      ledgerAccountId: entry.lines[0].accountId,
+      createdBy: userId,
+      status: EFxCostBasisLotStatus.Open,
+      originalQuantity: quantity,
+      remainingQuantity: quantity,
+      costBasis,
+      remainingCostBasis: costBasis,
+      acquisitionDate,
+      acquisitionRate: exchangeRateValue.make({
+        baseCurrencyCode: 'USD',
+        targetCurrencyCode: 'NGN',
+        rate: 1500,
+        asOf: acquisitionDate,
+        source: 'bank',
+        type: EExchangeRateType.Negotiated,
+      }),
+    });
+    const lotReversal = fxCostBasisLotEntity.reverseAcquisition(
+      lot,
+      quantity,
+      costBasis
+    );
+    const [, [reversalEvent]] = lotReversal;
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
     mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
-    mockFxLotAppService.reverse.mockResolvedValue(fxReversal);
+    mockFxCostBasisLotService.reverse.mockResolvedValue({
+      lots: [lotReversal],
+    });
 
     await usecase(entry.id);
 
     expect(
       mockFxLotCostBasisAppService.persistence.persistReversal
-    ).toHaveBeenCalledWith(fxReversal.records, {
+    ).toHaveBeenCalledWith({ lots: [lotReversal] }, actor.id, {
       correlationId,
       tx: mockRepoTransaction.context,
     });
@@ -401,6 +436,16 @@ describe('makeDeleteJournalEntryUsecase', () => {
     ).toBeLessThan(
       mockFxLotCostBasisAppService.persistence.persistReversal.mock
         .invocationCallOrder[0]
+    );
+    expect(mockEventBus.publish).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ...reversalEvent,
+          correlationId,
+          idempotencyKey,
+          enrichedAt: expect.any(Date),
+        }),
+      ])
     );
   });
 
@@ -421,7 +466,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
     expect(
       mockJournalEntryPersistenceAppService.rectify
     ).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
   });
 
   it('validates the id before reading context', async () => {
@@ -506,7 +551,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
       expect(
         mockJournalEntryPersistenceAppService.delete
       ).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
       expect(
         mockFxLotCostBasisAppService.persistence.persistReversal
       ).not.toHaveBeenCalled();

@@ -39,10 +39,11 @@ import {
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
+import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
-import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const actor = {
   ...actorEntity.makeUser({
@@ -149,6 +150,7 @@ describe('createOpeningBalanceUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
     mockRepoService.createTransaction
       .mockReset()
       .mockResolvedValue(mockRepoTransaction);
@@ -204,7 +206,7 @@ describe('createOpeningBalanceUseCase', () => {
     mockOpeningBalanceEntryService.create
       .mockReset()
       .mockResolvedValue(mockJournalCreation);
-    mockFxLotAppService.acquire.mockReset().mockResolvedValue(null);
+    mockFxCostBasisLotService.acquire.mockReset().mockReturnValue(null);
   });
 
   const getUseCase = () =>
@@ -213,7 +215,8 @@ describe('createOpeningBalanceUseCase', () => {
       ledgerAccountRepo: mockLedgerAccountRepo,
       eventBus: mockEventBus,
       openingBalanceEntryService: mockOpeningBalanceEntryService,
-      fxLotAppService: mockFxLotAppService,
+      fxCostBasisLotService: mockFxCostBasisLotService,
+      exchangeRateAppService: mockExchangeRateAppService,
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
@@ -251,13 +254,8 @@ describe('createOpeningBalanceUseCase', () => {
   );
 
   it('should successfully record opening balance and update account openingBalanceDate', async () => {
-    const fxRecords = {
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotAcquisitionAppResult['records'];
-    mockFxLotAppService.acquire.mockResolvedValueOnce({
-      records: fxRecords,
-      events: [],
-    });
+    const fxAcquisition = makeFxAcquisitionResult();
+    mockFxCostBasisLotService.acquire.mockReturnValueOnce(fxAcquisition);
     const useCase = getUseCase();
 
     const payload = {
@@ -282,14 +280,12 @@ describe('createOpeningBalanceUseCase', () => {
       { correlationId, tx: mockRepoTransaction.context }
     );
 
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-      {
-        journalEntry: mockJournalCreation[0],
-        account: mockAssetAccount,
-        actor: mockUser.actorId,
-      },
-      { correlationId, tx: mockRepoTransaction.context }
-    );
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
+      journalEntry: mockJournalCreation[0],
+      account: mockAssetAccount,
+      createdBy: mockUser.actorId,
+      officialRate: null,
+    });
 
     expect(mockLedgerAccountRepo.findById).toHaveBeenCalledWith(
       mockAssetAccount.id,
@@ -323,7 +319,8 @@ describe('createOpeningBalanceUseCase', () => {
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(
-      fxRecords,
+      fxAcquisition,
+      actor.id,
       expect.objectContaining({ correlationId, tx: expect.anything() })
     );
     const persistedJournalEntry =
@@ -475,7 +472,7 @@ describe('createOpeningBalanceUseCase', () => {
       date: new Date('2026-04-24T00:00:00.000Z'),
     });
 
-    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
     expect(
       mockOutboxAppService.createBalancePropagation

@@ -63,8 +63,11 @@ does not justify a service; keep workflow-specific preparation with its owner.
   services must never call them.
 - Compose repository writes and storage-level invariants only when one persisted
   bundle must be atomic.
-- Persist prepared domain/application records as supplied; do not revalidate
-  entities, histories, events, or application-owned outbox decisions.
+- Accept prepared records or domain mutation results. When accepting a domain
+  result, construct the write payload for the same atomic bundle, including
+  audit histories, expected versions, and outbox records directly derived
+  from that result. Do not rerun domain validation, make workflow decisions,
+  or publish events.
 - May join a caller-owned transaction or create the transaction required for
   their own bundle, but they do not own the outer workflow or the decision to
   persist.
@@ -91,8 +94,8 @@ does not justify a service; keep workflow-specific preparation with its owner.
 - Own the request-specific workflow and ordering.
 - Are the only layer allowed to initiate repository writes or invoke persistence
   services.
-- Coordinate repository writes, outer transaction boundaries, history creation,
-  application context updates, and event publication.
+- Coordinate repository writes, outer transaction boundaries, workflow-specific
+  history creation, application context updates, and event publication.
 - Use a dedicated persistence service when multiple repository writes or
   storage-level invariants form one reusable atomic persistence bundle.
 

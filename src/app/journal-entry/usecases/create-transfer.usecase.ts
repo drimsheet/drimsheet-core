@@ -32,6 +32,7 @@ import {
   ITransferEntryService,
 } from '@domain/journal-entry/types/transfer-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
@@ -48,9 +49,11 @@ import getTransferDestinationLinePayloadHelper from '@app/journal-entry/usecases
 import getTransferSourceLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-source-line-payload.helper';
 import transformTransferChargeLinesToJournalLinesHelper from '@app/journal-entry/usecases/helpers/transform-transfer-charge-lines-to-journal-lines.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
+import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
@@ -63,7 +66,8 @@ interface IDependencies {
   eventBus: IEventBus;
   outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
-  fxLotAppService: IFxLotAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
@@ -159,17 +163,38 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       historyValue.make(line, actor.id, correlationId)
     );
 
-    const dispositionResult = await deps.fxLotAppService.dispose(
-      { journalEntry, account: sourceAccount, actor: actor.id },
-      repoOptions
-    );
-    const acquisitionResult = await deps.fxLotAppService.acquire(
-      { journalEntry, account: destinationAssetAccount, actor: actor.id },
-      repoOptions
-    );
-
     const shouldUpdateBalance =
       journalEntry.status === EJournalEntryStatus.Posted;
+
+    const dispositionResult = shouldUpdateBalance
+      ? await deps.fxCostBasisLotService.dispose(
+          {
+            journalEntry,
+            account: sourceAccount,
+            createdBy: actor.id,
+            officialRate: await resolveOfficialRateHelper(
+              deps.exchangeRateAppService,
+              journalEntry.lines,
+              sourceAccount.id,
+              repoOptions
+            ),
+          },
+          repoOptions
+        )
+      : null;
+    const acquisitionResult = shouldUpdateBalance
+      ? deps.fxCostBasisLotService.acquire({
+          journalEntry,
+          account: destinationAssetAccount,
+          createdBy: actor.id,
+          officialRate: await resolveOfficialRateHelper(
+            deps.exchangeRateAppService,
+            journalEntry.lines,
+            destinationAssetAccount.id,
+            repoOptions
+          ),
+        })
+      : null;
 
     const transaction = await deps.repoService.createTransaction();
     try {
@@ -184,14 +209,16 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
 
       if (dispositionResult) {
         await deps.fxCostBasisPersistenceAppService.persistDisposition(
-          dispositionResult.records,
+          dispositionResult,
+          actor.id,
           writeOptions
         );
       }
 
       if (acquisitionResult) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
-          acquisitionResult.records,
+          acquisitionResult,
+          actor.id,
           writeOptions
         );
       }
@@ -206,8 +233,8 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       await transaction.commit();
 
       const fxEvents: IEvent<unknown>[] = [
-        ...(dispositionResult?.events ?? []),
-        ...(acquisitionResult?.events ?? []),
+        ...getFxLotEventsHelper(dispositionResult),
+        ...getFxLotEventsHelper(acquisitionResult),
       ];
 
       const allEvents: IEvent<unknown>[] = [...journalEntryEvents, ...fxEvents];

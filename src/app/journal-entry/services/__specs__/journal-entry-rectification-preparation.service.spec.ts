@@ -49,7 +49,8 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 
 describe('makeJournalEntryRectificationPreparationAppService', () => {
   const accountingEntityId = generateUUID();
@@ -93,7 +94,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     transferEntryService: mockTransferEntryService,
     journalEntryRectificationService: mockJournalEntryRectificationService,
     ledgerAccountRepo: mockLedgerAccountRepo,
-    fxLotAppService: mockFxLotAppService,
+    fxCostBasisLotService: mockFxCostBasisLotService,
+    exchangeRateAppService: mockExchangeRateAppService,
   });
 
   function makeEntry(
@@ -154,14 +156,15 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
     mockCounterpartyRepo.findByIds.mockResolvedValue([counterparty]);
     mockJournalEntryRectificationService.rectify.mockImplementation(
       async ({ originalEntry, newEntry }) =>
         makeRectificationResult(originalEntry, newEntry as IJournalEntry)
     );
-    mockFxLotAppService.reverse.mockResolvedValue(null);
-    mockFxLotAppService.dispose.mockResolvedValue(null);
-    mockFxLotAppService.acquire.mockResolvedValue(null);
+    mockFxCostBasisLotService.reverse.mockResolvedValue(null);
+    mockFxCostBasisLotService.dispose.mockResolvedValue(null);
+    mockFxCostBasisLotService.acquire.mockReturnValue(null);
     mockLedgerAccountRepo.findById.mockImplementation(async (id) => {
       if (id === sourceAccount.id) {
         return sourceAccount;
@@ -341,8 +344,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         }),
         repoOptions
       );
-      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
     }
   );
 
@@ -417,7 +420,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
             journalEntryRectificationService:
               mockJournalEntryRectificationService,
             ledgerAccountRepo: mockLedgerAccountRepo,
-            fxLotAppService: mockFxLotAppService,
+            fxCostBasisLotService: mockFxCostBasisLotService,
+            exchangeRateAppService: mockExchangeRateAppService,
           });
         const [originalEntry] = makeEntry('payment', 100, originalPostedAt);
         const requestedEntry: IPaymentJournalEntryRectificationReq = {
@@ -464,9 +468,9 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         expect(
           mockJournalEntryRectificationService.rectify
         ).not.toHaveBeenCalled();
-        expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
-        expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-        expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+        expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
+        expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+        expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
       }
     );
   });
@@ -531,11 +535,14 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     expect(
       result.rectification.currentJournalEntry.lines.map((line) => line.id)
     ).toEqual(candidate[0].lines.map((line) => line.id));
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-      expect.objectContaining({ account: destinationAccount, actor }),
-      repoOptions
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: destinationAccount,
+        createdBy: actor,
+        officialRate: null,
+      })
     );
-    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
   });
 
   it('prepares a transfer through the transfer domain capability', async () => {
@@ -608,11 +615,13 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     expect(
       result.rectification.currentJournalEntry.lines.map((line) => line.id)
     ).toEqual(candidate[0].lines.map((line) => line.id));
-    expect(mockFxLotAppService.dispose).toHaveBeenCalledTimes(1);
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledTimes(1);
+    expect(mockFxCostBasisLotService.dispose).toHaveBeenCalledTimes(1);
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledTimes(1);
     expect(
-      mockFxLotAppService.dispose.mock.invocationCallOrder[0]
-    ).toBeLessThan(mockFxLotAppService.acquire.mock.invocationCallOrder[0]);
+      mockFxCostBasisLotService.dispose.mock.invocationCallOrder[0]
+    ).toBeLessThan(
+      mockFxCostBasisLotService.acquire.mock.invocationCallOrder[0]
+    );
   });
 
   it('rejects unsupported source types before domain preparation', async () => {
@@ -692,24 +701,26 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         },
         repoOptions
       )
-    ).resolves.toMatchObject({ rectification });
+    ).resolves.toMatchObject({ rectification, fxReversal: null });
 
-    expect(mockFxLotAppService.reverse).toHaveBeenCalledWith(
+    expect(mockFxCostBasisLotService.reverse).toHaveBeenCalledWith(
       originalEntry.id,
-      actor,
       repoOptions
     );
-    expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
+    expect(mockFxCostBasisLotService.dispose).toHaveBeenCalledWith(
       {
         journalEntry: correctedEntry,
         account: sourceAccount,
-        actor,
+        createdBy: actor,
+        officialRate: null,
       },
       repoOptions
     );
     expect(
-      mockFxLotAppService.reverse.mock.invocationCallOrder[0]
-    ).toBeLessThan(mockFxLotAppService.dispose.mock.invocationCallOrder[0]);
+      mockFxCostBasisLotService.reverse.mock.invocationCallOrder[0]
+    ).toBeLessThan(
+      mockFxCostBasisLotService.dispose.mock.invocationCallOrder[0]
+    );
   });
 
   it('stops rectification preparation when the FX-lot reversal fails', async () => {
@@ -753,7 +764,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       )
     );
     const failure = new Error('FX reversal failed');
-    mockFxLotAppService.reverse.mockRejectedValue(failure);
+    mockFxCostBasisLotService.reverse.mockRejectedValue(failure);
 
     await expect(
       service.prepare(
@@ -768,8 +779,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       )
     ).rejects.toBe(failure);
 
-    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
   });
 
   it('prepares current FX effects when rectification posts a draft', async () => {
@@ -829,12 +840,13 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       repoOptions
     );
 
-    expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
+    expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.dispose).toHaveBeenCalledWith(
       {
         journalEntry: postedEntry,
         account: sourceAccount,
-        actor,
+        createdBy: actor,
+        officialRate: null,
       },
       repoOptions
     );
@@ -894,8 +906,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       )
     ).rejects.toBeInstanceOf(appError.BadRequest);
 
-    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
   });
   it.each([
     periodError.PostingPeriodNotOpen,
@@ -964,9 +976,9 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         expect(
           mockAccountingPeriodService.validatePostingPeriod
         ).toHaveBeenCalledWith(accountingEntityId, reversalDate, repoOptions);
-        expect(mockFxLotAppService.reverse).not.toHaveBeenCalled();
-        expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-        expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+        expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
+        expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+        expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
       } finally {
         jest.useRealTimers();
       }
@@ -1044,8 +1056,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       expect(
         mockJournalEntryRectificationService.rectify
       ).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
     }
   );
 });

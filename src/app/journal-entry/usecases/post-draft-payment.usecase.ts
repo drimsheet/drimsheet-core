@@ -28,15 +28,18 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import { IPaymentEntryService } from '@domain/journal-entry/types/payment-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
+import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
@@ -45,7 +48,8 @@ interface IDependencies {
   journalEntryRepo: IJournalEntryRepo;
   paymentEntryService: IPaymentEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
-  fxLotAppService: IFxLotAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
   outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
@@ -114,11 +118,17 @@ export default function makePostDraftPaymentUsecase(deps: IDependencies) {
         await transaction.commit();
         return;
       }
-      const fxDisposition = await deps.fxLotAppService.dispose(
+      const fxDisposition = await deps.fxCostBasisLotService.dispose(
         {
           journalEntry: entry,
           account: posting.sourceAccount,
-          actor: actor.id,
+          createdBy: actor.id,
+          officialRate: await resolveOfficialRateHelper(
+            deps.exchangeRateAppService,
+            entry.lines,
+            posting.sourceAccount.id,
+            repoOptions
+          ),
         },
         repoOptions
       );
@@ -147,7 +157,8 @@ export default function makePostDraftPaymentUsecase(deps: IDependencies) {
 
       if (fxDisposition) {
         await deps.fxCostBasisPersistenceAppService.persistDisposition(
-          fxDisposition.records,
+          fxDisposition,
+          actor.id,
           transactionOptions
         );
       }
@@ -159,7 +170,7 @@ export default function makePostDraftPaymentUsecase(deps: IDependencies) {
 
       await transaction.commit();
 
-      const events = [...journalEvents, ...(fxDisposition?.events ?? [])];
+      const events = [...journalEvents, ...getFxLotEventsHelper(fxDisposition)];
       await deps.eventBus.publish(
         eventValue.enrichAll(events, { correlationId, idempotencyKey })
       );

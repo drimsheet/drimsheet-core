@@ -38,11 +38,11 @@ import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import {
-  TFxLotAcquisitionAppResult,
-  TFxLotDispositionAppResult,
-} from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
+  makeFxAcquisitionResult,
+  makeFxDispositionResult,
+} from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 
 const actor = {
   ...actorEntity.makeUser({
@@ -268,15 +268,9 @@ describe('makeRectifyJournalEntryUsecase', () => {
       { correlationId }
     );
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-    const fxDisposition = {
-      records: {} as TFxLotDispositionAppResult['records'],
-      events: [],
-    };
-    const fxAcquisition = {
-      records: {} as TFxLotAcquisitionAppResult['records'],
-      events: [],
-    };
-    const fxReversal = { records: { lots: [] }, events: [] };
+    const fxDisposition = makeFxDispositionResult();
+    const fxAcquisition = makeFxAcquisitionResult();
+    const fxReversal = { lots: [] };
     mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValue(
       {
         rectification: result,
@@ -335,13 +329,13 @@ describe('makeRectifyJournalEntryUsecase', () => {
     expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistReversal
-    ).toHaveBeenCalledWith(fxReversal.records, expect.any(Object));
+    ).toHaveBeenCalledWith(fxReversal, actor.id, expect.any(Object));
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
-    ).toHaveBeenCalledWith(fxDisposition.records, expect.any(Object));
+    ).toHaveBeenCalledWith(fxDisposition, actor.id, expect.any(Object));
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
-    ).toHaveBeenCalledWith(fxAcquisition.records, expect.any(Object));
+    ).toHaveBeenCalledWith(fxAcquisition, actor.id, expect.any(Object));
     expect(response).toMatchObject({
       mode: EJournalEntryRectificationMode.VoidAndReplace,
       originalJournalEntryId: originalEntry.id,

@@ -34,6 +34,7 @@ import {
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
@@ -46,10 +47,12 @@ import { receiptEntryReqValidation } from '@app/journal-entry/dtos/receipt-entry
 import getCounterpartiesHelper from '@app/journal-entry/usecases/helpers/get-counterparties.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
+import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
@@ -62,7 +65,8 @@ interface IDependencies {
   eventBus: IEventBus;
   outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
-  fxLotAppService: IFxLotAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
@@ -193,10 +197,19 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
     const shouldUpdateBalance =
       journalEntry.status === EJournalEntryStatus.Posted;
 
-    const fxResult = await deps.fxLotAppService.acquire(
-      { journalEntry, account: destinationAccount, actor: actor.id },
-      repoOptions
-    );
+    const fxResult = shouldUpdateBalance
+      ? deps.fxCostBasisLotService.acquire({
+          journalEntry,
+          account: destinationAccount,
+          createdBy: actor.id,
+          officialRate: await resolveOfficialRateHelper(
+            deps.exchangeRateAppService,
+            journalEntry.lines,
+            destinationAccount.id,
+            repoOptions
+          ),
+        })
+      : null;
 
     const transaction = await deps.repoService.createTransaction();
     try {
@@ -211,7 +224,8 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
 
       if (fxResult) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
-          fxResult.records,
+          fxResult,
+          actor.id,
           writeOptions
         );
       }
@@ -227,7 +241,7 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
 
       const allEvents: IEvent<unknown>[] = [
         ...journalEntryEvents,
-        ...(fxResult?.events ?? []),
+        ...getFxLotEventsHelper(fxResult),
       ];
 
       await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));

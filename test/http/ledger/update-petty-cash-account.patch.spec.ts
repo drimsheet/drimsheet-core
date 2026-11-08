@@ -37,9 +37,10 @@ import {
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import makeUpdatePettyCashAccountUsecase from '@app/ledger/usecases/update-petty-cash-account.usecase';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import mockFxCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
@@ -134,6 +135,7 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
   });
   beforeEach(async () => {
     jest.resetAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
     mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(
       ledgerAccountBalanceEntity.make({
         createdBy: account.createdBy,
@@ -180,7 +182,8 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
         cashAccountService,
         journalEntryRepo: mockJournalEntryRepo,
         openingBalanceEntryService: mockOpeningBalanceEntryService,
-        fxLotAppService: mockFxLotAppService,
+        fxCostBasisLotService: mockFxCostBasisLotService,
+        exchangeRateAppService: mockExchangeRateAppService,
         journalEntryPersistenceAppService:
           mockJournalEntryPersistenceAppService,
         balanceEnrichmentAppService: mockBalanceEnrichmentAppService,

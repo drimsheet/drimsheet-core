@@ -31,6 +31,7 @@ import {
   EJournalEntryRemovalMode,
   IJournalEntryRemovalService,
 } from '@domain/journal-entry/types/journal-entry-removal.types';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
@@ -39,13 +40,13 @@ import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   eventBus: IEventBus;
+  fxCostBasisLotService: IFxCostBasisLotService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
-  fxLotAppService: IFxLotAppService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   journalEntryRemovalService: IJournalEntryRemovalService;
   journalEntryRepo: IJournalEntryRepo;
@@ -95,9 +96,8 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
       return;
     }
 
-    const fxReversal = await deps.fxLotAppService.reverse(
+    const fxReversal = await deps.fxCostBasisLotService.reverse(
       originalEntry.id,
-      actor.id,
       repoOptions
     );
 
@@ -119,7 +119,8 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
 
       if (fxReversal) {
         await deps.fxCostBasisPersistenceAppService.persistReversal(
-          fxReversal.records,
+          fxReversal,
+          actor.id,
           writeOptions
         );
       }
@@ -133,7 +134,7 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
 
       const events: IEvent<unknown>[] = [
         ...removal.events,
-        ...(fxReversal?.events ?? []),
+        ...getFxLotEventsHelper(fxReversal),
       ];
 
       await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));

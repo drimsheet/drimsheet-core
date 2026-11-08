@@ -15,8 +15,8 @@ import makeUpdateJournalEntryMetaUsecase from '@app/journal-entry/usecases/updat
 
 import { fileManagementAppService } from '@infra/ioc/services/file';
 import {
+  fxCostBasisLotService,
   fxCostBasisPersistenceAppService,
-  fxLotAppService,
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceAppService,
@@ -27,6 +27,7 @@ import {
   receiptEntryService,
   transferEntryService,
 } from '@infra/ioc/services/journal-entry';
+import { exchangeRateAppService } from '@infra/ioc/services/money';
 import outboxAppService from '@infra/ioc/services/outbox';
 import { repoService } from '@infra/ioc/services/repo';
 import messaging from '@infra/messaging';
@@ -55,7 +56,8 @@ export const postDraftOpeningBalanceUseCase = makeTracedUseCase(
     journalEntryRepo: journalEntryRepos.journalEntry,
     openingBalanceEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -73,7 +75,8 @@ export const postDraftPaymentUseCase = makeTracedUseCase(
     journalEntryRepo: journalEntryRepos.journalEntry,
     paymentEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -91,7 +94,8 @@ export const postDraftReceiptUseCase = makeTracedUseCase(
     journalEntryRepo: journalEntryRepos.journalEntry,
     receiptEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -109,7 +113,8 @@ export const postDraftTransferUseCase = makeTracedUseCase(
     journalEntryRepo: journalEntryRepos.journalEntry,
     transferEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -125,7 +130,8 @@ export const createOpeningBalanceUseCase = makeTracedUseCase(
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     eventBus: messaging.eventBus,
     openingBalanceEntryService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     journalEntryPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -156,8 +162,8 @@ export const deleteJournalEntryUseCase = makeTracedUseCase(
   makeDeleteJournalEntryUsecase({
     appContext,
     eventBus: messaging.eventBus,
+    fxCostBasisLotService,
     fxCostBasisPersistenceAppService,
-    fxLotAppService,
     journalEntryPersistenceAppService,
     journalEntryRemovalService,
     journalEntryRepo: journalEntryRepos.journalEntry,
@@ -188,7 +194,8 @@ export const createPaymentUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );
@@ -206,7 +213,8 @@ export const createReceiptUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );
@@ -224,7 +232,8 @@ export const createTransferUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );

@@ -48,10 +48,11 @@ import {
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
+import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
-import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const actor = {
   ...actorEntity.makeUser({
@@ -211,6 +212,7 @@ describe('makeCreateReceiptUsecase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
 
     mockAppContext.get.mockReturnValue({
       actor,
@@ -252,7 +254,7 @@ describe('makeCreateReceiptUsecase', () => {
     mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerAccountBalanceAdjustmentQueue.add.mockResolvedValue();
     mockEventBus.publish.mockResolvedValue();
-    mockFxLotAppService.acquire.mockResolvedValue(null);
+    mockFxCostBasisLotService.acquire.mockReturnValue(null);
   });
 
   const getUseCase = () =>
@@ -267,7 +269,8 @@ describe('makeCreateReceiptUsecase', () => {
       eventBus: mockEventBus,
       outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
-      fxLotAppService: mockFxLotAppService,
+      fxCostBasisLotService: mockFxCostBasisLotService,
+      exchangeRateAppService: mockExchangeRateAppService,
       fxCostBasisPersistenceAppService:
         mockFxLotCostBasisAppService.persistence,
     });
@@ -321,13 +324,8 @@ describe('makeCreateReceiptUsecase', () => {
 
   it('successfully orchestrates receipt creation, persists changes, propagates balances and returns DTO', async () => {
     const usecase = getUseCase();
-    const fxRecords = {
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotAcquisitionAppResult['records'];
-    mockFxLotAppService.acquire.mockResolvedValueOnce({
-      records: fxRecords,
-      events: [],
-    });
+    const fxAcquisition = makeFxAcquisitionResult();
+    mockFxCostBasisLotService.acquire.mockReturnValueOnce(fxAcquisition);
     const attachmentReferences = ['123e4567-e89b-12d3-a456-426614174010'];
     const attachments = [
       {
@@ -374,14 +372,12 @@ describe('makeCreateReceiptUsecase', () => {
 
     const result = await usecase(payload);
 
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-      {
-        journalEntry,
-        account: destinationAccount,
-        actor: actor.id,
-      },
-      { correlationId, idempotencyKey }
-    );
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
+      journalEntry,
+      account: destinationAccount,
+      createdBy: actor.id,
+      officialRate: null,
+    });
 
     expect(mockAppContext.get).toHaveBeenCalled();
     const repoOptions = { correlationId, idempotencyKey };
@@ -444,7 +440,8 @@ describe('makeCreateReceiptUsecase', () => {
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(
-      fxRecords,
+      fxAcquisition,
+      actor.id,
       expect.objectContaining({ correlationId, tx: expect.anything() })
     );
 
@@ -462,11 +459,16 @@ describe('makeCreateReceiptUsecase', () => {
       mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
     );
 
+    const [, lotEvents] = fxAcquisition.lot;
+    const [, acquisitionEvents] = fxAcquisition.acquisition;
     const [publishedEvents] = mockEventBus.publish.mock.calls[0];
     expect(publishedEvents).toEqual([
       expect.objectContaining({ type: 'domain:journal-entry:created' }),
       expect.objectContaining({ type: 'domain:journal-line-item:created' }),
       expect.objectContaining({ type: 'domain:journal-line-item:created' }),
+      ...[...lotEvents, ...acquisitionEvents].map(({ type }) =>
+        expect.objectContaining({ type })
+      ),
     ]);
 
     expect(result).toEqual(journalEntryDtoMapper.toDto(journalEntry));
@@ -474,7 +476,9 @@ describe('makeCreateReceiptUsecase', () => {
 
   it('propagates FX acquisition failure before persistence and prevents side effects', async () => {
     const failure = new Error('FX acquisition failed');
-    mockFxLotAppService.acquire.mockRejectedValueOnce(failure);
+    mockFxCostBasisLotService.acquire.mockImplementationOnce(() => {
+      throw failure;
+    });
     const payload = {
       sourceLines: [
         {
@@ -737,8 +741,8 @@ describe('makeCreateReceiptUsecase', () => {
       expect(
         mockJournalEntryPersistenceAppService.create
       ).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
       expect(
         mockFxLotCostBasisAppService.persistence.persistAcquisition
       ).not.toHaveBeenCalled();
@@ -886,14 +890,7 @@ describe('makeCreateReceiptUsecase', () => {
       memo: 'Draft receipt',
     });
 
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-      {
-        journalEntry: draftJournalEntry,
-        account: destinationAccount,
-        actor: actor.id,
-      },
-      { correlationId, idempotencyKey }
-    );
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
     expect(
       mockOutboxAppService.createBalancePropagation

@@ -32,6 +32,7 @@ import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ICashAccountService from '@domain/ledger/types/cash-account.service.types';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
@@ -40,9 +41,10 @@ import openingBalanceActivationPreparationHelper from '@app/journal-entry/usecas
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { ICashAccountActivationDto } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { cashAccountActivationDtoValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
@@ -53,7 +55,8 @@ interface IDependencies {
   journalEntryQueryRepo: IJournalEntryQueryRepo;
   openingBalanceEntryService: IOpeningBalanceEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
-  fxLotAppService: IFxLotAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
   outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
@@ -134,7 +137,8 @@ export default function makeActivateCashAccountUsecase(deps: IDependencies) {
 
         if (openingBalancePosting.fxAcquisition) {
           await deps.fxCostBasisPersistenceAppService.persistAcquisition(
-            openingBalancePosting.fxAcquisition.records,
+            openingBalancePosting.fxAcquisition,
+            actor.id,
             transactionOptions
           );
         }
@@ -150,7 +154,7 @@ export default function makeActivateCashAccountUsecase(deps: IDependencies) {
       const events = [
         ...accountEvents,
         ...(openingBalancePosting?.events ?? []),
-        ...(openingBalancePosting?.fxAcquisition?.events ?? []),
+        ...getFxLotEventsHelper(openingBalancePosting?.fxAcquisition ?? null),
       ];
 
       await deps.eventBus.publish(

@@ -13,7 +13,8 @@ import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 
 import { accountingPeriodService } from './accounting';
-import { fxLotAppService } from './fx-lot-cost-basis';
+import { fxCostBasisLotService } from './fx-lot-cost-basis';
+import { exchangeRateAppService } from './money';
 import { repoService } from './repo';
 
 export const openingBalanceEntryService = makeOpeningBalanceEntryService({
@@ -54,7 +55,8 @@ export const journalEntryRectificationPreparationAppService =
     transferEntryService,
     journalEntryRectificationService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
   });
 
 export const journalEntryPersistenceAppService =

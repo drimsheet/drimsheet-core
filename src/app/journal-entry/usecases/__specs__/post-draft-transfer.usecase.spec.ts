@@ -6,7 +6,6 @@ import { ERepoLock } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 import repoError from '@shared/values/errors/repo.error';
-import eventValue from '@shared/values/events/event.vo';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -23,13 +22,14 @@ import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/jou
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import {
-  TFxLotAcquisitionAppResult,
-  TFxLotDispositionAppResult,
-} from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
+  makeFxAcquisitionResult,
+  makeFxDispositionResult,
+} from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 
 const actorId = generateUUID();
 const effectiveDate = new Date('2026-03-01T00:00:00.000Z');
@@ -135,7 +135,8 @@ const usecase = makePostDraftTransferUsecase({
   journalEntryRepo: mockJournalEntryRepo,
   transferEntryService: mockTransferEntryService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
-  fxLotAppService: mockFxLotAppService,
+  fxCostBasisLotService: mockFxCostBasisLotService,
+  exchangeRateAppService: mockExchangeRateAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
   outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
@@ -146,6 +147,7 @@ const usecase = makePostDraftTransferUsecase({
 describe('post draft transfer use case', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
     mockAppContext.get.mockReturnValue({
       actor: { id: actorId },
       accountingEntity: { id: account.accountingEntityId },
@@ -164,8 +166,8 @@ describe('post draft transfer use case', () => {
       destinationAssetAccount: destinationAccount,
     });
     mockCounterpartyRepo.findById.mockResolvedValue(counterparty);
-    mockFxLotAppService.dispose.mockResolvedValue(null);
-    mockFxLotAppService.acquire.mockResolvedValue(null);
+    mockFxCostBasisLotService.dispose.mockResolvedValue(null);
+    mockFxCostBasisLotService.acquire.mockReturnValue(null);
     mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
       throw error;
@@ -192,8 +194,8 @@ describe('post draft transfer use case', () => {
     expect(
       mockJournalEntryPersistenceAppService.rectify
     ).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
@@ -215,41 +217,29 @@ describe('post draft transfer use case', () => {
   ])(
     'posts the transfer atomically, disposition=%s, acquisition=%s',
     async (hasFx, hasAcquisition) => {
-      const fxRecords = {} as TFxLotDispositionAppResult['records'];
-      const fxEvent = eventValue.make({
-        type: 'domain:fx:disposition:created',
-        data: { id: generateUUID() },
-      });
+      const fxDisposition = makeFxDispositionResult();
+      const [[, consumedLotEvents]] = fxDisposition.lots;
+      const [, dispositionEvents] = fxDisposition.disposition;
       if (hasFx) {
-        mockFxLotAppService.dispose.mockResolvedValue({
-          records: fxRecords,
-          events: [fxEvent],
-        });
+        mockFxCostBasisLotService.dispose.mockResolvedValue(fxDisposition);
       }
 
-      const acquisitionRecords = {} as TFxLotAcquisitionAppResult['records'];
-      const acquisitionEvent = eventValue.make({
-        type: 'domain:fx:acquisition:created',
-        data: { id: generateUUID() },
-      });
+      const fxAcquisition = makeFxAcquisitionResult();
+      const [, acquiredLotEvents] = fxAcquisition.lot;
+      const [, acquisitionEvents] = fxAcquisition.acquisition;
       if (hasAcquisition) {
-        mockFxLotAppService.acquire.mockResolvedValue({
-          records: acquisitionRecords,
-          events: [acquisitionEvent],
-        });
+        mockFxCostBasisLotService.acquire.mockReturnValue(fxAcquisition);
       }
 
       await expect(usecase(originalEntry.id)).resolves.toBeUndefined();
-      expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-        {
-          journalEntry: posting[0],
-          account: destinationAccount,
-          actor: actorId,
-        },
-        repoOptions
-      );
+      expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
+        journalEntry: posting[0],
+        account: destinationAccount,
+        createdBy: actorId,
+        officialRate: null,
+      });
       expect(
-        mockFxLotAppService.acquire.mock.invocationCallOrder[0]
+        mockFxCostBasisLotService.acquire.mock.invocationCallOrder[0]
       ).toBeLessThan(
         mockJournalEntryPersistenceAppService.rectify.mock
           .invocationCallOrder[0]
@@ -257,7 +247,7 @@ describe('post draft transfer use case', () => {
       if (hasAcquisition) {
         expect(
           mockFxLotCostBasisAppService.persistence.persistAcquisition
-        ).toHaveBeenCalledWith(acquisitionRecords, transactionOptions);
+        ).toHaveBeenCalledWith(fxAcquisition, actorId, transactionOptions);
         expect(
           mockFxLotCostBasisAppService.persistence.persistAcquisition.mock
             .invocationCallOrder[0]
@@ -293,8 +283,13 @@ describe('post draft transfer use case', () => {
         },
         transactionOptions
       );
-      expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
-        { journalEntry: posting[0], account, actor: actorId },
+      expect(mockFxCostBasisLotService.dispose).toHaveBeenCalledWith(
+        {
+          journalEntry: posting[0],
+          account,
+          createdBy: actorId,
+          officialRate: null,
+        },
         repoOptions
       );
       expect(
@@ -308,7 +303,7 @@ describe('post draft transfer use case', () => {
         mockTransferEntryService.postDraft.mock.invocationCallOrder[0]
       );
       expect(
-        mockFxLotAppService.dispose.mock.invocationCallOrder[0]
+        mockFxCostBasisLotService.dispose.mock.invocationCallOrder[0]
       ).toBeLessThan(
         mockJournalEntryPersistenceAppService.rectify.mock
           .invocationCallOrder[0]
@@ -338,7 +333,7 @@ describe('post draft transfer use case', () => {
       if (hasFx) {
         expect(
           mockFxLotCostBasisAppService.persistence.persistDisposition
-        ).toHaveBeenCalledWith(fxRecords, transactionOptions);
+        ).toHaveBeenCalledWith(fxDisposition, actorId, transactionOptions);
       } else {
         expect(
           mockFxLotCostBasisAppService.persistence.persistDisposition
@@ -371,24 +366,24 @@ describe('post draft transfer use case', () => {
           idempotencyKey: 'request',
         }),
         ...(hasFx
-          ? [
+          ? [...consumedLotEvents, ...dispositionEvents].map(({ type, data }) =>
               expect.objectContaining({
-                type: fxEvent.type,
-                data: fxEvent.data,
+                type,
+                data,
                 ...repoOptions,
                 idempotencyKey: 'request',
-              }),
-            ]
+              })
+            )
           : []),
         ...(hasAcquisition
-          ? [
+          ? [...acquiredLotEvents, ...acquisitionEvents].map(({ type, data }) =>
               expect.objectContaining({
-                type: acquisitionEvent.type,
-                data: acquisitionEvent.data,
+                type,
+                data,
                 ...repoOptions,
                 idempotencyKey: 'request',
-              }),
-            ]
+              })
+            )
           : []),
       ]);
       expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
@@ -460,25 +455,28 @@ describe('post draft transfer use case', () => {
         counterparty: mockCounterpartyRepo.findById,
         account: mockLedgerAccountRepo.findAllByIds,
         posting: mockTransferEntryService.postDraft,
-        FX: mockFxLotAppService.dispose,
+        FX: mockFxCostBasisLotService.dispose,
         persistence: mockJournalEntryPersistenceAppService.rectify,
         'FX persistence':
           mockFxLotCostBasisAppService.persistence.persistDisposition,
-        acquisition: mockFxLotAppService.acquire,
         'acquisition persistence':
           mockFxLotCostBasisAppService.persistence.persistAcquisition,
         outbox: mockOutboxAppService.createBalancePropagation,
         commit: mockRepoTransaction.commit,
       };
-      mockFxLotAppService.dispose.mockResolvedValue({
-        records: {} as TFxLotDispositionAppResult['records'],
-        events: [],
-      });
-      mockFxLotAppService.acquire.mockResolvedValue({
-        records: {} as TFxLotAcquisitionAppResult['records'],
-        events: [],
-      });
-      failures[phase].mockRejectedValueOnce(failure);
+      mockFxCostBasisLotService.dispose.mockResolvedValue(
+        makeFxDispositionResult()
+      );
+      mockFxCostBasisLotService.acquire.mockReturnValue(
+        makeFxAcquisitionResult()
+      );
+      if (phase === 'acquisition') {
+        mockFxCostBasisLotService.acquire.mockImplementationOnce(() => {
+          throw failure;
+        });
+      } else {
+        failures[phase].mockRejectedValueOnce(failure);
+      }
       await expect(usecase(originalEntry.id)).rejects.toBe(failure);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
       expect(

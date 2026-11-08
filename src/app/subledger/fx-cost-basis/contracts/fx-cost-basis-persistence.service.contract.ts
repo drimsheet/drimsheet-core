@@ -1,68 +1,29 @@
 import { IWriteRepoOptions } from '@shared/types/repo.types';
+import { TEntityId } from '@shared/types/uuid';
 
 import {
-  IFxCostBasisLotAcquisition,
-  IFxCostBasisLotAcquisitionHistory,
-} from '@domain/subledger/fx-cost-basis/types/acquisition.types';
-import {
-  IFxCostBasisLotDisposition,
-  IFxCostBasisLotDispositionAllocation,
-  IFxCostBasisLotDispositionHistory,
-} from '@domain/subledger/fx-cost-basis/types/disposition.types';
-import {
-  IFxCostBasisLot,
-  IFxCostBasisLotHistory,
-} from '@domain/subledger/fx-cost-basis/types/lot.types';
+  IFxCostBasisAcquisitionResult,
+  IFxCostBasisDispositionResult,
+  IFxCostBasisReversalResult,
+} from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
-import { IMissingOfficialFxRateOutbox } from '@app/outbox/types/missing-official-fx-rate.types';
-
-interface IFxCostBasisLotWithHistory {
-  lot: IFxCostBasisLot;
-  history: IFxCostBasisLotHistory;
-  expectedVersion: number;
-}
-
-export interface IFxCostBasisAcquisitionPersistencePayload {
-  lot: IFxCostBasisLot;
-  acquisition: IFxCostBasisLotAcquisition;
-  lotHistory: IFxCostBasisLotHistory;
-  acquisitionHistory: IFxCostBasisLotAcquisitionHistory;
-  missingOfficialRateOutbox: IMissingOfficialFxRateOutbox | null;
-}
-
-export interface IFxCostBasisDispositionPersistencePayload {
-  lots: IFxCostBasisLotWithHistory[];
-  disposition: IFxCostBasisLotDisposition;
-  dispositionHistory: IFxCostBasisLotDispositionHistory;
-  allocations: IFxCostBasisLotDispositionAllocation[];
-  missingOfficialRateOutbox: IMissingOfficialFxRateOutbox | null;
-}
-
-export interface IFxCostBasisReversalPersistencePayload {
-  lots: IFxCostBasisLotWithHistory[];
-}
-
+/** Writes each FX domain result atomically, joining the caller's transaction. */
 export default interface IFxCostBasisPersistenceAppService {
-  /**
-   * Atomically writes a prepared acquisition bundle, joining the supplied
-   * transaction when present.
-   */
   persistAcquisition(
-    payload: IFxCostBasisAcquisitionPersistencePayload,
+    acquisition: IFxCostBasisAcquisitionResult,
+    actor: TEntityId,
     repoOptions: IWriteRepoOptions
   ): Promise<void>;
 
-  /**
-   * Atomically writes a prepared disposition bundle, joining the supplied
-   * transaction when present.
-   */
   persistDisposition(
-    payload: IFxCostBasisDispositionPersistencePayload,
+    disposition: IFxCostBasisDispositionResult,
+    actor: TEntityId,
     repoOptions: IWriteRepoOptions
   ): Promise<void>;
 
   persistReversal(
-    payload: IFxCostBasisReversalPersistencePayload,
+    reversal: IFxCostBasisReversalResult,
+    actor: TEntityId,
     repoOptions: IWriteRepoOptions
   ): Promise<void>;
 }

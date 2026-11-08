@@ -33,8 +33,8 @@ import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty
 import makeUpdateRevenueAccountUsecase from '@app/ledger/usecases/update-revenue-account.usecase';
 
 import {
+  fxCostBasisLotService,
   fxCostBasisPersistenceAppService,
-  fxLotAppService,
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceAppService,
@@ -69,6 +69,7 @@ import {
   unrealizedGainAccountService,
   unrealizedLossAccountService,
 } from '@infra/ioc/services/ledger';
+import { exchangeRateAppService } from '@infra/ioc/services/money';
 import outboxAppService from '@infra/ioc/services/outbox';
 import { repoService } from '@infra/ioc/services/repo';
 import messaging from '@infra/messaging';
@@ -125,7 +126,8 @@ export const activateCashAccountUseCase = makeTracedUseCase(
     journalEntryQueryRepo: journalEntryRepos.queries.journalEntry,
     openingBalanceEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -268,7 +270,8 @@ export const createPettyCashAccountUseCase = makeTracedUseCase(
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     ledgerAccountPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );
@@ -285,7 +288,8 @@ export const updatePettyCashAccountUseCase = makeTracedUseCase(
     cashAccountService,
     journalEntryRepo: journalEntryRepos.journalEntry,
     openingBalanceEntryService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     journalEntryPersistenceAppService,
     balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
     fxCostBasisPersistenceAppService,
@@ -307,7 +311,8 @@ export const updateBankAccountUseCase = makeTracedUseCase(
     cashAccountService,
     journalEntryRepo: journalEntryRepos.journalEntry,
     openingBalanceEntryService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     journalEntryPersistenceAppService,
     balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
     fxCostBasisPersistenceAppService,
@@ -329,7 +334,8 @@ export const createBankAccountUseCase = makeTracedUseCase(
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     ledgerAccountPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );

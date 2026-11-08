@@ -4,13 +4,13 @@ import { TEntityId } from '@shared/types/uuid';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { IJournalEntryRectificationResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
+import {
+  IFxCostBasisAcquisitionResult,
+  IFxCostBasisDispositionResult,
+  IFxCostBasisReversalResult,
+} from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { TJournalEntryRectificationReq } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
-import {
-  TFxLotAcquisitionAppResult,
-  TFxLotDispositionAppResult,
-  TFxLotReversalAppResult,
-} from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 export interface IJournalEntryRectificationPreparationPayload {
   originalEntry: IJournalEntry;
@@ -21,9 +21,9 @@ export interface IJournalEntryRectificationPreparationPayload {
 
 export interface IPreparedJournalEntryRectification {
   rectification: IJournalEntryRectificationResult;
-  fxReversal: TFxLotReversalAppResult | null;
-  fxDisposition: TFxLotDispositionAppResult | null;
-  fxAcquisition: TFxLotAcquisitionAppResult | null;
+  fxReversal: IFxCostBasisReversalResult | null;
+  fxDisposition: IFxCostBasisDispositionResult | null;
+  fxAcquisition: IFxCostBasisAcquisitionResult | null;
 }
 
 // TODO: check the usefulness of this service. Could it be a simple helper?
