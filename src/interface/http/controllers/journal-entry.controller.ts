@@ -53,6 +53,7 @@ import {
   updateJournalEntryMetaUseCase,
   voidAndReplacePaymentUseCase,
   voidAndReplaceReceiptUseCase,
+  voidAndReplaceTransferUseCase,
 } from '@infra/ioc/usecases/journal-entry';
 
 @Route('journal-entries')
@@ -319,6 +320,29 @@ export class JournalEntryController extends Controller {
     @Body() body: IUpdateDraftTransferReq
   ) {
     return updateDraftTransferUseCase(id, body);
+  }
+
+  /** Voids and reverses a posted transfer and records its replacement. */
+  @Post('/transfer/{id}/void-and-replace')
+  @OperationId('voidAndReplaceTransfer')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async voidAndReplaceTransfer(
+    @Path() id: string,
+    @Body() body: ITransferEntryReq
+  ) {
+    return voidAndReplaceTransferUseCase(id, body);
   }
 
   /** Posts only the associated draft opening balance, preserving the ledger account's status. Requires a draft opening-balance journal and an active posting account. */

@@ -16,7 +16,7 @@ import {
   IJournalEntryLinePayload,
   TDraftJournalLinePatch,
 } from './journal-entry.service.types';
-import { IJournalEntry, IVoidJournalEntryPayload } from './journal-entry.types';
+import { IJournalEntry } from './journal-entry.types';
 
 export interface ICreateTransferEntryPayload {
   header: IJournalEntryHeaderPayload;
@@ -70,19 +70,16 @@ export interface ITransferEntryService {
   }>;
 
   /**
-   * Uses the supplied reversing journal ID to void a transfer and prepares a
-   * posted replacement with its destination asset on the original effective
-   * date. A retry with the same reversing journal ID returns a null replacement.
+   * Prepares an audited reversal and void, plus a replacement using the
+   * ordinary transfer creation rules. Performs no writes.
    */
   voidAndReplace(
-    payload: Pick<
-      ICreateTransferEntryPayload,
-      'sourceLine' | 'destinationLines'
-    > &
-      IVoidJournalEntryPayload & { entry: IJournalEntry; createdBy: TEntityId },
+    existing: IJournalEntry,
+    replacement: ICreateTransferEntryPayload,
     repoOptions: IReadRepoOptions
   ): Promise<{
     voided: TAuditedJournalEntryTransition;
+    reversal: TAuditedJournalEntry | null;
     replacement: ICreateTransferEntryResult | null;
   }>;
 }

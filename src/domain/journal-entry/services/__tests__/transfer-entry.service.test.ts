@@ -24,6 +24,7 @@ import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
+import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -61,6 +62,20 @@ const mockLedgerAccountBalanceRepo: jest.Mocked<ILedgerAccountBalanceRepo> = {
   findAllByAccountIds: jest.fn(),
 };
 
+const mockLedgerAccountRepo: jest.Mocked<ILedgerAccountRepo> = {
+  delete: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  findById: jest.fn(),
+  findAllByIds: jest.fn(),
+  findAllByMaterializedPath: jest.fn(),
+  findDescendants: jest.fn(),
+  findByCode: jest.fn(),
+  findBySubType: jest.fn(),
+  findByBehavior: jest.fn(),
+  findLatestBySubType: jest.fn(),
+};
+
 describe('transferEntryService', () => {
   const timestamp = new Date('2026-08-04T10:00:00.000Z');
   const effectiveDate = new Date('2026-08-03T10:00:00.000Z');
@@ -70,6 +85,7 @@ describe('transferEntryService', () => {
   const service = makeTransferEntryService({
     accountingPeriodService: mockAccountingPeriodService,
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
+    ledgerAccountRepo: mockLedgerAccountRepo,
   });
 
   function makeTransferAccount(
@@ -952,18 +968,36 @@ describe('transferEntryService', () => {
   });
 
   describe('voidAndReplace', () => {
+    const correctionDate = new Date('2026-08-06T10:00:00.000Z');
+    const replacementEffectiveDate = new Date('2026-08-05T10:00:00.000Z');
+
     async function makeReplacementFixture(postedAt: Date | null = timestamp) {
-      const { payload, bankChargeAccount, bankCounterparty } =
-        makeTransferFixture(postedAt);
+      const {
+        payload,
+        sourceAccount,
+        destinationAccount,
+        bankChargeAccount,
+        bankCounterparty,
+      } = makeTransferFixture(postedAt);
       const original = await service.create(payload, repoOptions);
       const [entry] = original.journalEntry;
       mockLedgerAccountBalanceRepo.findByAccountId.mockClear();
       mockAccountingPeriodService.validatePostingPeriod.mockClear();
 
-      return {
-        entry,
-        voidingEntryId: generateUUID(),
-        createdBy: generateUUID(),
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValue([
+        sourceAccount,
+        destinationAccount,
+      ]);
+      jest.setSystemTime(correctionDate);
+
+      const replacement: ICreateTransferEntryPayload = {
+        header: {
+          ...payload.header,
+          effectiveDate: replacementEffectiveDate,
+          postedAt: correctionDate,
+          createdBy: generateUUID(),
+        },
+        attachments: payload.attachments,
         sourceLine: {
           ...payload.sourceLine,
           amount: moneyValue.make(9_000n, SYSTEM_CURRENCIES.NGN, true),
@@ -985,17 +1019,39 @@ describe('transferEntryService', () => {
           },
         ],
       };
+      return { entry, replacement, sourceAccount };
     }
 
-    it('returns the audited void, posted replacement, and replacement destination asset', async () => {
-      const payload = await makeReplacementFixture();
-      const { entry } = payload;
-      const replacementPostedAt = new Date('2026-08-05T10:00:00.000Z');
-      jest.setSystemTime(replacementPostedAt);
+    it('returns the linked reversal, audited void, and posted transfer with its destination asset', async () => {
+      const { entry, replacement: payload } = await makeReplacementFixture();
 
-      const { voided, replacement } = await service.voidAndReplace(
+      const { voided, reversal, replacement } = await service.voidAndReplace(
+        entry,
         payload,
         repoOptions
+      );
+
+      const [reversingEntry, , reversalAudit] = reversal!;
+      expect(reversingEntry).toMatchObject({
+        sourceType: EJournalEntrySourceType.Reversal,
+        status: EJournalEntryStatus.Posted,
+        accountingEntityId: entry.accountingEntityId,
+        effectiveDate: correctionDate,
+        postedAt: correctionDate,
+      });
+      expect(reversingEntry.lines).toMatchObject(
+        entry.lines.map((line) => ({
+          accountId: line.accountId,
+          amount: line.amount,
+          functionalAmount: line.functionalAmount,
+          side:
+            line.side === EJournalSide.Credit
+              ? EJournalSide.Debit
+              : EJournalSide.Credit,
+        }))
+      );
+      expect(reversalAudit.header.action).toBe(
+        EJournalEntryAuditAction.Created
       );
 
       const [voidedEntry, voidEvents, voidAudit] = voided;
@@ -1003,7 +1059,7 @@ describe('transferEntryService', () => {
         id: entry.id,
         status: EJournalEntryStatus.Voided,
         lines: entry.lines,
-        voidingEntryId: payload.voidingEntryId,
+        voidingEntryId: reversingEntry.id,
       });
       expect(voidEvents.map((event) => event.type)).toEqual([
         EJournalEntryEvent.Voided,
@@ -1022,11 +1078,11 @@ describe('transferEntryService', () => {
         accountingEntityId: entry.accountingEntityId,
         sourceType: EJournalEntrySourceType.Transfer,
         status: EJournalEntryStatus.Posted,
-        effectiveDate: entry.effectiveDate,
-        postedAt: replacementPostedAt,
+        effectiveDate: replacementEffectiveDate,
+        postedAt: correctionDate,
         memo: entry.memo,
         attachments: entry.attachments,
-        createdBy: payload.createdBy,
+        createdBy: payload.header.createdBy,
         lines: [
           {
             accountId: payload.sourceLine.account.id,
@@ -1046,46 +1102,37 @@ describe('transferEntryService', () => {
       );
       expect(
         mockAccountingPeriodService.validatePostingPeriod.mock.calls
-      ).toEqual([[entry.accountingEntityId, entry.effectiveDate, repoOptions]]);
+      ).toEqual([
+        [entry.accountingEntityId, correctionDate, repoOptions],
+        [entry.accountingEntityId, replacementEffectiveDate, repoOptions],
+      ]);
     });
 
-    it('returns the original voided transfer on retry with the same reversal', async () => {
-      const payload = await makeReplacementFixture();
-      const firstCorrection = await service.voidAndReplace(
-        payload,
-        repoOptions
-      );
-      const [entry] = firstCorrection.voided;
-      mockLedgerAccountBalanceRepo.findByAccountId.mockClear();
+    it('rejects a second correction of a voided transfer', async () => {
+      const { entry, replacement } = await makeReplacementFixture();
+      const {
+        voided: [voidedEntry],
+      } = await service.voidAndReplace(entry, replacement, repoOptions);
       mockAccountingPeriodService.validatePostingPeriod.mockClear();
 
-      const { voided, replacement } = await service.voidAndReplace(
-        { ...payload, entry },
-        repoOptions
-      );
-
-      expect(voided[0]).toBe(entry);
-      expect(voided.slice(1)).toEqual([[], null]);
-      expect(replacement).toBeNull();
-      expect(
-        mockLedgerAccountBalanceRepo.findByAccountId
-      ).not.toHaveBeenCalled();
+      await expect(
+        service.voidAndReplace(voidedEntry, replacement, repoOptions)
+      ).rejects.toThrow(journalEntryError.InvalidStatusTransition);
       expect(
         mockAccountingPeriodService.validatePostingPeriod
       ).not.toHaveBeenCalled();
     });
 
     it('rejects a draft transfer', async () => {
-      const payload = await makeReplacementFixture(null);
+      const { entry, replacement } = await makeReplacementFixture(null);
 
       await expect(
-        service.voidAndReplace(payload, repoOptions)
+        service.voidAndReplace(entry, replacement, repoOptions)
       ).rejects.toThrow(journalEntryError.InvalidStatusTransition);
     });
 
     it('rejects a non-transfer entry', async () => {
-      const payload = await makeReplacementFixture();
-      const transfer = payload.entry;
+      const { entry: transfer, replacement } = await makeReplacementFixture();
       const functionalCurrency = SYSTEM_CURRENCIES.NGN;
       const [entry] = journalEntryEntity.make({
         accountingEntityId: transfer.accountingEntityId,
@@ -1099,13 +1146,13 @@ describe('transferEntryService', () => {
       });
 
       await expect(
-        service.voidAndReplace({ ...payload, entry }, repoOptions)
+        service.voidAndReplace(entry, replacement, repoOptions)
       ).rejects.toThrow(journalEntryError.RectificationNotPermitted);
     });
 
     it('rejects a replacement when its source balance is insufficient', async () => {
-      const payload = await makeReplacementFixture();
-      const { account, amount } = payload.sourceLine;
+      const { entry, replacement } = await makeReplacementFixture();
+      const { account, amount } = replacement.sourceLine;
       mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValueOnce(
         makeSourceAccountBalance(
           account.id,
@@ -1116,28 +1163,51 @@ describe('transferEntryService', () => {
       );
 
       await expect(
-        service.voidAndReplace(payload, repoOptions)
+        service.voidAndReplace(entry, replacement, repoOptions)
       ).rejects.toThrow(journalEntryError.InsufficientSourceAccountBalance);
       expect(mockLedgerAccountBalanceRepo.findByAccountId).toHaveBeenCalledWith(
         account.id,
-        payload.entry.accountingEntityId,
+        entry.accountingEntityId,
         repoOptions
       );
-      expect(payload.entry.status).toBe(EJournalEntryStatus.Posted);
+      expect(entry.status).toBe(EJournalEntryStatus.Posted);
     });
 
-    it('rejects a replacement in a closed effective period', async () => {
-      const payload = await makeReplacementFixture();
-      const failure = new periodError.PostingPeriodNotOpen();
-      mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
-        failure
-      );
+    it('rejects reversal when an original account is archived', async () => {
+      const { entry, replacement, sourceAccount } =
+        await makeReplacementFixture();
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
+        { ...sourceAccount, status: ELedgerAccountStatus.Archived },
+      ]);
 
-      await expect(service.voidAndReplace(payload, repoOptions)).rejects.toBe(
-        failure
-      );
-      expect(payload.entry.status).toBe(EJournalEntryStatus.Posted);
+      await expect(
+        service.voidAndReplace(entry, replacement, repoOptions)
+      ).rejects.toThrow(journalEntryError.ArchivedLedgerAccountNotAllowed);
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
     });
+
+    it.each([0, 1])(
+      'rejects when posting period check %i fails',
+      async (failedCheck) => {
+        const { entry, replacement } = await makeReplacementFixture();
+        const failure = new periodError.PostingPeriodNotOpen();
+        if (failedCheck === 1) {
+          mockAccountingPeriodService.validatePostingPeriod.mockResolvedValueOnce(
+            undefined
+          );
+        }
+        mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
+          failure
+        );
+
+        await expect(
+          service.voidAndReplace(entry, replacement, repoOptions)
+        ).rejects.toBe(failure);
+        expect(entry.status).toBe(EJournalEntryStatus.Posted);
+      }
+    );
   });
 
   describe('postDraft', () => {

@@ -37,6 +37,7 @@ export const receiptEntryService = makeReceiptEntryService({
 export const transferEntryService = makeTransferEntryService({
   accountingPeriodService,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
+  ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });
 
 export const journalEntryRectificationService =
