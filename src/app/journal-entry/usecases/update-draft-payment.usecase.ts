@@ -114,21 +114,19 @@ export default function makeUpdateDraftPaymentUsecase(deps: IDependencies) {
     const { effectiveDate: _effectiveDate, ...draft } =
       journalEntryDtoMapper.toDto(updatedEntry);
 
-    if (!audit) {
-      return draft;
+    if (audit) {
+      const update = {
+        entry: updatedEntry,
+        expectedVersion: entry.version,
+        headerHistory: historyValue.make(audit.header, actor.id, correlationId),
+        lineHistories: audit.lines.map((lineAudit) =>
+          historyValue.make(lineAudit, actor.id, correlationId)
+        ),
+        ...getJournalLineChangesHelper(entry.lines, updatedEntry.lines),
+      };
+      await deps.journalEntryPersistenceAppService.update(update, repoOptions);
     }
 
-    const update = {
-      entry: updatedEntry,
-      expectedVersion: entry.version,
-      headerHistory: historyValue.make(audit.header, actor.id, correlationId),
-      lineHistories: audit.lines.map((lineAudit) =>
-        historyValue.make(lineAudit, actor.id, correlationId)
-      ),
-      ...getJournalLineChangesHelper(entry.lines, updatedEntry.lines),
-    };
-
-    await deps.journalEntryPersistenceAppService.update(update, repoOptions);
     await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
 
     return draft;
