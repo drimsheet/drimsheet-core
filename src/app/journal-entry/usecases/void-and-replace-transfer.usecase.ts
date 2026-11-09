@@ -94,14 +94,13 @@ export default function makeVoidAndReplaceTransferUsecase(deps: IDependencies) {
       repo: deps.counterpartyRepo,
       repoOptions,
     });
-    const attachments =
-      payload.attachmentReferences === undefined
-        ? originalEntry.attachments
-        : await deps.fileManagementAppService.claimUploads({
-            userId: user.id,
-            purpose: EFileUploadPurpose.JournalEntryAttachment,
-            references: payload.attachmentReferences,
-          });
+    const attachments = payload.attachmentReferences?.length
+      ? await deps.fileManagementAppService.claimUploads({
+          userId: user.id,
+          purpose: EFileUploadPurpose.JournalEntryAttachment,
+          references: payload.attachmentReferences,
+        })
+      : [];
 
     const transaction = await deps.repoService.createTransaction();
     try {

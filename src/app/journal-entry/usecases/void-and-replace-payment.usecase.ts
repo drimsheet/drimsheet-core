@@ -2,7 +2,6 @@
  * Voids and reverses a posted payment and records a draft or posted
  * replacement. Journal changes, audits, FX effects, and balance outbox
  * records commit together. Returns the replacement payment.
- * Omitted upload references carry forward the original attachments.
  */
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
@@ -91,14 +90,13 @@ export default function makeVoidAndReplacePaymentUsecase(deps: IDependencies) {
       repo: deps.counterpartyRepo,
       repoOptions,
     });
-    const attachments =
-      payload.attachmentReferences === undefined
-        ? originalEntry.attachments
-        : await deps.fileManagementAppService.claimUploads({
-            userId: user.id,
-            purpose: EFileUploadPurpose.JournalEntryAttachment,
-            references: payload.attachmentReferences,
-          });
+    const attachments = payload.attachmentReferences?.length
+      ? await deps.fileManagementAppService.claimUploads({
+          userId: user.id,
+          purpose: EFileUploadPurpose.JournalEntryAttachment,
+          references: payload.attachmentReferences,
+        })
+      : [];
 
     const transaction = await deps.repoService.createTransaction();
     try {

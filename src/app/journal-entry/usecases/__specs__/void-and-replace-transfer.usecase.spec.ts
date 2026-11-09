@@ -351,8 +351,8 @@ describe('makeVoidAndReplaceTransferUsecase', () => {
   });
 
   it.each([false, true])(
-    'uses the requested attachment set when replacing a transfer, clear=%s',
-    async (clear) => {
+    'creates a replacement transfer without attachments, explicit empty list=%s',
+    async (includeEmptyList) => {
       const attachment = {
         url: 'https://files.example.com/original-transfer.pdf',
         name: 'original-transfer.pdf',
@@ -364,13 +364,11 @@ describe('makeVoidAndReplaceTransferUsecase', () => {
 
       const response = await usecase(original.id, {
         ...payload,
-        attachmentReferences: clear ? [] : undefined,
+        ...(includeEmptyList ? { attachmentReferences: [] } : {}),
       });
 
-      expect(response.attachments).toEqual(clear ? [] : [attachment]);
-      expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledTimes(
-        clear ? 1 : 0
-      );
+      expect(response.attachments).toEqual([]);
+      expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
       const [[persistence]] =
         mockJournalEntryPersistenceAppService.rectify.mock.calls;
       expect(persistence.entryUpdate?.entry.attachments).toEqual([attachment]);
