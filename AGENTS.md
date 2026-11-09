@@ -23,6 +23,18 @@ Read this before changing the repository.
 For reporting use-case work, load
 `.agents/skills/reporting-usecase-creation/SKILL.md`.
 
+## Pre-1.0 Changes
+
+Use the `version` in `package.json` to determine release status. For versions
+below `1.0.0`:
+
+- Assume there are no existing records to preserve.
+- Target the current API and data model. Skip backward-compatibility code and
+  legacy data handling.
+- Existing database migration files may be edited directly when changing the
+  schema. Follow the [migration skill](.agents/skills/migration/SKILL.md) for
+  generated Drizzle schemas.
+
 ## Planning
 
 - Whenever the user asks for a plan or the agent decides to create or present
