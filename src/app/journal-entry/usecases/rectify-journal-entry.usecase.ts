@@ -31,6 +31,7 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
+import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import IJournalEntryRectificationPreparationAppService from '@app/journal-entry/contracts/journal-entry-rectification-preparation.service.contract';
 import {
@@ -42,6 +43,7 @@ import { journalEntryRectificationReqValidation } from '@app/journal-entry/dtos/
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalEntriesForBalancePropagationHelper from '@app/journal-entry/usecases/helpers/get-journal-entries-for-balance-propagation.helper';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
+import resolveJournalAttachmentsHelper from '@app/journal-entry/usecases/helpers/resolve-journal-attachments.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
@@ -49,6 +51,7 @@ import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
+  fileManagementAppService: IFileManagementAppService;
   journalEntryRepo: IJournalEntryRepo;
   journalEntryRectificationPreparationAppService: IJournalEntryRectificationPreparationAppService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
@@ -71,8 +74,8 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
     stringUtils.validateUUID(id, journalEntryError.InvalidJournalEntry);
     zodValidationRunner(journalEntryRectificationReqValidation, payload);
 
-    const { correlationId, idempotencyKey, accountingEntity, actor } =
-      deps.appContext.get(['actor', 'accountingEntity']);
+    const { correlationId, idempotencyKey, accountingEntity, actor, user } =
+      deps.appContext.get(['actor', 'accountingEntity', 'user']);
 
     const repoOptions = { correlationId, idempotencyKey };
 
@@ -87,9 +90,18 @@ export default function makeRectifyJournalEntryUsecase(deps: IDependencies) {
       accountingEntityId: accountingEntity.id,
     });
 
+    const { attachments: attachmentPatch, ...requestedEntry } = payload;
+    const attachments = await resolveJournalAttachmentsHelper(
+      deps.fileManagementAppService,
+      user.id,
+      originalEntry.attachments,
+      attachmentPatch
+    );
+
     const preparationPayload = {
       originalEntry,
-      requestedEntry: payload,
+      requestedEntry,
+      attachments: attachments ?? originalEntry.attachments,
       accountingEntity,
       actor: actor.id,
     };

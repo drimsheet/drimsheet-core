@@ -235,7 +235,7 @@ describe('update draft payment use case', () => {
     await expect(
       usecase(entry.id, {
         effectiveDate: newDate,
-        attachmentReferences: [attachmentReference],
+        attachments: { add: [attachmentReference] },
       })
     ).resolves.toMatchObject({ effectiveDate: newDate, attachments });
 

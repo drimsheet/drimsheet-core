@@ -4,7 +4,7 @@ import {
   UFileUploadPurpose,
 } from '@app/file/types/file.types';
 
-const JOURNAL_ENTRY_ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024;
+const JOURNAL_ENTRY_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
 const FILE_SIGNATURE_BYTE_COUNT = 12;
 
 interface IFileUploadPolicy {

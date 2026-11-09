@@ -142,14 +142,14 @@ describe('PATCH /journal-entries/opening-balance/{id}', () => {
       );
     });
 
-    it('parses a proposed future effective date and accepts an explicit attachment clear', async () => {
+    it('parses a proposed future effective date and passes attachment removals through', async () => {
       mockUpdateDraftOpeningBalance.mockResolvedValueOnce({
         ...draft,
         effectiveDate: proposedDate,
       });
       const payload = {
         effectiveDate: proposedDate.toISOString(),
-        attachmentReferences: [],
+        attachments: { remove: ['https://files.example.com/receipt.pdf'] },
       };
       const response = await patchDraft().send(payload);
 
@@ -159,7 +159,7 @@ describe('PATCH /journal-entries/opening-balance/{id}', () => {
         journalEntryId,
         {
           effectiveDate: proposedDate,
-          attachmentReferences: [],
+          attachments: payload.attachments,
         }
       );
     });

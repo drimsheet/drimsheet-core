@@ -1,3 +1,4 @@
+import { IJournalEntryAttachmentsUpdateReq } from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import { IMoneyDto } from '@app/money/dtos/money/money.dto';
 
@@ -15,6 +16,5 @@ export interface IUpdateDraftOpeningBalanceReq {
   effectiveDate?: Date;
   exchangeRate?: IExchangeRateDto | null;
   memo?: string | null;
-  /** Replaces the attachments when supplied. An empty list clears them. */
-  attachmentReferences?: string[];
+  attachments?: IJournalEntryAttachmentsUpdateReq;
 }

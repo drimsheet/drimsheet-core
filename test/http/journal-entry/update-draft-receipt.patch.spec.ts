@@ -139,10 +139,10 @@ describe('PATCH /journal-entries/receipt/{id}', () => {
       );
     });
 
-    it('parses a corrected effective date and accepts an explicit attachment clear', async () => {
+    it('parses a corrected effective date and passes attachment removals through', async () => {
       const payload = {
         effectiveDate: now.toISOString(),
-        attachmentReferences: [],
+        attachments: { remove: ['https://files.example.com/receipt.pdf'] },
       };
       const response = await patchDraft().send(payload);
 
@@ -150,7 +150,7 @@ describe('PATCH /journal-entries/receipt/{id}', () => {
       expect(response.body.effectiveDate).toBe(payload.effectiveDate);
       expect(mockUpdateDraftReceipt).toHaveBeenCalledWith(journalEntryId, {
         effectiveDate: now,
-        attachmentReferences: [],
+        attachments: payload.attachments,
       });
     });
 

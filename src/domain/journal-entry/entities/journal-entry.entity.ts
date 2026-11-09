@@ -65,9 +65,9 @@ function make(payload: IJournalEntryMakePayload): TAuditedJournalEntry {
   journalEntryValidation.validateLine(lines);
   journalEntryValidation.validateCounterparties(payload.sourceType, lines);
 
-  const rawAttachments = (payload.attachments ?? []).map(
-    fileAttachmentValue.make
-  );
+  const requestedAttachments = payload.attachments ?? [];
+  journalEntryValidation.validateAttachmentCount(requestedAttachments.length);
+  const rawAttachments = requestedAttachments.map(fileAttachmentValue.make);
   const attachments = Object.freeze(rawAttachments) as IFileAttachment[];
 
   const status = payload.postedAt
@@ -207,9 +207,9 @@ function update(
   journalEntryValidation.validateLine(lines);
   journalEntryValidation.validateCounterparties(entry.sourceType, lines);
 
-  const rawAttachments = (newEntry.attachments ?? entry.attachments).map(
-    fileAttachmentValue.make
-  );
+  const requestedAttachments = newEntry.attachments ?? entry.attachments;
+  journalEntryValidation.validateAttachmentCount(requestedAttachments.length);
+  const rawAttachments = requestedAttachments.map(fileAttachmentValue.make);
   const attachments = Object.freeze(rawAttachments) as IFileAttachment[];
   const hasChanges = generateDiff(
     { memo, effectiveDate, postedAt, status, lines, attachments },

@@ -54,7 +54,7 @@ describe('FileManagementAppService', () => {
         {
           name: '  Réçeipt (FINAL).png  ',
           type: ' image/png ',
-          size: 1024,
+          size: 5 * 1024 * 1024,
           purpose,
         },
       ],
@@ -78,7 +78,7 @@ describe('FileManagementAppService', () => {
           url: 'https://example.com/file',
           name: '  Réçeipt (FINAL).png  ',
           type: 'image/png',
-          size: 1024,
+          size: 5 * 1024 * 1024,
         },
       },
     ]);
@@ -88,7 +88,7 @@ describe('FileManagementAppService', () => {
 
   it.each([
     ['image/svg+xml', 1024, fileAppError.InvalidUploadType],
-    ['image/png', 2 * 1024 * 1024 + 1, fileAppError.InvalidUploadSize],
+    ['image/png', 5 * 1024 * 1024 + 1, fileAppError.InvalidUploadSize],
   ])(
     'rejects invalid upload metadata before signing',
     async (type, size, ErrorClass) => {
@@ -163,6 +163,11 @@ describe('FileManagementAppService', () => {
   });
 
   it('claims an uploaded file using canonical storage data', async () => {
+    const maxSize = 5 * 1024 * 1024;
+    mockFileStorageClient.readFile.mockResolvedValue({
+      ...storedPng,
+      size: maxSize,
+    });
     const result = await getService().claimUploads({
       userId,
       purpose,
@@ -178,7 +183,7 @@ describe('FileManagementAppService', () => {
         url: storedPng.fileUrl,
         name: '  Réçeipt (FINAL).png  ',
         type: 'image/png',
-        size: 1024,
+        size: maxSize,
       },
     ]);
     expect(Object.isFrozen(result)).toBe(true);
@@ -216,7 +221,7 @@ describe('FileManagementAppService', () => {
     ],
     [
       'oversized stored file',
-      { ...storedPng, size: 2 * 1024 * 1024 + 1 },
+      { ...storedPng, size: 5 * 1024 * 1024 + 1 },
       fileAppError.InvalidUploadSize,
     ],
     [

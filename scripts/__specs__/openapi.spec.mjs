@@ -99,7 +99,11 @@ for (const [source, operationId] of [
     assert.ok(responseSchema.required.includes('lines'));
     assert.ok(responseSchema.required.includes('effectiveDate'));
     assert.ok('effectiveDate' in requestSchema.properties);
-    assert.ok('attachmentReferences' in requestSchema.properties);
+    assert.equal(
+      requestSchema.properties.attachments.$ref,
+      '#/components/schemas/IJournalEntryAttachmentsUpdateReq'
+    );
+    assert.ok(!('attachmentReferences' in requestSchema.properties));
     assert.equal(requestSchema.required, undefined);
   });
 }

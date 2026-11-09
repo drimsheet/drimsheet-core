@@ -41,6 +41,7 @@ const EErrorKeys = {
     'journal_entry_error_draft_ledger_account_not_allowed_invalid',
   InvalidCounterpartyId: 'journal_entry_error_counterparty_id_invalid',
   InvalidMemo: 'journal_entry_error_memo_invalid',
+  InvalidAttachmentCount: 'journal_entry_error_attachment_count_invalid',
   ControlAccountOpeningBalanceNotAllowed:
     'journal_entry_error_control_account_opening_balance_not_allowed_invalid',
   ControlAccountNotAllowed:

@@ -12,13 +12,13 @@ describe('fileUploadPolicy', () => {
   });
 
   it.each(['image/png', 'image/jpeg', 'image/webp', 'application/pdf'])(
-    'accepts the %s MIME type at the 2 MiB limit',
+    'accepts the %s MIME type at the 5 MiB limit',
     (type) => {
       expect(
         fileUploadPolicy.validateType(purpose, ` ${type.toUpperCase()} `)
       ).toBe(type);
       expect(() =>
-        fileUploadPolicy.validateSize(purpose, 2 * 1024 * 1024)
+        fileUploadPolicy.validateSize(purpose, 5 * 1024 * 1024)
       ).not.toThrow();
     }
   );
@@ -49,7 +49,7 @@ describe('fileUploadPolicy', () => {
     }
   );
 
-  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, 2 * 1024 * 1024 + 1])(
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, 5 * 1024 * 1024 + 1])(
     'rejects the invalid size %s',
     (size) => {
       expect(() => fileUploadPolicy.validateSize(purpose, size)).toThrow(

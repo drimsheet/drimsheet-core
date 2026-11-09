@@ -3,8 +3,11 @@ import z from 'zod';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 
+import { journalEntryAttachmentsUpdateReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto.validation';
+
 export const journalEntryMetaUpdateReqValidation = z
   .object({
+    attachments: journalEntryAttachmentsUpdateReqValidation,
     header: z
       .object({
         memo: z

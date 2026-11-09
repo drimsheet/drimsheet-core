@@ -1,7 +1,6 @@
-import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
-
 import { UJournalEntryRectificationMode } from '@domain/journal-entry/types/journal-entry.types';
 
+import { IJournalEntryAttachmentsUpdateReq } from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto';
 import {
   IJournalEntryDto,
   IJournalLineReq,
@@ -27,7 +26,7 @@ interface ITransferJournalEntryRectificationLineReq {
 }
 
 interface IBaseJournalEntryRectificationReq {
-  attachments: IFileAttachment[];
+  attachments?: IJournalEntryAttachmentsUpdateReq;
   effectiveDate: Date;
   postedAt: Date | null;
   memo: string | null;

@@ -48,6 +48,8 @@ export const updateJournalEntryMetaUseCase = makeTracedUseCase(
   'journalEntry.updateJournalEntryMetaUseCase',
   makeUpdateJournalEntryMetaUsecase({
     appContext,
+    fileManagementAppService,
+    journalEntryAttachmentRepo: journalEntryRepos.journalEntryAttachment,
     journalEntryRepo: journalEntryRepos.journalEntry,
     journalLineRepo: journalEntryRepos.journalLine,
     repoService,
@@ -357,6 +359,7 @@ export const rectifyJournalEntryUseCase = makeTracedUseCase(
   'journalEntry.rectifyJournalEntryUseCase',
   makeRectifyJournalEntryUsecase({
     appContext,
+    fileManagementAppService,
     journalEntryRepo: journalEntryRepos.journalEntry,
     journalEntryRectificationPreparationAppService,
     journalEntryPersistenceAppService,

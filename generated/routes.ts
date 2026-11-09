@@ -2598,9 +2598,19 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJournalEntryAttachmentsUpdateReq: {
+    dataType: 'refObject',
+    properties: {
+      add: { dataType: 'array', array: { dataType: 'string' } },
+      remove: { dataType: 'array', array: { dataType: 'string' } },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IJournalEntryMetaUpdateReq: {
     dataType: 'refObject',
     properties: {
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
       header: {
         dataType: 'nestedObjectLiteral',
         nestedProperties: {
@@ -2696,11 +2706,7 @@ const models: TsoaRoute.Models = {
   IPaymentJournalEntryRectificationReq: {
     dataType: 'refObject',
     properties: {
-      attachments: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IFileAttachment' },
-        required: true,
-      },
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
       effectiveDate: { dataType: 'datetime', required: true },
       postedAt: {
         dataType: 'union',
@@ -2738,11 +2744,7 @@ const models: TsoaRoute.Models = {
   IReceiptJournalEntryRectificationReq: {
     dataType: 'refObject',
     properties: {
-      attachments: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IFileAttachment' },
-        required: true,
-      },
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
       effectiveDate: { dataType: 'datetime', required: true },
       postedAt: {
         dataType: 'union',
@@ -2842,11 +2844,7 @@ const models: TsoaRoute.Models = {
   ITransferJournalEntryRectificationReq: {
     dataType: 'refObject',
     properties: {
-      attachments: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IFileAttachment' },
-        required: true,
-      },
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
       effectiveDate: { dataType: 'datetime', required: true },
       postedAt: {
         dataType: 'union',
@@ -2917,10 +2915,7 @@ const models: TsoaRoute.Models = {
           { dataType: 'enum', enums: [null] },
         ],
       },
-      attachmentReferences: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-      },
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
     },
     additionalProperties: false,
   },
@@ -2960,10 +2955,7 @@ const models: TsoaRoute.Models = {
   IUpdateDraftPaymentReq: {
     dataType: 'refObject',
     properties: {
-      attachmentReferences: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-      },
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
       effectiveDate: { dataType: 'datetime' },
       sourceLine: { ref: 'IUpdateDraftPaymentLineReq' },
       destinationLines: {
@@ -3016,10 +3008,7 @@ const models: TsoaRoute.Models = {
   IUpdateDraftReceiptReq: {
     dataType: 'refObject',
     properties: {
-      attachmentReferences: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-      },
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
       effectiveDate: { dataType: 'datetime' },
       sourceLines: {
         dataType: 'array',
@@ -3097,10 +3086,7 @@ const models: TsoaRoute.Models = {
   IUpdateDraftTransferReq: {
     dataType: 'refObject',
     properties: {
-      attachmentReferences: {
-        dataType: 'array',
-        array: { dataType: 'string' },
-      },
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
       effectiveDate: { dataType: 'datetime' },
       sourceLine: { ref: 'IUpdateDraftTransferAssetLineReq' },
       destinationLine: { ref: 'IUpdateDraftTransferAssetLineReq' },

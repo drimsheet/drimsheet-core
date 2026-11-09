@@ -1,6 +1,7 @@
 import { journalEntryMetaUpdateReqValidation } from '@app/journal-entry/dtos/meta-update/meta-update.dto.validation';
 
 const id = '123e4567-e89b-42d3-a456-426614174000';
+const attachmentUrl = 'https://files.example.com/receipt.pdf';
 
 describe('journalEntryMetaUpdateReqValidation', () => {
   it.each([
@@ -12,6 +13,8 @@ describe('journalEntryMetaUpdateReqValidation', () => {
     { lines: [{ id }] },
     { lines: [{ id, description: 'Description' }] },
     { lines: [{ id, description: null }] },
+    { attachments: { add: [id], remove: [attachmentUrl] } },
+    { attachments: { add: [], remove: [] } },
   ])('accepts partial metadata %j', (payload) => {
     expect(journalEntryMetaUpdateReqValidation.safeParse(payload).success).toBe(
       true
@@ -29,6 +32,10 @@ describe('journalEntryMetaUpdateReqValidation', () => {
     { header: { amount: 10 } },
     { lines: [{ id, amount: 10 }] },
     { postedAt: null },
+    { attachments: [] },
+    { attachments: { clear: true } },
+    { attachments: { add: ['invalid'] } },
+    { attachments: { remove: [id] } },
   ])('rejects malformed and non-metadata fields %j', (payload) => {
     expect(journalEntryMetaUpdateReqValidation.safeParse(payload).success).toBe(
       false

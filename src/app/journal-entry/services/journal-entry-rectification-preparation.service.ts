@@ -167,7 +167,7 @@ async function preparePayment(
   )!;
   const paymentPayload: ICreatePaymentEntryPayload = {
     header: getHeader(preparation),
-    attachments: requestedEntry.attachments,
+    attachments: preparation.attachments,
     sourceLine: {
       account: sourceAccount,
       counterparty: sourceCounterparty,
@@ -244,7 +244,7 @@ async function prepareReceipt(
   });
   const receiptPayload: ICreateReceiptEntryPayload = {
     header: getHeader(preparation),
-    attachments: requestedEntry.attachments,
+    attachments: preparation.attachments,
     sourceLines: requestedEntry.sourceLines.map((line, index) => ({
       account: sourceAccounts[index],
       counterparty: counterparties.find(
@@ -323,7 +323,7 @@ async function prepareTransfer(
   });
   const transferPayload: ICreateTransferEntryPayload = {
     header: getHeader(preparation),
-    attachments: requestedEntry.attachments,
+    attachments: preparation.attachments,
     sourceLine: getTransferSourceLinePayloadHelper(
       requestedEntry,
       sourceAccount

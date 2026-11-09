@@ -16,14 +16,6 @@ describe('journalEntryRectificationReqValidation', () => {
     sequenceOrder: 1,
   };
   const base = {
-    attachments: [
-      {
-        url: 'https://files.example.com/receipt.pdf',
-        name: 'receipt.pdf',
-        type: 'application/pdf',
-        size: 1_024,
-      },
-    ],
     effectiveDate: new Date('2026-09-01T00:00:00.000Z'),
     postedAt: new Date('2026-09-01T00:00:00.000Z'),
     memo: 'Correction',
@@ -60,11 +52,14 @@ describe('journalEntryRectificationReqValidation', () => {
     ).toBe(true);
   });
 
-  it('accepts an empty attachment array as full replacement', () => {
+  it('accepts an attachment patch with upload references and stored URLs', () => {
     const result = journalEntryRectificationReqValidation.safeParse({
       ...base,
       sourceType: 'payment',
-      attachments: [],
+      attachments: {
+        add: [generateUUID()],
+        remove: ['https://files.example.com/receipt.pdf'],
+      },
       sourceLine: line,
       destinationLines: [{ ...line, id: generateUUID(), sequenceOrder: 2 }],
     });
@@ -84,13 +79,20 @@ describe('journalEntryRectificationReqValidation', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects malformed line identities and attachments', () => {
+  it('rejects attachment metadata supplied by the client', () => {
     const result = journalEntryRectificationReqValidation.safeParse({
       ...base,
       sourceType: 'payment',
-      attachments: [{ ...base.attachments[0], url: 'not-a-url' }],
-      sourceLine: { ...line, id: 'not-a-uuid' },
-      destinationLines: [],
+      attachments: [
+        {
+          url: 'https://files.example.com/receipt.pdf',
+          name: 'receipt.pdf',
+          type: 'application/pdf',
+          size: 1_024,
+        },
+      ],
+      sourceLine: line,
+      destinationLines: [{ ...line, id: generateUUID(), sequenceOrder: 2 }],
     });
 
     expect(result.success).toBe(false);

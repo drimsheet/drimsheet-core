@@ -85,7 +85,7 @@ describe('update draft opening balance use case', () => {
     await expect(
       usecase(entry.id, {
         effectiveDate,
-        attachmentReferences: [reference],
+        attachments: { add: [reference] },
       })
     ).resolves.toMatchObject({ effectiveDate, attachments, status: 'draft' });
 

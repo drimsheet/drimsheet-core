@@ -1,11 +1,10 @@
 import z from 'zod';
 
-import fileAttachmentError from '@shared/values/file-attachments/file-attachment.error';
-
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
 
+import { journalEntryAttachmentsUpdateReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto.validation';
 import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
 
 const invalidEntryIdKey = new journalLineError.InvalidHeaderyEntryId().errorKey;
@@ -24,24 +23,8 @@ const transferLineValidation = rectificationLineValidation.omit({
   counterpartyId: true,
 });
 
-const attachmentValidation = z
-  .object({
-    url: z.url(new fileAttachmentError.InvalidUrl().errorKey),
-    name: z
-      .string(new fileAttachmentError.InvalidName().errorKey)
-      .min(1, new fileAttachmentError.InvalidName().errorKey),
-    type: z
-      .string(new fileAttachmentError.InvalidType().errorKey)
-      .min(1, new fileAttachmentError.InvalidType().errorKey),
-    size: z
-      .number(new fileAttachmentError.InvalidSize().errorKey)
-      .int()
-      .nonnegative(),
-  })
-  .strict();
-
 const baseShape = {
-  attachments: z.array(attachmentValidation),
+  attachments: journalEntryAttachmentsUpdateReqValidation,
   effectiveDate: z.date(new journalEntryError.InvalidEffectiveDate().errorKey),
   postedAt: z
     .date(new journalEntryError.InvalidPostingDate().errorKey)

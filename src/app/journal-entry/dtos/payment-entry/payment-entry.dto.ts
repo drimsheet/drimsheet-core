@@ -1,3 +1,4 @@
+import { IJournalEntryAttachmentsUpdateReq } from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto';
 import { IJournalLineReq } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import { IMoneyDto } from '@app/money/dtos/money/money.dto';
@@ -31,8 +32,7 @@ interface IUpdateDraftPaymentLineReq {
 }
 
 export interface IUpdateDraftPaymentReq {
-  /** Replaces the attachments when supplied. An empty list clears them. */
-  attachmentReferences?: string[];
+  attachments?: IJournalEntryAttachmentsUpdateReq;
   effectiveDate?: Date;
   sourceLine?: IUpdateDraftPaymentLineReq;
   /** When supplied, replaces the destination set. IDs retain existing lines. */

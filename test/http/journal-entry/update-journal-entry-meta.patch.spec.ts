@@ -138,6 +138,26 @@ describe('PATCH /journal-entries/{id}/meta', () => {
         { header: { memo: null } }
       );
     });
+
+    it('passes the attachment patch through', async () => {
+      const payload = {
+        attachments: {
+          add: [journalEntryId],
+          remove: ['https://files.example.com/receipt.pdf'],
+        },
+      };
+      const response = await request(server)
+        .patch(`/api/v1/journal-entries/${journalEntryId}/meta`)
+        .set('Authorization', 'Bearer valid-token')
+        .set('x-accounting-entity-id', accountingEntityId)
+        .send(payload);
+
+      expect(response.status).toBe(200);
+      expect(mockUpdateJournalEntryMetaUseCase).toHaveBeenCalledWith(
+        journalEntryId,
+        payload
+      );
+    });
   });
 
   describe('401 Response', () => {

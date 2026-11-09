@@ -37,6 +37,13 @@ describe('JournalEntry Entity', () => {
     jest.clearAllMocks();
   });
 
+  const attachments = Array.from({ length: 4 }, (_, index) => ({
+    url: `https://files.example.com/receipt-${index}.pdf`,
+    name: `receipt-${index}.pdf`,
+    type: 'application/pdf',
+    size: 1024,
+  }));
+
   describe('make', () => {
     let validPayload: TMakePayload;
 
@@ -193,6 +200,18 @@ describe('JournalEntry Entity', () => {
 
       expect(entry.attachments).toEqual([]);
       expect(Object.isFrozen(entry.attachments)).toBe(true);
+    });
+
+    it('allows three attachments and rejects a fourth on creation', () => {
+      const [entry] = journalEntryEntity.make({
+        ...validPayload,
+        attachments: attachments.slice(0, 3),
+      });
+      expect(entry.attachments).toHaveLength(3);
+
+      expect(() =>
+        journalEntryEntity.make({ ...validPayload, attachments })
+      ).toThrow(journalEntryError.InvalidAttachmentCount);
     });
 
     it('should create posted entries with the supplied posting date', () => {
@@ -468,6 +487,23 @@ describe('JournalEntry Entity', () => {
   });
 
   describe('lifecycle transitions', () => {
+    it('allows three attachments and rejects a fourth on update', () => {
+      const entry = makeEntry(new Date('2026-04-01T00:00:00Z'));
+      const [updated] = journalEntryEntity.update(
+        entry,
+        { id: entry.id, attachments: attachments.slice(0, 3) },
+        entry.createdBy
+      );
+      expect(updated.attachments).toHaveLength(3);
+
+      expect(() =>
+        journalEntryEntity.update(
+          updated,
+          { id: updated.id, attachments },
+          updated.createdBy
+        )
+      ).toThrow(journalEntryError.InvalidAttachmentCount);
+    });
     it.each([null, new Date('2026-04-01T00:00:00Z')])(
       'preserves a journal for empty and equivalent updates (postedAt=%s)',
       (postedAt) => {

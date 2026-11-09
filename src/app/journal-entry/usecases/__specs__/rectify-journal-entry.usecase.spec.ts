@@ -27,6 +27,9 @@ import mockAppContext, {
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
+import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import fileAppError from '@app/file/errors/file.error';
+import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import mockJournalEntryRectificationPreparationAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-rectification-preparation.service.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
@@ -120,7 +123,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
   ): ITransferJournalEntryRectificationReq {
     return {
       sourceType: 'transfer',
-      attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
       memo: 'Move funds',
@@ -155,6 +157,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
   function getUsecase() {
     return makeRectifyJournalEntryUsecase({
       appContext: mockAppContext,
+      fileManagementAppService: mockFileManagementAppService,
       journalEntryRepo: mockJournalEntryRepo,
       journalEntryRectificationPreparationAppService:
         mockJournalEntryRectificationPreparationAppService,
@@ -176,6 +179,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
     mockAccountingPeriodService.validatePostingPeriod.mockReset();
     mockAppContext.get.mockReturnValue({
       actor,
+      user: { id: userId },
       correlationId,
       idempotencyKey,
       accountingEntity: {
@@ -199,6 +203,72 @@ describe('makeRectifyJournalEntryUsecase', () => {
   });
 
   afterEach(() => jest.useRealTimers());
+
+  it('passes the stored attachment returned by the file service to rectification', async () => {
+    const [originalEntry] = makeEntry(100);
+    const reference = generateUUID();
+    const attachment = {
+      url: 'https://files.example.com/receipt.pdf',
+      name: 'receipt.pdf',
+      type: 'application/pdf',
+      size: 5 * 1024 * 1024,
+    };
+    mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
+    mockFileManagementAppService.claimUploads.mockResolvedValueOnce([
+      attachment,
+    ]);
+    mockJournalEntryRectificationPreparationAppService.prepare.mockResolvedValueOnce(
+      {
+        rectification: {
+          mode: 'update_meta',
+          originalJournalEntryId: originalEntry.id,
+          currentJournalEntry: originalEntry,
+          reversingJournalEntry: null,
+          entriesToCreate: [],
+          entryUpdate: null,
+          events: [],
+        },
+        fxReversal: null,
+        fxDisposition: null,
+        fxAcquisition: null,
+      }
+    );
+
+    await getUsecase()(originalEntry.id, {
+      ...makePayload(originalEntry),
+      attachments: { add: [reference] },
+    });
+
+    expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith({
+      userId,
+      purpose: EFileUploadPurpose.JournalEntryAttachment,
+      references: [reference],
+    });
+    expect(
+      mockJournalEntryRectificationPreparationAppService.prepare
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: [attachment] }),
+      { correlationId, idempotencyKey }
+    );
+  });
+
+  it('rejects an oversized upload before preparing or writing a rectification', async () => {
+    const [originalEntry] = makeEntry(100);
+    const error = new fileAppError.InvalidUploadSize();
+    mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
+    mockFileManagementAppService.claimUploads.mockRejectedValueOnce(error);
+
+    await expect(
+      getUsecase()(originalEntry.id, {
+        ...makePayload(originalEntry),
+        attachments: { add: [generateUUID()] },
+      })
+    ).rejects.toBe(error);
+    expect(
+      mockJournalEntryRectificationPreparationAppService.prepare
+    ).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+  });
 
   it('returns an unchanged rectification without writes, events, or propagation', async () => {
     const [originalEntry] = makeEntry(100);
@@ -491,7 +561,6 @@ describe('makeRectifyJournalEntryUsecase', () => {
     const transferPayload = makePayload(originalEntry);
     const payload: TJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      attachments: transferPayload.attachments,
       effectiveDate: transferPayload.effectiveDate,
       postedAt: transferPayload.postedAt,
       memo: transferPayload.memo,

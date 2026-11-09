@@ -5,6 +5,7 @@ import mockRepoService, {
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
+import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -22,7 +23,10 @@ import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
+import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import { EFileUploadPurpose } from '@app/file/types/file.types';
 import {
+  mockJournalEntryAttachmentRepo,
   mockJournalEntryRepo,
   mockJournalLineRepo,
 } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
@@ -42,15 +46,26 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
   const accountingEntityId = generateUUID();
   const userId = generateUUID();
   const now = new Date('2026-09-22T10:00:00.000Z');
+  const attachment = {
+    url: 'https://files.example.com/receipt.pdf',
+    name: 'receipt.pdf',
+    type: 'application/pdf',
+    size: 1024,
+  };
   const usecase = makeUpdateJournalEntryMetaUsecase({
     appContext: mockAppContext,
     eventBus: mockEventBus,
+    fileManagementAppService: mockFileManagementAppService,
+    journalEntryAttachmentRepo: mockJournalEntryAttachmentRepo,
     journalEntryRepo: mockJournalEntryRepo,
     journalLineRepo: mockJournalLineRepo,
     repoService: mockRepoService,
   });
 
-  function makeEntry(postedAt: Date | null = now) {
+  function makeEntry(
+    postedAt: Date | null = now,
+    attachments: IFileAttachment[] = []
+  ) {
     const amount = moneyValue.make(100, SYSTEM_CURRENCIES.NGN, false);
 
     return journalEntryEntity.make({
@@ -61,7 +76,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
       memo: 'Transfer',
       createdBy: userId,
       functionalCurrency: SYSTEM_CURRENCIES.NGN,
-      attachments: [],
+      attachments,
       lines: [
         {
           accountId: generateUUID(),
@@ -106,6 +121,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
       idempotencyKey,
       accountingEntity: { id: accountingEntityId },
       clientSession: mockClientSession,
+      user: { id: userId },
     } as unknown as IAppContextData);
     mockEventBus.publish.mockResolvedValue();
     mockJournalEntryRepo.update.mockResolvedValue();
@@ -183,17 +199,164 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
     expect(mockJournalLineRepo.update).not.toHaveBeenCalled();
   });
 
-  it.each([{}, { header: {} }, { lines: [] }])(
-    'skips all side effects for unchanged input %j',
-    async (payload) => {
-      const entry = makeEntry();
-      mockJournalEntryRepo.findById.mockResolvedValue(entry);
-      await usecase(entry.id, payload);
-      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
-      expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-    }
-  );
+  it.each([
+    {},
+    { header: {} },
+    { lines: [] },
+    { attachments: {} },
+    { attachments: { add: [], remove: [] } },
+  ])('skips all side effects for unchanged input %j', async (payload) => {
+    const entry = makeEntry();
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    await usecase(entry.id, payload);
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+    expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
+    expect(mockJournalEntryAttachmentRepo.save).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('attaches an upload to a posted entry and audits it in the same transaction', async () => {
+    const entry = makeEntry();
+    const reference = generateUUID();
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    mockFileManagementAppService.claimUploads.mockResolvedValue([attachment]);
+
+    const response = await usecase(entry.id, {
+      attachments: { add: [reference] },
+    });
+
+    expect(response.attachments).toEqual([attachment]);
+    expect(mockFileManagementAppService.claimUploads).toHaveBeenCalledWith({
+      userId,
+      purpose: EFileUploadPurpose.JournalEntryAttachment,
+      references: [reference],
+    });
+    expect(mockJournalEntryRepo.update).toHaveBeenCalledWith(
+      expect.objectContaining({ version: entry.version + 1 }),
+      expect.objectContaining({
+        expectedVersion: entry.version,
+        tx: mockRepoTransaction.context,
+        history: expect.objectContaining({
+          diff: expect.objectContaining({
+            before: expect.objectContaining({ attachments: [] }),
+            after: expect.objectContaining({ attachments: [attachment] }),
+          }),
+        }),
+      })
+    );
+    expect(mockJournalEntryAttachmentRepo.save).toHaveBeenCalledWith(
+      entry.id,
+      [attachment],
+      {
+        correlationId,
+        tx: mockRepoTransaction.context,
+      }
+    );
+    expect(
+      mockJournalEntryAttachmentRepo.save.mock.invocationCallOrder[0]
+    ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
+    expect(mockJournalLineRepo.update).not.toHaveBeenCalled();
+  });
+
+  it('removes an existing attachment by its stored URL and preserves a different file on retry', async () => {
+    const entry = makeEntry(now, [attachment]);
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    const before = await usecase(entry.id, {});
+    const payload = { attachments: { remove: [before.attachments[0].url] } };
+
+    await expect(usecase(entry.id, payload)).resolves.toMatchObject({
+      attachments: [],
+    });
+    expect(mockJournalEntryAttachmentRepo.save).toHaveBeenCalledWith(
+      entry.id,
+      [],
+      {
+        correlationId,
+        tx: mockRepoTransaction.context,
+      }
+    );
+
+    const laterAttachment = {
+      ...attachment,
+      url: 'https://files.example.com/later-receipt.pdf',
+    };
+    mockJournalEntryRepo.findById.mockResolvedValue({
+      ...entry,
+      attachments: [laterAttachment],
+    });
+    await expect(usecase(entry.id, payload)).resolves.toMatchObject({
+      attachments: [laterAttachment],
+    });
+    expect(mockJournalEntryAttachmentRepo.save).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
+  });
+
+  it('treats a previously attached upload as a no-op', async () => {
+    const entry = makeEntry(now, [attachment]);
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    const payload = { attachments: { add: [generateUUID()] } };
+    mockFileManagementAppService.claimUploads.mockResolvedValueOnce([
+      attachment,
+    ]);
+
+    const response = await usecase(entry.id, payload);
+    expect(response.attachments).toEqual([attachment]);
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      scenario: 'adds a second attachment',
+      remove: [],
+      retained: [attachment],
+    },
+    {
+      scenario: 'replaces an attachment',
+      remove: [attachment.url],
+      retained: [],
+    },
+  ])('$scenario', async ({ remove, retained }) => {
+    const entry = makeEntry(now, [attachment]);
+    const newAttachment = {
+      ...attachment,
+      name: 'confirmation.pdf',
+      url: 'https://files.example.com/confirmation.pdf',
+    };
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    mockFileManagementAppService.claimUploads.mockResolvedValue([
+      newAttachment,
+    ]);
+
+    const response = await usecase(entry.id, {
+      attachments: { add: [generateUUID()], remove },
+    });
+
+    const expectedAttachments = [...retained, newAttachment];
+    expect(response.attachments).toEqual(expectedAttachments);
+    expect(mockJournalEntryAttachmentRepo.save).toHaveBeenCalledWith(
+      entry.id,
+      expectedAttachments,
+      { correlationId, tx: mockRepoTransaction.context }
+    );
+  });
+
+  it('rolls back the journal update when saving attachments fails', async () => {
+    const entry = makeEntry();
+    const failure = new appError.Conflict();
+    mockJournalEntryRepo.findById.mockResolvedValue(entry);
+    mockFileManagementAppService.claimUploads.mockResolvedValue([attachment]);
+    mockJournalEntryAttachmentRepo.save.mockRejectedValueOnce(failure);
+
+    await expect(
+      usecase(entry.id, { attachments: { add: [generateUUID()] } })
+    ).rejects.toBe(failure);
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
 
   it('rejects invalid IDs and payloads before reading context', async () => {
     await expect(usecase('invalid', {})).rejects.toThrow(

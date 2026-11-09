@@ -2,32 +2,19 @@ import z from 'zod';
 
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 
-import fileAppError from '@app/file/errors/file.error';
-import fileUploadPolicy from '@app/file/policies/file-upload.policy';
-import { EFileUploadPurpose } from '@app/file/types/file.types';
+import {
+  attachmentReferencesValidation,
+  journalEntryAttachmentsUpdateReqValidation,
+} from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto.validation';
 import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
 import { exchangeRateJsonDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
-
-const invalidAttachmentReferenceKey = new fileAppError.InvalidUploadReference()
-  .errorKey;
-const invalidUploadCountKey = new fileAppError.InvalidUploadCount().errorKey;
-const maxAttachmentReferences = fileUploadPolicy.getPolicy(
-  EFileUploadPurpose.JournalEntryAttachment
-).maxFiles;
 
 const transferEntryLineReqValidation = journalLineReqValidation.omit({
   counterpartyId: true,
 });
 
 export const transferEntryReqValidation = z.object({
-  attachmentReferences: z
-    .array(z.uuid(invalidAttachmentReferenceKey))
-    .max(maxAttachmentReferences, invalidUploadCountKey)
-    .refine(
-      (references) => new Set(references).size === references.length,
-      invalidAttachmentReferenceKey
-    )
-    .optional(),
+  attachmentReferences: attachmentReferencesValidation,
   sourceLine: transferEntryLineReqValidation,
   destinationLine: transferEntryLineReqValidation,
   chargeLines: z.array(journalLineReqValidation),
@@ -48,7 +35,7 @@ const updateDraftTransferAssetLineReqValidation =
   updateDraftTransferChargeLineReqValidation.omit({ counterpartyId: true });
 
 export const updateDraftTransferReqValidation = z.strictObject({
-  attachmentReferences: transferEntryReqValidation.shape.attachmentReferences,
+  attachments: journalEntryAttachmentsUpdateReqValidation,
   effectiveDate: transferEntryReqValidation.shape.effectiveDate.optional(),
   memo: transferEntryReqValidation.shape.memo.optional(),
   sourceLine: updateDraftTransferAssetLineReqValidation.optional(),

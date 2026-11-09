@@ -199,7 +199,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       );
       const requestedEntry: IPaymentJournalEntryRectificationReq = {
         sourceType: EJournalEntrySourceType.Payment,
-        attachments: [],
         effectiveDate,
         postedAt: requestedPostedAt,
         memo: 'Payment',
@@ -230,6 +229,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         {
           originalEntry,
           requestedEntry,
+          attachments: [],
           accountingEntity,
 
           actor,
@@ -284,7 +284,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       const postedAt = originalPostedAt ?? requestedPostedAt;
       const candidate = makeEntry(sourceType, 100, postedAt);
       const base = {
-        attachments: [],
         effectiveDate,
         postedAt: requestedPostedAt,
         memo: 'Draft edit',
@@ -326,7 +325,13 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         destinationAssetAccount: destinationAccount,
       });
       await service.prepare(
-        { originalEntry, requestedEntry, accountingEntity, actor },
+        {
+          originalEntry,
+          requestedEntry,
+          attachments: [],
+          accountingEntity,
+          actor,
+        },
         repoOptions
       );
       expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
@@ -428,7 +433,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         const [originalEntry] = makeEntry('payment', 100, originalPostedAt);
         const requestedEntry: IPaymentJournalEntryRectificationReq = {
           sourceType: 'payment',
-          attachments: [],
           effectiveDate,
           postedAt: requestedPostedAt,
           memo: 'Correction',
@@ -457,6 +461,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
             {
               originalEntry,
               requestedEntry,
+              attachments: [],
               accountingEntity,
               actor,
             },
@@ -482,7 +487,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     const candidate = makeEntry(EJournalEntrySourceType.Receipt);
     const requestedEntry: IReceiptJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Receipt,
-      attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
       memo: 'Receipt',
@@ -526,6 +530,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       {
         originalEntry,
         requestedEntry,
+        attachments: [],
         accountingEntity,
 
         actor,
@@ -552,7 +557,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     const candidate = makeEntry(EJournalEntrySourceType.Transfer);
     const requestedEntry: ITransferJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Transfer,
-      attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
       memo: 'Transfer',
@@ -606,6 +610,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       {
         originalEntry,
         requestedEntry,
+        attachments: [],
         accountingEntity,
 
         actor,
@@ -637,6 +642,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         {
           originalEntry,
           requestedEntry,
+          attachments: [],
           accountingEntity,
 
           actor,
@@ -655,7 +661,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     const [correctedEntry] = makeEntry(EJournalEntrySourceType.Payment, 200);
     const requestedEntry: IPaymentJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
       memo: 'Payment',
@@ -697,6 +702,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         {
           originalEntry,
           requestedEntry,
+          attachments: [],
           accountingEntity,
 
           actor,
@@ -730,7 +736,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     const [correctedEntry] = makeEntry(EJournalEntrySourceType.Payment, 200);
     const requestedEntry: IPaymentJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
       memo: 'Payment',
@@ -773,6 +778,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         {
           originalEntry,
           requestedEntry,
+          attachments: [],
           accountingEntity,
 
           actor,
@@ -794,7 +800,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     const [postedEntry] = makeEntry(EJournalEntrySourceType.Payment);
     const requestedEntry: IPaymentJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
       memo: 'Payment',
@@ -835,6 +840,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
       {
         originalEntry,
         requestedEntry,
+        attachments: [],
         accountingEntity,
 
         actor,
@@ -859,7 +865,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     const [unsupportedEntry] = makeEntry(EJournalEntrySourceType.Reversal);
     const requestedEntry: IPaymentJournalEntryRectificationReq = {
       sourceType: EJournalEntrySourceType.Payment,
-      attachments: [],
       effectiveDate,
       postedAt: effectiveDate,
       memo: 'Payment',
@@ -900,6 +905,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         {
           originalEntry,
           requestedEntry,
+          attachments: [],
           accountingEntity,
 
           actor,
@@ -932,7 +938,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         };
         const requestedEntry: ITransferJournalEntryRectificationReq = {
           sourceType: EJournalEntrySourceType.Transfer,
-          attachments: [],
           effectiveDate: replacementDate,
           postedAt: effectiveDate,
           memo: 'Correction',
@@ -971,7 +976,13 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
 
         await expect(
           service.prepare(
-            { originalEntry, requestedEntry, accountingEntity, actor },
+            {
+              originalEntry,
+              requestedEntry,
+              attachments: [],
+              accountingEntity,
+              actor,
+            },
             repoOptions
           )
         ).rejects.toBe(failure);
@@ -1019,7 +1030,6 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         sequenceOrder: 2,
       };
       const base = {
-        attachments: [],
         effectiveDate,
         postedAt: null,
         memo: null,
@@ -1056,6 +1066,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           {
             originalEntry,
             requestedEntry,
+            attachments: [],
             accountingEntity,
             actor,
           },

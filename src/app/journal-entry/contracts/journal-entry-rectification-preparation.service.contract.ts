@@ -1,5 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { IJournalEntryRectificationResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
@@ -15,6 +16,7 @@ import { TJournalEntryRectificationReq } from '@app/journal-entry/dtos/journal-e
 export interface IJournalEntryRectificationPreparationPayload {
   originalEntry: IJournalEntry;
   requestedEntry: TJournalEntryRectificationReq;
+  attachments: IFileAttachment[];
   accountingEntity: IAccountingEntity;
   actor: TEntityId;
 }

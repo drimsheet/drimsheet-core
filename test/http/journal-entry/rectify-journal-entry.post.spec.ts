@@ -72,7 +72,6 @@ const effectiveDate = new Date('2026-09-01T00:00:00.000Z');
 
 const validPayload = {
   sourceType: 'transfer',
-  attachments: [],
   sourceLine: {
     id: sourceLineId,
     accountId: sourceAccountId,
@@ -264,7 +263,6 @@ describe('POST /journal-entries/{id}/rectify', () => {
         };
         const base = {
           sourceType,
-          attachments: [],
           effectiveDate,
           postedAt: effectiveDate,
           memo: null,
@@ -286,6 +284,23 @@ describe('POST /journal-entries/{id}/rectify', () => {
   });
 
   describe('422 Response', () => {
+    it('rejects client-supplied file metadata', async () => {
+      const response = await makeRequest({
+        ...validPayload,
+        attachments: [
+          {
+            url: 'https://files.example.com/receipt.pdf',
+            name: 'receipt.pdf',
+            type: 'application/pdf',
+            size: 1024,
+          },
+        ],
+      });
+
+      expect(response.status).toBe(422);
+      expect(mockRectifyJournalEntryUseCase).not.toHaveBeenCalled();
+    });
+
     it.each(['payment', 'receipt'] as const)(
       'rejects embedded counterparty details on a %s rectification',
       async (sourceType) => {
@@ -299,7 +314,6 @@ describe('POST /journal-entries/{id}/rectify', () => {
         };
         const base = {
           sourceType,
-          attachments: [],
           effectiveDate,
           postedAt: effectiveDate,
           memo: null,

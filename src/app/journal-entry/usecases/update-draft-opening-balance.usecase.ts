@@ -18,7 +18,6 @@ import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
-import { EFileUploadPurpose } from '@app/file/types/file.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
@@ -26,6 +25,7 @@ import { IUpdateDraftOpeningBalanceReq } from '@app/journal-entry/dtos/opening-b
 import { updateDraftOpeningBalanceReqValidation } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalLineChangesHelper from '@app/journal-entry/usecases/helpers/get-journal-line-changes.helper';
+import resolveJournalAttachmentsHelper from '@app/journal-entry/usecases/helpers/resolve-journal-attachments.helper';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
 
 interface IDependencies {
@@ -60,14 +60,12 @@ export default function makeUpdateDraftOpeningBalanceUsecase(
       accountingEntityId: accountingEntity.id,
     });
 
-    const attachments =
-      payload.attachmentReferences === undefined
-        ? undefined
-        : await deps.fileManagementAppService.claimUploads({
-            userId: user.id,
-            purpose: EFileUploadPurpose.JournalEntryAttachment,
-            references: payload.attachmentReferences,
-          });
+    const attachments = await resolveJournalAttachmentsHelper(
+      deps.fileManagementAppService,
+      user.id,
+      entry.attachments,
+      payload.attachments
+    );
     const amount = payload.amount && moneyMapper.fromDto(payload.amount);
     const exchangeRate =
       payload.exchangeRate && exchangeRateValue.make(payload.exchangeRate);

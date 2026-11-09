@@ -20,6 +20,17 @@ import {
 import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 
+const MAX_ATTACHMENTS = 3;
+
+function validateAttachmentCount(count: number) {
+  if (count > MAX_ATTACHMENTS) {
+    throw new journalEntryError.InvalidAttachmentCount({
+      count,
+      maxAttachments: MAX_ATTACHMENTS,
+    });
+  }
+}
+
 function validateStatus(status: UJournalEntryStatus) {
   if (!Object.values(EJournalEntryStatus).includes(status)) {
     throw new journalEntryError.InvalidStatus({ status });
@@ -266,6 +277,7 @@ function validateBalancePropagation(entry: IJournalEntry) {
 }
 
 const journalEntryValidation = Object.freeze({
+  validateAttachmentCount,
   validateStatus,
   validateTransition,
   validateLine,

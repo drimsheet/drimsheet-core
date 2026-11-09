@@ -3,32 +3,19 @@ import z from 'zod';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 
-import fileAppError from '@app/file/errors/file.error';
-import fileUploadPolicy from '@app/file/policies/file-upload.policy';
-import { EFileUploadPurpose } from '@app/file/types/file.types';
+import {
+  attachmentReferencesValidation,
+  journalEntryAttachmentsUpdateReqValidation,
+} from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto.validation';
 import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
 import { exchangeRateJsonDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
-
-const invalidAttachmentReferenceKey = new fileAppError.InvalidUploadReference()
-  .errorKey;
-const invalidUploadCountKey = new fileAppError.InvalidUploadCount().errorKey;
-const maxAttachmentReferences = fileUploadPolicy.getPolicy(
-  EFileUploadPurpose.JournalEntryAttachment
-).maxFiles;
 
 const paymentEntryLineReqValidation = journalLineReqValidation.extend({
   counterpartyId: z.uuid(new journalLineError.InvalidCounterpartyId().errorKey),
 });
 
 export const paymentEntryReqValidation = z.object({
-  attachmentReferences: z
-    .array(z.uuid(invalidAttachmentReferenceKey))
-    .max(maxAttachmentReferences, invalidUploadCountKey)
-    .refine(
-      (references) => new Set(references).size === references.length,
-      invalidAttachmentReferenceKey
-    )
-    .optional(),
+  attachmentReferences: attachmentReferencesValidation,
   sourceLine: paymentEntryLineReqValidation,
   destinationLines: z
     .array(paymentEntryLineReqValidation)
@@ -48,7 +35,7 @@ const updateDraftPaymentLineReqValidation = journalLineReqValidation
   .strict();
 
 export const updateDraftPaymentReqValidation = z.strictObject({
-  attachmentReferences: paymentEntryReqValidation.shape.attachmentReferences,
+  attachments: journalEntryAttachmentsUpdateReqValidation,
   effectiveDate: paymentEntryReqValidation.shape.effectiveDate.optional(),
   memo: paymentEntryReqValidation.shape.memo.optional(),
   sourceLine: updateDraftPaymentLineReqValidation.optional(),

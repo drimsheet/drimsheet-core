@@ -66,14 +66,12 @@ describe('Payment Entry DTO Validation', () => {
         journalEntryRectificationReqValidation.safeParse({
           ...base,
           sourceType: 'payment',
-          attachments: [],
           sourceLine: line,
           destinationLines: [line],
         }),
         journalEntryRectificationReqValidation.safeParse({
           ...base,
           sourceType: 'receipt',
-          attachments: [],
           sourceLines: [line],
           destinationLine: line,
         }),

@@ -1,8 +1,8 @@
 /**
  * SUMMARY
- * Updates a draft or posted journal's memo and existing line descriptions in
- * the selected accounting entity. Saves changes and audit history atomically
- * with optimistic version checks, then publishes events and returns the entry.
+ * Updates a draft or posted journal's memo, line descriptions, and attachments.
+ * Saves changes and audit history atomically with optimistic version checks,
+ * then publishes events and returns the entry.
  * Unchanged updates produce no writes, history, or events.
  *
  * WHEN TO USE
@@ -11,6 +11,8 @@
  * SEQUENCE DIAGRAM
  * Not required for this straightforward workflow.
  */
+import { isEqual } from 'lodash';
+
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
 import { IRepoService } from '@shared/contracts/repo.contract';
@@ -22,18 +24,23 @@ import historyValue from '@shared/values/history/history.vo';
 
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
+import IJournalEntryAttachmentRepo from '@domain/journal-entry/repos/journal-entry-attachment.repo';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import IJournalLineRepo from '@domain/journal-entry/repos/journal-line.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
+import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { IJournalEntryMetaUpdateReq } from '@app/journal-entry/dtos/meta-update/meta-update.dto';
 import { journalEntryMetaUpdateReqValidation } from '@app/journal-entry/dtos/meta-update/meta-update.dto.validation';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
+import resolveJournalAttachmentsHelper from '@app/journal-entry/usecases/helpers/resolve-journal-attachments.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
+  fileManagementAppService: IFileManagementAppService;
+  journalEntryAttachmentRepo: IJournalEntryAttachmentRepo;
   journalEntryRepo: IJournalEntryRepo;
   journalLineRepo: IJournalLineRepo;
   repoService: IRepoService;
@@ -48,8 +55,8 @@ export default function makeUpdateJournalEntryMetaUsecase(deps: IDependencies) {
     stringUtils.validateUUID(id, journalEntryError.InvalidJournalEntry);
     zodValidationRunner(journalEntryMetaUpdateReqValidation, payload);
 
-    const { accountingEntity, actor, correlationId, idempotencyKey } =
-      deps.appContext.get(['actor', 'accountingEntity']);
+    const { accountingEntity, actor, correlationId, idempotencyKey, user } =
+      deps.appContext.get(['actor', 'accountingEntity', 'user']);
 
     const repoOptions = { correlationId, idempotencyKey };
     const storedEntry = await deps.journalEntryRepo.findById(
@@ -90,9 +97,16 @@ export default function makeUpdateJournalEntryMetaUsecase(deps: IDependencies) {
       return { ...line, description };
     });
 
+    const attachments = await resolveJournalAttachmentsHelper(
+      deps.fileManagementAppService,
+      user.id,
+      entry.attachments,
+      payload.attachments
+    );
+
     const [updatedEntry, events, audit] = journalEntryEntity.update(
       entry,
-      { id: entry.id, memo: payload.header?.memo, lines },
+      { id: entry.id, memo: payload.header?.memo, lines, attachments },
       actor.id
     );
 
@@ -102,9 +116,10 @@ export default function makeUpdateJournalEntryMetaUsecase(deps: IDependencies) {
 
     const {
       lines: _lines,
-      attachments: _attachments,
+      attachments: updatedAttachments,
       ...header
     } = updatedEntry;
+    const attachmentsChanged = !isEqual(entry.attachments, updatedAttachments);
 
     const headerHistory = historyValue.make(
       audit.header,
@@ -134,6 +149,14 @@ export default function makeUpdateJournalEntryMetaUsecase(deps: IDependencies) {
           expectedVersion: lineUpdate.line.version - 1,
           history: lineUpdate.history,
         });
+      }
+
+      if (attachmentsChanged) {
+        await deps.journalEntryAttachmentRepo.save(
+          entry.id,
+          updatedAttachments,
+          writeOptions
+        );
       }
 
       await transaction.commit();

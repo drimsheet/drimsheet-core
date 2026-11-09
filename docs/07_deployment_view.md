@@ -152,10 +152,3 @@ part of the key. Original filenames are UTF-8 encoded into signed
 creation, Core reconstructs keys from the authenticated user, the journal-entry
 attachment purpose, and opaque upload references; it never accepts client file
 URLs for inspection or deletion.
-
-Receipt attachments accept only PNG, JPEG, WebP, and PDF objects of no more
-than 2 MiB each. Core validates stored size, MIME type, and leading-byte
-signature before association and deletes rejected objects. Valid uploads that
-are never claimed, valid objects left after a later receipt failure, and
-single-use/exclusive claim enforcement are intentionally outside the current
-lifecycle.

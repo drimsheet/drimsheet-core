@@ -161,7 +161,10 @@ export class JournalEntryController extends Controller {
     return createTransferUseCase(body);
   }
 
-  /** Updates the memo and existing line descriptions without financial changes. */
+  /**
+   * Updates the memo, existing line descriptions, and supporting attachments
+   * of a draft or posted journal entry.
+   */
   @Patch('/{id}/meta')
   @OperationId('updateJournalEntryMeta')
   @SuccessResponse('200')
