@@ -112,33 +112,21 @@ function make(payload: IJournalEntryMakePayload): TAuditedJournalEntry {
   ];
 }
 
-interface IJournalEntryLineUpdatePayload {
-  createdBy: IJournalEntry['createdBy'];
-  entry: IJournalEntry;
-  lines: IJournalLine[];
-  memo: IJournalEntry['memo'];
-  updatedAt: Date;
-}
-
-interface IJournalEntryLineUpdateResult {
-  lines: IJournalLine[];
-  events: IEvent<IJournalLine>[];
-  audits: IJournalLineAudit[];
-}
-
 /**
  * Prepares updated and new lines with their events and audits for this entry.
  * Unchanged lines retain their identity and produce no line events or audit.
  */
 function updateJournalEntryLines(
-  payload: IJournalEntryLineUpdatePayload
-): IJournalEntryLineUpdateResult {
-  const events: IJournalEntryLineUpdateResult['events'] = [];
-  const audits: IJournalEntryLineUpdateResult['audits'] = [];
-  const lines = payload.lines.map((newLine) => {
-    const currentLine = payload.entry.lines.find(
-      (line) => line.id === newLine.id
-    );
+  entry: IJournalEntry,
+  requestedLines: IJournalLine[],
+  actorId: IJournalEntry['createdBy'],
+  memo: IJournalEntry['memo'],
+  updatedAt: Date
+) {
+  const events: IEvent<IJournalLine>[] = [];
+  const audits: IJournalLineAudit[] = [];
+  const lines = requestedLines.map((newLine) => {
+    const currentLine = entry.lines.find((line) => line.id === newLine.id);
 
     if (currentLine) {
       const [line, lineEvents, audit] = journalLineEntity.update(
@@ -156,10 +144,10 @@ function updateJournalEntryLines(
 
     const [line, lineEvents, audit] = journalLineEntity.make(
       {
-        id: payload.entry.id,
-        createdBy: payload.createdBy,
-        memo: payload.memo,
-        createdAt: payload.updatedAt,
+        id: entry.id,
+        createdBy: actorId,
+        memo,
+        createdAt: updatedAt,
       },
       {
         id: newLine.id,
@@ -196,6 +184,7 @@ function update(
     newEntry.memo === undefined
       ? entry.memo
       : getJournalEntryMemoHelper(newEntry.memo);
+
   const effectiveDate = newEntry.effectiveDate ?? entry.effectiveDate;
   const postedAt =
     newEntry.postedAt === undefined ? entry.postedAt : newEntry.postedAt;
@@ -204,13 +193,13 @@ function update(
     lines,
     events: lineEvents,
     audits: lineAudits,
-  } = updateJournalEntryLines({
-    createdBy: actorId,
+  } = updateJournalEntryLines(
     entry,
-    lines: newEntry.lines ?? entry.lines,
+    newEntry.lines ?? entry.lines,
+    actorId,
     memo,
-    updatedAt: timestamp,
-  });
+    timestamp
+  );
 
   dateUtils.validateDate(effectiveDate, journalEntryError.InvalidEffectiveDate);
   journalEntryValidation.validatePostedAt(postedAt);
