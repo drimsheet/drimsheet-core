@@ -424,7 +424,15 @@ describe('update bank account workflow', () => {
       const [draft] = creation;
       const revised = journalEntryEntity.update(
         draft,
-        { id: draft.id, effectiveDate: openingBalanceDate },
+        {
+          id: draft.id,
+          effectiveDate: openingBalanceDate,
+          lines: draft.lines.map((line) =>
+            line.sequenceOrder === 1
+              ? { ...line, description: 'Corrected opening balance' }
+              : line
+          ),
+        },
         actor.id
       );
       if (operation === 'create') {
@@ -485,6 +493,7 @@ describe('update bank account workflow', () => {
                 entryUpdate: expect.objectContaining({
                   entry: revised[0],
                   expectedVersion: draft.version,
+                  linesToUpdate: [revised[0].lines[0]],
                 }),
               };
         expect(

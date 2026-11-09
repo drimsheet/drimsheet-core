@@ -22,6 +22,7 @@ import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/coun
 import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import { mockTransferEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
@@ -30,6 +31,7 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import ledgerAppError from '@app/ledger/errors/ledger.error';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
@@ -97,7 +99,7 @@ const transferEntryService = makeTransferEntryService({
   ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
-const usecase = makeVoidAndReplaceTransferUsecase({
+const deps = {
   appContext: mockAppContext,
   counterpartyRepo: mockCounterpartyRepo,
   fileManagementAppService: mockFileManagementAppService,
@@ -112,7 +114,8 @@ const usecase = makeVoidAndReplaceTransferUsecase({
   ledgerBalanceAdjustmentQueue: mockLedgerBalanceAdjustmentQueue,
   repoService: mockRepoService,
   eventBus: mockEventBus,
-});
+};
+const usecase = makeVoidAndReplaceTransferUsecase(deps);
 const sourceLine = {
   accountId: sourceAccount.id,
   amount: { amount: 8000, currencyCode: 'NGN', isMinorUnit: true },
@@ -468,6 +471,57 @@ describe('makeVoidAndReplaceTransferUsecase', () => {
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('rolls back when a replacement account is missing', async () => {
+    const original = await makeOriginalTransfer(effectiveDate);
+    mockJournalEntryRepo.findById.mockResolvedValue(original);
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([sourceAccount]);
+
+    await expect(usecase(original.id, payload)).rejects.toThrow(
+      ledgerAppError.AccountNotFound
+    );
+
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
+      expect.any(ledgerAppError.AccountNotFound)
+    );
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('returns the original when the correction service reports no changes', async () => {
+    const original = await makeOriginalTransfer(effectiveDate);
+    mockJournalEntryRepo.findById.mockResolvedValue(original);
+    mockTransferEntryService.voidAndReplace.mockResolvedValueOnce({
+      voided: [original, [], null],
+      reversal: null,
+      replacement: null,
+    });
+    const correct = makeVoidAndReplaceTransferUsecase({
+      ...deps,
+      transferEntryService: mockTransferEntryService,
+    });
+
+    await expect(correct(original.id, payload)).resolves.toMatchObject({
+      id: original.id,
+      status: original.status,
+      memo: original.memo,
+      effectiveDate: original.effectiveDate,
+    });
+
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
+    expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('rejects a draft original before journal persistence', async () => {

@@ -12,6 +12,7 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import makePaymentEntryService from '@domain/journal-entry/services/payment-entry.service';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 import moneyValue from '@domain/money/values/money.vo';
 import fxCostBasisLotEntity from '@domain/subledger/fx-cost-basis/entities/lot.entity';
 
@@ -22,6 +23,7 @@ import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/coun
 import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import { mockPaymentEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
 import makeVoidAndReplacePaymentUsecase from '@app/journal-entry/usecases/void-and-replace-payment.usecase';
@@ -30,6 +32,7 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import ledgerAppError from '@app/ledger/errors/ledger.error';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
@@ -87,7 +90,7 @@ const paymentEntryService = makePaymentEntryService({
   ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
-const usecase = makeVoidAndReplacePaymentUsecase({
+const deps = {
   appContext: mockAppContext,
   counterpartyRepo: mockCounterpartyRepo,
   fileManagementAppService: mockFileManagementAppService,
@@ -102,7 +105,8 @@ const usecase = makeVoidAndReplacePaymentUsecase({
   ledgerBalanceAdjustmentQueue: mockLedgerBalanceAdjustmentQueue,
   repoService: mockRepoService,
   eventBus: mockEventBus,
-});
+};
+const usecase = makeVoidAndReplacePaymentUsecase(deps);
 const sourceLine = {
   accountId: sourceAccount.id,
   counterpartyId: counterparty.id,
@@ -378,6 +382,100 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
       }
     }
   );
+
+  it('rolls back when a replacement account is missing', async () => {
+    const original = await makeOriginalPayment(effectiveDate);
+    mockJournalEntryRepo.findById.mockResolvedValue(original);
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([sourceAccount]);
+
+    await expect(usecase(original.id, payload)).rejects.toThrow(
+      ledgerAppError.AccountNotFound
+    );
+
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(
+      expect.any(ledgerAppError.AccountNotFound)
+    );
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('returns the original when the correction service reports no changes', async () => {
+    const original = await makeOriginalPayment(effectiveDate);
+    mockJournalEntryRepo.findById.mockResolvedValue(original);
+    mockPaymentEntryService.voidAndReplace.mockResolvedValueOnce({
+      voided: [original, [], null],
+      reversal: null,
+      replacement: null,
+    });
+    const correct = makeVoidAndReplacePaymentUsecase({
+      ...deps,
+      paymentEntryService: mockPaymentEntryService,
+    });
+
+    await expect(correct(original.id, payload)).resolves.toMatchObject({
+      id: original.id,
+      status: original.status,
+      memo: original.memo,
+      effectiveDate: original.effectiveDate,
+    });
+
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
+    expect(
+      mockOutboxAppService.createBalancePropagation
+    ).not.toHaveBeenCalled();
+    expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('maps the exchange rate on a foreign-currency draft replacement', async () => {
+    const original = await makeOriginalPayment(effectiveDate);
+    mockJournalEntryRepo.findById.mockResolvedValue(original);
+    const foreignAccount = {
+      ...sourceAccount,
+      currency: SYSTEM_CURRENCIES.USD,
+    };
+    mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
+      foreignAccount,
+      destinationAccount,
+    ]);
+    const exchangeRate = {
+      baseCurrencyCode: 'USD',
+      targetCurrencyCode: 'NGN',
+      rate: 2,
+      type: EExchangeRateType.Negotiated,
+      asOf: replacementEffectiveDate,
+      source: 'Bank quote',
+    };
+
+    await usecase(original.id, {
+      ...payload,
+      postedAt: null,
+      sourceLine: {
+        ...payload.sourceLine,
+        amount: { amount: 4000, currencyCode: 'USD', isMinorUnit: true },
+        exchangeRate,
+      },
+    });
+
+    const [[persistence]] =
+      mockJournalEntryPersistenceAppService.rectify.mock.calls;
+    const [, replacement] = persistence.entriesToCreate;
+    expect(replacement.entry.lines).toContainEqual(
+      expect.objectContaining({
+        accountId: foreignAccount.id,
+        amount: moneyValue.make(4000n, SYSTEM_CURRENCIES.USD, true),
+        functionalAmount: moneyValue.make(8000n, SYSTEM_CURRENCIES.NGN, true),
+        exchangeRate: expect.objectContaining(exchangeRate),
+      })
+    );
+  });
 
   it('rejects a draft before journal persistence', async () => {
     const original = await makeOriginalPayment(null);

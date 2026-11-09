@@ -430,9 +430,14 @@ describe('makeJournalEntryRectificationService', () => {
     const [originalEntry] = makeEntry({ posted: true });
     const newEntry = makeEntry({ posted: true, amount: 150 });
 
-    const result = await service.rectify(makePayload(originalEntry, newEntry), {
-      correlationId: 'test-correlation-id',
-    });
+    const payload = makePayload(originalEntry, newEntry);
+    const result = await service.rectify(
+      {
+        ...payload,
+        newEntry: { ...payload.newEntry, effectiveDate: undefined },
+      },
+      { correlationId: 'test-correlation-id' }
+    );
 
     expect(result.mode).toBe(EJournalEntryRectificationMode.VoidAndReplace);
     expect(result.entriesToCreate).toHaveLength(2);
@@ -453,6 +458,7 @@ describe('makeJournalEntryRectificationService', () => {
     });
     expect(result.currentJournalEntry).toMatchObject({
       id: newEntry[0].id,
+      effectiveDate: originalEntry.effectiveDate,
       version: 1,
     });
     expect(result.currentJournalEntry.lines.map((line) => line.id)).not.toEqual(

@@ -4,6 +4,8 @@ import generateUUID from '@shared/utils/uuid-generator';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
+import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
@@ -74,9 +76,27 @@ describe('update draft opening balance use case', () => {
       },
     ];
     const effectiveDate = new Date('2099-08-03T10:00:00.000Z');
+    const amount = moneyValue.make(200n, SYSTEM_CURRENCIES.USD, true);
+    const exchangeRateDto = {
+      baseCurrencyCode: 'USD',
+      targetCurrencyCode: 'NGN',
+      rate: 2,
+      type: EExchangeRateType.Negotiated,
+      asOf: entry.effectiveDate,
+      source: 'Bank quote',
+    };
+    const exchangeRate = exchangeRateValue.make(exchangeRateDto);
+    const [openingLine, offsetLine] = entry.lines;
+    const lines = [
+      { ...openingLine, amount, exchangeRate },
+      {
+        ...offsetLine,
+        amount: moneyValue.convert(amount, exchangeRate, currency),
+      },
+    ];
     const mutation = journalEntryEntity.update(
       entry,
-      { id: entry.id, effectiveDate, attachments },
+      { id: entry.id, effectiveDate, attachments, lines },
       actorId
     );
     mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);
@@ -86,6 +106,8 @@ describe('update draft opening balance use case', () => {
       usecase(entry.id, {
         effectiveDate,
         attachments: { add: [reference] },
+        amount: { amount: 200, currencyCode: 'USD', isMinorUnit: true },
+        exchangeRate: exchangeRateDto,
       })
     ).resolves.toMatchObject({ effectiveDate, attachments, status: 'draft' });
 
@@ -99,6 +121,8 @@ describe('update draft opening balance use case', () => {
         entry,
         createdBy: actorId,
         effectiveDate,
+        amount,
+        exchangeRate: expect.objectContaining(exchangeRateDto),
         attachments,
       }),
       repoOptions
@@ -108,7 +132,14 @@ describe('update draft opening balance use case', () => {
         entry: mutation[0],
         expectedVersion: entry.version,
         headerHistory: expect.objectContaining({ actorId, action: 'updated' }),
-        lineHistories: [],
+        linesToUpdate: mutation[0].lines,
+        lineHistories: mutation[0].lines.map((line) =>
+          expect.objectContaining({
+            entityId: line.id,
+            actorId,
+            action: 'updated',
+          })
+        ),
       }),
       repoOptions
     );

@@ -1,6 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import generateUUID from '@shared/utils/uuid-generator';
+import generateUUID, * as uuidGenerator from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import periodError from '@domain/accounting/errors/period.error';
@@ -377,6 +377,7 @@ describe('receiptEntryService', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   describe('create', () => {
@@ -785,6 +786,28 @@ describe('receiptEntryService', () => {
       return { accounts, draft: { entry, actor: receipt.user.actorId } };
     }
 
+    it('rejects a stored receipt draft with multiple debit lines', async () => {
+      const { draft } = await makeDraftUpdate();
+      const { entry: original } = draft;
+      const functionalCurrency = original.lines[0].functionalAmount.currency;
+      const [entry] = journalEntryEntity.make({
+        ...original,
+        functionalCurrency,
+        lines: original.lines.map((line) => ({
+          ...line,
+          functionalCurrency,
+          side:
+            line.side === EJournalSide.Debit
+              ? EJournalSide.Credit
+              : EJournalSide.Debit,
+        })),
+      });
+
+      await expect(
+        service.updateDraft({ ...draft, entry, effectiveDate }, repoOptions)
+      ).rejects.toThrow(journalEntryError.InvalidDestinationAccount);
+    });
+
     it('changes the effective date and clears attachments without posting the draft', async () => {
       const {
         draft: { entry, actor },
@@ -851,6 +874,7 @@ describe('receiptEntryService', () => {
       const [updated, events, audit] = await service.updateDraft(
         {
           ...draft,
+          memo: null,
           sourceLines: [
             {
               id: sales.id,
@@ -859,7 +883,12 @@ describe('receiptEntryService', () => {
             {
               accountId: tax.accountId,
               sequenceOrder: tax.sequenceOrder,
-              amount: tax.amount,
+              amount: moneyValue.make(250n, SYSTEM_CURRENCIES.NGN, true),
+            },
+            {
+              accountId: tax.accountId,
+              sequenceOrder: 4,
+              amount: moneyValue.make(500n, SYSTEM_CURRENCIES.NGN, true),
             },
           ],
           destinationLine: {
@@ -874,6 +903,7 @@ describe('receiptEntryService', () => {
       expect(updated.status).toBe(EJournalEntryStatus.Draft);
       expect(updated.postedAt).toBeNull();
       expect(updated.effectiveDate).toBe(draft.entry.effectiveDate);
+      expect(updated.memo).toBeNull();
       expect(updated.attachments).toEqual(draft.entry.attachments);
       expect(updated.lines).toEqual([
         expect.objectContaining({ id: sales.id, accountId: sales.accountId }),
@@ -882,11 +912,17 @@ describe('receiptEntryService', () => {
           id: expect.any(String),
           accountId: tax.accountId,
           side: EJournalSide.Credit,
+          sequenceOrder: tax.sequenceOrder,
+        }),
+        expect.objectContaining({
+          accountId: tax.accountId,
+          side: EJournalSide.Credit,
+          sequenceOrder: 4,
         }),
       ]);
       expect(updated.lines.some((line) => line.id === tax.id)).toBe(false);
-      expect(audit?.lines).toHaveLength(3);
-      expect(events).toHaveLength(4);
+      expect(audit?.lines).toHaveLength(4);
+      expect(events).toHaveLength(5);
       expect(
         mockAccountingPeriodService.validatePostingPeriod
       ).not.toHaveBeenCalled();
@@ -1004,6 +1040,30 @@ describe('receiptEntryService', () => {
       };
       return { entry, replacement, sourceAccount };
     }
+
+    it('skips correction when the entry already links to the same reversal', async () => {
+      const { entry, replacement } = await makeReplacementFixture();
+      const voidingEntryId = generateUUID();
+      const [alreadyVoided] = journalEntryEntity.void(entry, {
+        voidingEntryId,
+      });
+      jest.spyOn(uuidGenerator, 'default').mockReturnValueOnce(voidingEntryId);
+
+      const correction = await service.voidAndReplace(
+        alreadyVoided,
+        replacement,
+        repoOptions
+      );
+
+      expect(correction).toEqual({
+        voided: [alreadyVoided, [], null],
+        reversal: null,
+        replacement: null,
+      });
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+    });
 
     it('returns the linked reversal, audited void, and corrected receipt', async () => {
       const { entry, replacement: payload } = await makeReplacementFixture();

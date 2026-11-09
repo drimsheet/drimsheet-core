@@ -1,6 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import generateUUID from '@shared/utils/uuid-generator';
+import generateUUID, * as uuidGenerator from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import periodError from '@domain/accounting/errors/period.error';
@@ -266,6 +266,7 @@ describe('transferEntryService', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   describe('create', () => {
@@ -848,6 +849,46 @@ describe('transferEntryService', () => {
       };
     }
 
+    it('rejects a stored transfer draft with multiple credit lines', async () => {
+      const { draft } = await makeDraftUpdate();
+      const { entry: original } = draft;
+      const [source, destination] = original.lines;
+      const functionalCurrency = source.functionalAmount.currency;
+      const splitAmount = moneyValue.make(5000n, SYSTEM_CURRENCIES.NGN, true);
+      const [entry] = journalEntryEntity.make({
+        ...original,
+        functionalCurrency,
+        lines: [
+          { ...source, functionalCurrency, amount: splitAmount },
+          { ...destination, functionalCurrency },
+          {
+            ...source,
+            functionalCurrency,
+            id: generateUUID(),
+            sequenceOrder: 3,
+            amount: splitAmount,
+          },
+        ],
+      });
+
+      await expect(
+        service.updateDraft({ ...draft, entry, effectiveDate }, repoOptions)
+      ).rejects.toThrow(journalEntryError.InvalidSourceType);
+    });
+
+    it('rejects a stored transfer when its destination asset is missing', async () => {
+      const { draft, accounts } = await makeDraftUpdate(null, true);
+      const [source, , charge] = accounts;
+      mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
+        source,
+        charge,
+      ]);
+
+      await expect(
+        service.updateDraft({ ...draft, effectiveDate }, repoOptions)
+      ).rejects.toThrow(journalEntryError.InvalidDestinationAccount);
+    });
+
     it('changes the effective date and clears attachments without posting the draft', async () => {
       const {
         draft: { entry, actor },
@@ -908,12 +949,13 @@ describe('transferEntryService', () => {
       ).rejects.toThrow(journalEntryError.EffectiveDateIsBeforeOpeningDate);
     });
 
-    it('adds a charge with a partial source edit and keeps the destination', async () => {
+    it('adds charges with a partial source edit and keeps the destination', async () => {
       const { draft, accounts, bankCounterparty } = await makeDraftUpdate();
       const [source, destination] = draft.entry.lines;
       const [updated, events, audit] = await service.updateDraft(
         {
           ...draft,
+          memo: 'Transfer with charges',
           sourceLine: {
             amount: moneyValue.make(10_200n, SYSTEM_CURRENCIES.NGN, true),
           },
@@ -921,8 +963,14 @@ describe('transferEntryService', () => {
             {
               accountId: accounts[2].id,
               counterpartyId: bankCounterparty.id,
-              amount: moneyValue.make(200n, SYSTEM_CURRENCIES.NGN, true),
+              amount: moneyValue.make(100n, SYSTEM_CURRENCIES.NGN, true),
               sequenceOrder: 3,
+            },
+            {
+              accountId: accounts[2].id,
+              counterpartyId: bankCounterparty.id,
+              amount: moneyValue.make(100n, SYSTEM_CURRENCIES.NGN, true),
+              sequenceOrder: 4,
             },
           ],
         },
@@ -932,16 +980,20 @@ describe('transferEntryService', () => {
       expect(updated.id).toBe(draft.entry.id);
       expect(updated.status).toBe(EJournalEntryStatus.Draft);
       expect(updated.postedAt).toBeNull();
+      expect(updated.memo).toBe('Transfer with charges');
       expect(updated.attachments).toEqual(draft.entry.attachments);
       expect(updated.lines[0].id).toBe(source.id);
       expect(updated.lines[1]).toBe(destination);
-      expect(updated.lines[2]).toMatchObject({
-        accountId: accounts[2].id,
-        counterpartyId: bankCounterparty.id,
-        side: EJournalSide.Debit,
-      });
-      expect(audit?.lines).toHaveLength(2);
-      expect(events).toHaveLength(3);
+      expect(updated.lines.slice(2)).toMatchObject(
+        [3, 4].map((sequenceOrder) => ({
+          accountId: accounts[2].id,
+          counterpartyId: bankCounterparty.id,
+          side: EJournalSide.Debit,
+          sequenceOrder,
+        }))
+      );
+      expect(audit?.lines).toHaveLength(3);
+      expect(events).toHaveLength(4);
       expect(
         mockAccountingPeriodService.validatePostingPeriod
       ).not.toHaveBeenCalled();
@@ -1128,6 +1180,30 @@ describe('transferEntryService', () => {
       };
       return { entry, replacement, sourceAccount };
     }
+
+    it('skips correction when the entry already links to the same reversal', async () => {
+      const { entry, replacement } = await makeReplacementFixture();
+      const voidingEntryId = generateUUID();
+      const [alreadyVoided] = journalEntryEntity.void(entry, {
+        voidingEntryId,
+      });
+      jest.spyOn(uuidGenerator, 'default').mockReturnValueOnce(voidingEntryId);
+
+      const correction = await service.voidAndReplace(
+        alreadyVoided,
+        replacement,
+        repoOptions
+      );
+
+      expect(correction).toEqual({
+        voided: [alreadyVoided, [], null],
+        reversal: null,
+        replacement: null,
+      });
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+    });
 
     it('returns the linked reversal, audited void, and posted transfer with its destination asset', async () => {
       const { entry, replacement: payload } = await makeReplacementFixture();

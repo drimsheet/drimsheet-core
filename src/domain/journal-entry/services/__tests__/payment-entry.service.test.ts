@@ -1,6 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import generateUUID from '@shared/utils/uuid-generator';
+import generateUUID, * as uuidGenerator from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import periodError from '@domain/accounting/errors/period.error';
@@ -309,6 +309,7 @@ describe('paymentEntryService', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   describe('create', () => {
@@ -573,6 +574,37 @@ describe('paymentEntryService', () => {
       };
     }
 
+    it('rejects a stored payment draft with multiple credit lines', async () => {
+      const { draft } = await makeDraftUpdate();
+      const { entry: original } = draft;
+      const functionalCurrency = original.lines[0].functionalAmount.currency;
+      const [entry] = journalEntryEntity.make({
+        ...original,
+        functionalCurrency,
+        lines: original.lines.map((line) => ({
+          ...line,
+          functionalCurrency,
+          side:
+            line.side === EJournalSide.Debit
+              ? EJournalSide.Credit
+              : EJournalSide.Debit,
+        })),
+      });
+
+      await expect(
+        service.updateDraft({ ...draft, entry, effectiveDate }, repoOptions)
+      ).rejects.toThrow(journalEntryError.InvalidSourceType);
+    });
+
+    it('rejects using a destination line ID to update the source', async () => {
+      const { draft } = await makeDraftUpdate();
+      const [destination] = draft.destinationLines;
+
+      await expect(
+        service.updateDraft({ ...draft, sourceLine: destination }, repoOptions)
+      ).rejects.toThrow(journalEntryError.RectificationLineId);
+    });
+
     it('changes the effective date and clears attachments without posting the draft', async () => {
       const {
         draft: { entry, actor },
@@ -641,6 +673,7 @@ describe('paymentEntryService', () => {
         {
           ...payload,
           entry,
+          memo: 'Corrected payment',
           sourceLine: {
             ...sourceLine,
             amount: moneyValue.make(200n, SYSTEM_CURRENCIES.USD, true),
@@ -652,12 +685,18 @@ describe('paymentEntryService', () => {
           destinationLines: [
             {
               ...destinationLines[0],
+              counterpartyId: null,
               amount: moneyValue.make(252_000n, SYSTEM_CURRENCIES.NGN, true),
             },
             {
               accountId: entry.lines[2].accountId,
               sequenceOrder: entry.lines[2].sequenceOrder,
-              amount: entry.lines[2].amount,
+              amount: moneyValue.make(24_000n, SYSTEM_CURRENCIES.NGN, true),
+            },
+            {
+              accountId: entry.lines[2].accountId,
+              sequenceOrder: 4,
+              amount: moneyValue.make(24_000n, SYSTEM_CURRENCIES.NGN, true),
             },
           ],
         },
@@ -669,19 +708,25 @@ describe('paymentEntryService', () => {
       expect(updated.status).toBe(EJournalEntryStatus.Draft);
       expect(updated.postedAt).toBeNull();
       expect(updated.effectiveDate).toBe(entry.effectiveDate);
-      expect(updated.memo).toBe(entry.memo);
+      expect(updated.memo).toBe('Corrected payment');
       expect(updated.attachments).toEqual(entry.attachments);
       expect(updated.lines[0].id).toBe(entry.lines[0].id);
       expect(updated.lines[0].functionalAmount.amount).toBe(300_000n);
       expect(updated.lines[0].exchangeRate?.rate).toBe(1500);
-      expect(updated.lines[1].id).toBe(entry.lines[1].id);
+      expect(updated.lines[1]).toMatchObject({
+        id: entry.lines[1].id,
+        counterpartyId: null,
+      });
+      expect(updated.lines.slice(2).map((line) => line.sequenceOrder)).toEqual([
+        3, 4,
+      ]);
       expect(updated.lines[2].id).not.toBe(entry.lines[2].id);
       expect(updated.lines[2].entryId).toBe(entry.id);
       expect(updated.lines[2].counterpartyId).toBeNull();
       expect(audit?.header.diff.before?.lines).toEqual(entry.lines);
       expect(audit?.header.diff.after.lines).toEqual(updated.lines);
-      expect(audit?.lines).toHaveLength(3);
-      expect(events).toHaveLength(4);
+      expect(audit?.lines).toHaveLength(4);
+      expect(events).toHaveLength(5);
       expect(
         mockLedgerAccountBalanceRepo.findByAccountId
       ).not.toHaveBeenCalled();
@@ -890,6 +935,30 @@ describe('paymentEntryService', () => {
       };
       return { existing, replacement, sourceAccount };
     }
+
+    it('skips correction when the entry already links to the same reversal', async () => {
+      const { existing, replacement } = await makeReplacementFixture();
+      const voidingEntryId = generateUUID();
+      const [alreadyVoided] = journalEntryEntity.void(existing, {
+        voidingEntryId,
+      });
+      jest.spyOn(uuidGenerator, 'default').mockReturnValueOnce(voidingEntryId);
+
+      const correction = await service.voidAndReplace(
+        alreadyVoided,
+        replacement,
+        repoOptions
+      );
+
+      expect(correction).toEqual({
+        voided: [alreadyVoided, [], null],
+        reversal: null,
+        replacement: null,
+      });
+      expect(
+        mockAccountingPeriodService.validatePostingPeriod
+      ).not.toHaveBeenCalled();
+    });
 
     it('returns a linked reversal, audited void, and posted replacement with corrected lines', async () => {
       const { existing, replacement: replacementPayload } =
