@@ -300,13 +300,14 @@ function makeVoidAndReplace(
       });
     }
 
-    const reversalDate = new Date();
+    const reversalDate = existing.effectiveDate;
+    const postedAt = new Date();
     const functionalCurrency = existing.lines[0].functionalAmount.currency;
     const reversal = journalEntryEntity.make({
       accountingEntityId: existing.accountingEntityId,
       sourceType: EJournalEntrySourceType.Reversal,
       effectiveDate: reversalDate,
-      postedAt: reversalDate,
+      postedAt,
       memo: null,
       createdBy: replacementPayload.header.createdBy,
       functionalCurrency,

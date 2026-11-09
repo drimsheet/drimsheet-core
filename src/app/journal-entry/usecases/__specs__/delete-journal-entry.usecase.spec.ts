@@ -523,7 +523,10 @@ describe('makeDeleteJournalEntryUsecase', () => {
       const earlierDate = new Date('2026-08-15');
       const entry = { ...makeEntry(earlierDate), effectiveDate: earlierDate };
       const snapshot = structuredClone(entry);
-      const failure = new ErrorType({ accountingEntityId, postingDate: now });
+      const failure = new ErrorType({
+        accountingEntityId,
+        postingDate: earlierDate,
+      });
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
       mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
         failure
@@ -539,7 +542,7 @@ describe('makeDeleteJournalEntryUsecase', () => {
 
       expect(
         mockAccountingPeriodService.validatePostingPeriod
-      ).toHaveBeenCalledWith(accountingEntityId, now, {
+      ).toHaveBeenCalledWith(accountingEntityId, earlierDate, {
         correlationId,
         idempotencyKey,
       });

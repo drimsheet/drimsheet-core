@@ -55,7 +55,7 @@ export interface IJournalEntryRectificationService {
     repoOptions: IReadRepoOptions
   ): Promise<IJournalEntryRectificationResult>;
 
-  /** Prepares a reversal without writes; validates its own effective date, not the original's period. */
+  /** Prepares a reversal on the original effective date in an open period. */
   reverse(
     originalEntry: IJournalEntry,
     actorId: TEntityId,

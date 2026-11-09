@@ -171,7 +171,7 @@ async function voidAndReplace(
   };
 }
 
-/** Checks the reversal's own posting date before preparing it and voiding the original. */
+/** Validates the original period and prepares a reversal on its date. */
 async function reverseEntry(
   deps: IDependencies,
   originalEntry: IJournalEntryRectificationPayload['originalEntry'],
@@ -181,7 +181,7 @@ async function reverseEntry(
 ): Promise<IJournalEntryReversalResult> {
   await deps.accountingPeriodService.validatePostingPeriod(
     originalEntry.accountingEntityId,
-    timestamp,
+    originalEntry.effectiveDate,
     repoOptions
   );
 
@@ -189,7 +189,7 @@ async function reverseEntry(
   const reversalEntry = journalEntryEntity.make({
     accountingEntityId: originalEntry.accountingEntityId,
     sourceType: EJournalEntrySourceType.Reversal,
-    effectiveDate: timestamp,
+    effectiveDate: originalEntry.effectiveDate,
     postedAt: timestamp,
     memo: null, // TODO: add memo if received by the caller
     createdBy: actorId,

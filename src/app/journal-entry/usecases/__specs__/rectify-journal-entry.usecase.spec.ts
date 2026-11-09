@@ -545,11 +545,11 @@ describe('makeRectifyJournalEntryUsecase', () => {
       const [originalEntry] = makeEntry(100);
       const [replacement] = makeEntry(150);
       const snapshot = structuredClone(originalEntry);
-      const reversalDate = new Date('2026-10-01T10:00:00.000Z');
-      jest.setSystemTime(reversalDate);
+      const replacementDate = new Date('2026-10-01T10:00:00.000Z');
+      jest.setSystemTime(replacementDate);
       const failure = new ErrorType({
         accountingEntityId,
-        postingDate: reversalDate,
+        postingDate: originalEntry.effectiveDate,
       });
       mockAccountingPeriodService.validatePostingPeriod
         .mockResolvedValueOnce(undefined)
@@ -561,7 +561,7 @@ describe('makeRectifyJournalEntryUsecase', () => {
             {
               originalEntry: payload.originalEntry,
               actorId: payload.actor,
-              newEntry: replacement,
+              newEntry: { ...replacement, effectiveDate: replacementDate },
             },
             options
           ),
@@ -572,21 +572,29 @@ describe('makeRectifyJournalEntryUsecase', () => {
       );
 
       await expect(
-        getUsecase()(originalEntry.id, makePayload(originalEntry))
+        getUsecase()(originalEntry.id, {
+          ...makePayload(originalEntry),
+          effectiveDate: replacementDate,
+        })
       ).rejects.toBe(failure);
 
       expect(
         mockAccountingPeriodService.validatePostingPeriod
-      ).toHaveBeenCalledWith(accountingEntityId, effectiveDate, {
+      ).toHaveBeenNthCalledWith(1, accountingEntityId, replacementDate, {
         correlationId,
         idempotencyKey,
       });
       expect(
         mockAccountingPeriodService.validatePostingPeriod
-      ).toHaveBeenCalledWith(accountingEntityId, reversalDate, {
-        correlationId,
-        idempotencyKey,
-      });
+      ).toHaveBeenNthCalledWith(
+        2,
+        accountingEntityId,
+        originalEntry.effectiveDate,
+        {
+          correlationId,
+          idempotencyKey,
+        }
+      );
       expect(originalEntry).toEqual(snapshot);
       expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();

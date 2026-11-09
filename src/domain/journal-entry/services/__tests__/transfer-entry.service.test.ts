@@ -1143,7 +1143,7 @@ describe('transferEntryService', () => {
         sourceType: EJournalEntrySourceType.Reversal,
         status: EJournalEntryStatus.Posted,
         accountingEntityId: entry.accountingEntityId,
-        effectiveDate: correctionDate,
+        effectiveDate: entry.effectiveDate,
         postedAt: correctionDate,
       });
       expect(reversingEntry.lines).toMatchObject(
@@ -1210,7 +1210,7 @@ describe('transferEntryService', () => {
       expect(
         mockAccountingPeriodService.validatePostingPeriod.mock.calls
       ).toEqual([
-        [entry.accountingEntityId, correctionDate, repoOptions],
+        [entry.accountingEntityId, entry.effectiveDate, repoOptions],
         [entry.accountingEntityId, replacementEffectiveDate, repoOptions],
       ]);
     });

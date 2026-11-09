@@ -905,7 +905,7 @@ describe('paymentEntryService', () => {
         accountingEntityId: existing.accountingEntityId,
         sourceType: EJournalEntrySourceType.Reversal,
         status: EJournalEntryStatus.Posted,
-        effectiveDate: correctionDate,
+        effectiveDate: existing.effectiveDate,
         postedAt: correctionDate,
         createdBy: replacementPayload.header.createdBy,
       });
@@ -962,7 +962,7 @@ describe('paymentEntryService', () => {
       expect(
         mockAccountingPeriodService.validatePostingPeriod.mock.calls
       ).toEqual([
-        [existing.accountingEntityId, correctionDate, repoOptions],
+        [existing.accountingEntityId, existing.effectiveDate, repoOptions],
         [existing.accountingEntityId, replacementEffectiveDate, repoOptions],
       ]);
     });
@@ -1003,16 +1003,17 @@ describe('paymentEntryService', () => {
     });
 
     it.each([
-      ['the reversal', correctionDate],
+      ['the original entry', undefined],
       ['the replacement', replacementEffectiveDate],
     ])(
       'rejects %s in a closed posting period',
       async (_posting, closedDate) => {
         const { existing, replacement } = await makeReplacementFixture();
+        const rejectedDate = closedDate ?? existing.effectiveDate;
         const failure = new periodError.PostingPeriodNotOpen();
         mockAccountingPeriodService.validatePostingPeriod.mockImplementation(
           async (_entityId, date) => {
-            if (date.getTime() === closedDate.getTime()) {
+            if (date.getTime() === rejectedDate.getTime()) {
               throw failure;
             }
           }
@@ -1087,7 +1088,9 @@ describe('paymentEntryService', () => {
       });
       expect(
         mockAccountingPeriodService.validatePostingPeriod.mock.calls
-      ).toEqual([[existing.accountingEntityId, correctionDate, repoOptions]]);
+      ).toEqual([
+        [existing.accountingEntityId, existing.effectiveDate, repoOptions],
+      ]);
     });
   });
 

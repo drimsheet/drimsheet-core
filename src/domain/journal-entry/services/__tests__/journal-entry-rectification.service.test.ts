@@ -308,7 +308,7 @@ describe('makeJournalEntryRectificationService', () => {
     expect(result.reversingJournalEntry).toMatchObject({
       sourceType: EJournalEntrySourceType.Reversal,
       status: EJournalEntryStatus.Posted,
-      effectiveDate: now,
+      effectiveDate: originalEntry.effectiveDate,
       postedAt: now,
     });
     expect(result.reversingJournalEntry.lines).toEqual([
@@ -439,7 +439,7 @@ describe('makeJournalEntryRectificationService', () => {
     expect(result.reversingJournalEntry).toMatchObject({
       sourceType: EJournalEntrySourceType.Reversal,
       status: EJournalEntryStatus.Posted,
-      effectiveDate: now,
+      effectiveDate: originalEntry.effectiveDate,
       postedAt: now,
     });
     expect(
@@ -619,10 +619,10 @@ describe('makeJournalEntryRectificationService', () => {
     expect(result.currentJournalEntry.lines[1].createdBy).toBe(actorId);
   });
   describe('posting periods', () => {
-    const reversalDate = new Date('2026-10-01T09:30:00.000Z');
+    const correctionTime = new Date('2026-10-01T09:30:00.000Z');
     const repoOptions = { correlationId: 'posting-period-check' };
 
-    beforeEach(() => jest.setSystemTime(reversalDate));
+    beforeEach(() => jest.setSystemTime(correctionTime));
 
     async function prepare(
       mode: 'reverse' | 'rectify',
@@ -638,13 +638,13 @@ describe('makeJournalEntryRectificationService', () => {
     }
 
     describe.each(['reverse', 'rectify'] as const)('%s', (mode) => {
-      it('rejects a closed reversal period without changing the original', async () => {
+      it('rejects a closed original period without changing the original', async () => {
         const [original] = makeEntry({ posted: true });
         const snapshot = structuredClone(original);
-        periods[9] = {
-          ...periods[9],
+        periods[8] = {
+          ...periods[8],
           status: EAccountingPeriodStatus.Closed,
-          closedAt: reversalDate,
+          closedAt: correctionTime,
         };
 
         await expect(prepare(mode, original)).rejects.toBeInstanceOf(
@@ -652,7 +652,7 @@ describe('makeJournalEntryRectificationService', () => {
         );
         expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
           accountingEntityId,
-          reversalDate,
+          original.effectiveDate,
           repoOptions
         );
         expect(original).toEqual(snapshot);
@@ -664,9 +664,9 @@ describe('makeJournalEntryRectificationService', () => {
         async (coverage) => {
           const [original] = makeEntry({ posted: true });
           const snapshot = structuredClone(original);
-          periods[9] = { ...periods[9], accountingEntityId: generateUUID() };
+          periods[8] = { ...periods[8], accountingEntityId: generateUUID() };
           if (coverage === 'uncovered') {
-            periods.splice(9, 1);
+            periods.splice(8, 1);
           }
 
           await expect(prepare(mode, original)).rejects.toBeInstanceOf(
@@ -678,7 +678,7 @@ describe('makeJournalEntryRectificationService', () => {
 
       it('rejects ambiguous reversal coverage', async () => {
         const [original] = makeEntry({ posted: true });
-        periods.push({ ...periods[9], id: generateUUID() });
+        periods.push({ ...periods[8], id: generateUUID() });
         await expect(prepare(mode, original)).rejects.toBeInstanceOf(
           periodError.PostingPeriodAmbiguous
         );
@@ -691,7 +691,7 @@ describe('makeJournalEntryRectificationService', () => {
         await expect(prepare(mode, original)).rejects.toBe(failure);
       });
 
-      it('keeps the validated reversal timestamp when time advances during the read', async () => {
+      it('keeps the reversal posting timestamp when time advances during the read', async () => {
         const [original] = makeEntry({ posted: true });
         periodRepo.findAllByDate.mockImplementation(async (_, date) => {
           jest.setSystemTime(new Date('2026-11-01'));
@@ -699,66 +699,53 @@ describe('makeJournalEntryRectificationService', () => {
         });
         const result = await prepare(mode, original);
         expect(result.reversingJournalEntry).toMatchObject({
-          effectiveDate: reversalDate,
-          postedAt: reversalDate,
+          effectiveDate: original.effectiveDate,
+          postedAt: correctionTime,
         });
         expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
           accountingEntityId,
-          reversalDate,
+          original.effectiveDate,
           repoOptions
         );
       });
     });
 
-    it('reverses an original from a closed earlier period in the current open period', async () => {
+    it('rejects a closed original period even when the replacement period is open', async () => {
       const [original] = makeEntry({ posted: true });
       periods[8] = {
         ...periods[8],
         status: EAccountingPeriodStatus.Closed,
-        closedAt: reversalDate,
+        closedAt: correctionTime,
       };
-      const result = await service.reverse(original, createdBy, repoOptions);
-      expect(result.reversingJournalEntry.effectiveDate).toEqual(reversalDate);
-      expect(result.entryUpdate?.entry.status).toBe(EJournalEntryStatus.Voided);
-      expect(periodRepo.findAllByDate).toHaveBeenCalledTimes(1);
-    });
 
-    it('rectifies an original from a closed earlier period when both new entries are open', async () => {
-      const [original] = makeEntry({ posted: true });
-      periods[8] = {
-        ...periods[8],
-        status: EAccountingPeriodStatus.Closed,
-        closedAt: reversalDate,
-      };
-      const result = await service.rectify(
-        {
-          actorId: createdBy,
-          originalEntry: original,
-          newEntry: { id: generateUUID(), effectiveDate: reversalDate },
-        },
+      await expect(
+        service.rectify(
+          {
+            actorId: createdBy,
+            originalEntry: original,
+            newEntry: { id: generateUUID(), effectiveDate: correctionTime },
+          },
+          repoOptions
+        )
+      ).rejects.toBeInstanceOf(periodError.PostingPeriodNotOpen);
+      expect(periodRepo.findAllByDate).toHaveBeenLastCalledWith(
+        accountingEntityId,
+        original.effectiveDate,
         repoOptions
       );
-      expect(result.entriesToCreate).toHaveLength(2);
-      expect(
-        result.entriesToCreate.every(
-          ([entry]) =>
-            entry.status === EJournalEntryStatus.Posted &&
-            entry.effectiveDate.getTime() === reversalDate.getTime()
-        )
-      ).toBe(true);
     });
 
     it.each(['closed', 'uncovered'] as const)(
       'rejects a %s replacement date even when the reversal date is open',
       async (kind) => {
         const [original] = makeEntry({ posted: true });
-        periods[8] = {
-          ...periods[8],
+        periods[9] = {
+          ...periods[9],
           status: EAccountingPeriodStatus.Closed,
-          closedAt: reversalDate,
+          closedAt: correctionTime,
         };
         if (kind === 'uncovered') {
-          periods.splice(8, 1);
+          periods.splice(9, 1);
         }
         const snapshot = structuredClone(original);
         await expect(
@@ -768,6 +755,7 @@ describe('makeJournalEntryRectificationService', () => {
               originalEntry: original,
               newEntry: {
                 id: generateUUID(),
+                effectiveDate: correctionTime,
                 lines: makeEntry({ posted: true, amount: 125 })[0].lines,
               },
             },
@@ -780,7 +768,7 @@ describe('makeJournalEntryRectificationService', () => {
         );
         expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
           accountingEntityId,
-          effectiveDate,
+          correctionTime,
           repoOptions
         );
         expect(original).toEqual(snapshot);
@@ -797,7 +785,7 @@ describe('makeJournalEntryRectificationService', () => {
           periods[8] = {
             ...periods[8],
             status: EAccountingPeriodStatus.Closed,
-            closedAt: reversalDate,
+            closedAt: correctionTime,
           };
         }
         if (kind === 'uncovered') {

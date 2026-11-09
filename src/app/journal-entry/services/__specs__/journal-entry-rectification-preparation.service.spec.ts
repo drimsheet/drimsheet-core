@@ -918,8 +918,8 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
     'propagates reversal-period rejection before preparing FX effects (%p)',
     async (ErrorType) => {
       jest.useFakeTimers();
-      const reversalDate = new Date('2026-10-01T10:00:00.000Z');
-      jest.setSystemTime(reversalDate);
+      const replacementDate = new Date('2026-10-01T10:00:00.000Z');
+      jest.setSystemTime(replacementDate);
       try {
         const [originalEntry] = makeEntry(EJournalEntrySourceType.Transfer);
         const candidate = makeEntry(EJournalEntrySourceType.Transfer, 150);
@@ -933,7 +933,7 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
         const requestedEntry: ITransferJournalEntryRectificationReq = {
           sourceType: EJournalEntrySourceType.Transfer,
           attachments: [],
-          effectiveDate,
+          effectiveDate: replacementDate,
           postedAt: effectiveDate,
           memo: 'Correction',
           sourceLine,
@@ -945,12 +945,16 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
           chargeLines: [],
         };
         mockTransferEntryService.create.mockResolvedValueOnce({
-          journalEntry: candidate,
+          journalEntry: [
+            { ...candidate[0], effectiveDate: replacementDate },
+            candidate[1],
+            candidate[2],
+          ],
           destinationAssetAccount: destinationAccount,
         });
         const failure = new ErrorType({
           accountingEntityId,
-          postingDate: reversalDate,
+          postingDate: originalEntry.effectiveDate,
         });
         mockAccountingPeriodService.validatePostingPeriod.mockReset();
         mockAccountingPeriodService.validatePostingPeriod
@@ -974,10 +978,20 @@ describe('makeJournalEntryRectificationPreparationAppService', () => {
 
         expect(
           mockAccountingPeriodService.validatePostingPeriod
-        ).toHaveBeenCalledWith(accountingEntityId, effectiveDate, repoOptions);
+        ).toHaveBeenNthCalledWith(
+          1,
+          accountingEntityId,
+          replacementDate,
+          repoOptions
+        );
         expect(
           mockAccountingPeriodService.validatePostingPeriod
-        ).toHaveBeenCalledWith(accountingEntityId, reversalDate, repoOptions);
+        ).toHaveBeenNthCalledWith(
+          2,
+          accountingEntityId,
+          originalEntry.effectiveDate,
+          repoOptions
+        );
         expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
         expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
         expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
