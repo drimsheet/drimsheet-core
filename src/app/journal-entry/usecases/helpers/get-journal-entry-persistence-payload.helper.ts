@@ -1,15 +1,12 @@
 import { TEntityId } from '@shared/types/uuid';
 import historyValue from '@shared/values/history/history.vo';
 
-import {
-  IJournalEntryRectificationResult,
-  IJournalEntryReversalResult,
-} from '@domain/journal-entry/types/journal-entry-rectification.types';
+import { IJournalEntryReversalResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
 
 import { IJournalEntryRectificationPersistencePayload } from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 
 type TJournalEntryPersistencePreparation = Pick<
-  IJournalEntryRectificationResult | IJournalEntryReversalResult,
+  IJournalEntryReversalResult,
   'entriesToCreate' | 'entryUpdate'
 >;
 

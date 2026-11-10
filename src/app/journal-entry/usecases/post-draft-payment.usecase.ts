@@ -9,7 +9,6 @@
  *
  * WHEN TO USE
  * Use to finalize a saved payment draft with its existing financial content.
- * Use rectify-journal-entry when the requested entry content must also change.
  *
  * SEQUENCE DIAGRAM
  * @see ./__docs__/post-draft-payment.sequence.md

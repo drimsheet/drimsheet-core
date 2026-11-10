@@ -288,7 +288,6 @@ const journalEntryValidation = Object.freeze({
   validateVoidedAt,
   validateVoidingEntryId,
   validateVoid,
-  hasOnlyMetadataChanges,
   validateUpdate,
   validateBalancePropagation,
 });

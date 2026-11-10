@@ -23,7 +23,6 @@ describe('makeJournalEntryRemovalService', () => {
   } as Awaited<ReturnType<IJournalEntryRectificationService['reverse']>>;
   const journalEntryRectificationService: jest.Mocked<IJournalEntryRectificationService> =
     {
-      rectify: jest.fn(),
       reverse: jest.fn(),
     };
   const service = makeJournalEntryRemovalService({

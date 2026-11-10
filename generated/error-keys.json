@@ -301,7 +301,6 @@
   "journal_entry_error_mismatched_journal_lines_invalid",
   "journal_entry_error_opening_balance_date_invalid",
   "journal_entry_error_posting_date_invalid",
-  "journal_entry_error_rectification_has_no_changes_invalid",
   "journal_entry_error_rectification_line_id_invalid",
   "journal_entry_error_rectification_not_permitted_invalid",
   "journal_entry_error_source_account_balance_insufficient_invalid",

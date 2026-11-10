@@ -48,7 +48,6 @@ jest.mock('../../../src/infra/ioc/usecases/journal-entry', () => ({
   createPaymentUseCase: jest.fn(),
   createReceiptUseCase: jest.fn(),
   createTransferUseCase: jest.fn(),
-  rectifyJournalEntryUseCase: jest.fn(),
 }));
 
 jest.mock('../../../src/infra/persistence/repos/accounting', () => ({

@@ -8,17 +8,8 @@ import {
   IJournalLineAudit,
   TAuditedJournalEntry,
 } from '@domain/journal-entry/types/journal-entry-audit.types';
-import {
-  IJournalEntry,
-  UJournalEntryRectificationMode,
-} from '@domain/journal-entry/types/journal-entry.types';
+import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
-
-export interface IJournalEntryRectificationPayload {
-  actorId: TEntityId;
-  originalEntry: IJournalEntry;
-  newEntry: Partial<IJournalEntry> & { id: TEntityId };
-}
 
 export interface IJournalEntryRectificationUpdate {
   entry: IJournalEntry;
@@ -30,16 +21,6 @@ export interface IJournalEntryRectificationUpdate {
   lineIdsToDelete: TEntityId[];
 }
 
-export interface IJournalEntryRectificationResult {
-  mode: UJournalEntryRectificationMode;
-  originalJournalEntryId: TEntityId;
-  currentJournalEntry: IJournalEntry;
-  reversingJournalEntry: IJournalEntry | null;
-  entriesToCreate: TAuditedJournalEntry[];
-  entryUpdate: IJournalEntryRectificationUpdate | null;
-  events: IEvent<unknown>[];
-}
-
 export interface IJournalEntryReversalResult {
   originalJournalEntryId: TEntityId;
   reversingJournalEntry: IJournalEntry;
@@ -49,12 +30,6 @@ export interface IJournalEntryReversalResult {
 }
 
 export interface IJournalEntryRectificationService {
-  /** Prepares changes without writes; rejects unless every newly posted entry has an Open posting period. */
-  rectify(
-    payload: IJournalEntryRectificationPayload,
-    repoOptions: IReadRepoOptions
-  ): Promise<IJournalEntryRectificationResult>;
-
   /** Prepares a reversal on the original effective date in an open period. */
   reverse(
     originalEntry: IJournalEntry,

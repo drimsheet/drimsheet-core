@@ -10,7 +10,6 @@ import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post
 import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-payment.usecase';
 import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
-import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
 import makeUpdateDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/update-draft-opening-balance.usecase';
 import makeUpdateDraftPaymentUsecase from '@app/journal-entry/usecases/update-draft-payment.usecase';
 import makeUpdateDraftReceiptUsecase from '@app/journal-entry/usecases/update-draft-receipt.usecase';
@@ -27,7 +26,6 @@ import {
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceAppService,
-  journalEntryRectificationPreparationAppService,
   journalEntryRemovalService,
   openingBalanceEntryService,
   paymentEntryService,
@@ -351,22 +349,6 @@ export const createTransferUseCase = makeTracedUseCase(
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     fxCostBasisLotService,
     exchangeRateAppService,
-    fxCostBasisPersistenceAppService,
-  })
-);
-
-export const rectifyJournalEntryUseCase = makeTracedUseCase(
-  'journalEntry.rectifyJournalEntryUseCase',
-  makeRectifyJournalEntryUsecase({
-    appContext,
-    fileManagementAppService,
-    journalEntryRepo: journalEntryRepos.journalEntry,
-    journalEntryRectificationPreparationAppService,
-    journalEntryPersistenceAppService,
-    repoService,
-    eventBus: messaging.eventBus,
-    outboxAppService,
-    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     fxCostBasisPersistenceAppService,
   })
 );

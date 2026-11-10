@@ -77,8 +77,6 @@ const EErrorKeys = {
     'journal_entry_error_entry_cannot_record_entry_before_account_opening_date_invalid',
   RectificationNotPermitted:
     'journal_entry_error_rectification_not_permitted_invalid',
-  RectificationHasNoChanges:
-    'journal_entry_error_rectification_has_no_changes_invalid',
   RectificationLineId: 'journal_entry_error_rectification_line_id_invalid',
   DeletionNotPermitted: 'journal_entry_error_deletion_not_permitted_invalid',
 } as const satisfies TErrorKeys<'journal_entry_error'>;

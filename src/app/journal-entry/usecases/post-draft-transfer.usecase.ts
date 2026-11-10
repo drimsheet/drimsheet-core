@@ -9,7 +9,7 @@
  *
  * WHEN TO USE
  * Use to finalize a saved transfer draft with its existing financial content,
- * including charges. Use rectify-journal-entry when that content must change.
+ * including charges.
  *
  * SEQUENCE DIAGRAM
  * @see ./__docs__/post-draft-transfer.sequence.md

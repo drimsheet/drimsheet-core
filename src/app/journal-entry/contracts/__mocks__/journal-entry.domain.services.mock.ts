@@ -1,15 +1,8 @@
-import { IJournalEntryRectificationService } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import { IJournalEntryRemovalService } from '@domain/journal-entry/types/journal-entry-removal.types';
 import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import { IPaymentEntryService } from '@domain/journal-entry/types/payment-entry.service.types';
 import { IReceiptEntryService } from '@domain/journal-entry/types/receipt-entry.service.types';
 import { ITransferEntryService } from '@domain/journal-entry/types/transfer-entry.service.types';
-
-export const mockJournalEntryRectificationService: jest.Mocked<IJournalEntryRectificationService> =
-  {
-    rectify: jest.fn(),
-    reverse: jest.fn(),
-  };
 
 export const mockJournalEntryRemovalService: jest.Mocked<IJournalEntryRemovalService> =
   {

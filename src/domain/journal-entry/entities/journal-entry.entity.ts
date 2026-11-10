@@ -18,13 +18,11 @@ import {
   TAuditedJournalEntryUpdate,
 } from '@domain/journal-entry/types/journal-entry-audit.types';
 import {
-  EJournalEntryRectificationMode,
   EJournalEntryStatus,
   IJournalEntry,
   IJournalEntryMakePayload,
   IJournalHeader,
   IVoidJournalEntryPayload,
-  UJournalEntryRectificationMode,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 import journalEntryAudit from '@domain/journal-entry/values/journal-entry-audit.vo';
@@ -358,26 +356,12 @@ function deleteEntity(
   return [current, journalEntryEvents.deleted(current), null];
 }
 
-function determineUpdateAction(
-  existingEntry: IJournalEntry,
-  newEntry: Partial<IJournalEntry>
-): UJournalEntryRectificationMode {
-  if (existingEntry.status === EJournalEntryStatus.Draft) {
-    return EJournalEntryRectificationMode.UpdateDraft;
-  }
-
-  return journalEntryValidation.hasOnlyMetadataChanges(existingEntry, newEntry)
-    ? EJournalEntryRectificationMode.UpdateMeta
-    : EJournalEntryRectificationMode.VoidAndReplace;
-}
-
 const journalEntryEntity = Object.freeze({
   make,
   update,
   void: voidEntry,
   archive,
   delete: deleteEntity,
-  determineUpdateAction,
   ...journalEntryValidation,
 });
 

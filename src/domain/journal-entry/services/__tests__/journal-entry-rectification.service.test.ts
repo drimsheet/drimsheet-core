@@ -12,12 +12,9 @@ import {
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
-import { IJournalEntryRectificationPayload } from '@domain/journal-entry/types/journal-entry-rectification.types';
 import {
-  EJournalEntryRectificationMode,
   EJournalEntrySourceType,
   EJournalEntryStatus,
-  IJournalEntry,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
@@ -139,28 +136,17 @@ describe('makeJournalEntryRectificationService', () => {
     ]);
   });
 
-  function makeEntry(options?: {
-    posted?: boolean;
-    amount?: number;
-    memo?: string | null;
-    description?: string | null;
-    attachments?: { url: string; name: string; type: string; size: number }[];
-  }) {
-    const amount = moneyValue.make(
-      options?.amount ?? 100,
-      SYSTEM_CURRENCIES.USD,
-      false
-    );
+  function makeEntry(posted = false) {
+    const amount = moneyValue.make(100, SYSTEM_CURRENCIES.USD, false);
 
     return journalEntryEntity.make({
       accountingEntityId,
       sourceType: EJournalEntrySourceType.Transfer,
       effectiveDate,
-      postedAt: options?.posted ? effectiveDate : null,
-      memo: options?.memo ?? null,
+      postedAt: posted ? effectiveDate : null,
+      memo: null,
       createdBy: createdBy,
       functionalCurrency: SYSTEM_CURRENCIES.USD,
-      attachments: options?.attachments ?? [],
       lines: [
         {
           accountId: debitAccountId,
@@ -169,7 +155,7 @@ describe('makeJournalEntryRectificationService', () => {
           amount,
           exchangeRate: null,
           side: EJournalSide.Debit,
-          description: options?.description ?? null,
+          description: null,
           functionalCurrency: SYSTEM_CURRENCIES.USD,
         },
         {
@@ -186,25 +172,6 @@ describe('makeJournalEntryRectificationService', () => {
     });
   }
 
-  function makePayload(
-    originalEntry: IJournalEntry,
-    newEntryResult: ReturnType<typeof makeEntry>
-  ): IJournalEntryRectificationPayload {
-    const [newEntry] = newEntryResult;
-
-    return {
-      actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      originalEntry,
-      newEntry: {
-        ...newEntry,
-        lines: newEntry.lines.map((line, index) => ({
-          ...line,
-          id: originalEntry.lines[index]?.id ?? line.id,
-        })),
-      },
-    };
-  }
-
   beforeAll(() => {
     jest.useFakeTimers();
     jest.setSystemTime(now);
@@ -214,7 +181,7 @@ describe('makeJournalEntryRectificationService', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('rejects a reversal against an archived account without changing the original', async () => {
-    const [originalEntry] = makeEntry({ posted: true });
+    const [originalEntry] = makeEntry(true);
     const snapshot = structuredClone(originalEntry);
     const account = makeAccount(debitAccountId);
     ledgerAccountRepo.findAllByIds.mockResolvedValue([
@@ -236,56 +203,8 @@ describe('makeJournalEntryRectificationService', () => {
     expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
   });
 
-  it.each(['original', 'replacement', 'draft'] as const)(
-    'rejects an archived %s account inside rectification',
-    async (kind) => {
-      const [originalEntry] = makeEntry({ posted: kind !== 'draft' });
-      const payload = makePayload(
-        originalEntry,
-        makeEntry({ posted: kind !== 'draft', amount: 125 })
-      );
-      const replacementAccountId = generateUUID();
-      payload.newEntry.lines = payload.newEntry.lines!.map((line, index) =>
-        index === 0 ? { ...line, accountId: replacementAccountId } : line
-      );
-      const archivedAccount = makeAccount(
-        kind === 'original' ? debitAccountId : replacementAccountId
-      );
-      ledgerAccountRepo.findAllByIds.mockResolvedValue([
-        ledgerAccountEntity.archive(archivedAccount)[0],
-        makeAccount(creditAccountId),
-      ]);
-
-      await expect(
-        service.rectify(payload, {
-          correlationId: 'rectification-account-check',
-        })
-      ).rejects.toThrow(journalEntryError.ArchivedLedgerAccountNotAllowed);
-
-      expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
-    }
-  );
-
-  it('does not query accounts for a metadata-only update', async () => {
-    const [originalEntry] = makeEntry({ posted: true });
-    const payload = makePayload(
-      originalEntry,
-      makeEntry({ posted: true, description: 'Corrected description' })
-    );
-    ledgerAccountRepo.findAllByIds.mockResolvedValue([
-      ledgerAccountEntity.archive(makeAccount(debitAccountId))[0],
-    ]);
-
-    await expect(
-      service.rectify(payload, {
-        correlationId: 'historical-metadata',
-      })
-    ).rejects.toThrow(journalEntryError.RectificationHasNoChanges);
-    expect(ledgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
-  });
-
-  it('exposes the rectification and reversal operations', () => {
-    expect(Object.keys(service)).toEqual(['rectify', 'reverse']);
+  it('exposes the reversal operation', () => {
+    expect(Object.keys(service)).toEqual(['reverse']);
     expect(Object.isFrozen(service)).toBe(true);
   });
 
@@ -293,7 +212,7 @@ describe('makeJournalEntryRectificationService', () => {
     ['posted', false],
     ['previously-posted archived', true],
   ])('prepares a balanced reversal for a %s entry', async (_, archived) => {
-    const [postedEntry] = makeEntry({ posted: true });
+    const [postedEntry] = makeEntry(true);
     const originalEntry = archived
       ? { ...postedEntry, status: EJournalEntryStatus.Archived }
       : postedEntry;
@@ -346,192 +265,8 @@ describe('makeJournalEntryRectificationService', () => {
     ).rejects.toThrow(journalEntryError.InvalidStatusTransition);
   });
 
-  it('updates a draft journal entry in place', async () => {
-    const [originalEntry] = makeEntry();
-    const newEntry = makeEntry({ amount: 125 });
-
-    const result = await service.rectify(makePayload(originalEntry, newEntry), {
-      correlationId: 'test-correlation-id',
-    });
-
-    expect(result.mode).toBe(EJournalEntryRectificationMode.UpdateDraft);
-    expect(result.currentJournalEntry.id).toBe(originalEntry.id);
-    expect(result.currentJournalEntry.version).toBe(2);
-    expect(result.currentJournalEntry.lines[0]).toMatchObject({
-      id: originalEntry.lines[0].id,
-      entryId: originalEntry.id,
-      version: 2,
-    });
-    expect(result.entriesToCreate).toEqual([]);
-    expect(result.entryUpdate?.linesToUpdate).toHaveLength(2);
-  });
-
-  it('validates retained accounts when a draft correction omits lines', async () => {
-    const [originalEntry] = makeEntry();
-
-    const result = await service.rectify(
-      {
-        actorId: createdBy,
-        originalEntry,
-        newEntry: { id: originalEntry.id, memo: 'Corrected memo' },
-      },
-      { correlationId: 'retained-draft-accounts' }
-    );
-
-    expect(result.mode).toBe(EJournalEntryRectificationMode.UpdateDraft);
-    expect(result.currentJournalEntry.lines).toEqual(originalEntry.lines);
-    expect(ledgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
-      [debitAccountId, creditAccountId],
-      originalEntry.accountingEntityId,
-      { correlationId: 'retained-draft-accounts' }
-    );
-  });
-
-  it('tracks deleted lines when updating a draft entry', async () => {
-    const [originalEntry] = makeEntry();
-    const newEntry = makePayload(originalEntry, makeEntry({ amount: 125 }));
-    newEntry.newEntry.lines = [
-      newEntry.newEntry.lines![0],
-      { ...newEntry.newEntry.lines![1], id: generateUUID() },
-    ];
-
-    const result = await service.rectify(newEntry, {
-      correlationId: 'test-correlation-id',
-    });
-
-    expect(result.entryUpdate?.lineIdsToDelete).toEqual([
-      originalEntry.lines[1].id,
-    ]);
-  });
-
-  it('rejects description and attachment updates on a posted journal entry', async () => {
-    const [originalEntry] = makeEntry({ posted: true });
-    const newEntry = makeEntry({
-      posted: true,
-      description: 'Corrected description',
-      attachments: [
-        {
-          url: 'https://files.example.com/corrected.pdf',
-          name: 'corrected.pdf',
-          type: 'application/pdf',
-          size: 2_048,
-        },
-      ],
-    });
-
-    await expect(
-      service.rectify(makePayload(originalEntry, newEntry), {
-        correlationId: 'test-correlation-id',
-      })
-    ).rejects.toThrow(journalEntryError.RectificationHasNoChanges);
-  });
-
-  it('voids and replaces a posted journal entry when an accounting value changes', async () => {
-    const [originalEntry] = makeEntry({ posted: true });
-    const newEntry = makeEntry({ posted: true, amount: 150 });
-
-    const payload = makePayload(originalEntry, newEntry);
-    const result = await service.rectify(
-      {
-        ...payload,
-        newEntry: { ...payload.newEntry, effectiveDate: undefined },
-      },
-      { correlationId: 'test-correlation-id' }
-    );
-
-    expect(result.mode).toBe(EJournalEntryRectificationMode.VoidAndReplace);
-    expect(result.entriesToCreate).toHaveLength(2);
-    expect(result.reversingJournalEntry).toMatchObject({
-      sourceType: EJournalEntrySourceType.Reversal,
-      status: EJournalEntryStatus.Posted,
-      effectiveDate: originalEntry.effectiveDate,
-      postedAt: now,
-    });
-    expect(
-      result.reversingJournalEntry?.lines.map((line) => line.side)
-    ).toEqual([EJournalSide.Credit, EJournalSide.Debit]);
-    expect(result.entryUpdate?.entry).toMatchObject({
-      id: originalEntry.id,
-      status: EJournalEntryStatus.Voided,
-      voidedAt: now,
-      voidingEntryId: result.reversingJournalEntry?.id,
-    });
-    expect(result.currentJournalEntry).toMatchObject({
-      id: newEntry[0].id,
-      effectiveDate: originalEntry.effectiveDate,
-      version: 1,
-    });
-    expect(result.currentJournalEntry.lines.map((line) => line.id)).not.toEqual(
-      newEntry[0].lines.map((line) => line.id)
-    );
-  });
-
-  it('rejects memo-only corrections in favor of the metadata operation', async () => {
-    const [originalEntry] = makeEntry({ posted: true, memo: 'Before' });
-    await expect(
-      service.rectify(
-        {
-          actorId: createdBy,
-          originalEntry,
-          newEntry: { id: originalEntry.id, memo: 'After' },
-        },
-        { correlationId: 'test-correlation-id' }
-      )
-    ).rejects.toThrow(journalEntryError.RectificationHasNoChanges);
-  });
-
-  it('uses the original lines when a replacement omits lines', async () => {
-    const [originalEntry] = makeEntry({ posted: true, memo: 'Before' });
-
-    const result = await service.rectify(
-      {
-        actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        originalEntry,
-        newEntry: {
-          id: generateUUID(),
-          memo: null,
-          effectiveDate: new Date(effectiveDate.getTime() + 86_400_000),
-        },
-      },
-      { correlationId: 'test-correlation-id' }
-    );
-
-    expect(result.currentJournalEntry.lines).toHaveLength(2);
-  });
-
-  it('uses the original memo when a replacement omits memo', async () => {
-    const [originalEntry] = makeEntry({ posted: true, memo: 'Before' });
-
-    const result = await service.rectify(
-      {
-        actorId: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        originalEntry,
-        newEntry: {
-          id: generateUUID(),
-          effectiveDate: new Date('2026-09-02T00:00:00.000Z'),
-        },
-      },
-      { correlationId: 'test-correlation-id' }
-    );
-
-    expect(result.currentJournalEntry.memo).toBe('Before');
-  });
-
-  it('returns the original journal without persistence work for an unchanged rectification', async () => {
-    const [originalEntry] = makeEntry();
-    const newEntry = makeEntry();
-
-    const result = await service.rectify(makePayload(originalEntry, newEntry), {
-      correlationId: 'test-correlation-id',
-    });
-    expect(result.currentJournalEntry).toBe(originalEntry);
-    expect(result.entryUpdate).toBeNull();
-    expect(result.entriesToCreate).toEqual([]);
-    expect(result.events).toEqual([]);
-  });
-
   it('omits the original-entry update when the void operation returns no audit', async () => {
-    const [postedEntry] = makeEntry({ posted: true });
+    const [postedEntry] = makeEntry(true);
     const [originalEntry] = journalEntryEntity.void(postedEntry, {
       voidingEntryId: generateUUID(),
     });
@@ -559,165 +294,15 @@ describe('makeJournalEntryRectificationService', () => {
     expect(ledgerAccountRepo.update).not.toHaveBeenCalled();
   });
 
-  it('rejects an already voided journal entry', async () => {
-    const [entry] = makeEntry({ posted: true });
-    const originalEntry: IJournalEntry = {
-      ...entry,
-      status: EJournalEntryStatus.Voided,
-      voidedAt: now,
-    };
-
-    await expect(
-      service.rectify(makePayload(originalEntry, makeEntry({ posted: true })), {
-        correlationId: 'test-correlation-id',
-      })
-    ).rejects.toThrow(journalEntryError.RectificationNotPermitted);
-  });
-  it('attributes new reversal/replacement rows to the performer and keeps original creators', async () => {
-    const [originalEntry] = makeEntry({ posted: true });
-    const actorId = generateUUID();
-    const payload = makePayload(
-      originalEntry,
-      makeEntry({ posted: true, amount: 150 })
-    );
-    const result = await service.rectify(
-      { ...payload, actorId },
-      { correlationId: 'test-correlation-id' }
-    );
-    expect(result.entryUpdate?.entry.createdBy).toBe(originalEntry.createdBy);
-    expect(result.entriesToCreate).toHaveLength(2);
-    for (const creation of result.entriesToCreate) {
-      expect(creation[0].createdBy).toBe(actorId);
-      expect(
-        creation[0].lines.every((line) => line.createdBy === actorId)
-      ).toBe(true);
-    }
-    const reversal = await service.reverse(originalEntry, actorId, {
-      correlationId: 'test-correlation-id',
-    });
-    expect(reversal.reversingJournalEntry.createdBy).toBe(actorId);
-    expect(reversal.entryUpdate?.entry.createdBy).toBe(originalEntry.createdBy);
-  });
-
-  it('assigns the performer only to new lines while updating a draft', async () => {
-    const [originalEntry] = makeEntry();
-    const actorId = generateUUID();
-    const newLineId = generateUUID();
-    const payload = makePayload(originalEntry, makeEntry({ amount: 150 }));
-    const result = await service.rectify(
-      {
-        ...payload,
-        actorId,
-        newEntry: {
-          ...payload.newEntry,
-          lines: payload.newEntry.lines!.map((line, index) => ({
-            ...line,
-            id: index === 0 ? originalEntry.lines[0].id : newLineId,
-          })),
-        },
-      },
-      { correlationId: 'test-correlation-id' }
-    );
-    expect(result.currentJournalEntry.createdBy).toBe(originalEntry.createdBy);
-    expect(result.currentJournalEntry.lines[0].createdBy).toBe(
-      originalEntry.lines[0].createdBy
-    );
-    expect(result.currentJournalEntry.lines[1].createdBy).toBe(actorId);
-  });
   describe('posting periods', () => {
     const correctionTime = new Date('2026-10-01T09:30:00.000Z');
     const repoOptions = { correlationId: 'posting-period-check' };
 
     beforeEach(() => jest.setSystemTime(correctionTime));
 
-    async function prepare(
-      mode: 'reverse' | 'rectify',
-      original: IJournalEntry
-    ) {
-      if (mode === 'reverse') {
-        return service.reverse(original, createdBy, repoOptions);
-      }
-      return service.rectify(
-        makePayload(original, makeEntry({ posted: true, amount: 150 })),
-        repoOptions
-      );
-    }
-
-    describe.each(['reverse', 'rectify'] as const)('%s', (mode) => {
-      it('rejects a closed original period without changing the original', async () => {
-        const [original] = makeEntry({ posted: true });
-        const snapshot = structuredClone(original);
-        periods[8] = {
-          ...periods[8],
-          status: EAccountingPeriodStatus.Closed,
-          closedAt: correctionTime,
-        };
-
-        await expect(prepare(mode, original)).rejects.toBeInstanceOf(
-          periodError.PostingPeriodNotOpen
-        );
-        expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
-          accountingEntityId,
-          original.effectiveDate,
-          repoOptions
-        );
-        expect(original).toEqual(snapshot);
-        expect(periodRepo.create).not.toHaveBeenCalled();
-      });
-
-      it.each(['uncovered', 'another entity'] as const)(
-        'rejects a reversal date with %s coverage',
-        async (coverage) => {
-          const [original] = makeEntry({ posted: true });
-          const snapshot = structuredClone(original);
-          periods[8] = { ...periods[8], accountingEntityId: generateUUID() };
-          if (coverage === 'uncovered') {
-            periods.splice(8, 1);
-          }
-
-          await expect(prepare(mode, original)).rejects.toBeInstanceOf(
-            periodError.PostingDateNotCovered
-          );
-          expect(original).toEqual(snapshot);
-        }
-      );
-
-      it('rejects ambiguous reversal coverage', async () => {
-        const [original] = makeEntry({ posted: true });
-        periods.push({ ...periods[8], id: generateUUID() });
-        await expect(prepare(mode, original)).rejects.toBeInstanceOf(
-          periodError.PostingPeriodAmbiguous
-        );
-      });
-
-      it('propagates a period read failure', async () => {
-        const [original] = makeEntry({ posted: true });
-        const failure = new Error('Period read failed');
-        periodRepo.findAllByDate.mockRejectedValue(failure);
-        await expect(prepare(mode, original)).rejects.toBe(failure);
-      });
-
-      it('keeps the reversal posting timestamp when time advances during the read', async () => {
-        const [original] = makeEntry({ posted: true });
-        periodRepo.findAllByDate.mockImplementation(async (_, date) => {
-          jest.setSystemTime(new Date('2026-11-01'));
-          return [periods[date.getUTCMonth()]];
-        });
-        const result = await prepare(mode, original);
-        expect(result.reversingJournalEntry).toMatchObject({
-          effectiveDate: original.effectiveDate,
-          postedAt: correctionTime,
-        });
-        expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
-          accountingEntityId,
-          original.effectiveDate,
-          repoOptions
-        );
-      });
-    });
-
-    it('rejects a closed original period even when the replacement period is open', async () => {
-      const [original] = makeEntry({ posted: true });
+    it('rejects a closed original period without changing the original', async () => {
+      const [original] = makeEntry(true);
+      const snapshot = structuredClone(original);
       periods[8] = {
         ...periods[8],
         status: EAccountingPeriodStatus.Closed,
@@ -725,122 +310,67 @@ describe('makeJournalEntryRectificationService', () => {
       };
 
       await expect(
-        service.rectify(
-          {
-            actorId: createdBy,
-            originalEntry: original,
-            newEntry: { id: generateUUID(), effectiveDate: correctionTime },
-          },
-          repoOptions
-        )
+        service.reverse(original, createdBy, repoOptions)
       ).rejects.toBeInstanceOf(periodError.PostingPeriodNotOpen);
-      expect(periodRepo.findAllByDate).toHaveBeenLastCalledWith(
+      expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
+        accountingEntityId,
+        original.effectiveDate,
+        repoOptions
+      );
+      expect(original).toEqual(snapshot);
+      expect(periodRepo.create).not.toHaveBeenCalled();
+    });
+
+    it.each(['uncovered', 'another entity'] as const)(
+      'rejects a reversal date with %s coverage',
+      async (coverage) => {
+        const [original] = makeEntry(true);
+        const snapshot = structuredClone(original);
+        periods[8] = { ...periods[8], accountingEntityId: generateUUID() };
+        if (coverage === 'uncovered') {
+          periods.splice(8, 1);
+        }
+
+        await expect(
+          service.reverse(original, createdBy, repoOptions)
+        ).rejects.toBeInstanceOf(periodError.PostingDateNotCovered);
+        expect(original).toEqual(snapshot);
+      }
+    );
+
+    it('rejects ambiguous reversal coverage', async () => {
+      const [original] = makeEntry(true);
+      periods.push({ ...periods[8], id: generateUUID() });
+      await expect(
+        service.reverse(original, createdBy, repoOptions)
+      ).rejects.toBeInstanceOf(periodError.PostingPeriodAmbiguous);
+    });
+
+    it('propagates a period read failure', async () => {
+      const [original] = makeEntry(true);
+      const failure = new Error('Period read failed');
+      periodRepo.findAllByDate.mockRejectedValue(failure);
+      await expect(
+        service.reverse(original, createdBy, repoOptions)
+      ).rejects.toBe(failure);
+    });
+
+    it('keeps the reversal posting timestamp when time advances during the read', async () => {
+      const [original] = makeEntry(true);
+      periodRepo.findAllByDate.mockImplementation(async (_, date) => {
+        jest.setSystemTime(new Date('2026-11-01'));
+        return [periods[date.getUTCMonth()]];
+      });
+      const result = await service.reverse(original, createdBy, repoOptions);
+      expect(result.reversingJournalEntry).toMatchObject({
+        effectiveDate: original.effectiveDate,
+        postedAt: correctionTime,
+      });
+      expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
         accountingEntityId,
         original.effectiveDate,
         repoOptions
       );
     });
-
-    it.each(['closed', 'uncovered'] as const)(
-      'rejects a %s replacement date even when the reversal date is open',
-      async (kind) => {
-        const [original] = makeEntry({ posted: true });
-        periods[9] = {
-          ...periods[9],
-          status: EAccountingPeriodStatus.Closed,
-          closedAt: correctionTime,
-        };
-        if (kind === 'uncovered') {
-          periods.splice(9, 1);
-        }
-        const snapshot = structuredClone(original);
-        await expect(
-          service.rectify(
-            {
-              actorId: createdBy,
-              originalEntry: original,
-              newEntry: {
-                id: generateUUID(),
-                effectiveDate: correctionTime,
-                lines: makeEntry({ posted: true, amount: 125 })[0].lines,
-              },
-            },
-            repoOptions
-          )
-        ).rejects.toBeInstanceOf(
-          kind === 'closed'
-            ? periodError.PostingPeriodNotOpen
-            : periodError.PostingDateNotCovered
-        );
-        expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
-          accountingEntityId,
-          correctionTime,
-          repoOptions
-        );
-        expect(original).toEqual(snapshot);
-      }
-    );
-
-    it.each(['open', 'closed', 'uncovered'] as const)(
-      'checks a %s effective date when posting a draft directly',
-      async (kind) => {
-        const [original] = makeEntry();
-        const payload = makePayload(original, makeEntry({ posted: true }));
-        const snapshot = structuredClone(original);
-        if (kind === 'closed') {
-          periods[8] = {
-            ...periods[8],
-            status: EAccountingPeriodStatus.Closed,
-            closedAt: correctionTime,
-          };
-        }
-        if (kind === 'uncovered') {
-          periods.splice(8, 1);
-        }
-        const result = service.rectify(payload, repoOptions);
-        if (kind === 'open') {
-          await expect(result).resolves.toMatchObject({
-            currentJournalEntry: { status: EJournalEntryStatus.Posted },
-          });
-        } else {
-          await expect(result).rejects.toBeInstanceOf(
-            kind === 'closed'
-              ? periodError.PostingPeriodNotOpen
-              : periodError.PostingDateNotCovered
-          );
-        }
-        expect(periodRepo.findAllByDate).toHaveBeenCalledWith(
-          accountingEntityId,
-          effectiveDate,
-          repoOptions
-        );
-        expect(original).toEqual(snapshot);
-      }
-    );
-
-    it.each([false, true])(
-      'does not check periods for an edit without a new posting (posted: %s)',
-      async (posted) => {
-        const [original] = makeEntry({ posted });
-        periods = [];
-        const rectification = service.rectify(
-          makePayload(
-            original,
-            makeEntry({ posted, description: 'Metadata correction' })
-          ),
-          repoOptions
-        );
-        if (posted) {
-          await expect(rectification).rejects.toThrow(
-            journalEntryError.RectificationHasNoChanges
-          );
-        } else {
-          await expect(rectification).resolves.toMatchObject({
-            entriesToCreate: [],
-          });
-        }
-        expect(periodRepo.findAllByDate).not.toHaveBeenCalled();
-      }
-    );
   });
 });

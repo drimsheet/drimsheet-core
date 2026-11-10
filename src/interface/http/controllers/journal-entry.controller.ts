@@ -17,7 +17,6 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
-import { TJournalEntryRectificationReq } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
 import { IGetJournalEntriesQuery } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { IJournalEntryMetaUpdateReq } from '@app/journal-entry/dtos/meta-update/meta-update.dto';
 import { IUpdateDraftOpeningBalanceReq } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
@@ -47,7 +46,6 @@ import {
   postDraftPaymentUseCase,
   postDraftReceiptUseCase,
   postDraftTransferUseCase,
-  rectifyJournalEntryUseCase,
   updateDraftOpeningBalanceUseCase,
   updateDraftPaymentUseCase,
   updateDraftReceiptUseCase,
@@ -185,31 +183,6 @@ export class JournalEntryController extends Controller {
     @Body() body: IJournalEntryMetaUpdateReq
   ) {
     return updateJournalEntryMetaUseCase(id, body);
-  }
-
-  /**
-   * Correct a journal entry while preserving its accounting audit trail.
-   */
-  @Post('/{id}/rectify')
-  @OperationId('rectifyJournalEntry')
-  @SuccessResponse('200')
-  @Response<IHttpErrorDto>('400')
-  @Response<IHttpErrorDto>('401')
-  @Response<IHttpErrorDto>('403')
-  @Response<IHttpErrorDto>('404')
-  @Response<IHttpErrorDto>('409')
-  @Response<IHttpErrorDto>('422')
-  @Response<IHttpErrorDto>('500')
-  @Middlewares(
-    middlewares.isAuthenticatedUser,
-    middlewares.featureFlagAccess.canAccessAlpha1,
-    middlewares.accountingEntityAccess
-  )
-  public async rectifyJournalEntry(
-    @Path() id: string,
-    @Body() body: TJournalEntryRectificationReq
-  ) {
-    return rectifyJournalEntryUseCase(id, body);
   }
 
   /** Updates the amount, effective date, exchange rate, memo, or attachments of a draft opening balance. */

@@ -6,15 +6,12 @@ import makeReceiptEntryService from '@domain/journal-entry/services/receipt-entr
 import makeTransferEntryService from '@domain/journal-entry/services/transfer-entry.service';
 
 import makeJournalEntryPersistenceAppService from '@app/journal-entry/services/journal-entry-persistence.service';
-import makeJournalEntryRectificationPreparationAppService from '@app/journal-entry/services/journal-entry-rectification-preparation.service';
 
 import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 
 import { accountingPeriodService } from './accounting';
-import { fxCostBasisLotService } from './fx-lot-cost-basis';
-import { exchangeRateAppService } from './money';
 import { repoService } from './repo';
 
 export const openingBalanceEntryService = makeOpeningBalanceEntryService({
@@ -52,18 +49,6 @@ export const journalEntryRectificationService =
 export const journalEntryRemovalService = makeJournalEntryRemovalService({
   journalEntryRectificationService,
 });
-
-export const journalEntryRectificationPreparationAppService =
-  makeJournalEntryRectificationPreparationAppService({
-    counterpartyRepo: counterpartyRepos.counterparty,
-    paymentEntryService,
-    receiptEntryService,
-    transferEntryService,
-    journalEntryRectificationService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    fxCostBasisLotService,
-    exchangeRateAppService,
-  });
 
 export const journalEntryPersistenceAppService =
   makeJournalEntryPersistenceAppService({

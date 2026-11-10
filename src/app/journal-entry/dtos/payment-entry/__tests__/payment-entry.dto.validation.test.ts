@@ -1,7 +1,6 @@
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 
 import fileAppError from '@app/file/errors/file.error';
-import { journalEntryRectificationReqValidation } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto.validation';
 import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
 import { paymentEntryReqValidation } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto.validation';
 import { receiptEntryReqValidation } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto.validation';
@@ -60,18 +59,6 @@ describe('Payment Entry DTO Validation', () => {
         }),
         receiptEntryReqValidation.safeParse({
           ...base,
-          sourceLines: [line],
-          destinationLine: line,
-        }),
-        journalEntryRectificationReqValidation.safeParse({
-          ...base,
-          sourceType: 'payment',
-          sourceLine: line,
-          destinationLines: [line],
-        }),
-        journalEntryRectificationReqValidation.safeParse({
-          ...base,
-          sourceType: 'receipt',
           sourceLines: [line],
           destinationLine: line,
         }),
