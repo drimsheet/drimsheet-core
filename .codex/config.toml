@@ -1,0 +1,12 @@
+default_permissions = "workspace-only"
+approval_policy = "never"
+
+[permissions.workspace-only]
+extends = ":workspace"
+description = "Limit local file access to the project folders and essential system tools."
+
+[permissions.workspace-only.filesystem]
+":root" = "deny"
+":minimal" = "read"
+":tmpdir" = "deny"
+":slash_tmp" = "deny"

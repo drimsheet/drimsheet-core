@@ -2,6 +2,14 @@
 
 Read this before changing the repository.
 
+## Project Folder Boundary
+
+Keep project file listings, searches, and reads within the folders explicitly
+added to the current project, including the active worktree. If no project
+folders are configured, use the current repository root. Resolve symlink
+targets against the same boundary. If the task requires another folder, ask
+the user to add it to the project before inspecting it.
+
 ## Start Here
 
 1. Read `.agents/README.md`.
