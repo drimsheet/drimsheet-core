@@ -1,5 +1,4 @@
-import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
-import makeJournalEntryRemovalService from '@domain/journal-entry/services/journal-entry-removal.service';
+import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import makeOpeningBalanceEntryService from '@domain/journal-entry/services/opening-balance-entry.service';
 import makePaymentEntryService from '@domain/journal-entry/services/payment-entry.service';
 import makeReceiptEntryService from '@domain/journal-entry/services/receipt-entry.service';
@@ -14,8 +13,14 @@ import ledgerRepos from '@infra/persistence/repos/ledger';
 import { accountingPeriodService } from './accounting';
 import { repoService } from './repo';
 
+export const journalEntryService = makeJournalEntryService({
+  accountingPeriodService,
+  ledgerAccountRepo: ledgerRepos.ledgerAccount,
+});
+
 export const openingBalanceEntryService = makeOpeningBalanceEntryService({
   journalEntryRepo: journalEntryRepos.journalEntry,
+  journalEntryService,
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
   accountingPeriodService,
 });
@@ -23,6 +28,7 @@ export const openingBalanceEntryService = makeOpeningBalanceEntryService({
 export const paymentEntryService = makePaymentEntryService({
   accountingPeriodService,
   counterpartyRepo: counterpartyRepos.counterparty,
+  journalEntryService,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });
@@ -30,24 +36,16 @@ export const paymentEntryService = makePaymentEntryService({
 export const receiptEntryService = makeReceiptEntryService({
   accountingPeriodService,
   counterpartyRepo: counterpartyRepos.counterparty,
+  journalEntryService,
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
 });
 
 export const transferEntryService = makeTransferEntryService({
   accountingPeriodService,
   counterpartyRepo: counterpartyRepos.counterparty,
+  journalEntryService,
   ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   ledgerAccountRepo: ledgerRepos.ledgerAccount,
-});
-
-export const journalEntryRectificationService =
-  makeJournalEntryRectificationService({
-    accountingPeriodService,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-  });
-
-export const journalEntryRemovalService = makeJournalEntryRemovalService({
-  journalEntryRectificationService,
 });
 
 export const journalEntryPersistenceAppService =

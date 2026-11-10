@@ -1,17 +1,10 @@
 /**
  * SUMMARY
- * Removes an eligible journal entry from the selected accounting entity.
- * Unposted drafts, including archived unposted entries, are physically deleted.
- * Posted entries, including archived posted entries, are retained and voided
- * with a reversing journal; applicable foreign-exchange reversals and pending
- * balance work are saved with that change. Reversal entries, voided entries,
- * and inconsistent posting states are rejected. Requests balance processing for
- * reversals, publishes events, and returns no value.
+ * Deletes a draft journal entry from the selected accounting entity and
+ * publishes the deletion event after the write commits.
  *
  * WHEN TO USE
- * Use to discard an unposted entry or cancel the effect of a posted entry
- * without a replacement. Use archive-journal-entry to retain an entry without
- * cancelling its financial effect.
+ * Use to discard a draft journal entry.
  *
  * SEQUENCE DIAGRAM
  * @see ./__docs__/delete-journal-entry.sequence.md
@@ -19,46 +12,31 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 import eventValue from '@shared/values/events/event.vo';
-import { IEvent } from '@shared/values/events/types/event.types';
 
+import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
-import {
-  EJournalEntryRemovalMode,
-  IJournalEntryRemovalService,
-} from '@domain/journal-entry/types/journal-entry-removal.types';
-import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
-import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
-import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   eventBus: IEventBus;
-  fxCostBasisLotService: IFxCostBasisLotService;
-  fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
-  journalEntryRemovalService: IJournalEntryRemovalService;
   journalEntryRepo: IJournalEntryRepo;
-  ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
-  repoService: IRepoService;
 }
 
 export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
   return async (id: string): Promise<void> => {
     stringUtils.validateUUID(id, journalEntryError.InvalidJournalEntry);
 
-    const { correlationId, idempotencyKey, accountingEntity, actor } =
-      deps.appContext.get(['actor', 'accountingEntity']);
+    const { correlationId, idempotencyKey, accountingEntity } =
+      deps.appContext.get(['accountingEntity']);
 
     const repoOptions = { correlationId, idempotencyKey };
 
@@ -67,76 +45,22 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
       repoOptions
     );
 
-    const originalEntry = journalEntryMutationPolicy.validate({
+    const authorizedEntry = journalEntryMutationPolicy.validate({
       id,
       entry: storedEntry,
       accountingEntityId: accountingEntity.id,
     });
 
-    const removal = await deps.journalEntryRemovalService.prepare(
-      originalEntry,
-      actor.id,
+    const [deletedEntry, deleteEvent] =
+      journalEntryEntity.delete(authorizedEntry);
+    await deps.journalEntryPersistenceAppService.delete(
+      {
+        journalEntryId: deletedEntry.id,
+        expectedVersion: authorizedEntry.version,
+      },
       repoOptions
     );
 
-    if (removal.mode === EJournalEntryRemovalMode.Delete) {
-      const [deletedEntry, deleteEvent] = removal.journalEntry;
-      await deps.journalEntryPersistenceAppService.delete(
-        {
-          journalEntryId: deletedEntry.id,
-          expectedVersion: deletedEntry.version,
-        },
-        repoOptions
-      );
-
-      await deps.eventBus.publish(eventValue.enrich(deleteEvent, repoOptions));
-
-      return;
-    }
-
-    const fxReversal = await deps.fxCostBasisLotService.reverse(
-      originalEntry.id,
-      repoOptions
-    );
-
-    const journalPersistencePayload = getJournalEntryPersistencePayloadHelper(
-      removal,
-      actor.id,
-      correlationId
-    );
-    const reversingJournalEntry = removal.reversingJournalEntry;
-
-    const transaction = await deps.repoService.createTransaction();
-    try {
-      const writeOptions = { correlationId, tx: transaction.context };
-
-      await deps.journalEntryPersistenceAppService.rectify(
-        journalPersistencePayload,
-        writeOptions
-      );
-
-      if (fxReversal) {
-        await deps.fxCostBasisPersistenceAppService.persistReversal(
-          fxReversal,
-          actor.id,
-          writeOptions
-        );
-      }
-
-      await transaction.commit();
-
-      const events: IEvent<unknown>[] = [
-        ...removal.events,
-        ...getFxLotEventsHelper(fxReversal),
-      ];
-
-      await deps.eventBus.publish(eventValue.enrichAll(events, repoOptions));
-
-      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
-        journalEntryId: reversingJournalEntry.id,
-      });
-    } catch (error) {
-      return await transaction.handleError(error);
-    }
+    await deps.eventBus.publish(eventValue.enrich(deleteEvent, repoOptions));
   };
 }

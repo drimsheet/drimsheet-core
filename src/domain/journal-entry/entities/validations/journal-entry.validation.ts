@@ -156,6 +156,13 @@ function validateVoidingEntryId(value: TEntityId | null) {
 }
 
 function validateVoid(entry: IJournalEntry) {
+  if (entry.sourceType === EJournalEntrySourceType.Reversal) {
+    throw new journalEntryError.RectificationNotPermitted({
+      journalEntryId: entry.id,
+      sourceType: entry.sourceType,
+    });
+  }
+
   const isPosted = entry.status === EJournalEntryStatus.Posted;
   const isArchivedAfterPosting =
     entry.status === EJournalEntryStatus.Archived && entry.postedAt !== null;
@@ -165,6 +172,18 @@ function validateVoid(entry: IJournalEntry) {
       currentStatus: entry.status,
       nextStatus: EJournalEntryStatus.Voided,
     });
+  }
+}
+
+function validateDelete(entry: IJournalEntry) {
+  const { sourceType, status, postedAt } = entry;
+  const isDeletableDraft =
+    status === EJournalEntryStatus.Draft &&
+    postedAt === null &&
+    sourceType !== EJournalEntrySourceType.Reversal;
+
+  if (!isDeletableDraft) {
+    throw new journalEntryError.DeletionNotPermitted({ sourceType, status });
   }
 }
 
@@ -288,6 +307,7 @@ const journalEntryValidation = Object.freeze({
   validateVoidedAt,
   validateVoidingEntryId,
   validateVoid,
+  validateDelete,
   validateUpdate,
   validateBalancePropagation,
 });

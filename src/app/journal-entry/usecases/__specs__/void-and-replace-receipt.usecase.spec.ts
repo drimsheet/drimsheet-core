@@ -8,6 +8,7 @@ import { IFileAttachment } from '@shared/values/file-attachments/types/file-atta
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
+import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import makeReceiptEntryService from '@domain/journal-entry/services/receipt-entry.service';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -83,6 +84,10 @@ const transactionOptions = { ...repoOptions, tx: mockRepoTransaction.context };
 const receiptEntryService = makeReceiptEntryService({
   accountingPeriodService: mockAccountingPeriodService,
   counterpartyRepo: mockCounterpartyRepo,
+  journalEntryService: makeJournalEntryService({
+    accountingPeriodService: mockAccountingPeriodService,
+    ledgerAccountRepo: mockLedgerAccountRepo,
+  }),
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
 const deps = {

@@ -17,7 +17,10 @@ import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import {
+  mockJournalEntryService,
+  mockOpeningBalanceEntryService,
+} from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post-draft-opening-balance.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
@@ -453,6 +456,7 @@ describe('post draft opening balance use case', () => {
       );
       const domainService = makeOpeningBalanceEntryService({
         journalEntryRepo: mockJournalEntryRepo,
+        journalEntryService: mockJournalEntryService,
         ledgerAccountRepo: mockLedgerAccountRepo,
         accountingPeriodService: mockAccountingPeriodService,
       });

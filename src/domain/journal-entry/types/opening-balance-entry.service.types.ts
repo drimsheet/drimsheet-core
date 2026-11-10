@@ -10,7 +10,7 @@ import {
   TAuditedJournalEntryTransition,
   TAuditedJournalEntryUpdate,
 } from './journal-entry-audit.types';
-import { IJournalEntry, IVoidJournalEntryPayload } from './journal-entry.types';
+import { IJournalEntry } from './journal-entry.types';
 
 export interface IOpeningBalanceJournalPayload {
   accountingEntityId: TEntityId;
@@ -64,21 +64,21 @@ export interface IOpeningBalanceEntryService {
   ): Promise<TAuditedJournalEntryUpdate>;
 
   /**
-   * Voids a posted opening journal using the supplied reversing journal ID
-   * and prepares its replacement on the original effective date. A repeated
-   * void with the same ID returns a null replacement.
+   * Voids an opening journal and creates its reversal and replacement on
+   * the original effective date.
+   * A repeated void returns the original voided entry with no new journals.
    */
   voidAndReplace(
     payload: Pick<
       IOpeningBalanceJournalPayload,
       'account' | 'amount' | 'exchangeRate' | 'createdBy'
-    > &
-      IVoidJournalEntryPayload & {
-        entry: IJournalEntry;
-      },
+    > & {
+      entry: IJournalEntry;
+    },
     repoOptions: IReadRepoOptions
   ): Promise<{
     voided: TAuditedJournalEntryTransition;
+    reversal: TAuditedJournalEntry | null;
     replacement: TAuditedJournalEntry | null;
   }>;
 }

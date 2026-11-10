@@ -1,6 +1,5 @@
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
-import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import receiptEntryRule from '@domain/journal-entry/rules/receipt-entry.rule';
@@ -8,7 +7,10 @@ import getJournalEntryLinesHelper from '@domain/journal-entry/services/helpers/g
 import patchDraftJournalLineHelper from '@domain/journal-entry/services/helpers/patch-draft-journal-line.helper';
 import replaceDraftJournalLinesHelper from '@domain/journal-entry/services/helpers/replace-draft-journal-lines.helper';
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
-import { IJournalEntryHeaderPayload } from '@domain/journal-entry/types/journal-entry.service.types';
+import {
+  IJournalEntryHeaderPayload,
+  IJournalEntryService,
+} from '@domain/journal-entry/types/journal-entry.service.types';
 import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
@@ -24,6 +26,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 interface IDependencies {
   accountingPeriodService: IAccountingPeriodService;
   counterpartyRepo: ICounterpartyRepo;
+  journalEntryService: IJournalEntryService;
   ledgerAccountRepo: ILedgerAccountRepo;
 }
 
@@ -286,7 +289,7 @@ function makePostDraft(deps: IDependencies): IReceiptEntryService['postDraft'] {
   };
 }
 
-/** Prepares a reversal, links it to the void, and validates the replacement. */
+/** Voids a receipt and creates its reversal and replacement. */
 function makeVoidAndReplace(
   deps: IDependencies
 ): IReceiptEntryService['voidAndReplace'] {
@@ -300,56 +303,15 @@ function makeVoidAndReplace(
       });
     }
 
-    const reversalDate = existing.effectiveDate;
-    const postedAt = new Date();
-    const functionalCurrency = existing.lines[0].functionalAmount.currency;
-    const reversal = journalEntryEntity.make({
-      accountingEntityId: existing.accountingEntityId,
-      sourceType: EJournalEntrySourceType.Reversal,
-      effectiveDate: reversalDate,
-      postedAt,
-      memo: null,
-      createdBy: replacementPayload.header.createdBy,
-      functionalCurrency,
-      lines: existing.lines.map((line) => ({
-        accountId: line.accountId,
-        counterpartyId: line.counterpartyId,
-        sequenceOrder: line.sequenceOrder,
-        amount: line.amount,
-        exchangeRate: line.exchangeRate,
-        side: getOppositeJournalSideHelper(line.side),
-        description: line.description,
-        functionalCurrency,
-      })),
-    });
-    const [reversingEntry] = reversal;
-    const voided = journalEntryEntity.void(existing, {
-      voidingEntryId: reversingEntry.id,
-    });
-    const [, , audit] = voided;
-
-    if (audit === null) {
-      return { voided, reversal: null, replacement: null };
-    }
-
-    const accountIds = [
-      ...new Set(existing.lines.map((line) => line.accountId)),
-    ];
-    const accounts = await deps.ledgerAccountRepo.findAllByIds(
-      accountIds,
-      existing.accountingEntityId,
-      repoOptions
-    );
-    journalEntryServiceValidation.validateArchivedAccounts(accounts);
-
-    await deps.accountingPeriodService.validatePostingPeriod(
-      existing.accountingEntityId,
-      reversalDate,
+    journalEntryEntity.validateVoid(existing);
+    const correction = await deps.journalEntryService.void(
+      existing,
+      replacementPayload.header.createdBy,
       repoOptions
     );
     const replacement = await create(replacementPayload, repoOptions);
 
-    return { voided, reversal, replacement };
+    return { ...correction, replacement };
   };
 }
 

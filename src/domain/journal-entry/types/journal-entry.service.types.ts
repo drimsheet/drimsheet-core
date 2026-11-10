@@ -1,3 +1,4 @@
+import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
@@ -5,7 +6,18 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 import { IMoney } from '@domain/money/types/money.types';
 
+import { IJournalEntryVoidResult } from './journal-entry-audit.types';
+import { IJournalEntry } from './journal-entry.types';
 import { IJournalLine, IJournalLineMeta } from './journal-line.types';
+
+export interface IJournalEntryService {
+  /** Voids the journal and creates a reversal on its original effective date. */
+  void(
+    entry: IJournalEntry,
+    actorId: TEntityId,
+    repoOptions: IReadRepoOptions
+  ): Promise<IJournalEntryVoidResult>;
+}
 
 export interface IJournalEntryHeaderPayload {
   accountingEntityId: TEntityId;

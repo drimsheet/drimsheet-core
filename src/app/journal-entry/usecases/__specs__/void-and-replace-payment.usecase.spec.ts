@@ -9,6 +9,7 @@ import { IFileAttachment } from '@shared/values/file-attachments/types/file-atta
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
+import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import makePaymentEntryService from '@domain/journal-entry/services/payment-entry.service';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
@@ -86,6 +87,10 @@ const transactionOptions = { ...repoOptions, tx: mockRepoTransaction.context };
 const paymentEntryService = makePaymentEntryService({
   accountingPeriodService: mockAccountingPeriodService,
   counterpartyRepo: mockCounterpartyRepo,
+  journalEntryService: makeJournalEntryService({
+    accountingPeriodService: mockAccountingPeriodService,
+    ledgerAccountRepo: mockLedgerAccountRepo,
+  }),
   ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
 });
@@ -478,9 +483,9 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
 
   it('rejects a second correction of the same payment', async () => {
     const original = await makeOriginalPayment(effectiveDate);
-    const [voided] = journalEntryEntity.void(original, {
-      voidingEntryId: generateUUID(),
-    });
+    const {
+      voided: [voided],
+    } = journalEntryEntity.void(original, actorId);
     mockJournalEntryRepo.findById.mockResolvedValue(voided);
 
     await expect(usecase(original.id, payload)).rejects.toThrow(

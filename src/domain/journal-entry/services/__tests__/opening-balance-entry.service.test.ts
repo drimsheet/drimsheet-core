@@ -11,6 +11,7 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 import { EJournalEntryEvent } from '@domain/journal-entry/events/journal-entry.events';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
+import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import makeOpeningBalanceEntryService from '@domain/journal-entry/services/opening-balance-entry.service';
 import { EJournalEntryAuditAction } from '@domain/journal-entry/types/journal-entry-audit.types';
 import {
@@ -94,6 +95,10 @@ describe('openingBalanceEntryService', () => {
   };
   const service = makeOpeningBalanceEntryService({
     journalEntryRepo: mockJournalEntryRepo,
+    journalEntryService: makeJournalEntryService({
+      accountingPeriodService: mockAccountingPeriodService,
+      ledgerAccountRepo: mockLedgerAccountRepo,
+    }),
     ledgerAccountRepo: mockLedgerAccountRepo,
     accountingPeriodService: mockAccountingPeriodService,
   });
@@ -564,11 +569,14 @@ describe('openingBalanceEntryService', () => {
           { ...makeOpeningBalancePayload(fixture), account, effectiveDate },
           transactionOptions
         );
+        mockLedgerAccountRepo.findAllByIds.mockResolvedValue([
+          account,
+          fixture.equityAccount,
+        ]);
         mockAccountingPeriodService.validatePostingPeriod.mockClear();
 
         return {
           entry,
-          voidingEntryId: generateUUID(),
           account,
           equity: fixture.equityAccount,
           createdBy: fixture.user.actorId,
@@ -577,22 +585,26 @@ describe('openingBalanceEntryService', () => {
         };
       }
 
-      it('returns the audited void and replacement on the original opening date', async () => {
+      it('returns the audited void, reversal, and replacement on the opening date', async () => {
         const payload = await makeCorrectionFixture();
         const result = await service.voidAndReplace(
           payload,
           transactionOptions
         );
         const { entry } = payload;
-        const { voided, replacement } = result;
+        const { voided, reversal, replacement } = result;
 
-        expect(Object.keys(result).sort()).toEqual(['replacement', 'voided']);
+        expect(reversal?.[0]).toMatchObject({
+          status: EJournalEntryStatus.Posted,
+          sourceType: EJournalEntrySourceType.Reversal,
+          effectiveDate,
+        });
         expect(voided[0]).toMatchObject({
           id: entry.id,
           version: entry.version + 1,
           status: EJournalEntryStatus.Voided,
           lines: entry.lines,
-          voidingEntryId: payload.voidingEntryId,
+          voidingEntryId: reversal?.[0].id,
         });
         expect(voided[1]).toEqual([
           expect.objectContaining({
@@ -621,6 +633,11 @@ describe('openingBalanceEntryService', () => {
         expect(entry.status).toBe(EJournalEntryStatus.Posted);
         expect(mockJournalEntryRepo.create).not.toHaveBeenCalled();
         expect(mockJournalEntryRepo.update).not.toHaveBeenCalled();
+        expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+          [payload.account.id, payload.equity.id],
+          entry.accountingEntityId,
+          lockedReadOptions
+        );
         expect(
           mockAccountingPeriodService.validatePostingPeriod.mock.calls
         ).toEqual([
@@ -632,7 +649,7 @@ describe('openingBalanceEntryService', () => {
         const payload = await makeCorrectionFixture();
         const amount = payload.entry.lines[0].amount;
 
-        const { voided, replacement } = await service.voidAndReplace(
+        const { voided, reversal, replacement } = await service.voidAndReplace(
           { ...payload, amount },
           repoOptions
         );
@@ -649,7 +666,7 @@ describe('openingBalanceEntryService', () => {
         expect(voided[0]).toMatchObject({
           id: payload.entry.id,
           status: EJournalEntryStatus.Voided,
-          voidingEntryId: payload.voidingEntryId,
+          voidingEntryId: reversal?.[0].id,
         });
       });
 
@@ -658,11 +675,12 @@ describe('openingBalanceEntryService', () => {
         const {
           voided: [entry],
         } = await service.voidAndReplace(payload, transactionOptions);
+        mockLedgerAccountRepo.findAllByIds.mockClear();
         mockLedgerAccountRepo.findBySubType.mockClear();
         mockJournalEntryRepo.existsPostedByAccountId.mockClear();
         mockAccountingPeriodService.validatePostingPeriod.mockClear();
 
-        const { voided, replacement } = await service.voidAndReplace(
+        const { voided, reversal, replacement } = await service.voidAndReplace(
           { ...payload, entry },
           transactionOptions
         );
@@ -670,7 +688,9 @@ describe('openingBalanceEntryService', () => {
         expect(voided[0]).toBe(entry);
         expect(voided[1]).toEqual([]);
         expect(voided[2]).toBeNull();
+        expect(reversal).toBeNull();
         expect(replacement).toBeNull();
+        expect(mockLedgerAccountRepo.findAllByIds).not.toHaveBeenCalled();
         expect(mockLedgerAccountRepo.findBySubType).not.toHaveBeenCalled();
         expect(
           mockJournalEntryRepo.existsPostedByAccountId
@@ -728,7 +748,22 @@ describe('openingBalanceEntryService', () => {
         );
       });
 
-      it('rejects a closed replacement period', async () => {
+      it('rejects an archived account on the original opening journal', async () => {
+        const payload = await makeCorrectionFixture();
+        mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
+          payload.account,
+          { ...payload.equity, status: ELedgerAccountStatus.Archived },
+        ]);
+
+        await expect(
+          service.voidAndReplace(payload, transactionOptions)
+        ).rejects.toThrow(journalEntryError.ArchivedLedgerAccountNotAllowed);
+        expect(
+          mockAccountingPeriodService.validatePostingPeriod
+        ).not.toHaveBeenCalled();
+      });
+
+      it('rejects a closed opening period', async () => {
         const payload = await makeCorrectionFixture();
         const failure = new periodError.PostingPeriodNotOpen();
         mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(

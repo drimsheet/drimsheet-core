@@ -73,8 +73,8 @@ export interface ITransferEntryService {
   }>;
 
   /**
-   * Prepares an audited reversal and void, plus a replacement using the
-   * ordinary transfer creation rules. Performs no writes.
+   * Voids a transfer and creates its audited reversal and replacement.
+   * The replacement follows the ordinary transfer creation rules.
    */
   voidAndReplace(
     existing: IJournalEntry,

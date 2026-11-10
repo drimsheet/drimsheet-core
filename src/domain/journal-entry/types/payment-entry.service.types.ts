@@ -63,8 +63,8 @@ export interface IPaymentEntryService {
   }>;
 
   /**
-   * Prepares an audited reversal and void, plus a replacement using the
-   * ordinary payment creation rules. Performs no writes.
+   * Voids a payment and creates its audited reversal and replacement.
+   * The replacement follows the ordinary payment creation rules.
    */
   voidAndReplace(
     existing: IJournalEntry,

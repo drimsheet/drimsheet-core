@@ -450,9 +450,9 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
   it('rejects ineligible journal states through the existing update operation', async () => {
     const entry = makeEntry();
     const [archived] = journalEntryEntity.archive(entry);
-    const [voided] = journalEntryEntity.void(entry, {
-      voidingEntryId: generateUUID(),
-    });
+    const {
+      voided: [voided],
+    } = journalEntryEntity.void(entry, entry.createdBy);
     for (const storedEntry of [archived, voided]) {
       mockJournalEntryRepo.findById.mockResolvedValue(storedEntry);
       await expect(usecase(entry.id, {})).rejects.toThrow(

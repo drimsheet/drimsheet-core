@@ -1,6 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import generateUUID, * as uuidGenerator from '@shared/utils/uuid-generator';
+import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import periodError from '@domain/accounting/errors/period.error';
@@ -13,6 +13,7 @@ import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.ent
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { EJournalEntryEvent } from '@domain/journal-entry/events/journal-entry.events';
 import { EJournalLineItemEvent } from '@domain/journal-entry/events/journal-line-item.events';
+import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import makeReceiptEntryService from '@domain/journal-entry/services/receipt-entry.service';
 import {
   EJournalEntryAuditAction,
@@ -88,6 +89,10 @@ describe('receiptEntryService', () => {
   const service = makeReceiptEntryService({
     accountingPeriodService: mockAccountingPeriodService,
     counterpartyRepo: mockCounterpartyRepo,
+    journalEntryService: makeJournalEntryService({
+      accountingPeriodService: mockAccountingPeriodService,
+      ledgerAccountRepo: mockLedgerAccountRepo,
+    }),
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
 
@@ -1041,30 +1046,6 @@ describe('receiptEntryService', () => {
       return { entry, replacement, sourceAccount };
     }
 
-    it('skips correction when the entry already links to the same reversal', async () => {
-      const { entry, replacement } = await makeReplacementFixture();
-      const voidingEntryId = generateUUID();
-      const [alreadyVoided] = journalEntryEntity.void(entry, {
-        voidingEntryId,
-      });
-      jest.spyOn(uuidGenerator, 'default').mockReturnValueOnce(voidingEntryId);
-
-      const correction = await service.voidAndReplace(
-        alreadyVoided,
-        replacement,
-        repoOptions
-      );
-
-      expect(correction).toEqual({
-        voided: [alreadyVoided, [], null],
-        reversal: null,
-        replacement: null,
-      });
-      expect(
-        mockAccountingPeriodService.validatePostingPeriod
-      ).not.toHaveBeenCalled();
-    });
-
     it('returns the linked reversal, audited void, and corrected receipt', async () => {
       const { entry, replacement: payload } = await makeReplacementFixture();
 
@@ -1195,6 +1176,8 @@ describe('receiptEntryService', () => {
         await makeReplacementFixture();
       mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
         { ...sourceAccount, status: ELedgerAccountStatus.Archived },
+        replacement.sourceLines[1].account,
+        replacement.destinationLine.account,
       ]);
 
       await expect(

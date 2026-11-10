@@ -22,6 +22,8 @@ import {
   IJournalLine,
 } from '@domain/journal-entry/types/journal-line.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
+import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
+import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
 
 type TMakePayload = Parameters<typeof journalEntryEntity.make>[0];
@@ -100,25 +102,51 @@ describe('JournalEntry Entity', () => {
       expect(Object.isFrozen(entity.createdBy)).toBe(true);
     });
 
-    it.each(['draft', 'archived'] as const)(
-      'prepares deletion of a never-posted %s entry without changing its snapshot',
-      (status) => {
-        const [draft] = journalEntryEntity.make(validPayload);
-        const current =
-          status === 'archived' ? journalEntryEntity.archive(draft)[0] : draft;
-        const before = structuredClone(current);
+    it('prepares draft deletion without changing the entry snapshot', () => {
+      const [draft] = journalEntryEntity.make(validPayload);
+      const before = structuredClone(draft);
 
-        const [deletedEntry, event, audit] = journalEntryEntity.delete(current);
+      const [deletedEntry, event, audit] = journalEntryEntity.delete(draft);
 
-        expect(deletedEntry).toBe(current);
-        expect(current).toEqual(before);
-        expect(Object.isFrozen(deletedEntry)).toBe(true);
-        expect(event.type).toBe('domain:journal-entry:deleted');
-        expect(event.data).toBe(current);
-        expect(Object.isFrozen(event)).toBe(true);
-        expect(audit).toBeNull();
-      }
-    );
+      expect(deletedEntry).toBe(draft);
+      expect(draft).toEqual(before);
+      expect(Object.isFrozen(deletedEntry)).toBe(true);
+      expect(event.type).toBe(EJournalEntryEvent.Deleted);
+      expect(event.data).toBe(draft);
+      expect(Object.isFrozen(event)).toBe(true);
+      expect(audit).toBeNull();
+    });
+
+    it.each([
+      EJournalEntryStatus.Posted,
+      EJournalEntryStatus.Archived,
+      EJournalEntryStatus.Voided,
+    ])('rejects deletion of a %s entry', (status) => {
+      const [draft] = journalEntryEntity.make(validPayload);
+
+      expect(() => journalEntryEntity.delete({ ...draft, status })).toThrow(
+        journalEntryError.DeletionNotPermitted
+      );
+    });
+
+    it('rejects deletion of a draft with a posting date', () => {
+      const [draft] = journalEntryEntity.make(validPayload);
+
+      expect(() =>
+        journalEntryEntity.delete({ ...draft, postedAt: new Date() })
+      ).toThrow(journalEntryError.DeletionNotPermitted);
+    });
+
+    it('rejects deletion of a reversal draft', () => {
+      const [draft] = journalEntryEntity.make({
+        ...validPayload,
+        sourceType: EJournalEntrySourceType.Reversal,
+      });
+
+      expect(() => journalEntryEntity.delete(draft)).toThrow(
+        journalEntryError.DeletionNotPermitted
+      );
+    });
 
     it('should successfully create a journal entry with line items and events', () => {
       const [entry, events, audit] = journalEntryEntity.make(validPayload);
@@ -557,28 +585,42 @@ describe('JournalEntry Entity', () => {
       expect(audit).toBeNull();
     });
 
-    it('accepts an identical void retry but rejects conflicting or invalid lineage', () => {
+    it('returns the linked void unchanged when void is repeated', () => {
       const entry = makeEntry(new Date('2026-04-01T00:00:00Z'));
-      const payload = {
-        voidingEntryId: 'f7930be4-f709-4cf2-bf2f-a885b22421fd' as TEntityId,
-      };
-      const [voided] = journalEntryEntity.void(entry, payload);
-      const [unchanged, events, audit] = journalEntryEntity.void(
-        voided,
-        payload
-      );
-      expect(unchanged).toBe(voided);
-      expect(events).toEqual([]);
-      expect(audit).toBeNull();
+      const {
+        voided: [voidedEntry],
+      } = journalEntryEntity.void(entry, entry.createdBy);
+      const retry = journalEntryEntity.void(voidedEntry, entry.createdBy);
+
+      expect(retry.voided[0]).toBe(voidedEntry);
+      expect(retry.voided[1]).toEqual([]);
+      expect(retry.voided[2]).toBeNull();
+      expect(retry.reversal).toBeNull();
       expect(() =>
-        journalEntryEntity.void(voided, { voidingEntryId: entry.id })
+        journalEntryEntity.void(
+          { ...voidedEntry, voidingEntryId: null },
+          entry.createdBy
+        )
       ).toThrow(journalEntryError.InvalidStatusTransition);
       expect(() =>
-        journalEntryEntity.void(voided, { voidingEntryId: 'bad' as TEntityId })
+        journalEntryEntity.void(
+          { ...voidedEntry, voidingEntryId: 'bad' as TEntityId },
+          entry.createdBy
+        )
       ).toThrow(journalEntryError.InvalidVoidingEntryId);
+      expect(() =>
+        journalEntryEntity.void(voidedEntry, 'bad' as TEntityId)
+      ).toThrow(journalEntryError.InvalidCreatedBy);
     });
 
-    function makeEntry(postedAt: Date | null) {
+    function makeEntry(
+      postedAt: Date | null,
+      exchangeRate: ReturnType<typeof exchangeRateValue.make> | null = null
+    ) {
+      const currency = exchangeRate
+        ? SYSTEM_CURRENCIES.NGN
+        : SYSTEM_CURRENCIES.USD;
+
       return journalEntryEntity.make({
         accountingEntityId: '2b4c10ab-5c31-419b-ab29-688001d9f8e4' as TEntityId,
         sourceType: EJournalEntrySourceType.Expense,
@@ -599,8 +641,8 @@ describe('JournalEntry Entity', () => {
           {
             accountId: 'd571fba2-d5cb-43dc-8e6c-2f3b97b0a70f' as TEntityId,
             sequenceOrder: 1,
-            amount: moneyValue.make(100, SYSTEM_CURRENCIES.USD, false),
-            exchangeRate: null,
+            amount: moneyValue.make(100, currency, false),
+            exchangeRate,
             side: EJournalSide.Debit,
             description: 'Debit',
             functionalCurrency: SYSTEM_CURRENCIES.USD,
@@ -608,8 +650,8 @@ describe('JournalEntry Entity', () => {
           {
             accountId: 'e682fcb3-e6dc-54ed-9f7d-304c08c1b810' as TEntityId,
             sequenceOrder: 2,
-            amount: moneyValue.make(100, SYSTEM_CURRENCIES.USD, false),
-            exchangeRate: null,
+            amount: moneyValue.make(100, currency, false),
+            exchangeRate,
             side: EJournalSide.Credit,
             description: 'Credit',
             functionalCurrency: SYSTEM_CURRENCIES.USD,
@@ -764,37 +806,97 @@ describe('JournalEntry Entity', () => {
       ).toThrow(journalEntryError.RectificationNotPermitted);
     });
 
-    it('should void a posted entry with lineage, audit, and event metadata', () => {
-      const entry = makeEntry(new Date('2026-04-15T00:00:00.000Z'));
-      const voidingEntryId =
-        'f7930be4-f709-4cf2-bf2f-a885b22421fd' as TEntityId;
-      const [voidedEntry, events, audit] = journalEntryEntity.void(entry, {
-        voidingEntryId,
+    it('returns an audited void and a reversal of the recorded FX lines', () => {
+      const date = new Date('2026-04-15T00:00:00.000Z');
+      const exchangeRate = exchangeRateValue.make({
+        baseCurrencyCode: 'NGN',
+        targetCurrencyCode: 'USD',
+        rate: 0.01,
+        asOf: new Date('2026-04-14T00:00:00.000Z'),
+        type: EExchangeRateType.Official,
+        source: 'Central bank',
       });
+      const entry = makeEntry(date, exchangeRate);
+      const actorId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
+      const { voided, reversal } = journalEntryEntity.void(entry, actorId);
+      const [voidedEntry, events, audit] = voided;
+      const [reversingEntry, reversalEvents, reversalAudit] = reversal!;
 
       expect(voidedEntry).toMatchObject({
         id: entry.id,
         status: EJournalEntryStatus.Voided,
-        voidedAt: new Date('2026-04-15T00:00:00.000Z'),
-        voidingEntryId,
+        voidedAt: date,
+        voidingEntryId: reversingEntry.id,
         version: 2,
       });
+      expect(voidedEntry.lines).toBe(entry.lines);
+      expect(entry.status).toBe(EJournalEntryStatus.Posted);
+      expect(entry.voidingEntryId).toBeNull();
       expect(events).toEqual([
-        expect.objectContaining({ type: EJournalEntryEvent.Voided }),
+        expect.objectContaining({
+          type: EJournalEntryEvent.Voided,
+          data: voidedEntry,
+        }),
       ]);
       expect(audit?.action).toBe(EJournalEntryAuditAction.Voided);
       expect(audit?.diff.before).not.toHaveProperty('lines');
       expect(audit?.diff.after).not.toHaveProperty('attachments');
+
+      expect(reversingEntry).toMatchObject({
+        accountingEntityId: entry.accountingEntityId,
+        sourceType: EJournalEntrySourceType.Reversal,
+        status: EJournalEntryStatus.Posted,
+        effectiveDate: entry.effectiveDate,
+        postedAt: date,
+        createdBy: actorId,
+      });
+      expect(reversingEntry.id).not.toBe(entry.id);
+      expect(reversingEntry.lines.map((line) => line.side)).toEqual([
+        EJournalSide.Credit,
+        EJournalSide.Debit,
+      ]);
+      for (const [index, originalLine] of entry.lines.entries()) {
+        const reversedLine = reversingEntry.lines[index];
+        expect(reversedLine).toMatchObject({
+          entryId: reversingEntry.id,
+          accountId: originalLine.accountId,
+          counterpartyId: originalLine.counterpartyId,
+          sequenceOrder: originalLine.sequenceOrder,
+          amount: originalLine.amount,
+          exchangeRate: originalLine.exchangeRate,
+        });
+        expect(reversedLine.id).not.toBe(originalLine.id);
+        expect(reversedLine.functionalAmount).toBe(
+          originalLine.functionalAmount
+        );
+      }
+      expect(reversalEvents.map((event) => event.type)).toEqual([
+        EJournalEntryEvent.Created,
+        EJournalLineItemEvent.Created,
+        EJournalLineItemEvent.Created,
+      ]);
+      expect(reversalAudit.header.action).toBe(
+        EJournalEntryAuditAction.Created
+      );
+      expect(reversalAudit.lines).toHaveLength(entry.lines.length);
     });
 
     it('should reject voiding a draft entry', () => {
       const entry = makeEntry(null);
 
+      expect(() => journalEntryEntity.void(entry, entry.createdBy)).toThrow(
+        journalEntryError.InvalidStatusTransition
+      );
+    });
+
+    it('rejects voiding a posted reversal', () => {
+      const entry = makeEntry(new Date('2026-04-15T00:00:00.000Z'));
+      const { reversal } = journalEntryEntity.void(entry, entry.createdBy);
+      const [reversingEntry] = reversal!;
+
       expect(() =>
-        journalEntryEntity.void(entry, {
-          voidingEntryId: 'f7930be4-f709-4cf2-bf2f-a885b22421fd' as TEntityId,
-        })
-      ).toThrow(journalEntryError.InvalidStatusTransition);
+        journalEntryEntity.void(reversingEntry, entry.createdBy)
+      ).toThrow(journalEntryError.RectificationNotPermitted);
     });
 
     it('should void a previously-posted archived entry', () => {
@@ -802,18 +904,16 @@ describe('JournalEntry Entity', () => {
         ...makeEntry(new Date('2026-04-15T00:00:00.000Z')),
         status: EJournalEntryStatus.Archived,
       };
-      const voidingEntryId =
-        'f7930be4-f709-4cf2-bf2f-a885b22421fd' as TEntityId;
-
-      const [voidedEntry] = journalEntryEntity.void(archivedEntry, {
-        voidingEntryId,
-      });
+      const {
+        voided: [voidedEntry],
+        reversal,
+      } = journalEntryEntity.void(archivedEntry, archivedEntry.createdBy);
 
       expect(voidedEntry).toMatchObject({
         id: archivedEntry.id,
         status: EJournalEntryStatus.Voided,
         postedAt: archivedEntry.postedAt,
-        voidingEntryId,
+        voidingEntryId: reversal?.[0].id,
       });
     });
 
@@ -824,9 +924,7 @@ describe('JournalEntry Entity', () => {
       };
 
       expect(() =>
-        journalEntryEntity.void(archivedEntry, {
-          voidingEntryId: 'f7930be4-f709-4cf2-bf2f-a885b22421fd' as TEntityId,
-        })
+        journalEntryEntity.void(archivedEntry, archivedEntry.createdBy)
       ).toThrow(journalEntryError.InvalidStatusTransition);
     });
 

@@ -18,6 +18,7 @@ import makeUpdateJournalEntryMetaUsecase from '@app/journal-entry/usecases/updat
 import makeVoidAndReplacePaymentUsecase from '@app/journal-entry/usecases/void-and-replace-payment.usecase';
 import makeVoidAndReplaceReceiptUsecase from '@app/journal-entry/usecases/void-and-replace-receipt.usecase';
 import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
+import makeVoidJournalEntryUsecase from '@app/journal-entry/usecases/void-journal-entry.usecase';
 
 import { fileManagementAppService } from '@infra/ioc/services/file';
 import {
@@ -26,7 +27,7 @@ import {
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceAppService,
-  journalEntryRemovalService,
+  journalEntryService,
   openingBalanceEntryService,
   paymentEntryService,
   receiptEntryService,
@@ -268,11 +269,21 @@ export const deleteJournalEntryUseCase = makeTracedUseCase(
   makeDeleteJournalEntryUsecase({
     appContext,
     eventBus: messaging.eventBus,
+    journalEntryPersistenceAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+  })
+);
+
+export const voidJournalEntryUseCase = makeTracedUseCase(
+  'journalEntry.voidJournalEntryUseCase',
+  makeVoidJournalEntryUsecase({
+    appContext,
+    eventBus: messaging.eventBus,
     fxCostBasisLotService,
     fxCostBasisPersistenceAppService,
     journalEntryPersistenceAppService,
-    journalEntryRemovalService,
     journalEntryRepo: journalEntryRepos.journalEntry,
+    journalEntryService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
   })

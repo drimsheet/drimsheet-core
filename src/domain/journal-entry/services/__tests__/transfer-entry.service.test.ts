@@ -1,6 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
-import generateUUID, * as uuidGenerator from '@shared/utils/uuid-generator';
+import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import periodError from '@domain/accounting/errors/period.error';
@@ -13,6 +13,7 @@ import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.ent
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { EJournalEntryEvent } from '@domain/journal-entry/events/journal-entry.events';
 import { EJournalLineItemEvent } from '@domain/journal-entry/events/journal-line-item.events';
+import makeJournalEntryService from '@domain/journal-entry/services/journal-entry.service';
 import makeTransferEntryService from '@domain/journal-entry/services/transfer-entry.service';
 import { EJournalEntryAuditAction } from '@domain/journal-entry/types/journal-entry-audit.types';
 import {
@@ -96,6 +97,10 @@ describe('transferEntryService', () => {
   const service = makeTransferEntryService({
     accountingPeriodService: mockAccountingPeriodService,
     counterpartyRepo: mockCounterpartyRepo,
+    journalEntryService: makeJournalEntryService({
+      accountingPeriodService: mockAccountingPeriodService,
+      ledgerAccountRepo: mockLedgerAccountRepo,
+    }),
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
   });
@@ -1181,30 +1186,6 @@ describe('transferEntryService', () => {
       return { entry, replacement, sourceAccount };
     }
 
-    it('skips correction when the entry already links to the same reversal', async () => {
-      const { entry, replacement } = await makeReplacementFixture();
-      const voidingEntryId = generateUUID();
-      const [alreadyVoided] = journalEntryEntity.void(entry, {
-        voidingEntryId,
-      });
-      jest.spyOn(uuidGenerator, 'default').mockReturnValueOnce(voidingEntryId);
-
-      const correction = await service.voidAndReplace(
-        alreadyVoided,
-        replacement,
-        repoOptions
-      );
-
-      expect(correction).toEqual({
-        voided: [alreadyVoided, [], null],
-        reversal: null,
-        replacement: null,
-      });
-      expect(
-        mockAccountingPeriodService.validatePostingPeriod
-      ).not.toHaveBeenCalled();
-    });
-
     it('returns the linked reversal, audited void, and posted transfer with its destination asset', async () => {
       const { entry, replacement: payload } = await makeReplacementFixture();
 
@@ -1361,6 +1342,7 @@ describe('transferEntryService', () => {
         await makeReplacementFixture();
       mockLedgerAccountRepo.findAllByIds.mockResolvedValueOnce([
         { ...sourceAccount, status: ELedgerAccountStatus.Archived },
+        replacement.destinationLines[1].account,
       ]);
 
       await expect(

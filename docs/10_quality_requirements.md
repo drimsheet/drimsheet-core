@@ -33,9 +33,9 @@ The following scenarios describe how the Drimsheet system will react in specific
    - **Response:** The system forces the user to post a reversing journal entry instead and logs the attempt in an immutable audit trail, ensuring 100% accounting transparency.
 
 2. **Journal Entry Removal:**
-   - **Stimulus:** A non-accountant removes a journal entry they previously recorded.
-   - **System:** The journal-entry domain evaluates ownership, source type, status, posting history, and expected version before selecting removal behavior.
-   - **Response:** A never-posted Draft or Archived entry is totally deleted without ledger work. A Posted or previously-posted Archived entry is retained as Voided and receives one balanced reversal. A reversal-source or already-Voided entry is rejected without mutation.
+   - **Stimulus:** A user requests deletion of a journal entry in the selected Accounting Entity.
+   - **System:** The use case checks entity scope and the journal entry enforces draft eligibility. The write checks the version read by the use case.
+   - **Response:** An eligible draft is physically deleted with its associated records. An ineligible entry returns a deletion error.
 
 3. **Unbalanced Entry Detection (ACID Compliance):**
    - **Stimulus:** The core engine receives a journal-entry payload where the total debits do not equal the total credits (e.g., due to a client-side bug or misconfiguration).

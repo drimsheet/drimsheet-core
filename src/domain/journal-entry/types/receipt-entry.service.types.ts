@@ -63,8 +63,8 @@ export interface IReceiptEntryService {
   }>;
 
   /**
-   * Prepares an audited reversal and void, plus a replacement using the
-   * ordinary receipt creation rules. Performs no writes.
+   * Voids a receipt and creates its audited reversal and replacement.
+   * The replacement follows the ordinary receipt creation rules.
    */
   voidAndReplace(
     existing: IJournalEntry,

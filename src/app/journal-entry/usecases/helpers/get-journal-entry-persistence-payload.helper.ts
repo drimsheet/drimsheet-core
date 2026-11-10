@@ -1,21 +1,22 @@
 import { TEntityId } from '@shared/types/uuid';
 import historyValue from '@shared/values/history/history.vo';
 
-import { IJournalEntryReversalResult } from '@domain/journal-entry/types/journal-entry-rectification.types';
+import { TAuditedJournalEntry } from '@domain/journal-entry/types/journal-entry-audit.types';
+import { IJournalEntryRectificationUpdate } from '@domain/journal-entry/types/journal-entry-rectification.types';
 
 import { IJournalEntryRectificationPersistencePayload } from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 
-type TJournalEntryPersistencePreparation = Pick<
-  IJournalEntryReversalResult,
-  'entriesToCreate' | 'entryUpdate'
->;
+interface IJournalEntryPersistencePreparation {
+  entriesToCreate: TAuditedJournalEntry[];
+  entryUpdate: IJournalEntryRectificationUpdate | null;
+}
 
 /**
  * Adds actor and correlation history metadata to a prepared journal-entry
  * persistence bundle without changing the prepared accounting state.
  */
 export default function getJournalEntryPersistencePayloadHelper(
-  preparation: TJournalEntryPersistencePreparation,
+  preparation: IJournalEntryPersistencePreparation,
   actor: TEntityId,
   correlationId: string
 ): IJournalEntryRectificationPersistencePayload {

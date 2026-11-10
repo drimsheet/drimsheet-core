@@ -38,6 +38,10 @@ const sourceTypeError = new journalEntryError.InvalidSourceType().errorKey;
 const journalEntryStatusError = new journalEntryError.InvalidStatus().errorKey;
 const orderByError = new paginationError.InvalidOrderBy().errorKey;
 
+export const journalEntryIdValidation = z.strictObject({
+  id: z.uuid(new journalEntryError.InvalidJournalEntry().errorKey),
+});
+
 const journalEntryOrderByValidation = z.enum(
   Object.values(EJournalEntrySortBy) as [
     UJournalEntrySortBy,

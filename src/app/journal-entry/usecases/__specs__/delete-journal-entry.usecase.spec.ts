@@ -2,38 +2,20 @@ import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService, {
   mockRepoTransaction,
 } from '@shared/contracts/__mocks__/repo.mock';
-import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
-import periodError from '@domain/accounting/errors/period.error';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
-import makeJournalEntryRectificationService from '@domain/journal-entry/services/journal-entry-rectification.service';
-import makeJournalEntryRemovalService from '@domain/journal-entry/services/journal-entry-removal.service';
-import { EJournalEntryRemovalMode } from '@domain/journal-entry/types/journal-entry-removal.types';
-import {
-  EJournalEntrySourceType,
-  EJournalEntryStatus,
-  IJournalEntry,
-  UJournalEntrySourceType,
-} from '@domain/journal-entry/types/journal-entry.types';
+import { EJournalEntryEvent } from '@domain/journal-entry/events/journal-entry.events';
+import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
-import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
-import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 import moneyValue from '@domain/money/values/money.vo';
-import fxCostBasisLotEntity from '@domain/subledger/fx-cost-basis/entities/lot.entity';
-import { EFxCostBasisLotStatus } from '@domain/subledger/fx-cost-basis/types/lot.types';
-import actorEntity from '@domain/user/entities/actor.entity';
 
-import { mockAccountingPeriodService } from '@app/accounting/contracts/__mocks__/accounting.domain.services.mock';
-import mockAppContext, {
-  mockClientSession,
-} from '@app/context/contracts/__mocks__/app-context.mock';
+import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryRemovalService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import {
   mockJournalEntryAttachmentRepo,
   mockJournalEntryHistoryRepo,
@@ -43,18 +25,7 @@ import {
 } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makeJournalEntryPersistenceAppService from '@app/journal-entry/services/journal-entry-persistence.service';
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
-import mockLedgerBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
-import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-
-const actor = {
-  ...actorEntity.makeUser({
-    email: 'actor@example.com',
-    displayName: 'Actor',
-  })[0],
-  id: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-};
 
 describe('makeDeleteJournalEntryUsecase', () => {
   const correlationId = 'delete-journal-entry-correlation-id';
@@ -62,31 +33,19 @@ describe('makeDeleteJournalEntryUsecase', () => {
   const accountingEntityId = generateUUID();
   const userId = generateUUID();
   const now = new Date('2026-09-22T10:00:00.000Z');
-  const rectificationService = makeJournalEntryRectificationService({
-    accountingPeriodService: mockAccountingPeriodService,
-    ledgerAccountRepo: mockLedgerAccountRepo,
-  });
   const usecase = makeDeleteJournalEntryUsecase({
     appContext: mockAppContext,
     eventBus: mockEventBus,
-    fxCostBasisLotService: mockFxCostBasisLotService,
-    fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
     journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
-    journalEntryRemovalService: mockJournalEntryRemovalService,
     journalEntryRepo: mockJournalEntryRepo,
-    ledgerBalanceAdjustmentQueue: mockLedgerBalanceAdjustmentQueue,
-    repoService: mockRepoService,
   });
 
-  function makeEntry(
-    postedAt: Date | null,
-    sourceType: UJournalEntrySourceType = EJournalEntrySourceType.Expense
-  ) {
+  function makeEntry(postedAt: Date | null) {
     const amount = moneyValue.make(100, SYSTEM_CURRENCIES.NGN, false);
 
     return journalEntryEntity.make({
       accountingEntityId,
-      sourceType,
+      sourceType: EJournalEntrySourceType.Expense,
       effectiveDate: now,
       postedAt,
       memo: 'Expense',
@@ -115,112 +74,61 @@ describe('makeDeleteJournalEntryUsecase', () => {
     })[0];
   }
 
-  function prepareDeletion(entry: IJournalEntry) {
-    return {
-      mode: EJournalEntryRemovalMode.Delete,
-      originalJournalEntryId: entry.id,
-      journalEntry: journalEntryEntity.delete(entry),
-    } as const;
-  }
-
-  async function prepareReversal(entry: IJournalEntry) {
-    return {
-      mode: EJournalEntryRemovalMode.Reverse,
-      ...(await rectificationService.reverse(
-        entry,
-        'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        { correlationId }
-      )),
-    } as const;
-  }
-
   beforeEach(() => {
-    mockLedgerAccountRepo.findAllByIds.mockResolvedValue([]);
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
-    jest.clearAllMocks();
-    mockAccountingPeriodService.validatePostingPeriod.mockReset();
+    jest.resetAllMocks();
     mockAppContext.get.mockReturnValue({
-      actor,
       correlationId,
       idempotencyKey,
       accountingEntity: { id: accountingEntityId },
-      clientSession: mockClientSession,
-    } as unknown as IAppContextData);
-    mockRepoService.createTransaction
-      .mockReset()
-      .mockResolvedValue(mockRepoTransaction);
-    mockRepoTransaction.commit.mockReset().mockResolvedValue();
-    mockRepoTransaction.handleError
-      .mockReset()
-      .mockImplementation(async (error) => {
-        throw error;
-      });
-    mockRepoService.runInTransaction.mockImplementation(async (fn) =>
-      fn(mockRepoTransaction.context)
-    );
-    mockJournalEntryPersistenceAppService.delete.mockResolvedValue();
-    mockJournalEntryPersistenceAppService.rectify.mockResolvedValue();
-    mockFxCostBasisLotService.reverse.mockResolvedValue(null);
-    mockFxLotCostBasisAppService.persistence.persistReversal.mockResolvedValue();
-    mockLedgerBalanceAdjustmentQueue.add.mockResolvedValue();
-    mockEventBus.publish.mockResolvedValue();
+    } as IAppContextData);
   });
 
-  afterEach(() => jest.useRealTimers());
-
-  it('blocks reversing deletion when an original account is archived', async () => {
-    const entry = makeEntry(now);
+  it('deletes a draft and publishes its deletion event', async () => {
+    const entry = makeEntry(null);
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    const failure = new journalEntryError.ArchivedLedgerAccountNotAllowed();
-    mockJournalEntryRemovalService.prepare.mockRejectedValueOnce(failure);
-    await expect(usecase(entry.id)).rejects.toBe(failure);
-    expect(
-      mockJournalEntryPersistenceAppService.rectify
-    ).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceAppService.delete).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+
+    await expect(usecase(entry.id)).resolves.toBeUndefined();
+
+    expect(mockJournalEntryRepo.findById).toHaveBeenCalledWith(entry.id, {
+      correlationId,
+      idempotencyKey,
+    });
+    expect(mockJournalEntryPersistenceAppService.delete).toHaveBeenCalledWith(
+      {
+        journalEntryId: entry.id,
+        expectedVersion: entry.version,
+      },
+      { correlationId, idempotencyKey }
+    );
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+    expect(mockEventBus.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: EJournalEntryEvent.Deleted,
+        data: entry,
+        correlationId,
+        idempotencyKey,
+        enrichedAt: expect.any(Date),
+      })
+    );
   });
+
   it.each([
-    ['draft', makeEntry(null)],
-    [
-      'never-posted archived',
-      { ...makeEntry(null), status: EJournalEntryStatus.Archived },
-    ],
+    ['posted', makeEntry(now)],
+    ['archived draft', journalEntryEntity.archive(makeEntry(null))[0]],
+    ['archived after posting', journalEntryEntity.archive(makeEntry(now))[0]],
   ])(
-    'totally deletes a %s entry without accounting side effects',
+    'rejects a %s entry before writing or publishing events',
     async (_, entry) => {
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
-      const removal = prepareDeletion(entry);
-      mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
 
-      await expect(usecase(entry.id)).resolves.toBeUndefined();
-
-      expect(mockJournalEntryPersistenceAppService.delete).toHaveBeenCalledWith(
-        {
-          journalEntryId: entry.id,
-          expectedVersion: entry.version,
-        },
-        { correlationId, idempotencyKey }
+      await expect(usecase(entry.id)).rejects.toThrow(
+        journalEntryError.DeletionNotPermitted
       );
-      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+
       expect(
-        mockJournalEntryPersistenceAppService.rectify
+        mockJournalEntryPersistenceAppService.delete
       ).not.toHaveBeenCalled();
-      expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
-      expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ...removal.journalEntry[1],
-          correlationId,
-          idempotencyKey,
-          enrichedAt: expect.any(Date),
-        })
-      );
-      expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeGreaterThan(
-        mockJournalEntryPersistenceAppService.delete.mock.invocationCallOrder[0]
-      );
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
     }
   );
 
@@ -239,9 +147,6 @@ describe('makeDeleteJournalEntryUsecase', () => {
         journalEntryAttachmentRepo: mockJournalEntryAttachmentRepo,
       });
       mockJournalEntryRepo.findById.mockResolvedValue(entry);
-      mockJournalEntryRemovalService.prepare.mockResolvedValue(
-        prepareDeletion(entry)
-      );
       mockJournalEntryPersistenceAppService.delete.mockImplementationOnce(
         persistence.delete
       );
@@ -293,9 +198,6 @@ describe('makeDeleteJournalEntryUsecase', () => {
     const entry = makeEntry(null);
     const failure = new Error('deletion failed');
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockResolvedValue(
-      prepareDeletion(entry)
-    );
     mockJournalEntryPersistenceAppService.delete.mockRejectedValueOnce(failure);
 
     await expect(usecase(entry.id)).rejects.toBe(failure);
@@ -307,9 +209,6 @@ describe('makeDeleteJournalEntryUsecase', () => {
     const entry = makeEntry(null);
     const failure = new Error('publication failed');
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockResolvedValue(
-      prepareDeletion(entry)
-    );
     mockEventBus.publish.mockRejectedValueOnce(failure);
 
     await expect(usecase(entry.id)).rejects.toBe(failure);
@@ -320,138 +219,6 @@ describe('makeDeleteJournalEntryUsecase', () => {
     expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeGreaterThan(
       mockJournalEntryPersistenceAppService.delete.mock.invocationCallOrder[0]
     );
-  });
-
-  it.each([
-    ['posted', makeEntry(now)],
-    [
-      'previously-posted archived',
-      { ...makeEntry(now), status: EJournalEntryStatus.Archived },
-    ],
-  ])('reverses a %s entry atomically before propagation', async (_, entry) => {
-    const removal = await prepareReversal(entry);
-    mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
-
-    await expect(usecase(entry.id)).resolves.toBeUndefined();
-
-    expect(mockFxCostBasisLotService.reverse).toHaveBeenCalledWith(entry.id, {
-      correlationId,
-      idempotencyKey,
-    });
-    expect(
-      mockFxLotCostBasisAppService.persistence.persistReversal
-    ).not.toHaveBeenCalled();
-    expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entriesToCreate: [
-          expect.objectContaining({
-            entry: removal.reversingJournalEntry,
-          }),
-        ],
-        entryUpdate: expect.objectContaining({
-          entry: removal.entryUpdate?.entry,
-          expectedVersion: entry.version,
-        }),
-      }),
-      { correlationId, tx: mockRepoTransaction.context }
-    );
-    expect(mockLedgerBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
-      correlationId,
-      {
-        journalEntryId: removal.reversingJournalEntry.id,
-      }
-    );
-    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-    expect(
-      mockJournalEntryPersistenceAppService.rectify.mock.invocationCallOrder[0]
-    ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
-    expect(mockRepoTransaction.commit.mock.invocationCallOrder[0]).toBeLessThan(
-      mockLedgerBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
-    );
-  });
-
-  it('persists the FX reversal with its history and publishes its event after commit', async () => {
-    const entry = makeEntry(now);
-    const removal = await prepareReversal(entry);
-    const acquisitionDate = new Date('2026-09-21T10:00:00.000Z');
-    const quantity = moneyValue.make(100, SYSTEM_CURRENCIES.USD, false);
-    const costBasis = moneyValue.make(150000, SYSTEM_CURRENCIES.NGN, false);
-    const [lot] = fxCostBasisLotEntity.make({
-      accountingEntityId,
-      ledgerAccountId: entry.lines[0].accountId,
-      createdBy: userId,
-      status: EFxCostBasisLotStatus.Open,
-      originalQuantity: quantity,
-      remainingQuantity: quantity,
-      costBasis,
-      remainingCostBasis: costBasis,
-      acquisitionDate,
-      acquisitionRate: exchangeRateValue.make({
-        baseCurrencyCode: 'USD',
-        targetCurrencyCode: 'NGN',
-        rate: 1500,
-        asOf: acquisitionDate,
-        source: 'bank',
-        type: EExchangeRateType.Negotiated,
-      }),
-    });
-    const lotReversal = fxCostBasisLotEntity.reverseAcquisition(
-      lot,
-      quantity,
-      costBasis
-    );
-    const [, [reversalEvent]] = lotReversal;
-    mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
-    mockFxCostBasisLotService.reverse.mockResolvedValue({
-      lots: [lotReversal],
-    });
-
-    await usecase(entry.id);
-
-    expect(
-      mockFxLotCostBasisAppService.persistence.persistReversal
-    ).toHaveBeenCalledWith({ lots: [lotReversal] }, actor.id, {
-      correlationId,
-      tx: mockRepoTransaction.context,
-    });
-    expect(
-      mockJournalEntryPersistenceAppService.rectify.mock.invocationCallOrder[0]
-    ).toBeLessThan(
-      mockFxLotCostBasisAppService.persistence.persistReversal.mock
-        .invocationCallOrder[0]
-    );
-    expect(mockEventBus.publish).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          ...reversalEvent,
-          correlationId,
-          idempotencyKey,
-          enrichedAt: expect.any(Date),
-        }),
-      ])
-    );
-  });
-
-  it.each([
-    ['reversal source', makeEntry(now, EJournalEntrySourceType.Reversal)],
-    ['voided', { ...makeEntry(now), status: EJournalEntryStatus.Voided }],
-  ])('does not persist a rejected %s entry', async (_, entry) => {
-    mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockImplementation(() => {
-      throw new journalEntryError.DeletionNotPermitted();
-    });
-
-    await expect(usecase(entry.id)).rejects.toThrow(
-      journalEntryError.DeletionNotPermitted
-    );
-
-    expect(mockJournalEntryPersistenceAppService.delete).not.toHaveBeenCalled();
-    expect(
-      mockJournalEntryPersistenceAppService.rectify
-    ).not.toHaveBeenCalled();
-    expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
   });
 
   it('validates the id before reading context', async () => {
@@ -470,135 +237,14 @@ describe('makeDeleteJournalEntryUsecase', () => {
       { ...makeEntry(null), accountingEntityId: generateUUID() },
       appError.ResourceNotFound,
     ],
-  ])(
-    'rejects a %s entry before preparing removal',
-    async (_, entry, ErrorType) => {
-      mockJournalEntryRepo.findById.mockResolvedValue(entry);
-
-      await expect(usecase(entry?.id ?? generateUUID())).rejects.toThrow(
-        ErrorType
-      );
-
-      expect(mockJournalEntryRemovalService.prepare).not.toHaveBeenCalled();
-    }
-  );
-
-  it('does not run post-commit work when reversal persistence fails', async () => {
-    const entry = makeEntry(now);
-    const failure = new Error('journal persistence failed');
+  ])('rejects a %s entry before deletion', async (_, entry, ErrorType) => {
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
-    mockJournalEntryRemovalService.prepare.mockResolvedValue(
-      await prepareReversal(entry)
-    );
-    mockJournalEntryPersistenceAppService.rectify.mockRejectedValueOnce(
-      failure
+
+    await expect(usecase(entry?.id ?? generateUUID())).rejects.toThrow(
+      ErrorType
     );
 
-    await expect(usecase(entry.id)).rejects.toBe(failure);
-
-    expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
+    expect(mockJournalEntryPersistenceAppService.delete).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-  it.each([
-    periodError.PostingPeriodNotOpen,
-    periodError.PostingDateNotCovered,
-  ])(
-    'rejects an invalid reversal period before any deletion side effects (%p)',
-    async (ErrorType) => {
-      const earlierDate = new Date('2026-08-15');
-      const entry = { ...makeEntry(earlierDate), effectiveDate: earlierDate };
-      const snapshot = structuredClone(entry);
-      const failure = new ErrorType({
-        accountingEntityId,
-        postingDate: earlierDate,
-      });
-      mockJournalEntryRepo.findById.mockResolvedValue(entry);
-      mockAccountingPeriodService.validatePostingPeriod.mockRejectedValueOnce(
-        failure
-      );
-      const removalService = makeJournalEntryRemovalService({
-        journalEntryRectificationService: rectificationService,
-      });
-      mockJournalEntryRemovalService.prepare.mockImplementationOnce(
-        removalService.prepare
-      );
-
-      await expect(usecase(entry.id)).rejects.toBe(failure);
-
-      expect(
-        mockAccountingPeriodService.validatePostingPeriod
-      ).toHaveBeenCalledWith(accountingEntityId, earlierDate, {
-        correlationId,
-        idempotencyKey,
-      });
-      expect(entry).toEqual(snapshot);
-      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
-      expect(
-        mockJournalEntryPersistenceAppService.rectify
-      ).not.toHaveBeenCalled();
-      expect(
-        mockJournalEntryPersistenceAppService.delete
-      ).not.toHaveBeenCalled();
-      expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
-      expect(
-        mockFxLotCostBasisAppService.persistence.persistReversal
-      ).not.toHaveBeenCalled();
-      expect(
-        mockFxLotCostBasisAppService.persistence.persistDisposition
-      ).not.toHaveBeenCalled();
-      expect(
-        mockFxLotCostBasisAppService.persistence.persistAcquisition
-      ).not.toHaveBeenCalled();
-      expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-    }
-  );
-
-  it.each(['acquisition', 'persistence', 'commit'] as const)(
-    'handles transaction %s failure without publishing or enqueueing',
-    async (phase) => {
-      const entry = makeEntry(now);
-      const removal = await prepareReversal(entry);
-      mockJournalEntryRepo.findById.mockResolvedValue(entry);
-      mockJournalEntryRemovalService.prepare.mockResolvedValue(removal);
-      const failure = new Error('transaction failed');
-      const failures = {
-        acquisition: mockRepoService.createTransaction,
-        persistence: mockJournalEntryPersistenceAppService.rectify,
-        commit: mockRepoTransaction.commit,
-      };
-      failures[phase].mockRejectedValueOnce(failure);
-
-      await expect(usecase(entry.id)).rejects.toBe(failure);
-
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
-      expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-      if (phase === 'acquisition') {
-        expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
-        expect(
-          mockJournalEntryPersistenceAppService.rectify
-        ).not.toHaveBeenCalled();
-      } else {
-        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
-      }
-      if (phase !== 'commit') {
-        expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
-      }
-    }
-  );
-
-  afterEach(() => {
-    if (mockLedgerBalanceAdjustmentQueue.add.mock.calls.length === 0) {
-      return;
-    }
-
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
-    expect(mockRepoTransaction.commit.mock.invocationCallOrder[0]).toBeLessThan(
-      mockEventBus.publish.mock.invocationCallOrder[0]
-    );
-    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
-      mockLedgerBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
-    );
   });
 });

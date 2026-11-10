@@ -1,3 +1,4 @@
+import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 import stringUtils from '@shared/utils/string';
 import { IPeriod } from '@shared/values/interval/types/interval.types';
@@ -44,10 +45,42 @@ function validate(period: IAccountingPeriod) {
   }
 }
 
+/** Requires exactly one open period from the periods covering the posting date. */
+function validatePostingPeriod(
+  accountingEntityId: TEntityId,
+  postingDate: Date,
+  coveringPeriods: readonly IAccountingPeriod[]
+) {
+  if (coveringPeriods.length === 0) {
+    throw new periodError.PostingDateNotCovered({
+      accountingEntityId,
+      postingDate,
+    });
+  }
+  if (coveringPeriods.length > 1) {
+    throw new periodError.PostingPeriodAmbiguous({
+      accountingEntityId,
+      postingDate,
+      accountingPeriodIds: coveringPeriods.map((period) => period.id),
+    });
+  }
+
+  const [period] = coveringPeriods;
+  if (period.status !== EAccountingPeriodStatus.Open) {
+    throw new periodError.PostingPeriodNotOpen({
+      accountingEntityId,
+      postingDate,
+      accountingPeriodId: period.id,
+      status: period.status,
+    });
+  }
+}
+
 const accountingPeriodValidation = Object.freeze({
   ...periodValidation,
   validateCreation,
   validate,
+  validatePostingPeriod,
 });
 
 export default accountingPeriodValidation;

@@ -54,6 +54,7 @@ import {
   voidAndReplacePaymentUseCase,
   voidAndReplaceReceiptUseCase,
   voidAndReplaceTransferUseCase,
+  voidJournalEntryUseCase,
 } from '@infra/ioc/usecases/journal-entry';
 
 @Route('journal-entries')
@@ -443,8 +444,28 @@ export class JournalEntryController extends Controller {
     return archiveJournalEntryUseCase(id);
   }
 
+  /** Voids a posted journal entry and posts its offsetting reversal. */
+  @Post('/{id}/void')
+  @OperationId('voidJournalEntry')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public voidJournalEntry(@Path() id: string): Promise<void> {
+    return voidJournalEntryUseCase(id);
+  }
+
   /**
-   * Delete a never-posted journal entry or reverse a previously-posted entry.
+   * Deletes a draft journal entry. Other statuses return 400.
    */
   @Delete('/{id}')
   @OperationId('deleteJournalEntry')

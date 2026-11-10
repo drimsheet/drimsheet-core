@@ -10,6 +10,7 @@ import openingBalanceEntryRule from '@domain/journal-entry/rules/opening-balance
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
 import openingBalanceRevisionValidation from '@domain/journal-entry/services/validations/opening-balance-revision.validation';
 import openingBalanceValidation from '@domain/journal-entry/services/validations/opening-balance.validation';
+import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
 import {
   EJournalEntrySourceType,
   EJournalEntryStatus,
@@ -30,6 +31,7 @@ import moneyValue from '@domain/money/values/money.vo';
 
 interface IDependencies {
   journalEntryRepo: IJournalEntryRepo;
+  journalEntryService: IJournalEntryService;
   ledgerAccountRepo: ILedgerAccountRepo;
   accountingPeriodService: IAccountingPeriodService;
 }
@@ -390,11 +392,11 @@ function makePostDraft(
   };
 }
 
-/** Voids a posted opening journal and creates its replacement on the original date. */
+/** Voids an opening journal and creates its reversal and replacement. */
 function makeVoidAndReplace(
   deps: IDependencies
 ): IOpeningBalanceEntryService['voidAndReplace'] {
-  return async ({ entry, voidingEntryId, ...payload }, repoOptions) => {
+  return async ({ entry, ...payload }, repoOptions) => {
     const { account } = payload;
     const { accountingEntityId, effectiveDate } = entry;
     openingBalanceRevisionValidation.validateSourceType(entry);
@@ -407,11 +409,17 @@ function makeVoidAndReplace(
       journalEntryError.InvalidEffectiveDate
     );
 
-    const voided = journalEntryEntity.void(entry, { voidingEntryId });
-    const [, , audit] = voided;
+    const voidReadOptions = repoOptions.tx
+      ? { ...repoOptions, lock: ERepoLock.Share }
+      : repoOptions;
+    const correction = await deps.journalEntryService.void(
+      entry,
+      payload.createdBy,
+      voidReadOptions
+    );
 
-    if (audit === null) {
-      return { voided, replacement: null };
+    if (correction.reversal === null) {
+      return { ...correction, replacement: null };
     }
 
     const hasEarlierPosting =
@@ -428,15 +436,6 @@ function makeVoidAndReplace(
       });
     }
 
-    const periodReadOptions = repoOptions.tx
-      ? { ...repoOptions, lock: ERepoLock.Share }
-      : repoOptions;
-    await deps.accountingPeriodService.validatePostingPeriod(
-      accountingEntityId,
-      effectiveDate,
-      periodReadOptions
-    );
-
     const replacement = await makeOpeningBalance(
       deps,
       {
@@ -451,7 +450,7 @@ function makeVoidAndReplace(
       repoOptions
     );
 
-    return { voided, replacement };
+    return { ...correction, replacement };
   };
 }
 

@@ -71,8 +71,8 @@ its complete materialized path, and returns audited tuples. It does not re-fetch
 the target, resolve the allocation root, or compare an expected version.
 
 Archived accounts cannot be associated with new journals, whether draft or
-posted, including generated reversals. Consequently corrections and reversing
-deletions that reference archived original accounts are rejected. Existing
+posted, including generated reversals. Voids and corrections that reference
+archived original accounts are rejected. Existing
 journals, historical transactions, and reporting inputs remain readable.
 
 The public ledger list defaults to `statuses=['active']` when omitted; explicit
@@ -86,10 +86,9 @@ must use these historical inputs rather than the public active-list default.
 Journal creation checks account status internally, including unposted entries
 and implicit opening-balance equity accounts. Rectification and reversal domain
 operations read the referenced accounts and reject archived accounts before
-preparing new associations. Use cases persist the prepared results without a
-separate account-validation call. These preparation checks do not hold account
-locks through journal persistence. The archive workflow never changes journals,
-balances, FX records, or propagation work.
+creating new associations. The standalone void workflow holds shared locks on
+the reversal's accounts and posting period through commit. The archive workflow
+never changes journals, balances, FX records, or propagation work.
 
 ## Account Deletion
 

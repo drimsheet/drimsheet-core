@@ -1,13 +1,12 @@
-import { IJournalEntryRemovalService } from '@domain/journal-entry/types/journal-entry-removal.types';
+import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
 import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
 import { IPaymentEntryService } from '@domain/journal-entry/types/payment-entry.service.types';
 import { IReceiptEntryService } from '@domain/journal-entry/types/receipt-entry.service.types';
 import { ITransferEntryService } from '@domain/journal-entry/types/transfer-entry.service.types';
 
-export const mockJournalEntryRemovalService: jest.Mocked<IJournalEntryRemovalService> =
-  {
-    prepare: jest.fn(),
-  };
+export const mockJournalEntryService: jest.Mocked<IJournalEntryService> = {
+  void: jest.fn(),
+};
 
 export const mockOpeningBalanceEntryService: jest.Mocked<IOpeningBalanceEntryService> =
   {

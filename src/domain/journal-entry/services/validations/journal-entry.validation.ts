@@ -27,6 +27,21 @@ import {
 import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 
+/** Prevents new journal associations with archived accounts. */
+function validateArchivedAccounts(accounts: ILedgerAccount[]) {
+  const archivedAccounts = accounts.filter(
+    (account) => account.status === ELedgerAccountStatus.Archived
+  );
+  if (archivedAccounts.length) {
+    throw new journalEntryError.ArchivedLedgerAccountNotAllowed({
+      accounts: archivedAccounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+      })),
+    });
+  }
+}
+
 function validateDraftEntry(
   entry: IJournalEntry,
   sourceType: UJournalEntrySourceType
@@ -290,20 +305,5 @@ const journalEntryValidation = Object.freeze({
   validateSourceAccountBalance,
   validateTransferAccountComposition,
 });
-
-/** Archived accounts cannot acquire journal associations, including unposted entries and reversals. */
-function validateArchivedAccounts(accounts: ILedgerAccount[]) {
-  const archivedAccounts = accounts.filter(
-    (account) => account.status === ELedgerAccountStatus.Archived
-  );
-  if (archivedAccounts.length) {
-    throw new journalEntryError.ArchivedLedgerAccountNotAllowed({
-      accounts: archivedAccounts.map((account) => ({
-        id: account.id,
-        name: account.name,
-      })),
-    });
-  }
-}
 
 export default journalEntryValidation;

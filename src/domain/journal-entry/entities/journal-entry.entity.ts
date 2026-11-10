@@ -1,3 +1,4 @@
+import { TEntityId } from '@shared/types/uuid';
 import dateUtils from '@shared/utils/date';
 import generateDiff from '@shared/utils/diff-generator';
 import stringUtils from '@shared/utils/string';
@@ -12,24 +13,33 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import journalEntryEvents from '@domain/journal-entry/events/journal-entry.events';
 import {
   EJournalEntryAuditAction,
+  IJournalEntryVoidResult,
   IJournalLineAudit,
   TAuditedJournalEntry,
   TAuditedJournalEntryTransition,
   TAuditedJournalEntryUpdate,
 } from '@domain/journal-entry/types/journal-entry-audit.types';
 import {
+  EJournalEntrySourceType,
   EJournalEntryStatus,
   IJournalEntry,
   IJournalEntryMakePayload,
   IJournalHeader,
-  IVoidJournalEntryPayload,
 } from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 import journalEntryAudit from '@domain/journal-entry/values/journal-entry-audit.vo';
 
 import journalLineEntity from './journal-line.entity';
 
-function make(payload: IJournalEntryMakePayload): TAuditedJournalEntry {
+function makeEntry<TLine>(
+  payload: Omit<IJournalEntryMakePayload, 'lines' | 'functionalCurrency'> & {
+    lines: TLine[];
+  },
+  makeLine: (
+    header: Parameters<typeof journalLineEntity.make>[0],
+    line: TLine
+  ) => ReturnType<typeof journalLineEntity.make>
+): TAuditedJournalEntry {
   stringUtils.validateUUID(
     payload.accountingEntityId,
     journalEntryError.InvalidAccountingEntityId
@@ -52,7 +62,7 @@ function make(payload: IJournalEntryMakePayload): TAuditedJournalEntry {
   journalEntryValidation.validatePostedAt(payload.postedAt);
 
   const linesWithEvents = payload.lines.map((item) =>
-    journalLineEntity.make(
+    makeLine(
       { id, memo, createdBy: payload.createdBy, createdAt: timestamp },
       item
     )
@@ -108,6 +118,10 @@ function make(payload: IJournalEntryMakePayload): TAuditedJournalEntry {
       lines: lineAudits,
     },
   ];
+}
+
+function make(payload: IJournalEntryMakePayload): TAuditedJournalEntry {
+  return makeEntry(payload, journalLineEntity.make);
 }
 
 /**
@@ -256,26 +270,41 @@ function update(
   ];
 }
 
+/** Creates the offsetting journal and links it to the voided original. */
 function voidEntry(
   entry: IJournalEntry,
-  payload: IVoidJournalEntryPayload
-): TAuditedJournalEntryTransition {
-  journalEntryValidation.validateVoidingEntryId(payload.voidingEntryId);
+  actorId: TEntityId
+): IJournalEntryVoidResult {
   const isUnchanged =
     entry.status === EJournalEntryStatus.Voided &&
-    entry.voidingEntryId === payload.voidingEntryId;
+    entry.voidingEntryId !== null;
   if (isUnchanged) {
-    return [entry, [], null];
+    stringUtils.validateUUID(actorId, journalEntryError.InvalidCreatedBy);
+    journalEntryValidation.validateVoidingEntryId(entry.voidingEntryId);
+    return { voided: [entry, [], null], reversal: null };
   }
   journalEntryValidation.validateVoid(entry);
 
   const timestamp = new Date();
+  const reversal = makeEntry(
+    {
+      accountingEntityId: entry.accountingEntityId,
+      sourceType: EJournalEntrySourceType.Reversal,
+      effectiveDate: entry.effectiveDate,
+      postedAt: timestamp,
+      memo: null,
+      createdBy: actorId,
+      lines: entry.lines,
+    },
+    journalLineEntity.reverse
+  );
+  const [reversingEntry] = reversal;
   const voidedEntry = makeTransitionedEntry(
     entry,
     EJournalEntryStatus.Voided,
     timestamp,
     timestamp,
-    payload.voidingEntryId
+    reversingEntry.id
   );
   const event = journalEntryEvents.voided(voidedEntry);
   const { lines: _lines, attachments: _attachments, ...header } = voidedEntry;
@@ -290,7 +319,7 @@ function voidEntry(
     action: EJournalEntryAuditAction.Voided,
   });
 
-  return [voidedEntry, [event], audit];
+  return { voided: [voidedEntry, [event], audit], reversal };
 }
 
 function archive(entry: IJournalEntry): TAuditedJournalEntryTransition {
@@ -349,10 +378,12 @@ function makeTransitionedEntry(
   });
 }
 
-/** Prepares the deleted entry snapshot and deletion event without an audit. */
+/** Validates draft eligibility and prepares the deletion event. */
 function deleteEntity(
   current: IJournalEntry
 ): [IJournalEntry, IEvent<IJournalEntry>, null] {
+  journalEntryValidation.validateDelete(current);
+
   return [current, journalEntryEvents.deleted(current), null];
 }
 
