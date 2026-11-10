@@ -34,7 +34,6 @@ import {
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import { makeFxDispositionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
@@ -101,7 +100,6 @@ const deps = {
   fxCostBasisLotService: mockFxCostBasisLotService,
   exchangeRateAppService: mockExchangeRateAppService,
   fxCostBasisPersistenceAppService: mockFxCostBasisAppService.persistence,
-  outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerBalanceAdjustmentQueue,
   repoService: mockRepoService,
   eventBus: mockEventBus,
@@ -248,10 +246,6 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
       8000n,
       8000n,
     ]);
-    expect(mockOutboxAppService.createBalancePropagation.mock.calls).toEqual([
-      [reversal.entry.id, transactionOptions],
-      [replacement.entry.id, transactionOptions],
-    ]);
     expect(mockLedgerBalanceAdjustmentQueue.add.mock.calls).toEqual([
       [repoOptions.correlationId, { journalEntryId: reversal.entry.id }],
       [repoOptions.correlationId, { journalEntryId: replacement.entry.id }],
@@ -289,9 +283,6 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
       repoOptions
     );
     expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
-    expect(mockOutboxAppService.createBalancePropagation.mock.calls).toEqual([
-      [reversal.entry.id, transactionOptions],
-    ]);
     expect(mockLedgerBalanceAdjustmentQueue.add.mock.calls).toEqual([
       [repoOptions.correlationId, { journalEntryId: reversal.entry.id }],
     ]);
@@ -366,9 +357,6 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
         await expect(usecase(original.id, payload)).rejects.toBe(failure);
         expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
         expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
-        expect(
-          mockOutboxAppService.createBalancePropagation
-        ).not.toHaveBeenCalled();
         expect(mockEventBus.publish).not.toHaveBeenCalled();
         expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
       } else {
@@ -427,9 +415,6 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
       mockJournalEntryPersistenceAppService.rectify
     ).not.toHaveBeenCalled();
     expect(mockFxCostBasisLotService.reverse).not.toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
-    ).not.toHaveBeenCalled();
     expect(mockLedgerBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });

@@ -33,7 +33,6 @@ import {
   transferEntryService,
 } from '@infra/ioc/services/journal-entry';
 import { exchangeRateAppService } from '@infra/ioc/services/money';
-import outboxAppService from '@infra/ioc/services/outbox';
 import { repoService } from '@infra/ioc/services/repo';
 import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
@@ -104,7 +103,6 @@ export const voidAndReplacePaymentUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -124,7 +122,6 @@ export const voidAndReplaceReceiptUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -156,7 +153,6 @@ export const voidAndReplaceTransferUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -174,7 +170,6 @@ export const postDraftOpeningBalanceUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -193,7 +188,6 @@ export const postDraftPaymentUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -212,7 +206,6 @@ export const postDraftReceiptUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -231,7 +224,6 @@ export const postDraftTransferUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -248,7 +240,6 @@ export const createOpeningBalanceUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     journalEntryPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     fxCostBasisPersistenceAppService,
@@ -283,7 +274,6 @@ export const deleteJournalEntryUseCase = makeTracedUseCase(
     journalEntryRemovalService,
     journalEntryRepo: journalEntryRepos.journalEntry,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    outboxAppService,
     repoService,
   })
 );
@@ -307,7 +297,6 @@ export const createPaymentUseCase = makeTracedUseCase(
     journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     fxCostBasisLotService,
     exchangeRateAppService,
@@ -326,7 +315,6 @@ export const createReceiptUseCase = makeTracedUseCase(
     journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     fxCostBasisLotService,
     exchangeRateAppService,
@@ -345,7 +333,6 @@ export const createTransferUseCase = makeTracedUseCase(
     journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     fxCostBasisLotService,
     exchangeRateAppService,

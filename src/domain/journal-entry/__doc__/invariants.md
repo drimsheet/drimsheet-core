@@ -87,8 +87,7 @@ calculation conventions are documented in
   facts. Here, that preservation obligation applies once an entry is posted;
   unposted drafts can be revised or removed.
 - [ADR 0015: Transactional outbox for ledger balance propagation][balance-propagation]
-  establishes recoverable and non-duplicating propagation from authoritative
-  journal entries to derived balances.
+  records the former recovery mechanism and the switch to direct queue delivery.
 
 [journal-recording]: https://openstax.org/books/principles-financial-accounting/pages/3-5-use-journal-entries-to-record-transactions-and-post-to-t-accounts
 [append-only]: ../../../../docs/adrs/0003-append-only-database-pattern.md

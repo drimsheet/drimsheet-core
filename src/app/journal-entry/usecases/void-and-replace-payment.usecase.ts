@@ -1,7 +1,7 @@
 /**
  * Voids and reverses a posted payment and records a draft or posted
- * replacement. Journal changes, audits, FX effects, and balance outbox
- * records commit together. Returns the replacement payment.
+ * replacement. Journal changes, audits, and FX effects commit together.
+ * Returns the replacement payment.
  */
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
@@ -39,7 +39,6 @@ import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
@@ -55,7 +54,6 @@ interface IDependencies {
   fxCostBasisLotService: IFxCostBasisLotService;
   exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   repoService: IRepoService;
   eventBus: IEventBus;
@@ -232,13 +230,6 @@ export default function makeVoidAndReplacePaymentUsecase(deps: IDependencies) {
       const journalEntryIds = isReplacementPosted
         ? [reversingEntry.id, entry.id]
         : [reversingEntry.id];
-      for (const journalEntryId of journalEntryIds) {
-        await deps.outboxAppService.createBalancePropagation(
-          journalEntryId,
-          transactionOptions
-        );
-      }
-
       await transaction.commit();
 
       const events = [

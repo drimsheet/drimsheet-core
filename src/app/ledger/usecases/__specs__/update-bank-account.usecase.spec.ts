@@ -2,8 +2,6 @@ import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService, {
   mockRepoTransaction,
 } from '@shared/contracts/__mocks__/repo.mock';
-import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
-import { EOutboxType } from '@shared/types/outbox.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 import repoError from '@shared/values/errors/repo.error';
@@ -39,8 +37,6 @@ import ledgerAppError from '@app/ledger/errors/ledger.error';
 import makeAdjustLedgerAccountBalanceUseCase from '@app/ledger/usecases/adjust-ledger-account-balance.usecase';
 import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
-import mockOutboxRepo from '@app/outbox/contracts/__mocks__/outbox.repo.mock';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
@@ -110,7 +106,6 @@ const deps = {
   exchangeRateAppService: mockExchangeRateAppService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
-  outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
 };
 
@@ -595,10 +590,6 @@ describe('update bank account workflow', () => {
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).toHaveBeenCalledWith(fxAcquisition, actor.id, transactionOptions);
-    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
-      creation[0].id,
-      transactionOptions
-    );
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
       {
@@ -627,7 +618,6 @@ describe('update bank account workflow', () => {
       mockLedgerAccountBalanceRepo.update,
       mockJournalEntryPersistenceAppService.rectify,
       mockFxLotCostBasisAppService.persistence.persistAcquisition,
-      mockOutboxAppService.createBalancePropagation,
     ]) {
       expect(write).toHaveBeenCalledTimes(1);
       expect(write.mock.invocationCallOrder[0]).toBeLessThan(commitOrder);
@@ -682,25 +672,13 @@ describe('update bank account workflow', () => {
       savedBalance,
       parentBalance,
     ]);
-    mockOutboxRepo.findByIdAndType.mockResolvedValueOnce({
-      id: creation[0].id,
-      correlationId,
-      type: EOutboxType.BalancePropagation,
-      data: null,
-      createdAt: new Date(),
-    });
-    mockRepoService.runInTransaction.mockImplementationOnce((fn) =>
-      fn(mockRepoTransaction.context)
-    );
     const adjustLedgerAccountBalance = makeAdjustLedgerAccountBalanceUseCase({
       appContext: mockAppContext,
       repoService: mockRepoService,
-      outboxRepo: mockOutboxRepo,
       journalEntryRepo: mockJournalEntryRepo,
       ledgerAccountRepo: mockLedgerAccountRepo,
       ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
       ledgerAccountBalanceAdjustmentService,
-      reporter: mockReporter,
     });
     await adjustLedgerAccountBalance({ journalEntryId: creation[0].id });
 

@@ -6,28 +6,21 @@ sequenceDiagram
     participant Adjust as Adjust Ledger Account Balance
     participant Records as Accounting Records
     participant Adjustment as Balance Adjustment Domain Service
-    participant Reporting as Operational Reporting
-
     Worker->>Adjust: Journal-entry ID
-    Adjust->>Records: Request pending balance-propagation work
-    Records-->>Adjust: Pending work or none
-    alt No pending work
-        Adjust->>Reporting: Report missing balance-propagation work
-        Adjust-->>Worker: Complete without adjustments
-    else Pending work exists
-        Adjust->>Records: Request journal
-        Records-->>Adjust: Journal
-        Adjust->>Adjustment: Resolve eligible journal's direct account IDs
-        Adjustment-->>Adjust: Direct account IDs
-        Adjust->>Records: Request affected accounts and ancestors
-        Records-->>Adjust: Account hierarchy
-        Adjust->>Adjustment: Calculate balance deltas
-        Adjustment-->>Adjust: Account balance deltas
-        Adjust->>Records: Request current balances
-        Records-->>Adjust: Current balances and versions
-        Adjust->>Records: Save adjustments and remove pending work together
+    Adjust->>Records: Request journal
+    Records-->>Adjust: Journal
+    Adjust->>Adjustment: Resolve eligible journal's direct account IDs
+    Adjustment-->>Adjust: Direct account IDs
+    Adjust->>Records: Request affected accounts and ancestors
+    Records-->>Adjust: Account hierarchy
+    Adjust->>Adjustment: Calculate balance deltas
+    Adjustment-->>Adjust: Account balance deltas
+    Adjust->>Records: Request current balances
+    Records-->>Adjust: Current balances and versions
+    opt Balances change
+        Adjust->>Records: Save adjustments in one transaction
         Records-->>Adjust: Balance changes committed
-        Adjust-->>Worker: Complete
     end
-    Note over Adjust,Records: Validation or write failures reject#59; incomplete changes do not commit
+    Adjust-->>Worker: Complete
+    Note over Adjust,Records: Validation and write failures reject the job
 ```

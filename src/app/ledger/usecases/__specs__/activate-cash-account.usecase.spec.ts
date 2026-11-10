@@ -24,7 +24,6 @@ import { mockAssetAccountService } from '@app/ledger/contracts/__mocks__/ledger.
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import makeActivateCashAccountUsecase from '@app/ledger/usecases/activate-cash-account.usecase';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
@@ -80,7 +79,6 @@ const usecase = makeActivateCashAccountUsecase({
   fxCostBasisLotService: mockFxCostBasisLotService,
   exchangeRateAppService: mockExchangeRateAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
-  outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
 });
 const repoOptions = { correlationId: 'activate' };
@@ -173,9 +171,6 @@ describe('activate cash account use case', () => {
     expect(mockOpeningBalanceEntryService.postDraft).not.toHaveBeenCalled();
     expect(
       mockJournalEntryPersistenceAppService.rectify
-    ).not.toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
     ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });
@@ -324,9 +319,6 @@ describe('activate cash account use case', () => {
         }),
         transactionOptions
       );
-      expect(
-        mockOutboxAppService.createBalancePropagation
-      ).toHaveBeenCalledWith(originalEntry.id, transactionOptions);
       expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
       expect(
         mockRepoTransaction.commit.mock.invocationCallOrder[0]
@@ -369,9 +361,6 @@ describe('activate cash account use case', () => {
         mockFxLotCostBasisAppService.persistence.persistAcquisition
       ).not.toHaveBeenCalled();
       expect(
-        mockOutboxAppService.createBalancePropagation
-      ).not.toHaveBeenCalled();
-      expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
       ).not.toHaveBeenCalled();
       expect(mockEventBus.publish).toHaveBeenCalledWith([
@@ -383,7 +372,7 @@ describe('activate cash account use case', () => {
     });
 
     it.each([false, true])(
-      'commits the account, existing journal, audits and outbox together, FX=%s',
+      'commits the account, existing journal, and audits together, FX=%s',
       async (hasFx) => {
         const fxAcquisition = makeFxAcquisitionResult();
         if (hasFx) {
@@ -447,13 +436,6 @@ describe('activate cash account use case', () => {
           ).not.toHaveBeenCalled();
         }
         expect(
-          mockOutboxAppService.createBalancePropagation
-        ).toHaveBeenCalledWith(originalEntry.id, transactionOptions);
-        expect(
-          mockOutboxAppService.createBalancePropagation.mock
-            .invocationCallOrder[0]
-        ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
-        expect(
           mockRepoTransaction.commit.mock.invocationCallOrder[0]
         ).toBeLessThan(
           mockLedgerAccountBalanceAdjustmentQueue.add.mock
@@ -507,7 +489,7 @@ describe('activate cash account use case', () => {
       }
     );
 
-    it.each(['account', 'journal', 'FX', 'outbox', 'commit'])(
+    it.each(['account', 'journal', 'FX', 'commit'])(
       'rolls back on %s write failure without publishing or queueing',
       async (phase) => {
         const failure = new repoError.VersionNotFound();
@@ -524,11 +506,6 @@ describe('activate cash account use case', () => {
         }
         if (phase === 'FX') {
           mockFxLotCostBasisAppService.persistence.persistAcquisition.mockRejectedValue(
-            failure
-          );
-        }
-        if (phase === 'outbox') {
-          mockOutboxAppService.createBalancePropagation.mockRejectedValue(
             failure
           );
         }

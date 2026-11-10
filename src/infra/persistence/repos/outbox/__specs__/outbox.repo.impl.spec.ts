@@ -23,7 +23,7 @@ describe('outboxRepo', () => {
     const row = {
       id: generateUUID(),
       correlationId: options.correlationId,
-      type: EOutboxType.BalancePropagation,
+      type: EOutboxType.MissingOfficialFxRate,
       data: null,
     };
     const repositoryRow = { ...row };
@@ -42,7 +42,7 @@ describe('outboxRepo', () => {
     const databaseRow = {
       id,
       correlationId: options.correlationId,
-      type: EOutboxType.BalancePropagation,
+      type: EOutboxType.MissingOfficialFxRate,
       data: null,
       createdAt: '2026-08-18T12:00:00.000Z',
     };
@@ -59,7 +59,7 @@ describe('outboxRepo', () => {
 
     const result = await outboxRepo.findByIdAndType(
       id,
-      EOutboxType.BalancePropagation,
+      EOutboxType.MissingOfficialFxRate,
       options
     );
 
@@ -78,7 +78,7 @@ describe('outboxRepo', () => {
 
     const result = await outboxRepo.findByIdAndType(
       id,
-      EOutboxType.BalancePropagation,
+      EOutboxType.MissingOfficialFxRate,
       options
     );
 

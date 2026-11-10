@@ -42,7 +42,6 @@ import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-
 import { ICashAccountActivationDto } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { cashAccountActivationDtoValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 
@@ -58,7 +57,6 @@ interface IDependencies {
   fxCostBasisLotService: IFxCostBasisLotService;
   exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
 }
 
@@ -142,11 +140,6 @@ export default function makeActivateCashAccountUsecase(deps: IDependencies) {
             transactionOptions
           );
         }
-
-        await deps.outboxAppService.createBalancePropagation(
-          openingBalancePosting.entry.id,
-          transactionOptions
-        );
       }
 
       await transaction.commit();

@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted
+Superseded by direct balance queue delivery.
+
+Posting use cases enqueue journal IDs after committing. The balance worker reads
+the journal directly and applies the adjustments in a database transaction.
+Enqueue failures are reported by the queue adapter after the journal commits.
 
 ## Context
 

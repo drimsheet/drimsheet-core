@@ -23,7 +23,6 @@ import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
@@ -115,7 +114,6 @@ const usecase = makePostDraftReceiptUsecase({
   fxCostBasisLotService: mockFxCostBasisLotService,
   exchangeRateAppService: mockExchangeRateAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
-  outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
   repoService: mockRepoService,
   eventBus: mockEventBus,
@@ -174,9 +172,6 @@ describe('post draft receipt use case', () => {
     ).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
-    ).not.toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
@@ -273,13 +268,6 @@ describe('post draft receipt use case', () => {
         ).not.toHaveBeenCalled();
       }
       expect(
-        mockOutboxAppService.createBalancePropagation
-      ).toHaveBeenCalledWith(originalEntry.id, transactionOptions);
-      expect(
-        mockOutboxAppService.createBalancePropagation.mock
-          .invocationCallOrder[0]
-      ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
-      expect(
         mockRepoTransaction.commit.mock.invocationCallOrder[0]
       ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
       expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
@@ -365,7 +353,6 @@ describe('post draft receipt use case', () => {
     'FX',
     'persistence',
     'FX persistence',
-    'outbox',
     'commit',
   ] as const)(
     'propagates %s failures without publishing or enqueueing',
@@ -379,7 +366,6 @@ describe('post draft receipt use case', () => {
         persistence: mockJournalEntryPersistenceAppService.rectify,
         'FX persistence':
           mockFxLotCostBasisAppService.persistence.persistAcquisition,
-        outbox: mockOutboxAppService.createBalancePropagation,
         commit: mockRepoTransaction.commit,
       };
       mockFxCostBasisLotService.acquire.mockReturnValue(

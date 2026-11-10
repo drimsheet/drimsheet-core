@@ -1,10 +1,8 @@
 /**
  * SUMMARY
  * Applies a journal's effects to derived balances for affected accounts and
- * their ancestors. Requires pending balance-propagation work; missing work is
- * reported and returns without adjustment. Saves prepared adjustments and
- * removes the pending work together. Invalid journals, missing balances, and
- * conflicting state reject. Returns no value and publishes no domain events.
+ * their ancestors. Saves prepared adjustments in one transaction. Invalid
+ * journals, missing balances, and conflicting state reject.
  *
  * WHEN TO USE
  * Use in the background balance worker after a journal workflow requests
@@ -16,12 +14,7 @@
  */
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
-import IReporter from '@shared/contracts/reporter.contract';
-import { EOutboxType } from '@shared/types/outbox.types';
+import { IRepoService } from '@shared/contracts/repo.contract';
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
@@ -45,17 +38,14 @@ import { IAppContextData } from '@app/context/types/app-context.types';
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
 import { ledgerAccountBalanceAdjustmentDtoSchema } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto.validation';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import IOutboxRepo from '@app/outbox/contracts/outbox.repo.contract';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   repoService: IRepoService;
-  outboxRepo: IOutboxRepo;
   journalEntryRepo: IJournalEntryRepo;
   ledgerAccountRepo: ILedgerAccountRepo;
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
   ledgerAccountBalanceAdjustmentService: ILedgerAccountBalanceAdjustmentService;
-  reporter: IReporter;
 }
 
 interface IPreparedLedgerAccountBalanceAdjustment {
@@ -73,31 +63,19 @@ export default function makeAdjustLedgerAccountBalanceUseCase(
     const { journalEntryId } = payload;
     const repoOptions = { correlationId };
 
-    const outbox = await deps.outboxRepo.findByIdAndType(
-      journalEntryId,
-      EOutboxType.BalancePropagation,
-      repoOptions
-    );
-
-    if (!outbox) {
-      deps.reporter.report(
-        'ledger.balance_outbox.missing',
-        new ledgerAppError.BalancePropagationOutboxNotFound({
-          journalEntryId,
-        })
-      );
-
-      return;
-    }
-
     const preparedAdjustments = await prepareBalanceAdjustments(
       deps,
       journalEntryId,
       repoOptions
     );
 
-    const transactionFn: TRepoTransactionFn = async (tx) => {
-      const writeRepoOptions = { ...repoOptions, tx };
+    if (preparedAdjustments.length === 0) {
+      return;
+    }
+
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeRepoOptions = { ...repoOptions, tx: transaction.context };
 
       for (const preparedAdjustment of preparedAdjustments) {
         await deps.ledgerAccountBalanceRepo.adjustBalance(
@@ -109,10 +87,10 @@ export default function makeAdjustLedgerAccountBalanceUseCase(
         );
       }
 
-      await deps.outboxRepo.delete(journalEntryId, writeRepoOptions);
-    };
-
-    await deps.repoService.runInTransaction(transactionFn);
+      await transaction.commit();
+    } catch (error) {
+      return await transaction.handleError(error);
+    }
   };
 }
 

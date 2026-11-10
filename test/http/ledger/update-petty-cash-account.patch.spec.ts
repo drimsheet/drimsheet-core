@@ -36,7 +36,6 @@ import {
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import makeUpdatePettyCashAccountUsecase from '@app/ledger/usecases/update-petty-cash-account.usecase';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import mockFxCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
@@ -181,7 +180,6 @@ describe('PATCH /ledger/asset/petty-cash/{accountId}', () => {
         journalEntryPersistenceAppService:
           mockJournalEntryPersistenceAppService,
         fxCostBasisPersistenceAppService: mockFxCostBasisService.persistence,
-        outboxAppService: mockOutboxAppService,
         ledgerBalanceAdjustmentQueue: mockBalanceQueue,
       })
     );

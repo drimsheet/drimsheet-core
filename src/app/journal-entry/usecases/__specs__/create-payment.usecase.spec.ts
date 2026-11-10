@@ -61,7 +61,6 @@ import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__moc
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import { makeFxDispositionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
@@ -242,7 +241,6 @@ describe('makeCreatePaymentUsecase', () => {
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
       eventBus: mockEventBus,
-      outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
       fxCostBasisLotService: mockFxCostBasisLotService,
       exchangeRateAppService: mockExchangeRateAppService,
@@ -294,7 +292,6 @@ describe('makeCreatePaymentUsecase', () => {
       .mockImplementation(async (error) => {
         throw error;
       });
-    mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerAccountBalanceAdjustmentQueue.add.mockResolvedValue();
     mockEventBus.publish.mockResolvedValue();
   });
@@ -311,9 +308,6 @@ describe('makeCreatePaymentUsecase', () => {
       await expect(getUseCase()(makePayload())).rejects.toBe(failure);
       expect(
         mockJournalEntryPersistenceAppService.create
-      ).not.toHaveBeenCalled();
-      expect(
-        mockOutboxAppService.createBalancePropagation
       ).not.toHaveBeenCalled();
       expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
@@ -414,10 +408,6 @@ describe('makeCreatePaymentUsecase', () => {
     );
     expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
-    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
-      postedJournalEntry.id,
-      expect.objectContaining({ correlationId, tx: expect.anything() })
-    );
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
       {
@@ -436,9 +426,6 @@ describe('makeCreatePaymentUsecase', () => {
 
     expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).not.toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
-    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -478,9 +465,6 @@ describe('makeCreatePaymentUsecase', () => {
     );
     expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
-    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
   });
 
@@ -572,9 +556,6 @@ describe('makeCreatePaymentUsecase', () => {
         mockFxLotCostBasisAppService.persistence.persistAcquisition
       ).not.toHaveBeenCalled();
       expect(
-        mockOutboxAppService.createBalancePropagation
-      ).not.toHaveBeenCalled();
-      expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
       ).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
@@ -601,14 +582,13 @@ describe('makeCreatePaymentUsecase', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
-  it.each(['acquisition', 'persistence', 'outbox', 'commit'] as const)(
+  it.each(['acquisition', 'persistence', 'commit'] as const)(
     'handles transaction %s failure without publishing or enqueueing',
     async (phase) => {
       const failure = new Error('transaction failed');
       const failures = {
         acquisition: mockRepoService.createTransaction,
         persistence: mockJournalEntryPersistenceAppService.create,
-        outbox: mockOutboxAppService.createBalancePropagation,
         commit: mockRepoTransaction.commit,
       };
       failures[phase].mockRejectedValueOnce(failure);
@@ -640,11 +620,6 @@ describe('makeCreatePaymentUsecase', () => {
 
     expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
-    const outboxCalls =
-      mockOutboxAppService.createBalancePropagation.mock.invocationCallOrder;
-    expect(outboxCalls[outboxCalls.length - 1]).toBeLessThan(
-      mockRepoTransaction.commit.mock.invocationCallOrder[0]
-    );
     expect(mockRepoTransaction.commit.mock.invocationCallOrder[0]).toBeLessThan(
       mockEventBus.publish.mock.invocationCallOrder[0]
     );

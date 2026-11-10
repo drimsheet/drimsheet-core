@@ -50,7 +50,6 @@ import getTransferSourceLinePayloadHelper from '@app/journal-entry/usecases/help
 import transformTransferChargeLinesToJournalLinesHelper from '@app/journal-entry/usecases/helpers/transform-transfer-charge-lines-to-journal-lines.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
@@ -64,7 +63,6 @@ interface IDependencies {
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
   eventBus: IEventBus;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   fxCostBasisLotService: IFxCostBasisLotService;
   exchangeRateAppService: IExchangeRateAppService;
@@ -219,13 +217,6 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
           acquisitionResult,
           actor.id,
-          writeOptions
-        );
-      }
-
-      if (shouldUpdateBalance) {
-        await deps.outboxAppService.createBalancePropagation(
-          journalEntry.id,
           writeOptions
         );
       }

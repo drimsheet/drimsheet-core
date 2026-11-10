@@ -36,7 +36,6 @@ import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entr
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
@@ -51,7 +50,6 @@ interface IDependencies {
   fxCostBasisLotService: IFxCostBasisLotService;
   exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   repoService: IRepoService;
   eventBus: IEventBus;
@@ -162,7 +160,6 @@ export default function makePostDraftTransferUsecase(deps: IDependencies) {
         correlationId
       );
 
-      // Persist the prepared journal, FX disposition/acquisition, and propagation outbox atomically.
       await deps.journalEntryPersistenceAppService.rectify(
         persistence,
         transactionOptions
@@ -183,11 +180,6 @@ export default function makePostDraftTransferUsecase(deps: IDependencies) {
           transactionOptions
         );
       }
-
-      await deps.outboxAppService.createBalancePropagation(
-        entry.id,
-        transactionOptions
-      );
 
       await transaction.commit();
 

@@ -43,7 +43,6 @@ import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
@@ -54,7 +53,6 @@ interface IDependencies {
   eventBus: IEventBus;
   openingBalanceEntryService: IOpeningBalanceEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   repoService: IRepoService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
@@ -159,13 +157,6 @@ export default function makeCreateOpeningBalanceUseCase(deps: IDependencies) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
           fxAcquisition,
           actor.id,
-          writeRepoOptions
-        );
-      }
-
-      if (isPosted) {
-        await deps.outboxAppService.createBalancePropagation(
-          journalEntry.id,
           writeRepoOptions
         );
       }

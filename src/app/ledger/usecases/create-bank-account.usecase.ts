@@ -46,7 +46,6 @@ import openingBalanceExchangeRateGetterHelper from '@app/ledger/usecases/helpers
 import openingBalanceExchangeRateValidationHelper from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-validation.helper';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
@@ -58,7 +57,6 @@ interface IDependencies {
   bankAccountRepo: IBankAccountRepo;
   openingBalanceEntryService: IOpeningBalanceEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   repoService: IRepoService;
   ledgerAccountPersistenceAppService: ILedgerAccountPersistenceAppService;
@@ -238,13 +236,6 @@ export default function makeCreateBankAccountUseCase(deps: IDependencies) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
           fxAcquisition,
           actor.id,
-          transactionOptions
-        );
-      }
-
-      if (postedJournal) {
-        await deps.outboxAppService.createBalancePropagation(
-          postedJournal.id,
           transactionOptions
         );
       }

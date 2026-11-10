@@ -1,8 +1,6 @@
 import mockRepoService, {
   mockRepoTransaction,
 } from '@shared/contracts/__mocks__/repo.mock';
-import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
-import { EOutboxType, IOutbox } from '@shared/types/outbox.types';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
@@ -28,7 +26,6 @@ import {
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import makeAdjustLedgerAccountBalanceUseCase from '@app/ledger/usecases/adjust-ledger-account-balance.usecase';
-import mockOutboxRepo from '@app/outbox/contracts/__mocks__/outbox.repo.mock';
 
 describe('makeAdjustLedgerAccountBalanceUseCase', () => {
   const accountingEntityId = generateUUID();
@@ -41,13 +38,6 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
   const readOptions = { correlationId };
   const writeOptions = { correlationId, tx: mockRepoTransaction.context };
 
-  const outbox: IOutbox = {
-    id: journalEntryId,
-    correlationId,
-    type: EOutboxType.BalancePropagation,
-    data: null,
-    createdAt: new Date(),
-  };
   const childAccount = {
     createdBy: creatorId,
     id: childAccountId,
@@ -92,22 +82,19 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
   const adjustLedgerAccountBalance = makeAdjustLedgerAccountBalanceUseCase({
     appContext: mockAppContext,
     repoService: mockRepoService,
-    outboxRepo: mockOutboxRepo,
     journalEntryRepo: mockJournalEntryRepo,
     ledgerAccountRepo: mockLedgerAccountRepo,
     ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     ledgerAccountBalanceAdjustmentService,
-    reporter: mockReporter,
   });
 
   beforeEach(() => {
     jest.resetAllMocks();
     mockAppContext.get.mockReturnValue({ correlationId, idempotencyKey: '' });
-    mockRepoService.runInTransaction.mockImplementation((fn) =>
-      fn(mockRepoTransaction.context)
-    );
-    mockOutboxRepo.findByIdAndType.mockResolvedValue(outbox);
-    mockOutboxRepo.delete.mockResolvedValue(true);
+    mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.handleError.mockImplementation(async (error) => {
+      throw error;
+    });
     mockJournalEntryRepo.findById.mockResolvedValue(journalEntry);
     mockLedgerAccountRepo.findAllByIds.mockResolvedValue([childAccount]);
     mockLedgerAccountRepo.findAllByMaterializedPath.mockResolvedValue([
@@ -120,14 +107,9 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     ]);
   });
 
-  it('prepares ordered, versioned writes and then deletes the outbox in one transaction', async () => {
+  it('commits ordered, versioned balance writes in one transaction', async () => {
     await adjustLedgerAccountBalance(payload);
 
-    expect(mockOutboxRepo.findByIdAndType).toHaveBeenCalledWith(
-      journalEntryId,
-      EOutboxType.BalancePropagation,
-      readOptions
-    );
     expect(mockJournalEntryRepo.findById).toHaveBeenCalledWith(
       journalEntryId,
       readOptions
@@ -177,21 +159,16 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
       },
       { ...writeOptions, expectedVersion: childBalance.version },
     ]);
-    expect(mockOutboxRepo.delete).toHaveBeenCalledWith(
-      journalEntryId,
-      writeOptions
-    );
-    expect(mockReporter.report).not.toHaveBeenCalled();
 
     expect(
       mockLedgerAccountBalanceRepo.findAllByAccountIds.mock
         .invocationCallOrder[0]
     ).toBeLessThan(
-      mockRepoService.runInTransaction.mock.invocationCallOrder[0]
+      mockRepoService.createTransaction.mock.invocationCallOrder[0]
     );
     expect(
       mockLedgerAccountBalanceRepo.adjustBalance.mock.invocationCallOrder[1]
-    ).toBeLessThan(mockOutboxRepo.delete.mock.invocationCallOrder[0]);
+    ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
   });
 
   it('uses app context when a payload contains correlation metadata', async () => {
@@ -202,18 +179,13 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
 
     await adjustLedgerAccountBalance(existingPayload);
 
-    expect(mockOutboxRepo.findByIdAndType).toHaveBeenCalledWith(
+    expect(mockJournalEntryRepo.findById).toHaveBeenCalledWith(
       journalEntryId,
-      EOutboxType.BalancePropagation,
       readOptions
-    );
-    expect(mockOutboxRepo.delete).toHaveBeenCalledWith(
-      journalEntryId,
-      writeOptions
     );
   });
 
-  it('clears the outbox without writing unchanged balances', async () => {
+  it('skips the transaction when balances are unchanged', async () => {
     mockJournalEntryRepo.findById.mockResolvedValueOnce({
       ...journalEntry,
       lines: [
@@ -228,10 +200,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     await adjustLedgerAccountBalance(payload);
 
     expect(mockLedgerAccountBalanceRepo.adjustBalance).not.toHaveBeenCalled();
-    expect(mockOutboxRepo.delete).toHaveBeenCalledWith(
-      journalEntryId,
-      writeOptions
-    );
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
 
   it('writes every account and ancestor when a journal exceeds 200 direct accounts', async () => {
@@ -305,22 +274,6 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     ).toEqual([parentAccountId, childAccountId]);
   });
 
-  it('reports a missing outbox row and skips preparation', async () => {
-    mockOutboxRepo.findByIdAndType.mockResolvedValueOnce(null);
-
-    await adjustLedgerAccountBalance(payload);
-
-    expect(mockReporter.report).toHaveBeenCalledWith(
-      'ledger.balance_outbox.missing',
-      expect.objectContaining({
-        errorKey: 'app_error_ledger_balance_propagation_outbox_not_found',
-        cause: { journalEntryId },
-      })
-    );
-    expect(mockJournalEntryRepo.findById).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-  });
-
   it.each<[string, IJournalEntry | null]>([
     ['unavailable', null],
     ['draft', { ...journalEntry, status: EJournalEntryStatus.Draft }],
@@ -341,7 +294,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
       expect(
         mockLedgerAccountBalanceRepo.findAllByAccountIds
       ).not.toHaveBeenCalled();
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     }
   );
 
@@ -364,8 +317,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
       await expect(adjustLedgerAccountBalance(payload)).rejects.toThrow(
         ledgerAppError.BalanceNotFound
       );
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
-      expect(mockOutboxRepo.delete).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     }
   );
 
@@ -382,7 +334,7 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     await expect(adjustLedgerAccountBalance(payload)).rejects.toThrow(
       ledgerAppError.BalanceHierarchyChanged
     );
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
 
   it('propagates a preparation repository failure unchanged', async () => {
@@ -392,23 +344,24 @@ describe('makeAdjustLedgerAccountBalanceUseCase', () => {
     );
 
     await expect(adjustLedgerAccountBalance(payload)).rejects.toBe(failure);
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
 
-  it('does not delete the outbox when an adjustment write fails', async () => {
+  it('handles an adjustment write failure without committing', async () => {
     const failure = new Error('write failed');
     mockLedgerAccountBalanceRepo.adjustBalance.mockRejectedValueOnce(failure);
 
     await expect(adjustLedgerAccountBalance(payload)).rejects.toBe(failure);
-    expect(mockOutboxRepo.delete).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
   });
 
-  it('rejects an invalid journal trigger before querying the outbox', async () => {
+  it('rejects an invalid journal trigger before reading the journal', async () => {
     await expect(
       adjustLedgerAccountBalance({ journalEntryId: 'invalid' as TEntityId })
     ).rejects.toThrow();
 
-    expect(mockOutboxRepo.findByIdAndType).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockJournalEntryRepo.findById).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
   });
 });

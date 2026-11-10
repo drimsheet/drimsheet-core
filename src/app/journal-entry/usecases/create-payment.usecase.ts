@@ -50,7 +50,6 @@ import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
@@ -64,7 +63,6 @@ interface IDependencies {
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
   eventBus: IEventBus;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   fxCostBasisLotService: IFxCostBasisLotService;
   exchangeRateAppService: IExchangeRateAppService;
@@ -226,14 +224,6 @@ export default function makeCreatePaymentUsecase(deps: IDependencies) {
         await deps.fxCostBasisPersistenceAppService.persistDisposition(
           fxResult,
           actor.id,
-          writeOptions
-        );
-      }
-
-      if (shouldUpdateBalance) {
-        // WHY??? Why not add directly to the queue
-        await deps.outboxAppService.createBalancePropagation(
-          journalEntry.id,
           writeOptions
         );
       }

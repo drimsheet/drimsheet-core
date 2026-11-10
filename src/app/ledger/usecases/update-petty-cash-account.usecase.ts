@@ -51,7 +51,6 @@ import openingBalanceExchangeRateGetterHelper from '@app/ledger/usecases/helpers
 import prepareOpeningBalanceEditHelper from '@app/ledger/usecases/helpers/prepare-opening-balance-edit.helper';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
@@ -70,7 +69,6 @@ interface IDependencies {
   exchangeRateAppService: IExchangeRateAppService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
 }
 
@@ -205,13 +203,6 @@ export default function makeUpdatePettyCashAccountUseCase(
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
           fxAcquisition,
           actor.id,
-          transactionOptions
-        );
-      }
-
-      if (postedJournal) {
-        await deps.outboxAppService.createBalancePropagation(
-          postedJournal.id,
           transactionOptions
         );
       }

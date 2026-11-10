@@ -38,7 +38,6 @@ import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/jou
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 
@@ -51,7 +50,6 @@ interface IDependencies {
   journalEntryRemovalService: IJournalEntryRemovalService;
   journalEntryRepo: IJournalEntryRepo;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
-  outboxAppService: IOutboxAppService;
   repoService: IRepoService;
 }
 
@@ -124,11 +122,6 @@ export default function makeDeleteJournalEntryUsecase(deps: IDependencies) {
           writeOptions
         );
       }
-
-      await deps.outboxAppService.createBalancePropagation(
-        reversingJournalEntry.id,
-        writeOptions
-      );
 
       await transaction.commit();
 
