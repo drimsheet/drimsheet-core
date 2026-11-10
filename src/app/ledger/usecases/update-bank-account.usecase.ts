@@ -42,13 +42,13 @@ import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.se
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
-import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import { IBankAccountUpdateReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { bankAccountUpdateReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
+import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';
 import openingBalanceExchangeRateGetterHelper from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
 import prepareOpeningBalanceEditHelper from '@app/ledger/usecases/helpers/prepare-opening-balance-edit.helper';
 import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
@@ -72,7 +72,6 @@ interface IDependencies {
   fxCostBasisLotService: IFxCostBasisLotService;
   exchangeRateAppService: IExchangeRateAppService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
-  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
   outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
@@ -261,9 +260,10 @@ export default function makeUpdateBankAccountUsecase(
         );
       }
 
-      const [response] = await deps.balanceEnrichmentAppService.enrich(
+      const [response] = await loadLedgerAccountDtosWithBalancesHelper(
+        deps.ledgerAccountBalanceRepo,
         [account],
-        accountingEntity,
+        accountingEntity.id,
         repoOptions
       );
       return response;

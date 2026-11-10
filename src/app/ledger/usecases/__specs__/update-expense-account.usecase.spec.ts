@@ -3,15 +3,18 @@ import { TEntityId } from '@shared/types/uuid';
 import repoError from '@shared/values/errors/repo.error';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import { mockExpenseAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import {
+  mockLedgerAccountBalanceRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import makeUpdateExpenseAccountUsecase from '@app/ledger/usecases/update-expense-account.usecase';
 
@@ -48,7 +51,7 @@ const usecase = makeUpdateExpenseAccountUsecase({
   eventBus: mockEventBus,
   ledgerAccountRepo: mockLedgerAccountRepo,
   expenseAccountService: mockExpenseAccountService,
-  balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
+  ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
 });
 
 describe('update expense account workflow', () => {
@@ -64,12 +67,16 @@ describe('update expense account workflow', () => {
     mockExpenseAccountService.update.mockReturnValue(
       ledgerAccountEntity.update(account, { name: 'Advisory' })
     );
-    mockBalanceEnrichmentAppService.enrich.mockImplementation(
-      async (accounts) =>
-        accounts.map((current) =>
-          ledgerAccountToDtoMapperHelper(current, null, 'NGN')
-        )
-    );
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      ledgerAccountBalanceEntity.make({
+        createdBy: account.createdBy,
+        ledgerAccountId: account.id,
+        accountingEntityId: account.accountingEntityId,
+        accountMaterializedPath: account.materializedPath,
+        currencyCode: 'NGN',
+        functionalCurrencyCode: 'NGN',
+      }),
+    ]);
   });
 
   it('scopes the read and persists one versioned audit before publishing and enriching', async () => {
@@ -110,13 +117,14 @@ describe('update expense account workflow', () => {
       mockLedgerAccountRepo.update.mock.invocationCallOrder[0]
     ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
     expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
-      mockBalanceEnrichmentAppService.enrich.mock.invocationCallOrder[0]
+      mockLedgerAccountBalanceRepo.findAllByAccountIds.mock
+        .invocationCallOrder[0]
     );
-    expect(mockBalanceEnrichmentAppService.enrich).toHaveBeenCalledWith(
-      [updated],
-      accountingEntity,
-      { correlationId }
-    );
+    expect(
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).toHaveBeenCalledWith(accountingEntity.id, [updated.id], {
+      correlationId,
+    });
     expect(response).toEqual(
       ledgerAccountToDtoMapperHelper(updated, null, 'NGN')
     );
@@ -128,11 +136,11 @@ describe('update expense account workflow', () => {
     await usecase(account.id, { name: '  Consulting  ' });
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-    expect(mockBalanceEnrichmentAppService.enrich).toHaveBeenCalledWith(
-      [account],
-      accountingEntity,
-      { correlationId }
-    );
+    expect(
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).toHaveBeenCalledWith(accountingEntity.id, [account.id], {
+      correlationId,
+    });
   });
 
   it('rejects malformed IDs and payloads before reading', async () => {
@@ -169,7 +177,9 @@ describe('update expense account workflow', () => {
     );
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
-    expect(mockBalanceEnrichmentAppService.enrich).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).not.toHaveBeenCalled();
   });
 
   it('propagates read failures without writing', async () => {
@@ -189,7 +199,9 @@ describe('update expense account workflow', () => {
         failure
       );
       expect(mockEventBus.publish).not.toHaveBeenCalled();
-      expect(mockBalanceEnrichmentAppService.enrich).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceRepo.findAllByAccountIds
+      ).not.toHaveBeenCalled();
     }
   );
 
@@ -200,12 +212,14 @@ describe('update expense account workflow', () => {
       failure
     );
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledTimes(1);
-    expect(mockBalanceEnrichmentAppService.enrich).not.toHaveBeenCalled();
+    expect(
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).not.toHaveBeenCalled();
   });
 
   it('propagates enrichment failure after the write and publication', async () => {
     const failure = new Error('enrichment failed');
-    mockBalanceEnrichmentAppService.enrich.mockRejectedValue(failure);
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockRejectedValue(failure);
     await expect(usecase(account.id, { name: 'Advisory' })).rejects.toBe(
       failure
     );

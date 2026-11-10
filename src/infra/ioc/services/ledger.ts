@@ -23,7 +23,6 @@ import makeServicesAccountService from '@domain/ledger/services/revenue-account/
 import makeUnrealizedGainAccountService from '@domain/ledger/services/revenue-account/unrealized-gain.service';
 import makeSuspenseAccountService from '@domain/ledger/services/suspense-account/suspense-account.service';
 
-import makeLedgerAccountBalanceEnrichmentAppService from '@app/ledger/services/ledger-account-balance-enrichment.service';
 import makeLedgerAccountPersistenceAppService from '@app/ledger/services/ledger-account-persistence.service';
 
 import observability from '@infra/observability';
@@ -154,10 +153,5 @@ export const ledgerAccountPersistenceAppService =
   });
 
 export { default as ledgerAccountBalanceAdjustmentService } from '@domain/ledger/services/ledger-account-balance-adjustment.service';
-
-export const ledgerAccountBalanceEnrichmentAppService =
-  makeLedgerAccountBalanceEnrichmentAppService({
-    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
-  });
 
 export const ledgerAccountBalanceService = makeLedgerAccountBalanceService();

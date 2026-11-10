@@ -54,7 +54,6 @@ import {
   grantsAccountService,
   interestAccountService,
   ledgerAccountBalanceAdjustmentService,
-  ledgerAccountBalanceEnrichmentAppService,
   ledgerAccountBalanceService,
   ledgerAccountPersistenceAppService,
   ledgerAccountService,
@@ -177,7 +176,7 @@ export const getLedgerAccountsUseCase = makeTracedUseCase(
   makeGetLedgerAccountsUsecase({
     appContext: appContext,
     ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -186,7 +185,7 @@ export const getChartOfAccountsUseCase = makeTracedUseCase(
   makeGetChartOfAccountsUsecase({
     appContext,
     ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -195,7 +194,7 @@ export const getPermittedPostingAccountsUseCase = makeTracedUseCase(
   makeGetPermittedPostingAccountsUsecase({
     appContext,
     ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -213,7 +212,7 @@ export const getLedgerAccountUseCase = makeTracedUseCase(
   makeGetLedgerAccountUseCase({
     appContext: appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -232,7 +231,7 @@ export const getLedgerSubAccountsUseCase = makeTracedUseCase(
     appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -292,7 +291,6 @@ export const updatePettyCashAccountUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     journalEntryPersistenceAppService,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
     fxCostBasisPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -315,7 +313,6 @@ export const updateBankAccountUseCase = makeTracedUseCase(
     fxCostBasisLotService,
     exchangeRateAppService,
     journalEntryPersistenceAppService,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
     fxCostBasisPersistenceAppService,
     outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
@@ -393,7 +390,7 @@ export const updateRevenueAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     revenueAccountService,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -404,7 +401,7 @@ export const updateExpenseAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     expenseAccountService,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 

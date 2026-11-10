@@ -1,7 +1,6 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
-import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { ILedgerAccountBalance } from '@domain/ledger/types/ledger-account-balance.types';
 import {
   EAdjunctAccountRule,
@@ -17,27 +16,15 @@ import moneyValue from '@domain/money/values/money.vo';
 
 import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import makeLedgerAccountBalanceEnrichmentAppService from '@app/ledger/services/ledger-account-balance-enrichment.service';
+import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';
 
-describe('ledgerAccountBalanceEnrichmentAppService', () => {
+describe('loadLedgerAccountDtosWithBalancesHelper', () => {
   const accountingEntityId =
     '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
   const userId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
   const timestamp = new Date('2026-08-09T10:00:00.000Z');
   const repoOptions: IReadRepoOptions = {
     correlationId: 'balance-enrichment-correlation-id',
-  };
-  const accountingEntity: IAccountingEntity = {
-    createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-    id: accountingEntityId,
-    ownerId: userId,
-    name: 'Balance Enrichment Entity',
-    type: 'individual',
-    status: 'active',
-    functionalCurrencyCode: SYSTEM_CURRENCIES.USD.code,
-    jurisdictionCode: 'US',
-    createdAt: timestamp,
-    updatedAt: timestamp,
   };
 
   function makeAccount(
@@ -104,9 +91,6 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
     '100003',
     null
   );
-  const service = makeLedgerAccountBalanceEnrichmentAppService({
-    ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
-  });
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -114,7 +98,12 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
 
   it('returns an empty array without reading balances for empty input', async () => {
     await expect(
-      service.enrich([], accountingEntity, repoOptions)
+      loadLedgerAccountDtosWithBalancesHelper(
+        mockLedgerAccountBalanceRepo,
+        [],
+        accountingEntityId,
+        repoOptions
+      )
     ).resolves.toEqual([]);
 
     expect(
@@ -128,9 +117,10 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
       balance,
     ]);
 
-    const result = await service.enrich(
+    const result = await loadLedgerAccountDtosWithBalancesHelper(
+      mockLedgerAccountBalanceRepo,
       [firstAccount],
-      accountingEntity,
+      accountingEntityId,
       repoOptions
     );
 
@@ -168,9 +158,10 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
       firstBalance,
     ]);
 
-    const result = await service.enrich(
+    const result = await loadLedgerAccountDtosWithBalancesHelper(
+      mockLedgerAccountBalanceRepo,
       [firstAccount, secondAccount],
-      accountingEntity,
+      accountingEntityId,
       repoOptions
     );
 
@@ -203,9 +194,10 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
         firstBalance,
       ]);
 
-      const result = service.enrich(
+      const result = loadLedgerAccountDtosWithBalancesHelper(
+        mockLedgerAccountBalanceRepo,
         [firstAccount, missingAccount],
-        accountingEntity,
+        accountingEntityId,
         repoOptions
       );
 
@@ -224,7 +216,12 @@ describe('ledgerAccountBalanceEnrichmentAppService', () => {
     mockLedgerAccountBalanceRepo.findAllByAccountIds.mockRejectedValue(failure);
 
     await expect(
-      service.enrich([firstAccount], accountingEntity, repoOptions)
+      loadLedgerAccountDtosWithBalancesHelper(
+        mockLedgerAccountBalanceRepo,
+        [firstAccount],
+        accountingEntityId,
+        repoOptions
+      )
     ).rejects.toBe(failure);
   });
 });

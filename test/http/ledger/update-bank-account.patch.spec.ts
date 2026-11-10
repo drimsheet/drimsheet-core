@@ -27,7 +27,6 @@ import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockBalanceQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
@@ -35,7 +34,6 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
@@ -141,16 +139,18 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
     mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
-    mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(
-      ledgerAccountBalanceEntity.make({
-        createdBy: account.createdBy,
-        ledgerAccountId: account.id,
-        accountingEntityId: account.accountingEntityId,
-        accountMaterializedPath: account.materializedPath,
-        currencyCode: 'NGN',
-        functionalCurrencyCode: 'NGN',
-      })
-    );
+    const balance = ledgerAccountBalanceEntity.make({
+      createdBy: account.createdBy,
+      ledgerAccountId: account.id,
+      accountingEntityId: account.accountingEntityId,
+      accountMaterializedPath: account.materializedPath,
+      currencyCode: 'NGN',
+      functionalCurrencyCode: 'NGN',
+    });
+    mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(balance);
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      balance,
+    ]);
     mockLedgerAccountService.validateCurrencyChange.mockResolvedValue(
       undefined
     );
@@ -170,12 +170,6 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
       throw error;
     });
     mockLedgerAccountRepo.findById.mockResolvedValue(account);
-    mockBalanceEnrichmentAppService.enrich.mockImplementation(
-      async (accounts) =>
-        accounts.map((current) =>
-          ledgerAccountToDtoMapperHelper(current, null, 'NGN')
-        )
-    );
     update.mockImplementation(
       makeUpdateBankAccountUsecase({
         appContext,
@@ -192,7 +186,6 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
         exchangeRateAppService: mockExchangeRateAppService,
         journalEntryPersistenceAppService:
           mockJournalEntryPersistenceAppService,
-        balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
         fxCostBasisPersistenceAppService: mockFxCostBasisService.persistence,
         outboxAppService: mockOutboxAppService,
         ledgerBalanceAdjustmentQueue: mockBalanceQueue,

@@ -22,22 +22,23 @@ import eventValue from '@shared/values/events/event.vo';
 import historyValue from '@shared/values/history/history.vo';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import IRevenueAccountService from '@domain/ledger/types/revenue-account.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IUpdateRevenueAccountDto } from '@app/ledger/dtos/revenue-account/revenue-account.dto';
 import { updateRevenueAccountValidation } from '@app/ledger/dtos/revenue-account/revenue-account.dto.validation';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
+import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   eventBus: IEventBus;
   ledgerAccountRepo: ILedgerAccountRepo;
   revenueAccountService: IRevenueAccountService;
-  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
+  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
 }
 
 export default function makeUpdateRevenueAccountUsecase(deps: IDependencies) {
@@ -81,9 +82,10 @@ export default function makeUpdateRevenueAccountUsecase(deps: IDependencies) {
       );
     }
 
-    const [response] = await deps.balanceEnrichmentAppService.enrich(
+    const [response] = await loadLedgerAccountDtosWithBalancesHelper(
+      deps.ledgerAccountBalanceRepo,
       [account],
-      accountingEntity,
+      accountingEntity.id,
       repoOptions
     );
     return response;

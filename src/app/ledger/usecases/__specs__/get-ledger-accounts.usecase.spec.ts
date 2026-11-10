@@ -3,6 +3,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import makeCashAccountService from '@domain/ledger/services/asset-account/cash-account.service';
 import { ICashAndCashEquivalentAccount } from '@domain/ledger/types/asset-account.types';
@@ -10,17 +11,14 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
+  mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import {
-  IGetLedgerAccountsQuery,
-  ILedgerAccountDto,
-} from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import { IGetLedgerAccountsQuery } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
 
 describe('makeGetLedgerAccountsUsecase', () => {
@@ -28,7 +26,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
     makeGetLedgerAccountsUsecase({
       appContext: mockAppContext,
       ledgerAccountQueryRepo: mockLedgerAccountQueryRepo,
-      balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
+      ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     });
 
   const usdCurrency = currencyEntity.getByCode('USD');
@@ -95,7 +93,6 @@ describe('makeGetLedgerAccountsUsecase', () => {
       correlationId,
       accountingEntity,
     } as IAppContextData);
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([]);
   });
 
   it('throws ZodError for invalid query', async () => {
@@ -109,7 +106,7 @@ describe('makeGetLedgerAccountsUsecase', () => {
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
   });
 
@@ -123,8 +120,8 @@ describe('makeGetLedgerAccountsUsecase', () => {
     const result = await useCase(validQuery);
 
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
-    ).toHaveBeenCalledWith([], accountingEntity, { correlationId });
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).not.toHaveBeenCalled();
     expect(result).toEqual({
       data: [],
       meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
@@ -136,18 +133,18 @@ describe('makeGetLedgerAccountsUsecase', () => {
       data: [ledgerAccount, controlAccount],
       meta: { page: 1, limit: 10, total: 2, totalPages: 1 },
     });
-    const enrichedDtos = [
-      {
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        id: ledgerAccount.id,
-      },
-      {
-        createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-        id: controlAccount.id,
-      },
-    ] as ILedgerAccountDto[];
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue(
-      enrichedDtos
+    const accounts = [ledgerAccount, controlAccount];
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue(
+      accounts.map((account) =>
+        ledgerAccountBalanceEntity.make({
+          createdBy: account.createdBy,
+          ledgerAccountId: account.id,
+          accountingEntityId: account.accountingEntityId,
+          accountMaterializedPath: account.materializedPath,
+          currencyCode: 'USD',
+          functionalCurrencyCode: 'USD',
+        })
+      )
     );
 
     const useCase = getUseCase();
@@ -168,12 +165,18 @@ describe('makeGetLedgerAccountsUsecase', () => {
       }
     );
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
-    ).toHaveBeenCalledWith([ledgerAccount, controlAccount], accountingEntity, {
-      correlationId,
-    });
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).toHaveBeenCalledWith(
+      accountingEntity.id,
+      [ledgerAccount.id, controlAccount.id],
+      {
+        correlationId,
+      }
+    );
     expect(result).toEqual({
-      data: enrichedDtos,
+      data: accounts.map((account) =>
+        expect.objectContaining({ id: account.id, name: account.name })
+      ),
       meta: { page: 1, limit: 10, total: 2, totalPages: 1 },
     });
   });

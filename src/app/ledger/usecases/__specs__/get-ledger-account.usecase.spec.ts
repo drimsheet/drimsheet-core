@@ -1,6 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import {
   EAdjunctAccountRule,
@@ -13,9 +14,10 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import {
+  mockLedgerAccountBalanceRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
 
 describe('getLedgerAccountUseCase', () => {
@@ -28,7 +30,7 @@ describe('getLedgerAccountUseCase', () => {
   const useCase = makeGetLedgerAccountUseCase({
     appContext: mockAppContext,
     ledgerAccountRepo: mockLedgerAccountRepo,
-    balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   });
 
   const mockAccountingEntity = {
@@ -58,8 +60,17 @@ describe('getLedgerAccountUseCase', () => {
   const [mockLedgerAccount] =
     ledgerAccountEntity.make<ILedgerAccount>(validAccountData);
   const accountWithId = { ...mockLedgerAccount, id: mockAccountId };
+  const balance = ledgerAccountBalanceEntity.make({
+    createdBy: accountWithId.createdBy,
+    ledgerAccountId: accountWithId.id,
+    accountingEntityId: mockAccountingEntityId,
+    accountMaterializedPath: accountWithId.materializedPath,
+    currencyCode: SYSTEM_CURRENCIES.EUR.code,
+    functionalCurrencyCode: SYSTEM_CURRENCIES.USD.code,
+    amount: 10000n,
+    functionalAmount: 12000n,
+  });
   const enrichedDto = {
-    createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
     id: mockAccountId,
     balance: {
       amount: 10000,
@@ -71,7 +82,7 @@ describe('getLedgerAccountUseCase', () => {
       currencyCode: SYSTEM_CURRENCIES.USD.code,
       isMinorUnit: true,
     },
-  } as ILedgerAccountDto;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -86,8 +97,8 @@ describe('getLedgerAccountUseCase', () => {
         clearRefreshToken: jest.fn(),
       },
     } as unknown as ReturnType<typeof mockAppContext.get>);
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([
-      enrichedDto,
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      balance,
     ]);
   });
 
@@ -99,7 +110,7 @@ describe('getLedgerAccountUseCase', () => {
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
   });
 
@@ -115,26 +126,26 @@ describe('getLedgerAccountUseCase', () => {
       { correlationId }
     );
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
   });
 
-  it('enriches the selected account and returns the service dto', async () => {
+  it('enriches the selected account and returns its stored balances', async () => {
     mockLedgerAccountRepo.findById.mockResolvedValue(accountWithId);
 
     const result = await useCase(mockAccountId);
 
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
-    ).toHaveBeenCalledWith([accountWithId], mockAccountingEntity, {
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).toHaveBeenCalledWith(mockAccountingEntity.id, [accountWithId.id], {
       correlationId,
     });
     expect(
       mockLedgerAccountRepo.findById.mock.invocationCallOrder[0]
     ).toBeLessThan(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich.mock
+      mockLedgerAccountBalanceRepo.findAllByAccountIds.mock
         .invocationCallOrder[0]
     );
-    expect(result).toBe(enrichedDto);
+    expect(result).toMatchObject(enrichedDto);
   });
 });

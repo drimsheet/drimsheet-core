@@ -25,7 +25,6 @@ import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import {
   mockAssetAccountService,
@@ -36,7 +35,6 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import makeAdjustLedgerAccountBalanceUseCase from '@app/ledger/usecases/adjust-ledger-account-balance.usecase';
 import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
@@ -111,7 +109,6 @@ const deps = {
   fxCostBasisLotService: mockFxCostBasisLotService,
   exchangeRateAppService: mockExchangeRateAppService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
-  balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
   outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
@@ -131,7 +128,7 @@ describe('update bank account workflow', () => {
     mockLedgerAccountBalanceService.updateBalance.mockImplementation(
       makeLedgerAccountBalanceService().updateBalance
     );
-    mockLedgerAccountBalanceRepo.findByAccountId.mockImplementation(async () =>
+    const makeBalance = () =>
       ledgerAccountBalanceEntity.make({
         createdBy: account.createdBy,
         ledgerAccountId: account.id,
@@ -139,7 +136,12 @@ describe('update bank account workflow', () => {
         accountMaterializedPath: account.materializedPath,
         currencyCode: 'NGN',
         functionalCurrencyCode: 'NGN',
-      })
+      });
+    mockLedgerAccountBalanceRepo.findByAccountId.mockImplementation(async () =>
+      makeBalance()
+    );
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockImplementation(
+      async () => [makeBalance()]
     );
     mockAppContext.get.mockReturnValue({
       actor,
@@ -163,11 +165,6 @@ describe('update bank account workflow', () => {
               }
             : account.meta,
         })
-    );
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockImplementation(
-      async ([updated]) => [
-        { id: updated.id, name: updated.name } as ILedgerAccountDto,
-      ]
     );
   });
 
@@ -643,7 +640,7 @@ describe('update bank account workflow', () => {
       mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
     ).toBeGreaterThan(commitOrder);
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
 
     // Run the queued journal through the balance worker using the saved balance.
@@ -784,7 +781,7 @@ describe('update bank account workflow', () => {
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
   });
 

@@ -16,8 +16,9 @@
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
+
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ILedgerAccountQueryRepo from '@app/ledger/contracts/ledger-account.query.repo.contract';
 import {
   IChartOfAccountsNodeDto,
@@ -25,11 +26,12 @@ import {
 } from '@app/ledger/dtos/chart-of-accounts/chart-of-accounts.dto';
 import chartOfAccountsMapper from '@app/ledger/dtos/chart-of-accounts/chart-of-accounts.dto.mapper';
 import { getChartOfAccountsQueryValidationSchema } from '@app/ledger/dtos/chart-of-accounts/chart-of-accounts.dto.validation';
+import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   ledgerAccountQueryRepo: ILedgerAccountQueryRepo;
-  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
+  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
 }
 
 export default function makeGetChartOfAccountsUsecase(deps: IDependencies) {
@@ -47,9 +49,10 @@ export default function makeGetChartOfAccountsUsecase(deps: IDependencies) {
       query.class,
       repoOptions
     );
-    const accountDtos = await deps.balanceEnrichmentAppService.enrich(
+    const accountDtos = await loadLedgerAccountDtosWithBalancesHelper(
+      deps.ledgerAccountBalanceRepo,
       accounts,
-      accountingEntity,
+      accountingEntity.id,
       repoOptions
     );
 
