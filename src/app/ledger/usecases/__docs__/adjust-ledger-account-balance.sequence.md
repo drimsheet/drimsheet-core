@@ -5,7 +5,7 @@ sequenceDiagram
     actor Worker as Balance Worker
     participant Adjust as Adjust Ledger Account Balance
     participant Records as Accounting Records
-    participant Preparation as Balance Adjustment Preparation
+    participant Adjustment as Balance Adjustment Domain Service
     participant Reporting as Operational Reporting
 
     Worker->>Adjust: Journal-entry ID
@@ -15,10 +15,16 @@ sequenceDiagram
         Adjust->>Reporting: Report missing balance-propagation work
         Adjust-->>Worker: Complete without adjustments
     else Pending work exists
-        Adjust->>Preparation: Prepare journal balance effects
-        Preparation->>Records: Request journal, affected accounts, ancestors, and balances
-        Records-->>Preparation: Journal and current balance facts
-        Preparation-->>Adjust: Validated account adjustments
+        Adjust->>Records: Request journal
+        Records-->>Adjust: Journal
+        Adjust->>Adjustment: Resolve eligible journal's direct account IDs
+        Adjustment-->>Adjust: Direct account IDs
+        Adjust->>Records: Request affected accounts and ancestors
+        Records-->>Adjust: Account hierarchy
+        Adjust->>Adjustment: Calculate balance deltas
+        Adjustment-->>Adjust: Account balance deltas
+        Adjust->>Records: Request current balances
+        Records-->>Adjust: Current balances and versions
         Adjust->>Records: Save adjustments and remove pending work together
         Records-->>Adjust: Balance changes committed
         Adjust-->>Worker: Complete

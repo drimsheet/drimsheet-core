@@ -10,7 +10,6 @@ import makeInterestAccountService from '@domain/ledger/services/expense-account/
 import makeRentAndUtilitiesAccountService from '@domain/ledger/services/expense-account/rent-and-utilities.service';
 import makeTaxExpenseAccountService from '@domain/ledger/services/expense-account/tax-expense.service';
 import makeUnrealizedLossAccountService from '@domain/ledger/services/expense-account/unrealized-loss.service';
-import ledgerAccountBalanceAdjustmentService from '@domain/ledger/services/ledger-account-balance-adjustment.service';
 import makeLedgerAccountBalanceService from '@domain/ledger/services/ledger-account-balance.service';
 import makeLedgerAccountService from '@domain/ledger/services/ledger-account.service';
 import makePayablesAccountService from '@domain/ledger/services/liability-account/payables.service';
@@ -26,7 +25,6 @@ import makeSuspenseAccountService from '@domain/ledger/services/suspense-account
 
 import makeLedgerAccountBalanceEnrichmentAppService from '@app/ledger/services/ledger-account-balance-enrichment.service';
 import makeLedgerAccountPersistenceAppService from '@app/ledger/services/ledger-account-persistence.service';
-import makeLedgerBalancePropagationPreparationAppService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
 
 import observability from '@infra/observability';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
@@ -155,13 +153,7 @@ export const ledgerAccountPersistenceAppService =
     repoService,
   });
 
-export const ledgerBalancePropagationPreparationAppService =
-  makeLedgerBalancePropagationPreparationAppService({
-    journalEntryRepo: journalEntryRepos.journalEntry,
-    ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
-    ledgerAccountBalanceAdjustmentService,
-  });
+export { default as ledgerAccountBalanceAdjustmentService } from '@domain/ledger/services/ledger-account-balance-adjustment.service';
 
 export const ledgerAccountBalanceEnrichmentAppService =
   makeLedgerAccountBalanceEnrichmentAppService({

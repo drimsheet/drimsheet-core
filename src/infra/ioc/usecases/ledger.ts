@@ -53,11 +53,11 @@ import {
   giftsAccountService,
   grantsAccountService,
   interestAccountService,
+  ledgerAccountBalanceAdjustmentService,
   ledgerAccountBalanceEnrichmentAppService,
   ledgerAccountBalanceService,
   ledgerAccountPersistenceAppService,
   ledgerAccountService,
-  ledgerBalancePropagationPreparationAppService,
   payablesAccountService,
   receivablesAccountService,
   rentAndUtilitiesAccountService,
@@ -242,9 +242,10 @@ export const adjustLedgerAccountBalanceUseCase = makeTracedUseCase(
     appContext,
     repoService,
     outboxRepo,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
-    balancePropagationPreparationAppService:
-      ledgerBalancePropagationPreparationAppService,
+    ledgerAccountBalanceAdjustmentService,
     reporter: observability.reporter,
   })
 );

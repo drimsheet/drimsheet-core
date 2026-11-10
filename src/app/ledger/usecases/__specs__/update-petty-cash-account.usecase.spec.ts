@@ -2,6 +2,8 @@ import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import mockRepoService, {
   mockRepoTransaction,
 } from '@shared/contracts/__mocks__/repo.mock';
+import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
+import { EOutboxType } from '@shared/types/outbox.types';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 import repoError from '@shared/values/errors/repo.error';
@@ -35,9 +37,10 @@ import {
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import makeLedgerBalancePropagationPreparationAppService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
+import makeAdjustLedgerAccountBalanceUseCase from '@app/ledger/usecases/adjust-ledger-account-balance.usecase';
 import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty-cash-account.usecase';
 import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import mockOutboxRepo from '@app/outbox/contracts/__mocks__/outbox.repo.mock';
 import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
@@ -511,7 +514,7 @@ describe('update petty cash account workflow', () => {
       mockLedgerAccountBalanceEnrichmentAppService.enrich
     ).not.toHaveBeenCalled();
 
-    // Run the queued journal through the real propagation preparation using the saved balance.
+    // Run the queued journal through the balance worker using the saved balance.
     const [savedBalance] = mockLedgerAccountBalanceRepo.update.mock.calls[0];
     const [savedAccount] = mockLedgerAccountRepo.update.mock.calls[0];
     const parent: ILedgerAccount = {
@@ -550,24 +553,36 @@ describe('update petty cash account workflow', () => {
       savedBalance,
       parentBalance,
     ]);
-    const propagation = makeLedgerBalancePropagationPreparationAppService({
+    mockOutboxRepo.findByIdAndType.mockResolvedValueOnce({
+      id: creation[0].id,
+      correlationId,
+      type: EOutboxType.BalancePropagation,
+      data: null,
+      createdAt: new Date(),
+    });
+    mockRepoService.runInTransaction.mockImplementationOnce((fn) =>
+      fn(mockRepoTransaction.context)
+    );
+    const adjustLedgerAccountBalance = makeAdjustLedgerAccountBalanceUseCase({
+      appContext: mockAppContext,
+      repoService: mockRepoService,
+      outboxRepo: mockOutboxRepo,
       journalEntryRepo: mockJournalEntryRepo,
       ledgerAccountRepo: mockLedgerAccountRepo,
       ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
       ledgerAccountBalanceAdjustmentService,
+      reporter: mockReporter,
     });
-    const adjustments = await propagation.prepare(creation[0].id, {
-      correlationId,
-    });
+    await adjustLedgerAccountBalance({ journalEntryId: creation[0].id });
+
+    const adjustments = mockLedgerAccountBalanceRepo.adjustBalance.mock.calls;
     expect(adjustments).toHaveLength(2);
     expect(
       adjustments.find(
-        (item) =>
-          item.balanceAdjustment.newBalance.ledgerAccountId === account.id
+        ([adjustment]) => adjustment.newBalance.ledgerAccountId === account.id
       )
-    ).toMatchObject({
-      expectedVersion: 2,
-      balanceAdjustment: {
+    ).toMatchObject([
+      {
         newBalance: {
           amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.USD },
           functionalAmount: {
@@ -576,20 +591,20 @@ describe('update petty cash account workflow', () => {
           },
         },
       },
-    });
+      { ...transactionOptions, expectedVersion: 2 },
+    ]);
     expect(
       adjustments.find(
-        (item) =>
-          item.balanceAdjustment.newBalance.ledgerAccountId === parent.id
+        ([adjustment]) => adjustment.newBalance.ledgerAccountId === parent.id
       )
-    ).toMatchObject({
-      expectedVersion: 1,
-      balanceAdjustment: {
+    ).toMatchObject([
+      {
         newBalance: {
           amount: { amount: 37_500_000n, currency: SYSTEM_CURRENCIES.NGN },
         },
       },
-    });
+      { ...transactionOptions, expectedVersion: 1 },
+    ]);
   });
 
   it('locks opening-balance edits after any posting', async () => {
