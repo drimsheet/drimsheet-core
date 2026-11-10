@@ -21,8 +21,8 @@ sequenceDiagram
             Archive->>Selection: Clear current selection
             Archive-->>Caller: Complete
         else Archival required
-            Archive->>Records: Save archival and audit; clear saved selections together
-            Records-->>Archive: Changes committed; accounting records retained
+            Archive->>Records: Save archival and audit#59; clear saved selections together
+            Records-->>Archive: Changes committed#59; accounting records retained
             Archive->>Selection: Clear current selection
             Archive->>Events: Entity archived
             Archive-->>Caller: Complete

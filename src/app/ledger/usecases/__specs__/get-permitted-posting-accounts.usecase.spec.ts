@@ -2,6 +2,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { EJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import {
   EAssetAccountBehavior,
   EAssetSubType,
@@ -25,9 +26,8 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
-import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 import makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
 
@@ -78,11 +78,6 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     deletedAt: null,
   };
 
-  const enrichedDto = {
-    createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
-    id: accountId,
-  } as ILedgerAccountDto;
-
   const validQuery: IGetPermittedPostingAccountsQuery = {
     sourceType: EJournalEntrySourceType.Receipt,
     side: 'source',
@@ -94,7 +89,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     makeGetPermittedPostingAccountsUsecase({
       appContext: mockAppContext,
       ledgerAccountQueryRepo: mockLedgerAccountQueryRepo,
-      balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
+      ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
     });
 
   beforeEach(() => {
@@ -107,7 +102,6 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       data: [],
       meta: { page: 2, limit: 5, total: 0, totalPages: 0 },
     });
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([]);
   });
 
   it('rejects an invalid request before repository reads', async () => {
@@ -121,7 +115,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
   });
 
@@ -138,7 +132,7 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     });
     expect(mockLedgerAccountQueryRepo.findAll).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
   });
 
@@ -315,12 +309,12 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
     );
   });
 
-  it('delegates an empty account page to enrichment and preserves metadata', async () => {
+  it('preserves empty page metadata without loading balances', async () => {
     const result = await getUseCase()(validQuery);
 
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
-    ).toHaveBeenCalledWith([], accountingEntity, { correlationId });
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).not.toHaveBeenCalled();
     expect(result).toEqual({
       data: [],
       meta: { page: 2, limit: 5, total: 0, totalPages: 0 },
@@ -332,19 +326,34 @@ describe('makeGetPermittedPostingAccountsUsecase', () => {
       data: [ledgerAccount],
       meta: { page: 2, limit: 5, total: 6, totalPages: 2 },
     });
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([
-      enrichedDto,
-    ]);
+    const accounts = [ledgerAccount];
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue(
+      accounts.map((account) =>
+        ledgerAccountBalanceEntity.make({
+          createdBy: account.createdBy,
+          ledgerAccountId: account.id,
+          accountingEntityId: account.accountingEntityId,
+          accountMaterializedPath: account.materializedPath,
+          currencyCode: 'USD',
+          functionalCurrencyCode: 'USD',
+        })
+      )
+    );
 
     const result = await getUseCase()(validQuery);
 
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
-    ).toHaveBeenCalledWith([ledgerAccount], accountingEntity, {
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
+    ).toHaveBeenCalledWith(accountingEntity.id, [ledgerAccount.id], {
       correlationId,
     });
     expect(result).toEqual({
-      data: [enrichedDto],
+      data: [
+        expect.objectContaining({
+          id: ledgerAccount.id,
+          name: ledgerAccount.name,
+        }),
+      ],
       meta: { page: 2, limit: 5, total: 6, totalPages: 2 },
     });
   });

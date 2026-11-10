@@ -3,19 +3,19 @@ import { and, eq } from 'drizzle-orm';
 import IUserSessionRepo from '@app/auth/contracts/user-session.repo.contract';
 
 import { userSessionsInCore as userSessions } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import userSessionMapper from '@infra/persistence/repos/auth/mappers/user-session.mapper';
 
 const userSessionRepo: IUserSessionRepo = {
   create: async (userSessionData, options) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
     const repoData = userSessionMapper.toRepo(userSessionData);
 
     await query.insert(userSessions).values(repoData);
   },
 
   findByRefreshToken: async (userId, refreshToken, options) => {
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select()
       .from(userSessions)
       .where(
@@ -33,7 +33,7 @@ const userSessionRepo: IUserSessionRepo = {
   },
 
   findAllByUserId: async (userId, options) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
 
     const result = await query
       .select()
@@ -44,7 +44,7 @@ const userSessionRepo: IUserSessionRepo = {
   },
 
   delete: async (userId, refreshToken, options) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
 
     const deleted = await query
       .delete(userSessions)
@@ -60,7 +60,7 @@ const userSessionRepo: IUserSessionRepo = {
   },
 
   deleteAllByUserId: async (userId, options) => {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
     await query.delete(userSessions).where(eq(userSessions.userId, userId));
   },
 };

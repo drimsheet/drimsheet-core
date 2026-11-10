@@ -78,6 +78,11 @@ export type TAuditedJournalEntryTransition = [
   IJournalEntryAudit | null,
 ];
 
+export interface IJournalEntryVoidResult {
+  voided: TAuditedJournalEntryTransition;
+  reversal: TAuditedJournalEntry | null;
+}
+
 export type TAuditedJournalEntryUpdate = [
   IJournalEntry,
   IEvent<IJournalEntry | IJournalLine>[],

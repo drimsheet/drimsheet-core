@@ -68,4 +68,11 @@ export default interface ICounterpartyRepo {
     accountingEntityId: TEntityId,
     options: IReadRepoOptions
   ): Promise<ICounterparty | null>;
+
+  /** Returns the matching tenant-owned records; missing IDs are omitted. */
+  findByIds(
+    ids: TEntityId[],
+    accountingEntityId: TEntityId,
+    options: IReadRepoOptions
+  ): Promise<ICounterparty[]>;
 }

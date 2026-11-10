@@ -59,14 +59,11 @@ function makeFixture() {
 }
 
 describe('opening balance validation', () => {
-  it('accepts a posting account with no existing opening balance or adjustments', () => {
+  it('accepts a posting account and configured equity', () => {
     const { account } = makeFixture();
     expect(() => {
       openingBalanceValidation.validatePostingAccount(account);
-      openingBalanceValidation.validateNoOpeningBalance(account);
-      openingBalanceValidation.validateNoBalanceAdjustments(account.id, false);
       openingBalanceValidation.validateEquityAccount(account);
-      openingBalanceValidation.validateUnpersistedAccount(account.id, false);
     }).not.toThrow();
   });
   it('rejects a control account', () => {
@@ -78,30 +75,15 @@ describe('opening balance validation', () => {
       })
     ).toThrow(journalEntryError.ControlAccountOpeningBalanceNotAllowed);
   });
-  it('rejects existing balance adjustments', () => {
-    const { account } = makeFixture();
-    expect(() =>
-      openingBalanceValidation.validateNoBalanceAdjustments(account.id, true)
-    ).toThrow(journalEntryError.ExistingOpeningBalance);
-  });
   it('rejects missing equity configuration', () => {
     expect(() =>
       openingBalanceValidation.validateEquityAccount(undefined)
     ).toThrow(journalEntryError.UnConfiguredOpeningBalanceAccount);
   });
-  it('rejects an existing opening date', () => {
-    const { account } = makeFixture();
-    expect(() =>
-      openingBalanceValidation.validateNoOpeningBalance({
-        ...account,
-        openingBalanceDate: new Date('2026-03-01'),
-      })
-    ).toThrow(journalEntryError.ExistingOpeningBalance);
-  });
   it('accepts an initial opening date on the same day', () => {
     const { account } = makeFixture();
     expect(() =>
-      openingBalanceValidation.validateInitialDate(
+      openingBalanceValidation.validateOpeningDateMatch(
         { ...account, openingBalanceDate: new Date('2026-03-01T10:00:00Z') },
         new Date('2026-03-01T12:00:00Z')
       )
@@ -112,17 +94,11 @@ describe('opening balance validation', () => {
     (openingBalanceDate) => {
       const { account } = makeFixture();
       expect(() =>
-        openingBalanceValidation.validateInitialDate(
+        openingBalanceValidation.validateOpeningDateMatch(
           { ...account, openingBalanceDate },
           new Date('2026-03-01')
         )
       ).toThrow(journalEntryError.InvalidOpeningBalanceDate);
     }
   );
-  it('rejects an already persisted initial account', () => {
-    const { account } = makeFixture();
-    expect(() =>
-      openingBalanceValidation.validateUnpersistedAccount(account.id, true)
-    ).toThrow(journalEntryError.InitialOpeningBalanceAccountAlreadyExists);
-  });
 });

@@ -3,6 +3,7 @@ import z from 'zod';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 
+import { journalEntryAttachmentsUpdateReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto.validation';
 import {
   exchangeRateDtoValidation,
   exchangeRateJsonDtoValidation,
@@ -22,6 +23,19 @@ export const openingBalanceDtoValidation = z.object({
 export const openingBalanceCreationReqValidation = z.object({
   ...openingBalanceDtoValidation.shape,
   accountId: z.uuid(new ledgerAccountError.InvalidId().errorKey),
+});
+
+export const updateDraftOpeningBalanceReqValidation = z.strictObject({
+  attachments: journalEntryAttachmentsUpdateReqValidation,
+  amount: openingBalanceDtoValidation.shape.amount.optional(),
+  effectiveDate: z
+    .date(new journalEntryError.InvalidEffectiveDate().errorKey)
+    .optional(),
+  exchangeRate: openingBalanceDtoValidation.shape.exchangeRate.optional(),
+  memo: z
+    .string(new journalEntryError.InvalidMemo().errorKey)
+    .nullable()
+    .optional(),
 });
 
 export const openingBalanceJsonDtoValidation =

@@ -1,6 +1,6 @@
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
-import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getLedgerAccountMaterializedPathHelper from '@domain/ledger/entities/helpers/get-materialized-path.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -65,7 +65,7 @@ function makeCreateHeader(
       accountingEntityId: payload.accountingEntity.id,
       code: LEDGER_CODE.HEADER,
       materializedPath: LEDGER_CODE.HEADER,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Liability),
       type: ELedgerType.Liability,
       subType: ELiabilitySubType.Payable,
       behavior: ELiabilityAccountBehavior.DefaultPayable,
@@ -143,7 +143,7 @@ function makeCreateStatutoryPayableSubAccount(
       repoOptions
     );
 
-    const materializedPath = getLedgerAccountMaterializedPath(
+    const materializedPath = getLedgerAccountMaterializedPathHelper(
       controlAccount.materializedPath,
       code
     );
@@ -153,7 +153,7 @@ function makeCreateStatutoryPayableSubAccount(
       accountingEntityId: payload.accountingEntity.id,
       code: code as TPayablesLedgerCode,
       materializedPath,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Liability),
       type: ELedgerType.Liability,
       subType: ELiabilitySubType.Payable,
       behavior: ELiabilityAccountBehavior.TaxPayable,
@@ -232,7 +232,7 @@ function makeCreateTradePayableAccount(
       repoOptions
     );
 
-    const materializedPath = getLedgerAccountMaterializedPath(
+    const materializedPath = getLedgerAccountMaterializedPathHelper(
       controlAccount.materializedPath,
       code
     );
@@ -242,7 +242,7 @@ function makeCreateTradePayableAccount(
       accountingEntityId: payload.accountingEntity.id,
       code: code as TPayablesLedgerCode,
       materializedPath,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Liability),
       type: ELedgerType.Liability,
       subType: ELiabilitySubType.Payable,
       behavior: ELiabilityAccountBehavior.TradePayable,

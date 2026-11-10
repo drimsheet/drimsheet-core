@@ -1,6 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import ledgerBalanceEffectRule from '@domain/accounting/rules/ledger-balance-effect.rule';
+import journalEntryValidation from '@domain/journal-entry/entities/validations/journal-entry.validation';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
@@ -105,7 +106,10 @@ function aggregateDelta(
   });
 }
 
-function calculate(journalEntry: IJournalEntry, accounts: ILedgerAccount[]) {
+function calculate(
+  linesByAccount: Map<TEntityId, IJournalLine[]>,
+  accounts: ILedgerAccount[]
+) {
   const accountsById = new Map(
     accounts.map((account) => [account.id, account])
   );
@@ -114,7 +118,7 @@ function calculate(journalEntry: IJournalEntry, accounts: ILedgerAccount[]) {
   );
   const aggregate = new Map<TEntityId, ILedgerAccountBalanceDelta>();
 
-  for (const [accountId, lines] of groupLinesByAccount(journalEntry)) {
+  for (const [accountId, lines] of linesByAccount) {
     const directAccount = accountsById.get(accountId);
 
     if (!directAccount) {
@@ -148,7 +152,24 @@ function calculate(journalEntry: IJournalEntry, accounts: ILedgerAccount[]) {
   return [...aggregate.values()];
 }
 
+/**
+ * Validates propagation eligibility before the caller loads the account
+ * hierarchy, then calculates deltas from the supplied accounts.
+ */
+const forJournal: ILedgerAccountBalanceAdjustmentService['forJournal'] = (
+  journalEntry
+) => {
+  journalEntryValidation.validateBalancePropagation(journalEntry);
+
+  const linesByAccount = groupLinesByAccount(journalEntry);
+
+  return {
+    directAccountIds: [...linesByAccount.keys()],
+    calculate: (accounts) => calculate(linesByAccount, accounts),
+  };
+};
+
 const ledgerAccountBalanceAdjustmentService: ILedgerAccountBalanceAdjustmentService =
-  Object.freeze({ calculate });
+  Object.freeze({ forJournal });
 
 export default ledgerAccountBalanceAdjustmentService;

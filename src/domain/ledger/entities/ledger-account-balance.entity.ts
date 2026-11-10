@@ -4,7 +4,7 @@ import deepFreeze from '@shared/utils/deep-freeze';
 import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import getLedgerAccountBalanceEffect from '@domain/ledger/entities/helpers/get-effect-from-amount.helper';
+import getLedgerAccountBalanceEffectHelper from '@domain/ledger/entities/helpers/get-effect-from-amount.helper';
 import ledgerAccountBalanceValidation from '@domain/ledger/entities/validations/ledger-account-balance.validation';
 import ledgerAccountValidation from '@domain/ledger/entities/validations/ledger-account.validation';
 import ledgerAccountBalanceError from '@domain/ledger/errors/ledger-account-balance.error';
@@ -240,7 +240,7 @@ function adjust(
     ledgerAccountBalanceError.InvalidCreatedBy
   );
 
-  const effect = getLedgerAccountBalanceEffect(payload.amount);
+  const effect = getLedgerAccountBalanceEffectHelper(payload.amount);
 
   const adjustment = Object.freeze({
     id: generateUUID(),

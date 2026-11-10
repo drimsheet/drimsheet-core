@@ -1,6 +1,7 @@
 import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
 import { IRepoOptions, ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import { SYSTEM_JURISDICTIONS } from '@domain/accounting/config/jurisdictions.config';
@@ -565,9 +566,52 @@ describe('journalEntryPersistenceAppService', () => {
         expect.objectContaining({ tx: 'mock-tx' })
       );
     });
+  });
 
-    it('persists prepared line additions, updates, and removals', async () => {
-      const { headerHistory, journalEntry, linesHistory } = await makeFixture();
+  describe('update', () => {
+    it('clears attachments in the same transaction as the versioned journal update', async () => {
+      const { journalEntry, headerHistory } = await makeFixture(attachments);
+      const updatedEntry = {
+        ...journalEntry,
+        attachments: [],
+        version: journalEntry.version + 1,
+      };
+
+      await service.update(
+        {
+          entry: updatedEntry,
+          expectedVersion: journalEntry.version,
+          headerHistory: {
+            ...headerHistory,
+            entityVersion: updatedEntry.version,
+            diff: { before: journalEntry, after: updatedEntry },
+          },
+          lineHistories: [],
+          linesToCreate: [],
+          linesToUpdate: [],
+          lineIdsToDelete: [],
+        },
+        mockOptions
+      );
+
+      const writeOptions = { ...mockOptions, tx: 'mock-tx' };
+      expect(mockJournalEntryRepo.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: journalEntry.id }),
+        expect.objectContaining({
+          ...writeOptions,
+          expectedVersion: journalEntry.version,
+        })
+      );
+      expect(mockJournalEntryAttachmentRepo.save).toHaveBeenCalledWith(
+        journalEntry.id,
+        [],
+        writeOptions
+      );
+    });
+
+    it('locks accounts and saves the versioned header, lines, and history in one transaction', async () => {
+      const { headerHistory, journalEntry, linesHistory } =
+        await makeFixture(attachments);
       const [firstLine, secondLine] = journalEntry.lines;
       const updatedLine = {
         ...firstLine,
@@ -576,7 +620,7 @@ describe('journalEntryPersistenceAppService', () => {
       };
       const createdLine = {
         ...secondLine,
-        id: journalEntry.lines[0].id,
+        id: generateUUID(),
       };
       const updatedEntry = {
         ...journalEntry,
@@ -584,43 +628,73 @@ describe('journalEntryPersistenceAppService', () => {
         version: journalEntry.version + 1,
       };
 
-      await service.rectify(
+      const updatedHeaderHistory = {
+        ...headerHistory,
+        entityVersion: updatedEntry.version,
+      };
+      const updatedLineHistory = {
+        ...linesHistory[0],
+        entityVersion: updatedLine.version,
+      };
+      const createdLineHistory = {
+        ...linesHistory[1],
+        entityId: createdLine.id,
+      };
+
+      await service.update(
         {
-          entriesToCreate: [],
-          entryUpdate: {
-            entry: updatedEntry,
-            expectedVersion: journalEntry.version,
-            headerHistory: {
-              ...headerHistory,
-              entityVersion: updatedEntry.version,
-            },
-            lineHistories: [
-              { ...linesHistory[0], entityVersion: updatedLine.version },
-              linesHistory[1],
-            ],
-            linesToCreate: [createdLine],
-            linesToUpdate: [updatedLine],
-            lineIdsToDelete: [secondLine.id],
-          },
+          entry: updatedEntry,
+          expectedVersion: journalEntry.version,
+          headerHistory: updatedHeaderHistory,
+          lineHistories: [updatedLineHistory, createdLineHistory],
+          linesToCreate: [createdLine],
+          linesToUpdate: [updatedLine],
+          lineIdsToDelete: [secondLine.id],
         },
         mockOptions
       );
 
+      expect(mockRepoService.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(mockLedgerAccountRepo.findAllByIds).toHaveBeenCalledWith(
+        updatedEntry.lines.map((line) => line.accountId),
+        updatedEntry.accountingEntityId,
+        { ...mockOptions, tx: 'mock-tx', lock: 'share' }
+      );
+      expect(
+        mockLedgerAccountRepo.findAllByIds.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockJournalEntryRepo.update.mock.invocationCallOrder[0]);
+      expect(mockJournalEntryRepo.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: updatedEntry.id,
+          version: updatedEntry.version,
+        }),
+        {
+          ...mockOptions,
+          tx: 'mock-tx',
+          expectedVersion: journalEntry.version,
+          history: updatedHeaderHistory,
+        }
+      );
       expect(mockJournalLineRepo.delete).toHaveBeenCalledWith(
         [secondLine.id],
         expect.objectContaining({ tx: 'mock-tx' })
       );
       expect(mockJournalLineRepo.create).toHaveBeenCalledWith(
         [createdLine],
-        expect.objectContaining({ tx: 'mock-tx' })
+        expect.objectContaining({
+          tx: 'mock-tx',
+          history: [createdLineHistory],
+        })
       );
       expect(mockJournalLineRepo.update).toHaveBeenCalledWith(
         updatedLine,
         expect.objectContaining({
           tx: 'mock-tx',
           expectedVersion: firstLine.version,
+          history: updatedLineHistory,
         })
       );
+      expect(mockJournalEntryAttachmentRepo.save).not.toHaveBeenCalled();
     });
   });
 

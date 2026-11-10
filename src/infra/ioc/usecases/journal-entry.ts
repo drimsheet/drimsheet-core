@@ -10,22 +10,30 @@ import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post
 import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-payment.usecase';
 import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
-import makeRectifyJournalEntryUsecase from '@app/journal-entry/usecases/rectify-journal-entry.usecase';
+import makeUpdateDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/update-draft-opening-balance.usecase';
+import makeUpdateDraftPaymentUsecase from '@app/journal-entry/usecases/update-draft-payment.usecase';
+import makeUpdateDraftReceiptUsecase from '@app/journal-entry/usecases/update-draft-receipt.usecase';
+import makeUpdateDraftTransferUsecase from '@app/journal-entry/usecases/update-draft-transfer.usecase';
+import makeUpdateJournalEntryMetaUsecase from '@app/journal-entry/usecases/update-journal-entry-meta.usecase';
+import makeVoidAndReplacePaymentUsecase from '@app/journal-entry/usecases/void-and-replace-payment.usecase';
+import makeVoidAndReplaceReceiptUsecase from '@app/journal-entry/usecases/void-and-replace-receipt.usecase';
+import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
+import makeVoidJournalEntryUsecase from '@app/journal-entry/usecases/void-journal-entry.usecase';
 
-import { counterpartyAppService } from '@infra/ioc/services/counterparty';
 import { fileManagementAppService } from '@infra/ioc/services/file';
 import {
+  fxCostBasisLotService,
   fxCostBasisPersistenceAppService,
-  fxLotAppService,
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceAppService,
-  journalEntryRectificationPreparationAppService,
-  journalEntryRemovalService,
   journalEntryService,
-  openingBalanceEntryAppService,
+  openingBalanceEntryService,
+  paymentEntryService,
+  receiptEntryService,
+  transferEntryService,
 } from '@infra/ioc/services/journal-entry';
-import outboxAppService from '@infra/ioc/services/outbox';
+import { exchangeRateAppService } from '@infra/ioc/services/money';
 import { repoService } from '@infra/ioc/services/repo';
 import messaging from '@infra/messaging';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
@@ -34,17 +42,135 @@ import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import appContext from '@infra/services/app-context.service';
 
+export const updateJournalEntryMetaUseCase = makeTracedUseCase(
+  'journalEntry.updateJournalEntryMetaUseCase',
+  makeUpdateJournalEntryMetaUsecase({
+    appContext,
+    fileManagementAppService,
+    journalEntryAttachmentRepo: journalEntryRepos.journalEntryAttachment,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    journalLineRepo: journalEntryRepos.journalLine,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const updateDraftOpeningBalanceUseCase = makeTracedUseCase(
+  'journalEntry.updateDraftOpeningBalanceUseCase',
+  makeUpdateDraftOpeningBalanceUsecase({
+    appContext,
+    fileManagementAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    openingBalanceEntryService,
+    journalEntryPersistenceAppService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const updateDraftPaymentUseCase = makeTracedUseCase(
+  'journalEntry.updateDraftPaymentUseCase',
+  makeUpdateDraftPaymentUsecase({
+    appContext,
+    fileManagementAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    paymentEntryService,
+    journalEntryPersistenceAppService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const updateDraftReceiptUseCase = makeTracedUseCase(
+  'journalEntry.updateDraftReceiptUseCase',
+  makeUpdateDraftReceiptUsecase({
+    appContext,
+    fileManagementAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    receiptEntryService,
+    journalEntryPersistenceAppService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const voidAndReplacePaymentUseCase = makeTracedUseCase(
+  'journalEntry.voidAndReplacePaymentUseCase',
+  makeVoidAndReplacePaymentUsecase({
+    appContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    fileManagementAppService,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    paymentEntryService,
+    journalEntryPersistenceAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
+    fxCostBasisPersistenceAppService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const voidAndReplaceReceiptUseCase = makeTracedUseCase(
+  'journalEntry.voidAndReplaceReceiptUseCase',
+  makeVoidAndReplaceReceiptUsecase({
+    appContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    fileManagementAppService,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    receiptEntryService,
+    journalEntryPersistenceAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
+    fxCostBasisPersistenceAppService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const updateDraftTransferUseCase = makeTracedUseCase(
+  'journalEntry.updateDraftTransferUseCase',
+  makeUpdateDraftTransferUsecase({
+    appContext,
+    fileManagementAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    transferEntryService,
+    journalEntryPersistenceAppService,
+    eventBus: messaging.eventBus,
+  })
+);
+
+export const voidAndReplaceTransferUseCase = makeTracedUseCase(
+  'journalEntry.voidAndReplaceTransferUseCase',
+  makeVoidAndReplaceTransferUsecase({
+    appContext,
+    counterpartyRepo: counterpartyRepos.counterparty,
+    fileManagementAppService,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    transferEntryService,
+    journalEntryPersistenceAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
+    fxCostBasisPersistenceAppService,
+    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    repoService,
+    eventBus: messaging.eventBus,
+  })
+);
+
 export const postDraftOpeningBalanceUseCase = makeTracedUseCase(
   'journalEntry.postDraftOpeningBalanceUseCase',
   makePostDraftOpeningBalanceUsecase({
     appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryRepo: journalEntryRepos.journalEntry,
-    journalEntryService,
+    openingBalanceEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -58,11 +184,11 @@ export const postDraftPaymentUseCase = makeTracedUseCase(
     counterpartyRepo: counterpartyRepos.counterparty,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryRepo: journalEntryRepos.journalEntry,
-    journalEntryService,
+    paymentEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -76,11 +202,11 @@ export const postDraftReceiptUseCase = makeTracedUseCase(
     counterpartyRepo: counterpartyRepos.counterparty,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryRepo: journalEntryRepos.journalEntry,
-    journalEntryService,
+    receiptEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -94,11 +220,11 @@ export const postDraftTransferUseCase = makeTracedUseCase(
     counterpartyRepo: counterpartyRepos.counterparty,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryRepo: journalEntryRepos.journalEntry,
-    journalEntryService,
+    transferEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -111,9 +237,10 @@ export const createOpeningBalanceUseCase = makeTracedUseCase(
     appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     eventBus: messaging.eventBus,
-    openingBalanceEntryAppService,
+    openingBalanceEntryService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     journalEntryPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     fxCostBasisPersistenceAppService,
@@ -142,13 +269,22 @@ export const deleteJournalEntryUseCase = makeTracedUseCase(
   makeDeleteJournalEntryUsecase({
     appContext,
     eventBus: messaging.eventBus,
-    fxCostBasisPersistenceAppService,
-    fxLotAppService,
     journalEntryPersistenceAppService,
-    journalEntryRemovalService,
     journalEntryRepo: journalEntryRepos.journalEntry,
+  })
+);
+
+export const voidJournalEntryUseCase = makeTracedUseCase(
+  'journalEntry.voidJournalEntryUseCase',
+  makeVoidJournalEntryUsecase({
+    appContext,
+    eventBus: messaging.eventBus,
+    fxCostBasisLotService,
+    fxCostBasisPersistenceAppService,
+    journalEntryPersistenceAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    journalEntryService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    outboxAppService,
     repoService,
   })
 );
@@ -164,18 +300,17 @@ export const getJournalEntriesUseCase = makeTracedUseCase(
 export const createPaymentUseCase = makeTracedUseCase(
   'journalEntry.createPaymentUseCase',
   makeCreatePaymentUsecase({
-    counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
-    counterpartyAppService,
+    counterpartyRepo: counterpartyRepos.counterparty,
     fileManagementAppService,
-    journalEntryService,
+    paymentEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );
@@ -183,18 +318,17 @@ export const createPaymentUseCase = makeTracedUseCase(
 export const createReceiptUseCase = makeTracedUseCase(
   'journalEntry.createReceiptUseCase',
   makeCreateReceiptUsecase({
-    counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
-    counterpartyAppService,
+    counterpartyRepo: counterpartyRepos.counterparty,
     fileManagementAppService,
-    journalEntryService,
+    receiptEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );
@@ -202,34 +336,17 @@ export const createReceiptUseCase = makeTracedUseCase(
 export const createTransferUseCase = makeTracedUseCase(
   'journalEntry.createTransferUseCase',
   makeCreateTransferUsecase({
-    counterpartyRepo: counterpartyRepos.counterparty,
     appContext,
-    counterpartyAppService,
+    counterpartyRepo: counterpartyRepos.counterparty,
     fileManagementAppService,
-    journalEntryService,
+    transferEntryService,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     journalEntryPersistenceAppService,
     repoService,
     eventBus: messaging.eventBus,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
-    fxLotAppService,
-    fxCostBasisPersistenceAppService,
-  })
-);
-
-export const rectifyJournalEntryUseCase = makeTracedUseCase(
-  'journalEntry.rectifyJournalEntryUseCase',
-  makeRectifyJournalEntryUsecase({
-    counterpartyRepo: counterpartyRepos.counterparty,
-    appContext,
-    journalEntryRepo: journalEntryRepos.journalEntry,
-    journalEntryRectificationPreparationAppService,
-    journalEntryPersistenceAppService,
-    repoService,
-    eventBus: messaging.eventBus,
-    outboxAppService,
-    ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );

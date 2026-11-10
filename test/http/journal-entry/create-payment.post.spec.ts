@@ -72,7 +72,7 @@ const validPayload: IPaymentEntryReq = {
   attachmentReferences: ['123e4567-e89b-12d3-a456-426614174009'],
   sourceLine: {
     accountId: '123e4567-e89b-12d3-a456-426614174005',
-    counterparty: { name: 'Payment Vendor' },
+    counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
     amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
     exchangeRate: null,
     description: 'Bank payment',
@@ -81,7 +81,7 @@ const validPayload: IPaymentEntryReq = {
   destinationLines: [
     {
       accountId: '123e4567-e89b-12d3-a456-426614174008',
-      counterparty: { name: 'Payment Vendor' },
+      counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
       amount: { amount: 1000, currencyCode: 'NGN', isMinorUnit: true },
       exchangeRate: null,
       description: 'Rent expense',
@@ -321,6 +321,30 @@ describe('POST /journal-entries/payment', () => {
   });
 
   describe('422 Response', () => {
+    it.each([null, undefined, 42, { name: 'Supplier' }])(
+      'rejects an invalid counterparty ID shape before orchestration: %s',
+      async (counterpartyId) => {
+        const response = await makeRequest({
+          ...validPayload,
+          sourceLine: { ...validPayload.sourceLine, counterpartyId },
+        });
+
+        expect(response.status).toBe(422);
+        expect(mockCreatePaymentUseCase).not.toHaveBeenCalled();
+      }
+    );
+
+    it('rejects the former embedded counterparty request', async () => {
+      const { counterpartyId: _id, ...line } = validPayload.sourceLine;
+      const response = await makeRequest({
+        ...validPayload,
+        sourceLine: { ...line, counterparty: { name: 'Supplier' } },
+      });
+
+      expect(response.status).toBe(422);
+      expect(mockCreatePaymentUseCase).not.toHaveBeenCalled();
+    });
+
     it('rejects extra request fields before orchestration', async () => {
       const response = await makeRequest({
         ...validPayload,

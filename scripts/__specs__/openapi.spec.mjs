@@ -78,3 +78,53 @@ it('documents optional flat journal date boundaries without post-processing', ()
     );
   }
 });
+
+it('documents journal void as an ID-only POST with a no-content response', () => {
+  const operation = spec.paths['/journal-entries/{id}/void'].post;
+
+  assert.equal(operation.operationId, 'voidJournalEntry');
+  assert.deepEqual(operation.parameters, [
+    { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+  ]);
+  assert.equal(operation.requestBody, undefined);
+  assert.deepEqual(Object.keys(operation.responses), [
+    '204',
+    '400',
+    '401',
+    '403',
+    '404',
+    '409',
+    '422',
+    '500',
+  ]);
+  assert.equal(operation.responses['204'].content, undefined);
+});
+
+for (const [source, operationId] of [
+  ['opening-balance', 'updateDraftOpeningBalance'],
+  ['payment', 'updateDraftPayment'],
+  ['receipt', 'updateDraftReceipt'],
+  ['transfer', 'updateDraftTransfer'],
+]) {
+  it(`documents the draft ${source} update fields`, () => {
+    const update = spec.paths[`/journal-entries/${source}/{id}`].patch;
+    const response = update.responses['200'].content['application/json'].schema;
+    const responseSchema =
+      spec.components.schemas[response.$ref.split('/').at(-1)];
+    const request = update.requestBody.content['application/json'].schema;
+    const requestSchema =
+      spec.components.schemas[request.$ref.split('/').at(-1)];
+
+    assert.equal(update.operationId, operationId);
+    assert.ok(responseSchema.required.includes('id'));
+    assert.ok(responseSchema.required.includes('lines'));
+    assert.ok(responseSchema.required.includes('effectiveDate'));
+    assert.ok('effectiveDate' in requestSchema.properties);
+    assert.equal(
+      requestSchema.properties.attachments.$ref,
+      '#/components/schemas/IJournalEntryAttachmentsUpdateReq'
+    );
+    assert.ok(!('attachmentReferences' in requestSchema.properties));
+    assert.equal(requestSchema.required, undefined);
+  });
+}

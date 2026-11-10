@@ -4,41 +4,18 @@ import journalEntryError from '@domain/journal-entry/errors/journal-entry.error'
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 
 import {
-  counterpartyNameValidation,
-  counterpartyTypeValidation,
-} from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
-import fileAppError from '@app/file/errors/file.error';
-import fileUploadPolicy from '@app/file/policies/file-upload.policy';
-import { EFileUploadPurpose } from '@app/file/types/file.types';
+  attachmentReferencesValidation,
+  journalEntryAttachmentsUpdateReqValidation,
+} from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto.validation';
 import { journalLineReqValidation } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
 import { exchangeRateJsonDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 
-const invalidAttachmentReferenceKey = new fileAppError.InvalidUploadReference()
-  .errorKey;
-const invalidUploadCountKey = new fileAppError.InvalidUploadCount().errorKey;
-const maxAttachmentReferences = fileUploadPolicy.getPolicy(
-  EFileUploadPurpose.JournalEntryAttachment
-).maxFiles;
-
 const receiptEntryLineReqValidation = journalLineReqValidation.extend({
-  counterparty: z.object({
-    id: z
-      .uuid(new journalLineError.InvalidCounterpartyId().errorKey)
-      .optional(),
-    name: counterpartyNameValidation,
-    type: counterpartyTypeValidation.optional(),
-  }),
+  counterpartyId: z.uuid(new journalLineError.InvalidCounterpartyId().errorKey),
 });
 
 export const receiptEntryReqValidation = z.object({
-  attachmentReferences: z
-    .array(z.uuid(invalidAttachmentReferenceKey))
-    .max(maxAttachmentReferences, invalidUploadCountKey)
-    .refine(
-      (references) => new Set(references).size === references.length,
-      invalidAttachmentReferenceKey
-    )
-    .optional(),
+  attachmentReferences: attachmentReferencesValidation,
   sourceLines: z
     .array(receiptEntryLineReqValidation)
     .min(1, new journalEntryError.InvalidLineItems().errorKey),
@@ -48,6 +25,21 @@ export const receiptEntryReqValidation = z.object({
     .date(new journalEntryError.InvalidPostingDate().errorKey)
     .nullable(),
   memo: z.string(new journalEntryError.InvalidMemo().errorKey).nullable(),
+});
+
+const updateDraftReceiptLineReqValidation = journalLineReqValidation
+  .partial()
+  .extend({
+    id: z.uuid(new journalEntryError.RectificationLineId().errorKey).optional(),
+  })
+  .strict();
+
+export const updateDraftReceiptReqValidation = z.strictObject({
+  attachments: journalEntryAttachmentsUpdateReqValidation,
+  effectiveDate: receiptEntryReqValidation.shape.effectiveDate.optional(),
+  memo: receiptEntryReqValidation.shape.memo.optional(),
+  sourceLines: z.array(updateDraftReceiptLineReqValidation).optional(),
+  destinationLine: updateDraftReceiptLineReqValidation.optional(),
 });
 
 const receiptEntryLineJsonReqValidation = receiptEntryLineReqValidation.extend({

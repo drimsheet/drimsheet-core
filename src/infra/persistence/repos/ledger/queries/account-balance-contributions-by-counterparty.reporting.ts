@@ -5,7 +5,7 @@ import type {
   TGetAccountBalanceContributionsByCounterpartyRepoQuery,
 } from '@app/ledger/usecases/reporting/account-balance-contributions-by-counterparty/account-balance-contributions-by-counterparty.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import counterpartyMapper, {
   ICounterpartyModel,
 } from '@infra/persistence/repos/counterparty/mappers/counterparty.mapper';
@@ -22,7 +22,8 @@ interface IAggregateRow extends Record<string, unknown> {
 
 const accountBalanceContributionsByCounterpartyRepoQuery: TGetAccountBalanceContributionsByCounterpartyRepoQuery =
   async (criteria, options) => {
-    const aggregates = await getDbQuery(options).execute<IAggregateRow>(sql`
+    const aggregates = await getDbQueryHelper(options)
+      .execute<IAggregateRow>(sql`
       WITH requested_account AS (
         SELECT id, accounting_entity_id, materialized_path, currency_code
         FROM core.ledger_accounts

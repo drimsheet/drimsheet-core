@@ -3,11 +3,11 @@ import { and, eq } from 'drizzle-orm';
 import waitListMemberEntity from '@domain/user/entities/waitlist-member.entity';
 
 import { waitlistMembersInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import waitListMemberMapper from '@infra/persistence/repos/user/mappers/waitlist-member.mapper';
 import waitListMemberRepo from '@infra/persistence/repos/user/waitlist-member.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 const [member] = waitListMemberEntity.make({
   firstName: null,
@@ -33,14 +33,14 @@ describe('waitListMemberRepo', () => {
       query[method].mockReturnValue(query);
     }
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
   });
   it('inserts the member and resolves without a return value', async () => {
     await expect(
       waitListMemberRepo.create(member, options)
     ).resolves.toBeUndefined();
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.insert).toHaveBeenCalledWith(waitlistMembersInCore);
     expect(query.values).toHaveBeenCalledWith(
       waitListMemberMapper.toRepo(member)

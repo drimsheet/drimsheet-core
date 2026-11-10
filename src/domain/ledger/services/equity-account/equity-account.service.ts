@@ -1,5 +1,5 @@
 import { EQUITY_LEDGER_CODES } from '@domain/ledger/config/equity-codes.config';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -52,7 +52,7 @@ function makeCreateOpeningBalanceAccount(
       accountingEntityId: payload.accountingEntity.id,
       code: EQUITY_LEDGER_CODES.OPENING_BALANCE_EQUITY,
       materializedPath: EQUITY_LEDGER_CODES.OPENING_BALANCE_EQUITY,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Equity),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Equity),
       type: ELedgerType.Equity,
       subType: EEquitySubType.OpeningBalance,
       behavior: EEquityAccountBehavior.OpeningBalanceEquity,
@@ -93,7 +93,7 @@ function makeCreateRetainedEarningsAccount(
       accountingEntityId: payload.accountingEntity.id,
       code: EQUITY_LEDGER_CODES.RETAINED_EARNINGS,
       materializedPath: EQUITY_LEDGER_CODES.RETAINED_EARNINGS,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Equity),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Equity),
       type: ELedgerType.Equity,
       subType: EEquitySubType.RetainedEarnings,
       behavior: EEquityAccountBehavior.RetainedEarnings,

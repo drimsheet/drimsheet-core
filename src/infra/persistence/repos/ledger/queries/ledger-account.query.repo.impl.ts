@@ -9,7 +9,6 @@ import {
   sql,
 } from 'drizzle-orm';
 
-import drizzleFilters from '@shared/helpers/drizzle-filters';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
 import ILedgerAccountQueryRepo, {
@@ -21,7 +20,8 @@ import {
   ledgerAccountBalancesInCore,
   ledgerAccountsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
+import getDrizzleSortDirectionHelper from '@infra/persistence/helpers/get-drizzle-sort-direction.helper';
 import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
 
 const ledgerAccountQueryRepo: ILedgerAccountQueryRepo = {
@@ -105,7 +105,7 @@ const ledgerAccountQueryRepo: ILedgerAccountQueryRepo = {
 
     const whereClause = and(...conditions);
 
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const [countResult] = await dbQuery
       .select({ count: sql<number>`cast(count(*) as integer)` })
@@ -118,7 +118,7 @@ const ledgerAccountQueryRepo: ILedgerAccountQueryRepo = {
       return paginationValue.getPaginatedResponse([], 0, options);
     }
 
-    const direction = drizzleFilters.getSortDirection(
+    const direction = getDrizzleSortDirectionHelper(
       paginationValue.getSortDirection(options.sortDirection)
     );
 
@@ -166,7 +166,7 @@ const ledgerAccountQueryRepo: ILedgerAccountQueryRepo = {
   },
 
   findChartOfAccounts: async (accountingEntityId, type, options) => {
-    const accounts = await getDbQuery(options)
+    const accounts = await getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),
@@ -188,7 +188,7 @@ const ledgerAccountQueryRepo: ILedgerAccountQueryRepo = {
   },
 
   findSubAccounts: async (accountId, accountingEntityId, options) => {
-    const accounts = await getDbQuery(options)
+    const accounts = await getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),

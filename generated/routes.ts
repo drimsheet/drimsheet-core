@@ -1650,7 +1650,6 @@ const models: TsoaRoute.Models = {
         required: true,
       },
       status: { ref: 'UJournalEntryStatus', required: true },
-      effectiveDate: { dataType: 'datetime', required: true },
       postedAt: {
         dataType: 'union',
         subSchemas: [
@@ -1678,6 +1677,7 @@ const models: TsoaRoute.Models = {
       createdBy: { ref: 'TEntityId', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
+      effectiveDate: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
   },
@@ -2164,7 +2164,6 @@ const models: TsoaRoute.Models = {
         required: true,
       },
       status: { ref: 'UJournalEntryStatus', required: true },
-      effectiveDate: { dataType: 'datetime', required: true },
       postedAt: {
         dataType: 'union',
         subSchemas: [
@@ -2192,6 +2191,7 @@ const models: TsoaRoute.Models = {
       createdBy: { ref: 'TEntityId', required: true },
       createdAt: { dataType: 'datetime', required: true },
       updatedAt: { dataType: 'datetime', required: true },
+      effectiveDate: { dataType: 'datetime', required: true },
       id: { dataType: 'string', required: true },
       accountingEntityId: { dataType: 'string', required: true },
       attachments: {
@@ -2337,7 +2337,6 @@ const models: TsoaRoute.Models = {
         required: true,
       },
       status: { ref: 'UJournalEntryStatus', required: true },
-      effectiveDate: { dataType: 'datetime', required: true },
       postedAt: {
         dataType: 'union',
         subSchemas: [
@@ -2377,16 +2376,7 @@ const models: TsoaRoute.Models = {
         array: { dataType: 'refObject', ref: 'IJournalLineDto' },
         required: true,
       },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalCounterpartyReq: {
-    dataType: 'refObject',
-    properties: {
-      id: { dataType: 'string' },
-      name: { dataType: 'string', required: true },
-      type: { ref: 'UCounterpartyType' },
+      effectiveDate: { dataType: 'datetime', required: true },
     },
     additionalProperties: false,
   },
@@ -2395,7 +2385,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
-      counterparty: { ref: 'IJournalCounterpartyReq', required: true },
+      counterpartyId: { dataType: 'string', required: true },
       amount: { ref: 'IMoneyDto', required: true },
       exchangeRate: {
         dataType: 'union',
@@ -2456,7 +2446,7 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
-      counterparty: { ref: 'IJournalCounterpartyReq', required: true },
+      counterpartyId: { dataType: 'string', required: true },
       amount: { ref: 'IMoneyDto', required: true },
       exchangeRate: {
         dataType: 'union',
@@ -2543,10 +2533,10 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       accountId: { dataType: 'string', required: true },
-      counterparty: {
+      counterpartyId: {
         dataType: 'union',
         subSchemas: [
-          { ref: 'IJournalCounterpartyReq' },
+          { dataType: 'string' },
           { dataType: 'enum', enums: [null] },
         ],
         required: true,
@@ -2608,82 +2598,62 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  UJournalEntryRectificationMode: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { dataType: 'enum', enums: ['update_draft'] },
-        { dataType: 'enum', enums: ['update_meta'] },
-        { dataType: 'enum', enums: ['void_and_replace'] },
-      ],
-      validators: {},
-    },
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryRectificationDto: {
+  IJournalEntryAttachmentsUpdateReq: {
     dataType: 'refObject',
     properties: {
-      mode: { ref: 'UJournalEntryRectificationMode', required: true },
-      originalJournalEntryId: { dataType: 'string', required: true },
-      currentJournalEntryId: { dataType: 'string', required: true },
-      reversingJournalEntryId: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      journalEntry: { ref: 'IJournalEntryDto', required: true },
+      add: { dataType: 'array', array: { dataType: 'string' } },
+      remove: { dataType: 'array', array: { dataType: 'string' } },
     },
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryRectificationCounterpartyLineReq: {
+  IJournalEntryMetaUpdateReq: {
     dataType: 'refObject',
     properties: {
-      accountId: { dataType: 'string', required: true },
-      counterparty: { ref: 'IJournalCounterpartyReq', required: true },
-      amount: { ref: 'IMoneyDto', required: true },
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
+      header: {
+        dataType: 'nestedObjectLiteral',
+        nestedProperties: {
+          memo: {
+            dataType: 'union',
+            subSchemas: [
+              { dataType: 'string' },
+              { dataType: 'enum', enums: [null] },
+            ],
+          },
+        },
+      },
+      lines: {
+        dataType: 'array',
+        array: {
+          dataType: 'nestedObjectLiteral',
+          nestedProperties: {
+            description: {
+              dataType: 'union',
+              subSchemas: [
+                { dataType: 'string' },
+                { dataType: 'enum', enums: [null] },
+              ],
+            },
+            id: { ref: 'TEntityId', required: true },
+          },
+        },
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftOpeningBalanceReq: {
+    dataType: 'refObject',
+    properties: {
+      amount: { ref: 'IMoneyDto' },
+      effectiveDate: { dataType: 'datetime' },
       exchangeRate: {
         dataType: 'union',
         subSchemas: [
           { ref: 'IExchangeRateDto' },
           { dataType: 'enum', enums: [null] },
         ],
-        required: true,
-      },
-      description: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      sequenceOrder: { dataType: 'double', required: true },
-      id: { dataType: 'string' },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IPaymentJournalEntryRectificationReq: {
-    dataType: 'refObject',
-    properties: {
-      attachments: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IFileAttachment' },
-        required: true,
-      },
-      effectiveDate: { dataType: 'datetime', required: true },
-      postedAt: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'datetime' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
       },
       memo: {
         dataType: 'union',
@@ -2691,41 +2661,53 @@ const models: TsoaRoute.Models = {
           { dataType: 'string' },
           { dataType: 'enum', enums: [null] },
         ],
-        required: true,
       },
-      sourceType: { dataType: 'enum', enums: ['payment'], required: true },
-      sourceLine: {
-        ref: 'IJournalEntryRectificationCounterpartyLineReq',
-        required: true,
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftPaymentLineReq: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string' },
+      accountId: { dataType: 'string' },
+      counterpartyId: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
       },
+      amount: { ref: 'IMoneyDto' },
+      exchangeRate: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IExchangeRateDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      description: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      sequenceOrder: { dataType: 'double' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftPaymentReq: {
+    dataType: 'refObject',
+    properties: {
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
+      effectiveDate: { dataType: 'datetime' },
+      sourceLine: { ref: 'IUpdateDraftPaymentLineReq' },
       destinationLines: {
         dataType: 'array',
-        array: {
-          dataType: 'refObject',
-          ref: 'IJournalEntryRectificationCounterpartyLineReq',
-        },
-        required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IReceiptJournalEntryRectificationReq: {
-    dataType: 'refObject',
-    properties: {
-      attachments: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IFileAttachment' },
-        required: true,
-      },
-      effectiveDate: { dataType: 'datetime', required: true },
-      postedAt: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'datetime' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
+        array: { dataType: 'refObject', ref: 'IUpdateDraftPaymentLineReq' },
       },
       memo: {
         dataType: 'union',
@@ -2733,144 +2715,144 @@ const models: TsoaRoute.Models = {
           { dataType: 'string' },
           { dataType: 'enum', enums: [null] },
         ],
-        required: true,
       },
-      sourceType: { dataType: 'enum', enums: ['receipt'], required: true },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftReceiptLineReq: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string' },
+      accountId: { dataType: 'string' },
+      counterpartyId: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      amount: { ref: 'IMoneyDto' },
+      exchangeRate: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IExchangeRateDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      description: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      sequenceOrder: { dataType: 'double' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftReceiptReq: {
+    dataType: 'refObject',
+    properties: {
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
+      effectiveDate: { dataType: 'datetime' },
       sourceLines: {
         dataType: 'array',
-        array: {
-          dataType: 'refObject',
-          ref: 'IJournalEntryRectificationCounterpartyLineReq',
-        },
-        required: true,
+        array: { dataType: 'refObject', ref: 'IUpdateDraftReceiptLineReq' },
       },
-      destinationLine: {
-        ref: 'IJournalEntryRectificationCounterpartyLineReq',
-        required: true,
-      },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ITransferJournalEntryRectificationLineReq: {
-    dataType: 'refObject',
-    properties: {
-      id: { dataType: 'string' },
-      accountId: { dataType: 'string', required: true },
-      amount: { ref: 'IMoneyDto', required: true },
-      exchangeRate: {
-        dataType: 'union',
-        subSchemas: [
-          { ref: 'IExchangeRateDto' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      description: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      sequenceOrder: { dataType: 'double', required: true },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryRectificationLineReq: {
-    dataType: 'refObject',
-    properties: {
-      accountId: { dataType: 'string', required: true },
-      counterparty: {
-        dataType: 'union',
-        subSchemas: [
-          { ref: 'IJournalCounterpartyReq' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      amount: { ref: 'IMoneyDto', required: true },
-      exchangeRate: {
-        dataType: 'union',
-        subSchemas: [
-          { ref: 'IExchangeRateDto' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      description: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'string' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
-      sequenceOrder: { dataType: 'double', required: true },
-      id: { dataType: 'string' },
-    },
-    additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  ITransferJournalEntryRectificationReq: {
-    dataType: 'refObject',
-    properties: {
-      attachments: {
-        dataType: 'array',
-        array: { dataType: 'refObject', ref: 'IFileAttachment' },
-        required: true,
-      },
-      effectiveDate: { dataType: 'datetime', required: true },
-      postedAt: {
-        dataType: 'union',
-        subSchemas: [
-          { dataType: 'datetime' },
-          { dataType: 'enum', enums: [null] },
-        ],
-        required: true,
-      },
+      destinationLine: { ref: 'IUpdateDraftReceiptLineReq' },
       memo: {
         dataType: 'union',
         subSchemas: [
           { dataType: 'string' },
           { dataType: 'enum', enums: [null] },
         ],
-        required: true,
       },
-      sourceType: { dataType: 'enum', enums: ['transfer'], required: true },
-      sourceLine: {
-        ref: 'ITransferJournalEntryRectificationLineReq',
-        required: true,
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftTransferAssetLineReq: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string' },
+      accountId: { dataType: 'string' },
+      amount: { ref: 'IMoneyDto' },
+      exchangeRate: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IExchangeRateDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
       },
-      destinationLine: {
-        ref: 'ITransferJournalEntryRectificationLineReq',
-        required: true,
+      description: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
       },
+      sequenceOrder: { dataType: 'double' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftTransferChargeLineReq: {
+    dataType: 'refObject',
+    properties: {
+      id: { dataType: 'string' },
+      accountId: { dataType: 'string' },
+      amount: { ref: 'IMoneyDto' },
+      exchangeRate: {
+        dataType: 'union',
+        subSchemas: [
+          { ref: 'IExchangeRateDto' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      description: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+      sequenceOrder: { dataType: 'double' },
+      counterpartyId: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
+      },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IUpdateDraftTransferReq: {
+    dataType: 'refObject',
+    properties: {
+      attachments: { ref: 'IJournalEntryAttachmentsUpdateReq' },
+      effectiveDate: { dataType: 'datetime' },
+      sourceLine: { ref: 'IUpdateDraftTransferAssetLineReq' },
+      destinationLine: { ref: 'IUpdateDraftTransferAssetLineReq' },
       chargeLines: {
         dataType: 'array',
         array: {
           dataType: 'refObject',
-          ref: 'IJournalEntryRectificationLineReq',
+          ref: 'IUpdateDraftTransferChargeLineReq',
         },
-        required: true,
+      },
+      memo: {
+        dataType: 'union',
+        subSchemas: [
+          { dataType: 'string' },
+          { dataType: 'enum', enums: [null] },
+        ],
       },
     },
     additionalProperties: false,
-  },
-  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  TJournalEntryRectificationReq: {
-    dataType: 'refAlias',
-    type: {
-      dataType: 'union',
-      subSchemas: [
-        { ref: 'IPaymentJournalEntryRectificationReq' },
-        { ref: 'IReceiptJournalEntryRectificationReq' },
-        { ref: 'ITransferJournalEntryRectificationReq' },
-      ],
-      validators: {},
-    },
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   'Readonly_Record_string.string__': {
@@ -6480,7 +6462,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsJournalEntryController_rectifyJournalEntry: Record<
+  const argsJournalEntryController_updateJournalEntryMeta: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -6489,17 +6471,17 @@ export function RegisterRoutes(app: Router) {
       in: 'body',
       name: 'body',
       required: true,
-      ref: 'TJournalEntryRectificationReq',
+      ref: 'IJournalEntryMetaUpdateReq',
     },
   };
-  app.post(
-    '/api/v1/journal-entries/:id/rectify',
+  app.patch(
+    '/api/v1/journal-entries/:id/meta',
     ...fetchMiddlewares<RequestHandler>(JournalEntryController),
     ...fetchMiddlewares<RequestHandler>(
-      JournalEntryController.prototype.rectifyJournalEntry
+      JournalEntryController.prototype.updateJournalEntryMeta
     ),
 
-    async function JournalEntryController_rectifyJournalEntry(
+    async function JournalEntryController_updateJournalEntryMeta(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -6509,7 +6491,7 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsJournalEntryController_rectifyJournalEntry,
+          args: argsJournalEntryController_updateJournalEntryMeta,
           request,
           response,
         });
@@ -6517,7 +6499,347 @@ export function RegisterRoutes(app: Router) {
         const controller = new JournalEntryController();
 
         await templateService.apiHandler({
-          methodName: 'rectifyJournalEntry',
+          methodName: 'updateJournalEntryMeta',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_updateDraftOpeningBalance: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IUpdateDraftOpeningBalanceReq',
+    },
+  };
+  app.patch(
+    '/api/v1/journal-entries/opening-balance/:id',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.updateDraftOpeningBalance
+    ),
+
+    async function JournalEntryController_updateDraftOpeningBalance(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_updateDraftOpeningBalance,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'updateDraftOpeningBalance',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_updateDraftPayment: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IUpdateDraftPaymentReq',
+    },
+  };
+  app.patch(
+    '/api/v1/journal-entries/payment/:id',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.updateDraftPayment
+    ),
+
+    async function JournalEntryController_updateDraftPayment(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_updateDraftPayment,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'updateDraftPayment',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_voidAndReplacePayment: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: { in: 'body', name: 'body', required: true, ref: 'IPaymentEntryReq' },
+  };
+  app.post(
+    '/api/v1/journal-entries/payment/:id/void-and-replace',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.voidAndReplacePayment
+    ),
+
+    async function JournalEntryController_voidAndReplacePayment(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_voidAndReplacePayment,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'voidAndReplacePayment',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_updateDraftReceipt: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IUpdateDraftReceiptReq',
+    },
+  };
+  app.patch(
+    '/api/v1/journal-entries/receipt/:id',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.updateDraftReceipt
+    ),
+
+    async function JournalEntryController_updateDraftReceipt(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_updateDraftReceipt,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'updateDraftReceipt',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_voidAndReplaceReceipt: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: { in: 'body', name: 'body', required: true, ref: 'IReceiptEntryReq' },
+  };
+  app.post(
+    '/api/v1/journal-entries/receipt/:id/void-and-replace',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.voidAndReplaceReceipt
+    ),
+
+    async function JournalEntryController_voidAndReplaceReceipt(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_voidAndReplaceReceipt,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'voidAndReplaceReceipt',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_updateDraftTransfer: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IUpdateDraftTransferReq',
+    },
+  };
+  app.patch(
+    '/api/v1/journal-entries/transfer/:id',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.updateDraftTransfer
+    ),
+
+    async function JournalEntryController_updateDraftTransfer(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_updateDraftTransfer,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'updateDraftTransfer',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_voidAndReplaceTransfer: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'ITransferEntryReq',
+    },
+  };
+  app.post(
+    '/api/v1/journal-entries/transfer/:id/void-and-replace',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.voidAndReplaceTransfer
+    ),
+
+    async function JournalEntryController_voidAndReplaceTransfer(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_voidAndReplaceTransfer,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'voidAndReplaceTransfer',
           controller,
           response,
           next,
@@ -6743,6 +7065,50 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_voidJournalEntry: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    id: { in: 'path', name: 'id', required: true, dataType: 'string' },
+  };
+  app.post(
+    '/api/v1/journal-entries/:id/void',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.voidJournalEntry
+    ),
+
+    async function JournalEntryController_voidJournalEntry(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_voidJournalEntry,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'voidJournalEntry',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 204,
         });
       } catch (err) {
         return next(err);

@@ -22,7 +22,7 @@ import dateRangeValue from '@shared/values/date-range/date-range.vo';
 import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import { UNormalBalance } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 import moneyValue from '@domain/money/values/money.vo';
@@ -113,7 +113,7 @@ export default function makeGetLedgerTotalDebitsAndCreditsByCurrencyUsecase(
       { correlationId }
     );
 
-    const normalBalance = getLedgerAccountNormalBalance(query.type);
+    const normalBalance = getLedgerAccountNormalBalanceHelper(query.type);
     totals.sort((left, right) =>
       left.currencyCode.localeCompare(right.currencyCode)
     );

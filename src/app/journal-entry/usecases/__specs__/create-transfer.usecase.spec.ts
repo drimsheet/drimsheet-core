@@ -1,6 +1,7 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
-import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
-import { ITransactionContext } from '@shared/types/repo.types';
+import mockRepoService, {
+  mockRepoTransaction,
+} from '@shared/contracts/__mocks__/repo.mock';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
@@ -8,6 +9,7 @@ import accountingEntityEntity from '@domain/accounting/entities/accounting-entit
 import periodError from '@domain/accounting/errors/period.error';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
+import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import { ECounterpartyType } from '@domain/counterparty/types/counterparty.types';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -39,25 +41,23 @@ import mockAppContext, {
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
-import mockCounterpartyAppService from '@app/counterparty/contracts/__mocks__/counterparty.service.mock';
-import { ICounterpartyFindOrCreateRes } from '@app/counterparty/contracts/counterparty.service.contract';
 import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockTransferEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 import makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transfer.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
-import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import {
-  TFxLotAcquisitionAppResult,
-  TFxLotDispositionAppResult,
-} from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
+  makeFxAcquisitionResult,
+  makeFxDispositionResult,
+} from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 
 const actor = {
   ...actorEntity.makeUser({
@@ -159,10 +159,6 @@ describe('makeCreateTransferUsecase', () => {
     name: 'Transfer provider',
     type: ECounterpartyType.Organization,
   });
-  const newBankCounterpartyResponse: ICounterpartyFindOrCreateRes = {
-    new: true,
-    data: bankCounterparty,
-  };
   const attachments = [
     {
       url: 'https://files.example.com/transfer.pdf',
@@ -236,17 +232,16 @@ describe('makeCreateTransferUsecase', () => {
   function getUseCase() {
     return makeCreateTransferUsecase({
       appContext: mockAppContext,
-      counterpartyAppService: mockCounterpartyAppService,
-      fileManagementAppService: mockFileManagementAppService,
-      journalEntryService: mockJournalEntryService,
-      ledgerAccountRepo: mockLedgerAccountRepo,
       counterpartyRepo: mockCounterpartyRepo,
+      fileManagementAppService: mockFileManagementAppService,
+      transferEntryService: mockTransferEntryService,
+      ledgerAccountRepo: mockLedgerAccountRepo,
       journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
       repoService: mockRepoService,
       eventBus: mockEventBus,
-      outboxAppService: mockOutboxAppService,
       ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
-      fxLotAppService: mockFxLotAppService,
+      fxCostBasisLotService: mockFxCostBasisLotService,
+      exchangeRateAppService: mockExchangeRateAppService,
       fxCostBasisPersistenceAppService:
         mockFxLotCostBasisAppService.persistence,
     });
@@ -254,6 +249,7 @@ describe('makeCreateTransferUsecase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
     mockAppContext.get.mockReturnValue({
       actor,
       correlationId,
@@ -281,21 +277,26 @@ describe('makeCreateTransferUsecase', () => {
       return null;
     });
     mockFileManagementAppService.claimUploads.mockResolvedValue(attachments);
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValue(new Map());
-    mockJournalEntryService.createTransfer.mockResolvedValue({
+    mockCounterpartyRepo.findByIds.mockResolvedValue([]);
+    mockTransferEntryService.create.mockResolvedValue({
       journalEntry: postedJournalEntry,
       destinationAssetAccount: destinationAccount,
     });
-    mockRepoService.runInTransaction.mockImplementation(async (transactionFn) =>
-      transactionFn('mock-tx' as unknown as ITransactionContext)
-    );
+    mockRepoService.createTransaction
+      .mockReset()
+      .mockResolvedValue(mockRepoTransaction);
+    mockRepoTransaction.commit.mockReset().mockResolvedValue();
+    mockRepoTransaction.handleError
+      .mockReset()
+      .mockImplementation(async (error) => {
+        throw error;
+      });
     mockJournalEntryPersistenceAppService.create.mockResolvedValue();
     mockCounterpartyRepo.create.mockResolvedValue();
-    mockOutboxAppService.createBalancePropagation.mockResolvedValue();
     mockLedgerAccountBalanceAdjustmentQueue.add.mockResolvedValue();
     mockEventBus.publish.mockResolvedValue();
-    mockFxLotAppService.dispose.mockResolvedValue(null);
-    mockFxLotAppService.acquire.mockResolvedValue(null);
+    mockFxCostBasisLotService.dispose.mockResolvedValue(null);
+    mockFxCostBasisLotService.acquire.mockReturnValue(null);
     mockFxLotCostBasisAppService.persistence.persistDisposition.mockResolvedValue();
     mockFxLotCostBasisAppService.persistence.persistAcquisition.mockResolvedValue();
   });
@@ -308,13 +309,10 @@ describe('makeCreateTransferUsecase', () => {
   ])(
     'does not persist or publish when journal creation rejects: %s',
     async (failure) => {
-      mockJournalEntryService.createTransfer.mockRejectedValueOnce(failure);
+      mockTransferEntryService.create.mockRejectedValueOnce(failure);
       await expect(getUseCase()(makePayload())).rejects.toBe(failure);
       expect(
         mockJournalEntryPersistenceAppService.create
-      ).not.toHaveBeenCalled();
-      expect(
-        mockOutboxAppService.createBalancePropagation
       ).not.toHaveBeenCalled();
       expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
@@ -346,7 +344,7 @@ describe('makeCreateTransferUsecase', () => {
       purpose: EFileUploadPurpose.JournalEntryAttachment,
       references: payload.attachmentReferences,
     });
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       {
         attachments,
         header: {
@@ -377,11 +375,7 @@ describe('makeCreateTransferUsecase', () => {
       postedJournalEntry[0],
       expect.any(Object),
       expect.any(Array),
-      { correlationId, tx: 'mock-tx' }
-    );
-    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
-      postedJournalEntry[0].id,
-      { correlationId, tx: 'mock-tx' }
+      { correlationId, tx: mockRepoTransaction.context }
     );
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
@@ -389,22 +383,21 @@ describe('makeCreateTransferUsecase', () => {
         journalEntryId: postedJournalEntry[0].id,
       }
     );
-    expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
+    expect(mockFxCostBasisLotService.dispose).toHaveBeenCalledWith(
       {
         journalEntry: postedJournalEntry[0],
         account: sourceAccount,
-        actor: actor.id,
+        createdBy: actor.id,
+        officialRate: null,
       },
       { correlationId, idempotencyKey }
     );
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-      {
-        journalEntry: postedJournalEntry[0],
-        account: destinationAccount,
-        actor: actor.id,
-      },
-      { correlationId, idempotencyKey }
-    );
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
+      journalEntry: postedJournalEntry[0],
+      account: destinationAccount,
+      createdBy: actor.id,
+      officialRate: null,
+    });
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
     ).not.toHaveBeenCalled();
@@ -425,7 +418,7 @@ describe('makeCreateTransferUsecase', () => {
     payload.chargeLines = [
       {
         accountId: bankChargeAccount.id,
-        counterparty: { name: 'Transfer provider' },
+        counterpartyId: bankCounterparty[0].id,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Transfer fee',
@@ -433,19 +426,14 @@ describe('makeCreateTransferUsecase', () => {
       },
       {
         accountId: bankChargeAccount.id,
-        counterparty: null,
+        counterpartyId: null,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Bank fee',
         sequenceOrder: 4,
       },
     ];
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValueOnce(
-      new Map([['transfer-provider', newBankCounterpartyResponse]])
-    );
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValueOnce(
-      newBankCounterpartyResponse
-    );
+    mockCounterpartyRepo.findByIds.mockResolvedValueOnce([bankCounterparty[0]]);
 
     await getUseCase()(payload);
 
@@ -467,14 +455,12 @@ describe('makeCreateTransferUsecase', () => {
       accountingEntity.id,
       { correlationId, idempotencyKey }
     );
-    expect(mockCounterpartyAppService.findOrCreateMany).toHaveBeenCalledWith(
-      [payload.chargeLines[0].counterparty],
+    expect(mockCounterpartyRepo.findByIds).toHaveBeenCalledWith(
+      [payload.chargeLines[0].counterpartyId],
       accountingEntity.id,
-      'a1111111-1111-4111-8111-111111111111' as TEntityId,
-      'active',
       { correlationId, idempotencyKey }
     );
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         destinationLines: [
           expect.objectContaining({
@@ -493,38 +479,33 @@ describe('makeCreateTransferUsecase', () => {
       }),
       { correlationId, idempotencyKey }
     );
-    expect(mockCounterpartyRepo.create).toHaveBeenCalledWith(
-      bankCounterparty[0],
-      expect.objectContaining({ correlationId, tx: 'mock-tx' })
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledTimes(1);
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: destinationAccount,
+        officialRate: null,
+      })
     );
-    expect(
-      mockCounterpartyRepo.create.mock.invocationCallOrder[0]
-    ).toBeLessThan(
-      mockJournalEntryPersistenceAppService.create.mock.invocationCallOrder[0]
-    );
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledTimes(1);
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-      expect.objectContaining({ account: destinationAccount }),
-      { correlationId, idempotencyKey }
-    );
-    expect(mockFxLotAppService.acquire).not.toHaveBeenCalledWith(
-      expect.objectContaining({ account: bankChargeAccount }),
-      expect.anything()
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: bankChargeAccount,
+        officialRate: null,
+      })
     );
     const [publishedEvents] = mockEventBus.publish.mock.calls[0];
     expect(publishedEvents).toEqual(
-      expect.arrayContaining([
+      expect.not.arrayContaining([
         expect.objectContaining({ type: bankCounterparty[1][0].type }),
       ])
     );
   });
 
-  it('maps unresolved charge counterparties as null with their exchange rate', async () => {
+  it('maps a charge exchange rate with no counterparty', async () => {
     const payload = makePayload();
     payload.chargeLines = [
       {
         accountId: bankChargeAccount.id,
-        counterparty: { name: 'Transfer provider' },
+        counterpartyId: null,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: {
           baseCurrencyCode: 'USD',
@@ -538,11 +519,10 @@ describe('makeCreateTransferUsecase', () => {
         sequenceOrder: 3,
       },
     ];
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValueOnce(undefined);
 
     await getUseCase()(payload);
 
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         destinationLines: expect.arrayContaining([
           expect.objectContaining({
@@ -564,27 +544,18 @@ describe('makeCreateTransferUsecase', () => {
     payload.chargeLines = [
       {
         accountId: bankChargeAccount.id,
-        counterparty: { name: 'Transfer provider' },
+        counterpartyId: bankCounterparty[0].id,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Transfer fee',
         sequenceOrder: 3,
       },
     ];
-    const existingBankCounterpartyResponse: ICounterpartyFindOrCreateRes = {
-      new: false,
-      data: bankCounterparty,
-    };
-    mockCounterpartyAppService.findOrCreateMany.mockResolvedValueOnce(
-      new Map([['transfer-provider', existingBankCounterpartyResponse]])
-    );
-    mockCounterpartyAppService.getFoundOrCreated.mockReturnValueOnce(
-      existingBankCounterpartyResponse
-    );
+    mockCounterpartyRepo.findByIds.mockResolvedValueOnce([bankCounterparty[0]]);
 
     await getUseCase()(payload);
 
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         destinationLines: expect.arrayContaining([
           expect.objectContaining({
@@ -602,7 +573,7 @@ describe('makeCreateTransferUsecase', () => {
     const payload = makePayload();
     payload.postedAt = null;
     const draftJournalEntry = makeJournalEntry(null);
-    mockJournalEntryService.createTransfer.mockResolvedValue({
+    mockTransferEntryService.create.mockResolvedValue({
       journalEntry: draftJournalEntry,
       destinationAssetAccount: destinationAccount,
     });
@@ -612,12 +583,10 @@ describe('makeCreateTransferUsecase', () => {
     expect(mockJournalEntryPersistenceAppService.create).toHaveBeenCalledTimes(
       1
     );
-    expect(
-      mockOutboxAppService.createBalancePropagation
-    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.dispose).toHaveBeenCalledTimes(1);
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledTimes(1);
+    expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+    expect(mockExchangeRateAppService.getOfficialRate).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
     ).not.toHaveBeenCalled();
@@ -625,9 +594,6 @@ describe('makeCreateTransferUsecase', () => {
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-    expect(mockCounterpartyAppService.findOrCreateMany.mock.calls[0][3]).toBe(
-      'draft'
-    );
   });
 
   it('maps source and destination exchange rates', async () => {
@@ -654,7 +620,7 @@ describe('makeCreateTransferUsecase', () => {
 
     await getUseCase()(payload);
 
-    expect(mockJournalEntryService.createTransfer).toHaveBeenCalledWith(
+    expect(mockTransferEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceLine: expect.objectContaining({
           exchangeRate: expect.objectContaining({
@@ -693,7 +659,7 @@ describe('makeCreateTransferUsecase', () => {
       cause: { id: payload.sourceLine.accountId },
     });
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
   });
 
   it('rejects a missing destination account before claiming uploads', async () => {
@@ -707,7 +673,7 @@ describe('makeCreateTransferUsecase', () => {
       cause: { id: payload.destinationLine.accountId },
     });
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
   });
 
   it('rejects the exact missing charge account before resolving counterparties', async () => {
@@ -715,7 +681,7 @@ describe('makeCreateTransferUsecase', () => {
     payload.chargeLines = [
       {
         accountId: bankChargeAccount.id,
-        counterparty: null,
+        counterpartyId: null,
         amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
         exchangeRate: null,
         description: 'Transfer fee',
@@ -730,9 +696,9 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(payload)).rejects.toMatchObject({
       cause: { id: payload.chargeLines[0].accountId },
     });
-    expect(mockCounterpartyAppService.findOrCreateMany).not.toHaveBeenCalled();
+    expect(mockCounterpartyRepo.findByIds).not.toHaveBeenCalled();
     expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
   });
 
   it('prevents domain creation and persistence when attachment claiming fails', async () => {
@@ -743,18 +709,18 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(makePayload())).rejects.toThrow(
       fileAppError.InvalidUploadReference
     );
-    expect(mockJournalEntryService.createTransfer).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('prevents persistence when domain creation fails', async () => {
-    mockJournalEntryService.createTransfer.mockRejectedValueOnce(
+    mockTransferEntryService.create.mockRejectedValueOnce(
       new Error('domain failure')
     );
 
     await expect(getUseCase()(makePayload())).rejects.toThrow('domain failure');
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
@@ -765,25 +731,22 @@ describe('makeCreateTransferUsecase', () => {
     'stops before journal, FX, and propagation writes when a draft %s blocks posting',
     async (_, ErrorType) => {
       const error = new ErrorType();
-      mockJournalEntryService.createTransfer.mockRejectedValueOnce(error);
+      mockTransferEntryService.create.mockRejectedValueOnce(error);
 
       await expect(getUseCase()(makePayload())).rejects.toBe(error);
 
-      expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+      expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
       expect(mockCounterpartyRepo.create).not.toHaveBeenCalled();
       expect(
         mockJournalEntryPersistenceAppService.create
       ).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
-      expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
+      expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
       expect(
         mockFxLotCostBasisAppService.persistence.persistDisposition
       ).not.toHaveBeenCalled();
       expect(
         mockFxLotCostBasisAppService.persistence.persistAcquisition
-      ).not.toHaveBeenCalled();
-      expect(
-        mockOutboxAppService.createBalancePropagation
       ).not.toHaveBeenCalled();
       expect(
         mockLedgerAccountBalanceAdjustmentQueue.add
@@ -793,7 +756,7 @@ describe('makeCreateTransferUsecase', () => {
   );
 
   it('does not run post-commit effects when the transaction fails', async () => {
-    mockRepoService.runInTransaction.mockRejectedValueOnce(
+    mockRepoTransaction.commit.mockRejectedValueOnce(
       new Error('transaction failure')
     );
 
@@ -815,6 +778,12 @@ describe('makeCreateTransferUsecase', () => {
       source: 'Test Source',
     };
     const exchangeRate = exchangeRateValue.make(exchangeRateDto);
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValueOnce(
+      exchangeRate
+    );
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValueOnce(
+      exchangeRate
+    );
     payload.sourceLine = {
       ...payload.sourceLine,
       accountId: usdSourceAccount.id,
@@ -859,62 +828,50 @@ describe('makeCreateTransferUsecase', () => {
         },
       ],
     });
-    mockJournalEntryService.createTransfer.mockResolvedValueOnce({
+    mockTransferEntryService.create.mockResolvedValueOnce({
       journalEntry: foreignJournalEntry,
       destinationAssetAccount: usdDestinationAccount,
     });
-    const dispositionRecords = {
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotDispositionAppResult['records'];
-    const acquisitionRecords = {
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotAcquisitionAppResult['records'];
-    const dispositionEvent = {
-      type: 'domain:fx-lot:disposed',
-      data: { accountId: sourceAccount.id },
-      occurredAt: effectiveDate,
-      enrichedAt: null,
-    };
-    const acquisitionEvent = {
-      type: 'domain:fx-lot:acquired',
-      data: { accountId: destinationAccount.id },
-      occurredAt: effectiveDate,
-      enrichedAt: null,
-    };
-    mockFxLotAppService.dispose.mockResolvedValueOnce({
-      records: dispositionRecords,
-      events: [dispositionEvent],
-    });
-    mockFxLotAppService.acquire.mockResolvedValueOnce({
-      records: acquisitionRecords,
-      events: [acquisitionEvent],
-    });
+    const fxDisposition = makeFxDispositionResult();
+    const fxAcquisition = makeFxAcquisitionResult();
+    const [[, consumedLotEvents]] = fxDisposition.lots;
+    const [, dispositionEvents] = fxDisposition.disposition;
+    const [, acquiredLotEvents] = fxAcquisition.lot;
+    const [, acquisitionEvents] = fxAcquisition.acquisition;
+    mockFxCostBasisLotService.dispose.mockResolvedValueOnce(fxDisposition);
+    mockFxCostBasisLotService.acquire.mockReturnValueOnce(fxAcquisition);
 
     await getUseCase()(payload);
 
-    const writeOptions = { correlationId, tx: 'mock-tx' };
-    expect(mockFxLotAppService.dispose).toHaveBeenCalledWith(
+    expect(mockExchangeRateAppService.getOfficialRate).toHaveBeenCalledTimes(2);
+    expect(mockExchangeRateAppService.getOfficialRate).toHaveBeenCalledWith(
+      exchangeRate.currencyPair,
+      exchangeRate.asOf,
+      { correlationId, idempotencyKey },
+      exchangeRate
+    );
+    const writeOptions = { correlationId, tx: mockRepoTransaction.context };
+    expect(mockFxCostBasisLotService.dispose).toHaveBeenCalledWith(
       {
         journalEntry: foreignJournalEntry[0],
         account: usdSourceAccount,
-        actor: actor.id,
+        createdBy: actor.id,
+        officialRate: exchangeRate,
       },
       { correlationId, idempotencyKey }
     );
-    expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-      {
-        journalEntry: foreignJournalEntry[0],
-        account: usdDestinationAccount,
-        actor: actor.id,
-      },
-      { correlationId, idempotencyKey }
-    );
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
+      journalEntry: foreignJournalEntry[0],
+      account: usdDestinationAccount,
+      createdBy: actor.id,
+      officialRate: exchangeRate,
+    });
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
-    ).toHaveBeenCalledWith(dispositionRecords, writeOptions);
+    ).toHaveBeenCalledWith(fxDisposition, actor.id, writeOptions);
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
-    ).toHaveBeenCalledWith(acquisitionRecords, writeOptions);
+    ).toHaveBeenCalledWith(fxAcquisition, actor.id, writeOptions);
     expect(
       mockJournalEntryPersistenceAppService.create.mock.invocationCallOrder[0]
     ).toBeLessThan(
@@ -931,41 +888,43 @@ describe('makeCreateTransferUsecase', () => {
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition.mock
         .invocationCallOrder[0]
-    ).toBeLessThan(
-      mockOutboxAppService.createBalancePropagation.mock.invocationCallOrder[0]
-    );
+    ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
     const [publishedEvents] = mockEventBus.publish.mock.calls[0];
     expect(Array.isArray(publishedEvents)).toBe(true);
     if (!Array.isArray(publishedEvents)) {
       throw new Error('Expected transfer events to be published as an array');
     }
-    expect(publishedEvents.slice(-2)).toEqual([
-      expect.objectContaining({ type: dispositionEvent.type }),
-      expect.objectContaining({ type: acquisitionEvent.type }),
-    ]);
+    const fxEvents = [
+      ...consumedLotEvents,
+      ...dispositionEvents,
+      ...acquiredLotEvents,
+      ...acquisitionEvents,
+    ];
+    expect(publishedEvents.slice(-fxEvents.length)).toEqual(
+      fxEvents.map(({ type, data }) => expect.objectContaining({ type, data }))
+    );
   });
 
   it('persists only a source disposition when acquisition preparation returns null', async () => {
-    const records = {
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotDispositionAppResult['records'];
-    mockFxLotAppService.dispose.mockResolvedValueOnce({ records, events: [] });
+    const fxDisposition = makeFxDispositionResult();
+    mockFxCostBasisLotService.dispose.mockResolvedValueOnce(fxDisposition);
 
     await getUseCase()(makePayload());
 
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
-    ).toHaveBeenCalledWith(records, { correlationId, tx: 'mock-tx' });
+    ).toHaveBeenCalledWith(fxDisposition, actor.id, {
+      correlationId,
+      tx: mockRepoTransaction.context,
+    });
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
   });
 
   it('persists only a destination acquisition when disposition preparation returns null', async () => {
-    const records = {
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotAcquisitionAppResult['records'];
-    mockFxLotAppService.acquire.mockResolvedValueOnce({ records, events: [] });
+    const fxAcquisition = makeFxAcquisitionResult();
+    mockFxCostBasisLotService.acquire.mockReturnValueOnce(fxAcquisition);
 
     await getUseCase()(makePayload());
 
@@ -974,35 +933,38 @@ describe('makeCreateTransferUsecase', () => {
     ).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
-    ).toHaveBeenCalledWith(records, { correlationId, tx: 'mock-tx' });
+    ).toHaveBeenCalledWith(fxAcquisition, actor.id, {
+      correlationId,
+      tx: mockRepoTransaction.context,
+    });
   });
 
   it('prevents persistence when disposition preparation fails', async () => {
     const failure = new Error('FX disposition failed');
-    mockFxLotAppService.dispose.mockRejectedValueOnce(failure);
+    mockFxCostBasisLotService.dispose.mockRejectedValueOnce(failure);
 
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
 
-    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('prevents persistence when acquisition preparation fails', async () => {
     const failure = new Error('FX acquisition failed');
-    mockFxLotAppService.acquire.mockRejectedValueOnce(failure);
+    mockFxCostBasisLotService.acquire.mockImplementationOnce(() => {
+      throw failure;
+    });
 
     await expect(getUseCase()(makePayload())).rejects.toBe(failure);
 
-    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 
   it('does not run post-commit effects when FX persistence fails', async () => {
-    const records = {
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotDispositionAppResult['records'];
-    mockFxLotAppService.dispose.mockResolvedValueOnce({ records, events: [] });
+    const fxDisposition = makeFxDispositionResult();
+    mockFxCostBasisLotService.dispose.mockResolvedValueOnce(fxDisposition);
     mockFxLotCostBasisAppService.persistence.persistDisposition.mockRejectedValueOnce(
       new Error('FX persistence failed')
     );
@@ -1011,9 +973,6 @@ describe('makeCreateTransferUsecase', () => {
       'FX persistence failed'
     );
 
-    expect(
-      mockOutboxAppService.createBalancePropagation
-    ).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
@@ -1025,5 +984,93 @@ describe('makeCreateTransferUsecase', () => {
     await expect(getUseCase()(payload)).rejects.toThrow();
     expect(mockAppContext.get).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.findById).not.toHaveBeenCalled();
+  });
+  it('propagates counterparty read failures before journal preparation or persistence', async () => {
+    const failure = new Error('counterparty read failed');
+    mockCounterpartyRepo.findByIds.mockRejectedValueOnce(failure);
+
+    await expect(getUseCase()(makePayload())).rejects.toBe(failure);
+
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+  it('rejects a charge ID omitted from a partial repository result before uploads or writes', async () => {
+    const payload = makePayload();
+    const chargeLine = {
+      accountId: bankChargeAccount.id,
+      counterpartyId: bankCounterparty[0].id,
+      amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
+      exchangeRate: null,
+      description: 'Transfer fee',
+      sequenceOrder: 3,
+    };
+    const missingId = generateUUID();
+    payload.chargeLines = [
+      chargeLine,
+      {
+        ...chargeLine,
+        counterpartyId: missingId,
+        sequenceOrder: 4,
+      },
+    ];
+    mockCounterpartyRepo.findByIds.mockResolvedValueOnce([bankCounterparty[0]]);
+
+    await expect(getUseCase()(payload)).rejects.toMatchObject({
+      errorKey: new counterpartyError.InvalidCounterpartyId().errorKey,
+      cause: { id: missingId },
+    });
+
+    expect(mockTransferEntryService.create).not.toHaveBeenCalled();
+    expect(mockFileManagementAppService.claimUploads).not.toHaveBeenCalled();
+    expect(mockRepoService.createTransaction).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it.each(['acquisition', 'persistence', 'commit'] as const)(
+    'handles transaction %s failure without publishing or enqueueing',
+    async (phase) => {
+      const failure = new Error('transaction failed');
+      const failures = {
+        acquisition: mockRepoService.createTransaction,
+        persistence: mockJournalEntryPersistenceAppService.create,
+        commit: mockRepoTransaction.commit,
+      };
+      failures[phase].mockRejectedValueOnce(failure);
+
+      await expect(getUseCase()(makePayload())).rejects.toBe(failure);
+
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
+      expect(
+        mockLedgerAccountBalanceAdjustmentQueue.add
+      ).not.toHaveBeenCalled();
+      if (phase === 'acquisition') {
+        expect(mockRepoTransaction.handleError).not.toHaveBeenCalled();
+        expect(
+          mockJournalEntryPersistenceAppService.create
+        ).not.toHaveBeenCalled();
+      } else {
+        expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
+      }
+      if (phase !== 'commit') {
+        expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  afterEach(() => {
+    if (mockLedgerAccountBalanceAdjustmentQueue.add.mock.calls.length === 0) {
+      return;
+    }
+
+    expect(mockRepoService.runInTransaction).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockRepoTransaction.commit.mock.invocationCallOrder[0]).toBeLessThan(
+      mockEventBus.publish.mock.invocationCallOrder[0]
+    );
+    expect(mockEventBus.publish.mock.invocationCallOrder[0]).toBeLessThan(
+      mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
+    );
   });
 });

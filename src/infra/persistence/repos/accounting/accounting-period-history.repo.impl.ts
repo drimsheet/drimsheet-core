@@ -3,7 +3,7 @@ import repoError from '@shared/values/errors/repo.error';
 import IAccountingPeriodHistoryRepo from '@domain/accounting/repos/accounting-period-history.repo';
 
 import { accountingPeriodHistoryInAudit } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import accountingPeriodHistoryMapper from '@infra/persistence/repos/accounting/mappers/accounting-period-history.mapper';
 
 const accountingPeriodHistoryRepo: IAccountingPeriodHistoryRepo = {
@@ -26,7 +26,7 @@ const accountingPeriodHistoryRepo: IAccountingPeriodHistoryRepo = {
       return accountingPeriodHistoryMapper.toRepo(period, history);
     });
 
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .insert(accountingPeriodHistoryInAudit)
       .values(values);
   },

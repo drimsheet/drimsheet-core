@@ -1,11 +1,11 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import { journalEntryHistoryInAudit } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalEntryHistoryRepo from '@infra/persistence/repos/journal-entry/journal-entry-history.repo.impl';
 import journalEntryHistoryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-history.mapper';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/journal-entry-history.mapper');
 
 describe('journalEntryHistoryRepo', () => {
@@ -24,7 +24,7 @@ describe('journalEntryHistoryRepo', () => {
   it('creates history for single and multiple entries', async () => {
     const values = jest.fn().mockResolvedValue(undefined);
     const insert = jest.fn().mockReturnValue({ values });
-    jest.mocked(getDbQuery).mockReturnValue({ insert } as never);
+    jest.mocked(getDbQueryHelper).mockReturnValue({ insert } as never);
 
     await journalEntryHistoryRepo.create(
       {
@@ -51,7 +51,9 @@ describe('journalEntryHistoryRepo', () => {
   it('deletes all history for a journal entry', async () => {
     const where = jest.fn().mockResolvedValue(undefined);
     const deleteQuery = jest.fn().mockReturnValue({ where });
-    jest.mocked(getDbQuery).mockReturnValue({ delete: deleteQuery } as never);
+    jest
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ delete: deleteQuery } as never);
 
     await journalEntryHistoryRepo.deleteByJournalEntryId(entryId, options);
 

@@ -32,8 +32,9 @@ This document provides guidelines for contributing to this project to ensure a s
 - Services should represent named capabilities with clear ownership. See
   [Service Philosophy](.agents/rules/service-philosophy.md) and
   [Service Ownership](.agents/rules/service-ownership.md).
-- All similar functions are grouped in an immutable object. Domain validation
-  objects and one-function helper modules follow
+- All similar functions are grouped in an immutable object, except helper
+  modules, which follow the cross-layer [Helper Rules](.agents/rules/helpers.md).
+  Domain validation objects follow
   [Domain Validations And Helpers](.agents/rules/domain-validations.md).
 - Function/Methods do not call external services directly. Dependencies are wired up in `index.ts` of each feature or sub-layer.\
   for example, `src/app/bookkeeping/usecases/index.ts` or `src/infra/services/index.ts`.

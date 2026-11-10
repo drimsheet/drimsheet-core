@@ -6,7 +6,7 @@ import {
   TBalanceHistoryRepoQuery,
 } from '@app/ledger/contracts/balance-history.repo-query.contract';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 interface IAggregateRow extends Record<string, unknown> {
   account_id: string;
@@ -70,7 +70,7 @@ const balanceHistoryRepoQuery: TBalanceHistoryRepoQuery = async (
 ) => {
   const from = criteria.period.from.toISOString().slice(0, 10);
   const to = criteria.period.to.toISOString().slice(0, 10);
-  const rows = await getDbQuery(options).execute<IAggregateRow>(sql`
+  const rows = await getDbQueryHelper(options).execute<IAggregateRow>(sql`
       WITH matching_accounts AS (
         SELECT account.id, account.type, account.sub_type, account.behavior,
           account.normal_balance, account.materialized_path, account.accounting_entity_id

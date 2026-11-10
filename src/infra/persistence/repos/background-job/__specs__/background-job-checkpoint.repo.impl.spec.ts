@@ -3,10 +3,10 @@ import { eq, sql } from 'drizzle-orm';
 import { EBackgroundJob } from '@shared/contracts/background-job-checkpoint.repo';
 
 import { backgroundJobCheckpointsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import repo from '@infra/persistence/repos/background-job/background-job-checkpoint.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('background-job checkpoint storage', () => {
   const query = {
@@ -28,8 +28,8 @@ describe('background-job checkpoint storage', () => {
     query.insert.mockReturnValue(query);
     query.values.mockReturnValue(query);
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
   });
 
   it('returns only the last successful execution time', async () => {
@@ -51,7 +51,7 @@ describe('background-job checkpoint storage', () => {
     const transactionOptions = { ...options, tx: {} };
     await repo.recordSuccess(jobKey, transactionOptions);
 
-    expect(getDbQuery).toHaveBeenCalledWith(transactionOptions);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(transactionOptions);
     expect(query.insert).toHaveBeenCalledWith(backgroundJobCheckpointsInCore);
     expect(query.values).toHaveBeenCalledWith({
       jobKey,

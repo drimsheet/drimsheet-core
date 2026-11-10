@@ -6,7 +6,6 @@ import { ERepoLock } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 import repoError from '@shared/values/errors/repo.error';
-import eventValue from '@shared/values/events/event.vo';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -18,15 +17,15 @@ import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import { mockJournalEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockReceiptEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
+import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import mockFxLotAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-lot.service.mock';
-import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const actorId = generateUUID();
 const effectiveDate = new Date('2026-03-01T00:00:00.000Z');
@@ -110,11 +109,11 @@ const usecase = makePostDraftReceiptUsecase({
   counterpartyRepo: mockCounterpartyRepo,
   ledgerAccountRepo: mockLedgerAccountRepo,
   journalEntryRepo: mockJournalEntryRepo,
-  journalEntryService: mockJournalEntryService,
+  receiptEntryService: mockReceiptEntryService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
-  fxLotAppService: mockFxLotAppService,
+  fxCostBasisLotService: mockFxCostBasisLotService,
+  exchangeRateAppService: mockExchangeRateAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
-  outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
   repoService: mockRepoService,
   eventBus: mockEventBus,
@@ -123,6 +122,7 @@ const usecase = makePostDraftReceiptUsecase({
 describe('post draft receipt use case', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
     mockAppContext.get.mockReturnValue({
       actor: { id: actorId },
       accountingEntity: { id: account.accountingEntityId },
@@ -134,12 +134,12 @@ describe('post draft receipt use case', () => {
       revenueAccount,
     ]);
     mockJournalEntryRepo.findById.mockResolvedValue(originalEntry);
-    mockJournalEntryService.postDraftReceipt.mockResolvedValue({
+    mockReceiptEntryService.postDraft.mockResolvedValue({
       journalEntry: posting,
       destinationAccount: account,
     });
     mockCounterpartyRepo.findById.mockResolvedValue(counterparty);
-    mockFxLotAppService.acquire.mockResolvedValue(null);
+    mockFxCostBasisLotService.acquire.mockReturnValue(null);
     mockRepoService.createTransaction.mockResolvedValue(mockRepoTransaction);
     mockRepoTransaction.handleError.mockImplementation(async (error) => {
       throw error;
@@ -148,14 +148,14 @@ describe('post draft receipt use case', () => {
 
   it('commits without writes or downstream effects when posting returns no audit', async () => {
     mockJournalEntryRepo.findById.mockResolvedValue(posting[0]);
-    mockJournalEntryService.postDraftReceipt.mockResolvedValue({
+    mockReceiptEntryService.postDraft.mockResolvedValue({
       journalEntry: [posting[0], [], null],
       destinationAccount: account,
     });
 
     await expect(usecase(posting[0].id)).resolves.toBeUndefined();
 
-    expect(mockJournalEntryService.postDraftReceipt).toHaveBeenCalledWith(
+    expect(mockReceiptEntryService.postDraft).toHaveBeenCalledWith(
       expect.objectContaining({ entry: posting[0], actor: actorId }),
       transactionOptions
     );
@@ -165,16 +165,13 @@ describe('post draft receipt use case', () => {
     expect(
       mockJournalEntryPersistenceAppService.rectify
     ).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.acquire).not.toHaveBeenCalled();
-    expect(mockFxLotAppService.dispose).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
+    expect(mockFxCostBasisLotService.dispose).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
     ).not.toHaveBeenCalled();
     expect(
       mockFxLotCostBasisAppService.persistence.persistDisposition
-    ).not.toHaveBeenCalled();
-    expect(
-      mockOutboxAppService.createBalancePropagation
     ).not.toHaveBeenCalled();
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).not.toHaveBeenCalled();
@@ -183,16 +180,11 @@ describe('post draft receipt use case', () => {
   it.each([false, true])(
     'posts only the draft receipt journal atomically, FX=%s',
     async (hasFx) => {
-      const fxRecords = {} as TFxLotAcquisitionAppResult['records'];
-      const fxEvent = eventValue.make({
-        type: 'domain:fx:acquisition:created',
-        data: { id: generateUUID() },
-      });
+      const fxAcquisition = makeFxAcquisitionResult();
+      const [, acquiredLotEvents] = fxAcquisition.lot;
+      const [, acquisitionEvents] = fxAcquisition.acquisition;
       if (hasFx) {
-        mockFxLotAppService.acquire.mockResolvedValue({
-          records: fxRecords,
-          events: [fxEvent],
-        });
+        mockFxCostBasisLotService.acquire.mockReturnValue(fxAcquisition);
       }
 
       await expect(usecase(originalEntry.id)).resolves.toBeUndefined();
@@ -213,7 +205,7 @@ describe('post draft receipt use case', () => {
         originalEntry.id,
         repoOptions
       );
-      expect(mockJournalEntryService.postDraftReceipt).toHaveBeenCalledWith(
+      expect(mockReceiptEntryService.postDraft).toHaveBeenCalledWith(
         {
           entry: originalEntry,
           accounts: [account, revenueAccount],
@@ -222,10 +214,12 @@ describe('post draft receipt use case', () => {
         },
         transactionOptions
       );
-      expect(mockFxLotAppService.acquire).toHaveBeenCalledWith(
-        { journalEntry: posting[0], account, actor: actorId },
-        repoOptions
-      );
+      expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
+        journalEntry: posting[0],
+        account,
+        createdBy: actorId,
+        officialRate: null,
+      });
       expect(
         mockRepoService.createTransaction.mock.invocationCallOrder[0]
       ).toBeLessThan(
@@ -234,10 +228,10 @@ describe('post draft receipt use case', () => {
       expect(
         mockLedgerAccountRepo.findAllByIds.mock.invocationCallOrder[0]
       ).toBeLessThan(
-        mockJournalEntryService.postDraftReceipt.mock.invocationCallOrder[0]
+        mockReceiptEntryService.postDraft.mock.invocationCallOrder[0]
       );
       expect(
-        mockFxLotAppService.acquire.mock.invocationCallOrder[0]
+        mockFxCostBasisLotService.acquire.mock.invocationCallOrder[0]
       ).toBeLessThan(
         mockJournalEntryPersistenceAppService.rectify.mock
           .invocationCallOrder[0]
@@ -267,19 +261,12 @@ describe('post draft receipt use case', () => {
       if (hasFx) {
         expect(
           mockFxLotCostBasisAppService.persistence.persistAcquisition
-        ).toHaveBeenCalledWith(fxRecords, transactionOptions);
+        ).toHaveBeenCalledWith(fxAcquisition, actorId, transactionOptions);
       } else {
         expect(
           mockFxLotCostBasisAppService.persistence.persistAcquisition
         ).not.toHaveBeenCalled();
       }
-      expect(
-        mockOutboxAppService.createBalancePropagation
-      ).toHaveBeenCalledWith(originalEntry.id, transactionOptions);
-      expect(
-        mockOutboxAppService.createBalancePropagation.mock
-          .invocationCallOrder[0]
-      ).toBeLessThan(mockRepoTransaction.commit.mock.invocationCallOrder[0]);
       expect(
         mockRepoTransaction.commit.mock.invocationCallOrder[0]
       ).toBeLessThan(mockEventBus.publish.mock.invocationCallOrder[0]);
@@ -300,14 +287,14 @@ describe('post draft receipt use case', () => {
           idempotencyKey: 'request',
         }),
         ...(hasFx
-          ? [
+          ? [...acquiredLotEvents, ...acquisitionEvents].map(({ type, data }) =>
               expect.objectContaining({
-                type: fxEvent.type,
-                data: fxEvent.data,
+                type,
+                data,
                 ...repoOptions,
                 idempotencyKey: 'request',
-              }),
-            ]
+              })
+            )
           : []),
       ]);
       expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
@@ -347,7 +334,7 @@ describe('post draft receipt use case', () => {
     mockJournalEntryRepo.findById.mockResolvedValue(entry);
     await usecase(entry.id);
     expect(mockCounterpartyRepo.findById).not.toHaveBeenCalled();
-    expect(mockJournalEntryService.postDraftReceipt).toHaveBeenCalledWith(
+    expect(mockReceiptEntryService.postDraft).toHaveBeenCalledWith(
       {
         entry,
         accounts: [account, revenueAccount],
@@ -366,7 +353,6 @@ describe('post draft receipt use case', () => {
     'FX',
     'persistence',
     'FX persistence',
-    'outbox',
     'commit',
   ] as const)(
     'propagates %s failures without publishing or enqueueing',
@@ -376,19 +362,22 @@ describe('post draft receipt use case', () => {
         journal: mockJournalEntryRepo.findById,
         counterparty: mockCounterpartyRepo.findById,
         account: mockLedgerAccountRepo.findAllByIds,
-        posting: mockJournalEntryService.postDraftReceipt,
-        FX: mockFxLotAppService.acquire,
+        posting: mockReceiptEntryService.postDraft,
         persistence: mockJournalEntryPersistenceAppService.rectify,
         'FX persistence':
           mockFxLotCostBasisAppService.persistence.persistAcquisition,
-        outbox: mockOutboxAppService.createBalancePropagation,
         commit: mockRepoTransaction.commit,
       };
-      mockFxLotAppService.acquire.mockResolvedValue({
-        records: {} as TFxLotAcquisitionAppResult['records'],
-        events: [],
-      });
-      failures[phase].mockRejectedValueOnce(failure);
+      mockFxCostBasisLotService.acquire.mockReturnValue(
+        makeFxAcquisitionResult()
+      );
+      if (phase === 'FX') {
+        mockFxCostBasisLotService.acquire.mockImplementationOnce(() => {
+          throw failure;
+        });
+      } else {
+        failures[phase].mockRejectedValueOnce(failure);
+      }
       await expect(usecase(originalEntry.id)).rejects.toBe(failure);
       expect(mockEventBus.publish).not.toHaveBeenCalled();
       expect(

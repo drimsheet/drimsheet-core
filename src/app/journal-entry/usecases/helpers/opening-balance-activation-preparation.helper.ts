@@ -1,25 +1,28 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 
-import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
+import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
+import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {
-  journalEntryService: IJournalEntryService;
-  fxLotAppService: IFxLotAppService;
+  openingBalanceEntryService: IOpeningBalanceEntryService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
 }
 
 /** Prepares posting, FX acquisition, and histories for a caller-selected opening journal without initiating persistence. Domain validation failures reject before the atomic write phase. */
 export default async function openingBalanceActivationPreparationHelper(
   deps: IDependencies,
-  payload: Parameters<IJournalEntryService['postDraftOpeningBalance']>[0],
+  payload: Parameters<IOpeningBalanceEntryService['postDraft']>[0],
   repoOptions: IReadRepoOptions
 ) {
   const { entry: originalEntry, account, actor } = payload;
 
   const [entry, events, audit] =
-    await deps.journalEntryService.postDraftOpeningBalance(
+    await deps.openingBalanceEntryService.postDraft(
       { entry: originalEntry, account, actor },
       repoOptions
     );
@@ -28,10 +31,17 @@ export default async function openingBalanceActivationPreparationHelper(
     return null;
   }
 
-  const fxAcquisition = await deps.fxLotAppService.acquire(
-    { journalEntry: entry, account, actor },
-    repoOptions
-  );
+  const fxAcquisition = deps.fxCostBasisLotService.acquire({
+    journalEntry: entry,
+    account,
+    createdBy: actor,
+    officialRate: await resolveOfficialRateHelper(
+      deps.exchangeRateAppService,
+      entry.lines,
+      account.id,
+      repoOptions
+    ),
+  });
   const persistence = getJournalEntryPersistencePayloadHelper(
     {
       entriesToCreate: [],

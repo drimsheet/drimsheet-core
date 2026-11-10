@@ -20,7 +20,7 @@ const destinationLine = {
 
 const chargeLine = {
   accountId: '3b4c1064-a09e-4e4f-b6a3-23945cc87f76',
-  counterparty: { name: 'Transfer provider' },
+  counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
   amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
   exchangeRate: null,
   description: 'Transfer fee',
@@ -107,7 +107,7 @@ describe('Transfer Entry DTO Validation', () => {
       {
         ...chargeLine,
         accountId: '4b4c1064-a09e-4e4f-b6a3-23945cc87f79',
-        counterparty: null,
+        counterpartyId: null,
         sequenceOrder: 4,
       },
     ];

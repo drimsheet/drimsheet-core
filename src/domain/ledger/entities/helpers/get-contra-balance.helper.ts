@@ -4,7 +4,7 @@ import {
   UNormalBalance,
 } from '@domain/ledger/types/ledger.types';
 
-export default function getContraLedgerAccountBalance(
+export default function getContraLedgerAccountBalanceHelper(
   normalBalance: UNormalBalance
 ): UNormalBalance {
   switch (normalBalance) {

@@ -3,33 +3,38 @@
 ```mermaid
 sequenceDiagram
     actor Caller
-    participant Create as Create Opening Balance
+    participant CreateUseCase as Create Opening Balance
     participant Records as Accounting Records
-    participant Opening as Opening Balance Preparation
+    participant Opening as Opening Balance Domain Service
     participant FX as Foreign Exchange Accounting
     participant Balances as Balance Processing
     participant Events as Event Subscribers
 
-    Caller->>Create: Account ID, opening amount, date, and exchange rate
-    Create->>Records: Request account in selected entity
-    Records-->>Create: Account or not found
+    Caller->>CreateUseCase: Account ID, opening amount, date, and exchange rate
+    CreateUseCase->>Records: Lock account in selected entity for opening journal creation
+    Records-->>CreateUseCase: Account or not found
     alt Account missing
-        Create-->>Caller: Account not found
+        CreateUseCase-->>Caller: Account not found
     else Account found
-        Create->>Opening: Request opening journal for account
-        Opening->>Records: Request opening equity account and eligibility facts
-        Records-->>Opening: Required accounts and existing activity
-        Opening->>FX: Prepare applicable opening acquisition
-        FX-->>Opening: FX effect or no effect
-        Opening-->>Create: Validated opening journal, audit, and associated effects
-        Note over Opening,Create: Draft accounts produce drafts; other eligible accounts produce posted entries
-        Create->>Records: Save journal, changed opening date, audits, FX effect, and pending balance work together
-        Records-->>Create: Changes committed
-        opt Opening journal posted
-            Create->>Balances: Request opening balance propagation
-            Balances-->>Create: Request accepted
+        CreateUseCase->>Opening: Call createDraft or create according to the account status
+        Opening->>Records: Check for an existing opening journal
+        opt Creating a posted journal
+            Opening->>Records: Check for earlier posted activity and an open effective period
         end
-        Create->>Events: Account, journal, and applicable FX events
-        Create-->>Caller: Complete
+        Opening->>Records: Look up the opening equity account
+        Records-->>Opening: Required accounts and existing activity
+        Opening-->>CreateUseCase: Validated opening journal, events, and audit
+        opt Opening journal posted
+            CreateUseCase->>FX: Prepare applicable opening acquisition
+            FX-->>CreateUseCase: FX effect or no effect
+        end
+        CreateUseCase->>Records: Save journal, changed opening date, audits, FX effect, and pending balance work together
+        Records-->>CreateUseCase: Changes committed
+        CreateUseCase->>Events: Account, journal, and applicable FX events
+        opt Opening journal posted
+            CreateUseCase->>Balances: Request opening balance propagation
+            Balances-->>CreateUseCase: Request accepted
+        end
+        CreateUseCase-->>Caller: Complete
     end
 ```

@@ -1,6 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import {
   EAdjunctAccountRule,
@@ -13,9 +14,9 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
-import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import ledgerAccountMapper from '@app/ledger/dtos/ledger-account/ledger-account.dto.mapper';
 import makeGetChartOfAccountsUsecase from '@app/ledger/usecases/get-chart-of-accounts.usecase';
 
 describe('getChartOfAccountsUsecase', () => {
@@ -28,7 +29,7 @@ describe('getChartOfAccountsUsecase', () => {
   const useCase = makeGetChartOfAccountsUsecase({
     appContext: mockAppContext,
     ledgerAccountQueryRepo: mockLedgerAccountQueryRepo,
-    balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   });
 
   const mockAccountingEntity = {
@@ -42,11 +43,11 @@ describe('getChartOfAccountsUsecase', () => {
     type: ELedgerType.Asset,
     materializedPath: '100000',
     normalBalance: ENormalBalance.Debit,
-    subType: 'test',
-    behavior: 'test',
-    isControlAccount: false,
+    subType: 'cash_and_cash_equivalent',
+    behavior: 'bank',
+    isControlAccount: true,
     controlAccountId: null,
-    name: 'Test Account',
+    name: 'Cash',
     currency: SYSTEM_CURRENCIES.EUR,
     status: ELedgerAccountStatus.Active,
     contraAccountRule: EContraAccountRule.ContraNotPermitted,
@@ -58,31 +59,21 @@ describe('getChartOfAccountsUsecase', () => {
   const [mockLedgerAccount] =
     ledgerAccountEntity.make<ILedgerAccount>(validAccountData);
   const accountWithId = { ...mockLedgerAccount, id: mockAccountId };
-  const enrichedDto: ILedgerAccountDto = {
-    id: mockAccountId,
-    code: accountWithId.code,
-    materializedPath: accountWithId.materializedPath,
+  const balance = ledgerAccountBalanceEntity.make({
+    createdBy: accountWithId.createdBy,
+    ledgerAccountId: accountWithId.id,
     accountingEntityId: mockAccountingEntityId,
-    type: ELedgerType.Asset,
-    normalBalance: ENormalBalance.Debit,
-    subType: 'cash_and_cash_equivalent',
-    behavior: 'bank',
-    isControlAccount: true,
-    name: 'Cash',
-    status: ELedgerAccountStatus.Active,
-    contraAccountRule: EContraAccountRule.ContraNotPermitted,
-    adjunctAccountRule: EAdjunctAccountRule.AdjunctNotPermitted,
-    openingBalanceDate: null,
-    createdBy: mockUserId,
-    createdAt: accountWithId.createdAt,
-    updatedAt: accountWithId.updatedAt,
-    balance: { amount: 10000, currencyCode: 'EUR', isMinorUnit: true },
-    functionalBalance: {
-      amount: 12000,
-      currencyCode: 'USD',
-      isMinorUnit: true,
-    },
-  };
+    accountMaterializedPath: accountWithId.materializedPath,
+    currencyCode: SYSTEM_CURRENCIES.EUR.code,
+    functionalCurrencyCode: SYSTEM_CURRENCIES.USD.code,
+    amount: 10000n,
+    functionalAmount: 12000n,
+  });
+  const enrichedDto = ledgerAccountMapper.toDto(
+    accountWithId,
+    balance.amount,
+    balance.functionalAmount
+  );
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -100,8 +91,8 @@ describe('getChartOfAccountsUsecase', () => {
     mockLedgerAccountQueryRepo.findChartOfAccounts.mockResolvedValue([
       accountWithId,
     ]);
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([
-      enrichedDto,
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      balance,
     ]);
   });
 
@@ -115,8 +106,8 @@ describe('getChartOfAccountsUsecase', () => {
         correlationId,
       });
       expect(
-        mockLedgerAccountBalanceEnrichmentAppService.enrich
-      ).toHaveBeenCalledWith([accountWithId], mockAccountingEntity, {
+        mockLedgerAccountBalanceRepo.findAllByAccountIds
+      ).toHaveBeenCalledWith(mockAccountingEntity.id, [accountWithId.id], {
         correlationId,
       });
       expect(result).toEqual([{ ...enrichedDto, children: [] }]);
@@ -125,28 +116,36 @@ describe('getChartOfAccountsUsecase', () => {
 
   it('passes header omission through to the tree mapper', async () => {
     const child = {
-      ...enrichedDto,
+      ...accountWithId,
       id: '123e4567-e89b-12d3-a456-426614174015' as TEntityId,
       controlAccountId: mockAccountId,
     };
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([
-      enrichedDto,
+    mockLedgerAccountQueryRepo.findChartOfAccounts.mockResolvedValue([
+      accountWithId,
       child,
     ]);
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      balance,
+      { ...balance, ledgerAccountId: child.id },
+    ]);
+    const childDto = ledgerAccountMapper.toDto(
+      child,
+      balance.amount,
+      balance.functionalAmount
+    );
     await expect(
       useCase({ class: 'asset', omitHeaderAccounts: true })
-    ).resolves.toEqual([{ ...child, children: [] }]);
+    ).resolves.toEqual([{ ...childDto, children: [] }]);
   });
 
   it('returns an empty tree when no accounts match', async () => {
     mockLedgerAccountQueryRepo.findChartOfAccounts.mockResolvedValue([]);
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([]);
     await expect(useCase({ class: 'asset' })).resolves.toEqual([]);
   });
 
   it('searches the complete enriched hierarchy after omitting headers', async () => {
     const matchingChild = {
-      ...enrichedDto,
+      ...accountWithId,
       id: '123e4567-e89b-12d3-a456-426614174015' as TEntityId,
       controlAccountId: mockAccountId,
       name: 'Cash in Bank',
@@ -157,16 +156,26 @@ describe('getChartOfAccountsUsecase', () => {
       controlAccountId: matchingChild.id,
       name: 'Savings',
     };
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockResolvedValue([
-      enrichedDto,
+    const accounts = [accountWithId, matchingChild, descendant];
+    mockLedgerAccountQueryRepo.findChartOfAccounts.mockResolvedValue(accounts);
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue(
+      accounts.map((account) => ({ ...balance, ledgerAccountId: account.id }))
+    );
+    const matchingChildDto = ledgerAccountMapper.toDto(
       matchingChild,
+      balance.amount,
+      balance.functionalAmount
+    );
+    const descendantDto = ledgerAccountMapper.toDto(
       descendant,
-    ]);
+      balance.amount,
+      balance.functionalAmount
+    );
 
     await expect(
       useCase({ class: 'asset', search: 'CASH', omitHeaderAccounts: true })
     ).resolves.toEqual([
-      { ...matchingChild, children: [{ ...descendant, children: [] }] },
+      { ...matchingChildDto, children: [{ ...descendantDto, children: [] }] },
     ]);
     expect(mockLedgerAccountQueryRepo.findChartOfAccounts).toHaveBeenCalledWith(
       mockAccountingEntityId,
@@ -191,7 +200,7 @@ describe('getChartOfAccountsUsecase', () => {
         mockLedgerAccountQueryRepo.findChartOfAccounts
       ).not.toHaveBeenCalled();
       expect(
-        mockLedgerAccountBalanceEnrichmentAppService.enrich
+        mockLedgerAccountBalanceRepo.findAllByAccountIds
       ).not.toHaveBeenCalled();
     }
   );
@@ -201,15 +210,13 @@ describe('getChartOfAccountsUsecase', () => {
     mockLedgerAccountQueryRepo.findChartOfAccounts.mockRejectedValue(failure);
     await expect(useCase({ class: 'asset' })).rejects.toBe(failure);
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
   });
 
   it('propagates enrichment failures', async () => {
     const failure = new Error('enrichment failed');
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockRejectedValue(
-      failure
-    );
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockRejectedValue(failure);
     await expect(useCase({ class: 'asset' })).rejects.toBe(failure);
   });
 });

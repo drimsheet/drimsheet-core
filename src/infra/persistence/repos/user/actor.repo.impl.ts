@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm';
 
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 
 import actorError from '@domain/user/errors/actor.error';
 import IActorRepo from '@domain/user/repos/actor.repo';
 
 import { actorsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import actorMapper from '@infra/persistence/repos/user/mappers/actor.mapper';
 
 import actorHistoryRepo from './actor-history.repo.impl';
@@ -31,11 +31,11 @@ function isUniqueViolation(error: unknown): boolean {
 const actorRepo: IActorRepo = {
   create: async (actor, options) => {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         await tx.insert(actorsInCore).values(actorMapper.toRepo(actor));
         await actorHistoryRepo.save(
           options.history,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {
@@ -46,14 +46,14 @@ const actorRepo: IActorRepo = {
     }
   },
   findById: async (id, options) => {
-    const [actor] = await getDbQuery(options)
+    const [actor] = await getDbQueryHelper(options)
       .select()
       .from(actorsInCore)
       .where(eq(actorsInCore.id, id));
     return actor ? actorMapper.toDomain(actor) : null;
   },
   findByUsername: async (username, options) => {
-    const [actor] = await getDbQuery(options)
+    const [actor] = await getDbQueryHelper(options)
       .select()
       .from(actorsInCore)
       .where(eq(actorsInCore.username, username));

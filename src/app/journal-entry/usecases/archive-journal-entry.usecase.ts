@@ -9,8 +9,7 @@
  *
  * WHEN TO USE
  * Use to retire an entry from ordinary active use while preserving its
- * financial effect. Use delete-journal-entry to discard an unposted entry or
- * cancel a posted entry.
+ * financial effect. Use delete-journal-entry to discard a draft.
  *
  * SEQUENCE DIAGRAM
  * Not required for this straightforward workflow.

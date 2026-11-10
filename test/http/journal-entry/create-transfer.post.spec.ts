@@ -88,7 +88,7 @@ const validPayload: ITransferEntryReq = {
   chargeLines: [
     {
       accountId: '123e4567-e89b-12d3-a456-426614174011',
-      counterparty: { name: 'Transfer provider' },
+      counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
       amount: { amount: 50, currencyCode: 'NGN', isMinorUnit: true },
       exchangeRate: null,
       description: 'Transfer fee',
@@ -207,6 +207,20 @@ describe('POST /journal-entries/transfer', () => {
       .send(payload);
 
   describe('201 Response', () => {
+    it('accepts a charge without a counterparty', async () => {
+      const response = await makeRequest({
+        ...validPayload,
+        chargeLines: [{ ...validPayload.chargeLines[0], counterpartyId: null }],
+      });
+
+      expect(response.status).toBe(201);
+      expect(mockCreateTransferUseCase).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chargeLines: [expect.objectContaining({ counterpartyId: null })],
+        })
+      );
+    });
+
     it('returns the created transfer DTO', async () => {
       const response = await makeRequest();
 
@@ -344,12 +358,23 @@ describe('POST /journal-entries/transfer', () => {
   });
 
   describe('422 Response', () => {
+    it('rejects embedded counterparty details on a charge', async () => {
+      const { counterpartyId: _id, ...charge } = validPayload.chargeLines[0];
+      const response = await makeRequest({
+        ...validPayload,
+        chargeLines: [{ ...charge, counterparty: { name: 'Provider' } }],
+      });
+
+      expect(response.status).toBe(422);
+      expect(mockCreateTransferUseCase).not.toHaveBeenCalled();
+    });
+
     it('rejects transfer counterparties before orchestration', async () => {
       const response = await makeRequest({
         ...validPayload,
         sourceLine: {
           ...validPayload.sourceLine,
-          counterparty: { name: 'Not permitted' },
+          counterpartyId: '123e4567-e89b-12d3-a456-426614174006',
         },
       });
 

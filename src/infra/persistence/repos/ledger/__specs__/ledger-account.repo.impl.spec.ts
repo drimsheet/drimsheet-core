@@ -11,12 +11,12 @@ import { EAssetSubType } from '@domain/ledger/types/asset-account.types';
 import { ELedgerType, ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
 import { ledgerAccountsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import ledgerAccountHistoryRepo from '@infra/persistence/repos/ledger/ledger-account-history.repo.impl';
 import ledgerAccountRepo from '@infra/persistence/repos/ledger/ledger-account.repo.impl';
 import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../ledger-account-history.repo.impl');
 jest.mock('../mappers/ledger-account.mapper');
 jest.mock('drizzle-orm', () => {
@@ -40,7 +40,7 @@ describe('ledgerAccountRepo deletion', () => {
       delete: jest.fn().mockReturnValue({ where }),
       select: new QueryBuilder().select.bind(new QueryBuilder()),
     };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
     } as never);
     return { where, tx };
@@ -113,9 +113,9 @@ describe('ledgerAccountRepo strict updates', () => {
     const set = jest.fn().mockReturnValue({ where });
     const update = jest.fn().mockReturnValue({ set });
     const tx = { update };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
 
     return set;
   }
@@ -162,7 +162,7 @@ describe('ledgerAccountRepo strict updates', () => {
       })
     ).rejects.toBeInstanceOf(repoError.VersionMismatch);
 
-    expect(getDbQuery).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
   });
 });
 
@@ -190,11 +190,11 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
       const orderBy = jest.fn().mockReturnValue(awaitable);
       const where = jest.fn().mockReturnValue({ orderBy });
       const leftJoin = jest.fn().mockReturnValue({ where });
-      jest.mocked(getDbQuery).mockReturnValue({
+      jest.mocked(getDbQueryHelper).mockReturnValue({
         select: jest
           .fn()
           .mockReturnValue({ from: jest.fn().mockReturnValue({ leftJoin }) }),
-      } as unknown as ReturnType<typeof getDbQuery>);
+      } as unknown as ReturnType<typeof getDbQueryHelper>);
       jest.mocked(ledgerAccountMapper.toDomain).mockReturnValue(account);
       expect(
         await ledgerAccountRepo.findAllByIds([account.id], accountingEntityId, {
@@ -230,7 +230,7 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
         correlationId: 'batch',
       })
     ).toEqual([]);
-    expect(getDbQuery).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
   });
 
   it('returns more than 200 requested accounts without pagination or status filtering', async () => {
@@ -242,11 +242,11 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
     const orderBy = jest.fn().mockResolvedValue(rows);
     const where = jest.fn().mockReturnValue({ orderBy });
     const leftJoin = jest.fn().mockReturnValue({ where });
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       select: jest.fn().mockReturnValue({
         from: jest.fn().mockReturnValue({ leftJoin }),
       }),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
     jest
       .mocked(ledgerAccountMapper.toDomain)
       .mockImplementation((row) => row as unknown as ILedgerAccount);
@@ -273,11 +273,11 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
         .mockReturnValue({ ...makeAwaitable(rows), for: locked });
       const where = jest.fn().mockReturnValue({ orderBy });
       const leftJoin = jest.fn().mockReturnValue({ where });
-      jest.mocked(getDbQuery).mockReturnValue({
+      jest.mocked(getDbQueryHelper).mockReturnValue({
         select: jest
           .fn()
           .mockReturnValue({ from: jest.fn().mockReturnValue({ leftJoin }) }),
-      } as unknown as ReturnType<typeof getDbQuery>);
+      } as unknown as ReturnType<typeof getDbQueryHelper>);
       jest
         .mocked(ledgerAccountMapper.toDomain)
         .mockImplementation((row) => row as unknown as ILedgerAccount);
@@ -320,7 +320,7 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
     const leftJoin = jest.fn().mockReturnValue({ where });
     const from = jest.fn().mockReturnValue({ leftJoin });
     const select = jest.fn().mockReturnValue({ from });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
     (ledgerAccountMapper.toDomain as jest.Mock).mockReturnValue(account);
 
     await expect(
@@ -344,7 +344,7 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
     const where = jest.fn().mockReturnValue({ orderBy });
     const from = jest.fn().mockReturnValue({ where });
     const select = jest.fn().mockReturnValue({ from });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
 
     await expect(
       ledgerAccountRepo.findLatestBySubType(
@@ -411,7 +411,7 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
     const leftJoin = jest.fn().mockReturnValue({ where });
     const from = jest.fn().mockReturnValue({ leftJoin });
     const select = jest.fn().mockReturnValue({ from });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
     (ledgerAccountMapper.toDomain as jest.Mock).mockReturnValue(account);
 
     const result = await read();
@@ -443,7 +443,7 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
     const leftJoin = jest.fn().mockReturnValue({ where });
     const from = jest.fn().mockReturnValue({ leftJoin });
     const select = jest.fn().mockReturnValue({ from });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
     (ledgerAccountMapper.toDomain as jest.Mock).mockReturnValue(account);
 
     await expect(
@@ -471,7 +471,7 @@ describe('ledgerAccountRepoImpl allocation reads', () => {
       })
     ).resolves.toEqual([]);
 
-    expect(getDbQuery).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
   });
 });
 
@@ -494,9 +494,9 @@ describe('ledgerAccountRepo.findByCode with a lock', () => {
       const from = jest.fn().mockReturnValue({ leftJoin });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       jest.mocked(ledgerAccountMapper.toDomain).mockReturnValue(account);
 
@@ -510,7 +510,7 @@ describe('ledgerAccountRepo.findByCode with a lock', () => {
         entityId
       );
       expect(eq).toHaveBeenCalledWith(ledgerAccountsInCore.code, '100000');
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(ledgerAccountMapper.toDomain).toHaveBeenCalledTimes(
         exists ? 1 : 0
       );
@@ -528,9 +528,9 @@ describe('ledgerAccountRepo suspense duplicate translation', () => {
   it.each([conflict, { cause: conflict }, { cause: { cause: conflict } }])(
     'maps the named suspense violation %o',
     async (error) => {
-      jest.mocked(getDbQuery).mockReturnValue({
+      jest.mocked(getDbQueryHelper).mockReturnValue({
         transaction: jest.fn().mockRejectedValue(error),
-      } as unknown as ReturnType<typeof getDbQuery>);
+      } as unknown as ReturnType<typeof getDbQueryHelper>);
       await expect(
         ledgerAccountRepo.create([], {
           correlationId: 'duplicate',
@@ -558,9 +558,9 @@ describe('ledgerAccountRepo suspense duplicate translation', () => {
     },
     { cause: new Error('database unavailable') },
   ])('preserves an unrelated failure %o', async (error) => {
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(error),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
     await expect(
       ledgerAccountRepo.create([], {
         correlationId: 'other-error',
@@ -581,9 +581,9 @@ describe('ledgerAccountRepo atomic creation', () => {
   function mockCreation() {
     const values = jest.fn().mockResolvedValue(undefined);
     const tx = { insert: jest.fn().mockReturnValue({ values }) };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (fn) => fn(tx as never)),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
     jest.mocked(ledgerAccountMapper.toRepo).mockReturnValue(mapped);
     return { values, tx };
   }

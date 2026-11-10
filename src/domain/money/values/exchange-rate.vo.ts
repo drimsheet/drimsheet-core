@@ -5,7 +5,7 @@ import stringUtils from '@shared/utils/string';
 import currencyEntity from '@domain/money/entities/currency.entity';
 import exchangeRateError from '@domain/money/errors/exchange-rate.error';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
-import getExchangeRateCurrencyPair from '@domain/money/values/helpers/get-currency-pair.helper';
+import getExchangeRateCurrencyPairHelper from '@domain/money/values/helpers/get-currency-pair.helper';
 import exchangeRateValidation from '@domain/money/values/validations/exchange-rate.validation';
 
 function make(payload: TCreationOmits<IExchangeRate, 'currencyPair'>) {
@@ -25,7 +25,7 @@ function make(payload: TCreationOmits<IExchangeRate, 'currencyPair'>) {
   );
   currencyEntity.validateCode(targetCurrencyCode);
 
-  const currencyPair = getExchangeRateCurrencyPair(
+  const currencyPair = getExchangeRateCurrencyPairHelper(
     baseCurrencyCode,
     targetCurrencyCode
   );

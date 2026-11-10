@@ -2,7 +2,7 @@ import IJournalEntryAttachmentRepo from '@domain/journal-entry/repos/journal-ent
 
 import { journalEntryAttachmentsInCore } from '@infra/config/drizzle/schema';
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalEntryAttachmentMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-attachment.mapper';
 
 const journalEntryAttachmentRepo: IJournalEntryAttachmentRepo = {
@@ -12,7 +12,7 @@ const journalEntryAttachmentRepo: IJournalEntryAttachmentRepo = {
       attachments
     );
 
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .insert(journalEntryAttachmentsInCore)
       .values(values)
       .onConflictDoUpdate({

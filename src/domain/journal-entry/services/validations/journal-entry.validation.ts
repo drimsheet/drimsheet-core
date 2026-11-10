@@ -14,6 +14,11 @@ import {
   IJournalEntryHeaderPayload,
   IJournalEntryLinePayload,
 } from '@domain/journal-entry/types/journal-entry.service.types';
+import {
+  EJournalEntryStatus,
+  IJournalEntry,
+  UJournalEntrySourceType,
+} from '@domain/journal-entry/types/journal-entry.types';
 import { ILedgerAccountBalance } from '@domain/ledger/types/ledger-account-balance.types';
 import {
   ELedgerAccountStatus,
@@ -21,6 +26,38 @@ import {
 } from '@domain/ledger/types/ledger.types';
 import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
+
+/** Prevents new journal associations with archived accounts. */
+function validateArchivedAccounts(accounts: ILedgerAccount[]) {
+  const archivedAccounts = accounts.filter(
+    (account) => account.status === ELedgerAccountStatus.Archived
+  );
+  if (archivedAccounts.length) {
+    throw new journalEntryError.ArchivedLedgerAccountNotAllowed({
+      accounts: archivedAccounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+      })),
+    });
+  }
+}
+
+function validateDraftEntry(
+  entry: IJournalEntry,
+  sourceType: UJournalEntrySourceType
+) {
+  const isDraftEntry =
+    entry.sourceType === sourceType &&
+    entry.status === EJournalEntryStatus.Draft &&
+    entry.postedAt === null;
+  if (!isDraftEntry) {
+    throw new journalEntryError.RectificationNotPermitted({
+      journalEntryId: entry.id,
+      sourceType: entry.sourceType,
+      status: entry.status,
+    });
+  }
+}
 
 function validateAccountsAgainstRule(
   sourceAccounts: ILedgerAccount[],
@@ -51,8 +88,8 @@ function validateAccountsAgainstRule(
 function validateAccounts(
   header: Pick<
     IJournalEntryHeaderPayload,
-    'accountingEntityId' | 'effectiveDate' | 'postedAt'
-  >,
+    'accountingEntityId' | 'postedAt'
+  > & { effectiveDate?: Date },
   journalLines: Pick<IJournalEntryBaseLinePayload, 'account' | 'amount'>[]
 ) {
   const allAccounts = journalLines.map((line) => line.account);
@@ -77,18 +114,20 @@ function validateAccounts(
     });
   }
 
-  // Assert that effective date is not before any account's opening date
-  const erringEffectiveDates = allAccounts.filter(
-    (acc) =>
-      acc.openingBalanceDate !== null &&
-      dateUtils.isLessThan(header.effectiveDate, acc.openingBalanceDate)
-  );
+  const { effectiveDate } = header;
+  if (effectiveDate !== undefined) {
+    const erringEffectiveDates = allAccounts.filter(
+      (acc) =>
+        acc.openingBalanceDate !== null &&
+        dateUtils.isLessThan(effectiveDate, acc.openingBalanceDate)
+    );
 
-  if (erringEffectiveDates.length) {
-    throw new journalEntryError.EffectiveDateIsBeforeOpeningDate({
-      accounts: erringEffectiveDates.map((v) => v.id),
-      effectiveDate: header.effectiveDate,
-    });
+    if (erringEffectiveDates.length) {
+      throw new journalEntryError.EffectiveDateIsBeforeOpeningDate({
+        accounts: erringEffectiveDates.map((v) => v.id),
+        effectiveDate,
+      });
+    }
   }
 
   // Assert that line currencies match their fixed-currency accounts
@@ -137,7 +176,7 @@ function validateAccounts(
 }
 
 function validateCounterparties(
-  header: IJournalEntryHeaderPayload,
+  header: Pick<IJournalEntryHeaderPayload, 'accountingEntityId' | 'postedAt'>,
   journalLines: IJournalEntryLinePayload[]
 ) {
   const allCounterparties = new Set(
@@ -243,6 +282,13 @@ function validateTransferAccountComposition(
       ),
     });
   }
+
+  const destinationAssetAccount = destinationAssetAccounts[0];
+  if (sourceAccount.id === destinationAssetAccount.id) {
+    throw new journalEntryError.DuplicateAccountsNotPermitted({
+      accountIds: [sourceAccount.id, destinationAssetAccount.id],
+    });
+  }
 }
 
 function isTransferAssetAccount(account: ILedgerAccount) {
@@ -255,23 +301,9 @@ const journalEntryValidation = Object.freeze({
   validateAccounts,
   validateAccountsAgainstRule,
   validateCounterparties,
+  validateDraftEntry,
   validateSourceAccountBalance,
   validateTransferAccountComposition,
 });
-
-/** Archived accounts cannot acquire journal associations, including unposted entries and reversals. */
-function validateArchivedAccounts(accounts: ILedgerAccount[]) {
-  const archivedAccounts = accounts.filter(
-    (account) => account.status === ELedgerAccountStatus.Archived
-  );
-  if (archivedAccounts.length) {
-    throw new journalEntryError.ArchivedLedgerAccountNotAllowed({
-      accounts: archivedAccounts.map((account) => ({
-        id: account.id,
-        name: account.name,
-      })),
-    });
-  }
-}
 
 export default journalEntryValidation;

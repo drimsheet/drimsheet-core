@@ -7,8 +7,6 @@ const EErrorKeys = {
     'app_error_ledger_balance_hierarchy_changed_conflict',
   AccountNotFound: 'app_error_ledger_account_not_found',
   BalanceNotFound: 'app_error_ledger_balance_missing_unexpected',
-  BalancePropagationOutboxNotFound:
-    'app_error_ledger_balance_propagation_outbox_not_found',
   InvalidSubtype: 'app_error_ledger_sub_type_invalid',
   InvalidActivateOpeningBalance:
     'app_error_ledger_activate_opening_balance_invalid',

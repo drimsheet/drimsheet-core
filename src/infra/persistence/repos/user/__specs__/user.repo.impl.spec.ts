@@ -7,12 +7,12 @@ import repoError from '@shared/values/errors/repo.error';
 import { IUser } from '@domain/user/types/user.types';
 
 import { usersInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import userMapper from '@infra/persistence/repos/user/mappers/user.mapper';
 import userHistoryRepo from '@infra/persistence/repos/user/user-history.repo.impl';
 import userRepo from '@infra/persistence/repos/user/user.repo.impl';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/user.mapper');
 jest.mock('../user-history.repo.impl');
 jest.mock('drizzle-orm', () => {
@@ -47,9 +47,9 @@ describe('userRepo strict updates', () => {
     const set = jest.fn().mockReturnValue({ where });
     const update = jest.fn().mockReturnValue({ set });
     const tx = { update };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
 
     return { set, where };
   }
@@ -99,6 +99,6 @@ describe('userRepo strict updates', () => {
       })
     ).rejects.toBeInstanceOf(repoError.VersionMismatch);
 
-    expect(getDbQuery).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
   });
 });

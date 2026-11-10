@@ -5,6 +5,7 @@ import {
   Get,
   Middlewares,
   OperationId,
+  Patch,
   Path,
   Post,
   Queries,
@@ -16,11 +17,21 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
-import { TJournalEntryRectificationReq } from '@app/journal-entry/dtos/journal-entry-rectification/journal-entry-rectification.dto';
 import { IGetJournalEntriesQuery } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
-import { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
-import { IReceiptEntryReq } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto';
-import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
+import { IJournalEntryMetaUpdateReq } from '@app/journal-entry/dtos/meta-update/meta-update.dto';
+import { IUpdateDraftOpeningBalanceReq } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
+import {
+  IPaymentEntryReq,
+  IUpdateDraftPaymentReq,
+} from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
+import {
+  IReceiptEntryReq,
+  IUpdateDraftReceiptReq,
+} from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto';
+import {
+  ITransferEntryReq,
+  IUpdateDraftTransferReq,
+} from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 
 import middlewares from '@infra/ioc/middlewares/http';
 import {
@@ -35,7 +46,15 @@ import {
   postDraftPaymentUseCase,
   postDraftReceiptUseCase,
   postDraftTransferUseCase,
-  rectifyJournalEntryUseCase,
+  updateDraftOpeningBalanceUseCase,
+  updateDraftPaymentUseCase,
+  updateDraftReceiptUseCase,
+  updateDraftTransferUseCase,
+  updateJournalEntryMetaUseCase,
+  voidAndReplacePaymentUseCase,
+  voidAndReplaceReceiptUseCase,
+  voidAndReplaceTransferUseCase,
+  voidJournalEntryUseCase,
 } from '@infra/ioc/usecases/journal-entry';
 
 @Route('journal-entries')
@@ -142,10 +161,11 @@ export class JournalEntryController extends Controller {
   }
 
   /**
-   * Correct a journal entry while preserving its accounting audit trail.
+   * Updates the memo, existing line descriptions, and supporting attachments
+   * of a draft or posted journal entry.
    */
-  @Post('/{id}/rectify')
-  @OperationId('rectifyJournalEntry')
+  @Patch('/{id}/meta')
+  @OperationId('updateJournalEntryMeta')
   @SuccessResponse('200')
   @Response<IHttpErrorDto>('400')
   @Response<IHttpErrorDto>('401')
@@ -159,11 +179,172 @@ export class JournalEntryController extends Controller {
     middlewares.featureFlagAccess.canAccessAlpha1,
     middlewares.accountingEntityAccess
   )
-  public async rectifyJournalEntry(
+  public async updateJournalEntryMeta(
     @Path() id: string,
-    @Body() body: TJournalEntryRectificationReq
+    @Body() body: IJournalEntryMetaUpdateReq
   ) {
-    return rectifyJournalEntryUseCase(id, body);
+    return updateJournalEntryMetaUseCase(id, body);
+  }
+
+  /** Updates the amount, effective date, exchange rate, memo, or attachments of a draft opening balance. */
+  @Patch('/opening-balance/{id}')
+  @OperationId('updateDraftOpeningBalance')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateDraftOpeningBalance(
+    @Path() id: string,
+    @Body() body: IUpdateDraftOpeningBalanceReq
+  ) {
+    return updateDraftOpeningBalanceUseCase(id, body);
+  }
+
+  /** Updates the memo, effective date, lines, or attachments of a draft payment. */
+  @Patch('/payment/{id}')
+  @OperationId('updateDraftPayment')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateDraftPayment(
+    @Path() id: string,
+    @Body() body: IUpdateDraftPaymentReq
+  ) {
+    return updateDraftPaymentUseCase(id, body);
+  }
+
+  /** Voids and reverses a posted payment and records a draft or posted replacement. */
+  @Post('/payment/{id}/void-and-replace')
+  @OperationId('voidAndReplacePayment')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async voidAndReplacePayment(
+    @Path() id: string,
+    @Body() body: IPaymentEntryReq
+  ) {
+    return voidAndReplacePaymentUseCase(id, body);
+  }
+
+  /** Edits a draft receipt's memo, effective date, lines, or attachments. */
+  @Patch('/receipt/{id}')
+  @OperationId('updateDraftReceipt')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateDraftReceipt(
+    @Path() id: string,
+    @Body() body: IUpdateDraftReceiptReq
+  ) {
+    return updateDraftReceiptUseCase(id, body);
+  }
+
+  /** Voids and reverses a posted receipt and records a draft or posted replacement. */
+  @Post('/receipt/{id}/void-and-replace')
+  @OperationId('voidAndReplaceReceipt')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async voidAndReplaceReceipt(
+    @Path() id: string,
+    @Body() body: IReceiptEntryReq
+  ) {
+    return voidAndReplaceReceiptUseCase(id, body);
+  }
+
+  /** Edits a draft transfer's memo, effective date, lines, or attachments. */
+  @Patch('/transfer/{id}')
+  @OperationId('updateDraftTransfer')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async updateDraftTransfer(
+    @Path() id: string,
+    @Body() body: IUpdateDraftTransferReq
+  ) {
+    return updateDraftTransferUseCase(id, body);
+  }
+
+  /** Voids and reverses a posted transfer and records its replacement. */
+  @Post('/transfer/{id}/void-and-replace')
+  @OperationId('voidAndReplaceTransfer')
+  @SuccessResponse('200')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async voidAndReplaceTransfer(
+    @Path() id: string,
+    @Body() body: ITransferEntryReq
+  ) {
+    return voidAndReplaceTransferUseCase(id, body);
   }
 
   /** Posts only the associated draft opening balance, preserving the ledger account's status. Requires a draft opening-balance journal and an active posting account. */
@@ -263,8 +444,28 @@ export class JournalEntryController extends Controller {
     return archiveJournalEntryUseCase(id);
   }
 
+  /** Voids a posted journal entry and posts its offsetting reversal. */
+  @Post('/{id}/void')
+  @OperationId('voidJournalEntry')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('404')
+  @Response<IHttpErrorDto>('409')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public voidJournalEntry(@Path() id: string): Promise<void> {
+    return voidJournalEntryUseCase(id);
+  }
+
   /**
-   * Delete a never-posted journal entry or reverse a previously-posted entry.
+   * Deletes a draft journal entry. Other statuses return 400.
    */
   @Delete('/{id}')
   @OperationId('deleteJournalEntry')

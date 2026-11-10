@@ -5,10 +5,10 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IGetAccountActivityRepoQueryInput } from '@app/ledger/usecases/reporting/account-activity/account-activity.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import accountActivityRepoQuery from '@infra/persistence/repos/ledger/queries/account-activity.reporting';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('accountActivityRepoQuery', () => {
   const criteria: IGetAccountActivityRepoQueryInput = {
@@ -33,15 +33,17 @@ describe('accountActivityRepoQuery', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ execute } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ execute } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     execute.mockResolvedValue({ rows: [] });
   });
 
   it('binds account, tenant, dates, currency and bucket size instead of interpolating SQL text', async () => {
     await accountActivityRepoQuery(criteria, options);
     const compiled = new PgDialect().sqlToQuery(execute.mock.calls[0][0]);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(compiled.params).toEqual([
       criteria.accountId,
       criteria.accountingEntityId,

@@ -1,7 +1,6 @@
-import periodError from '@domain/accounting/errors/period.error';
+import accountingPeriodValidation from '@domain/accounting/entities/validations/accounting-period.validation';
 import IAccountingPeriodRepo from '@domain/accounting/repos/accounting-period.repo';
 import IAccountingPeriodService from '@domain/accounting/types/accounting-period.service.types';
-import { EAccountingPeriodStatus } from '@domain/accounting/types/accounting-period.types';
 
 interface IDependencies {
   accountingPeriodRepo: IAccountingPeriodRepo;
@@ -17,29 +16,11 @@ function makeValidatePostingPeriod(
       postingDate,
       repoOptions
     );
-    if (accountingPeriods.length === 0) {
-      throw new periodError.PostingDateNotCovered({
-        accountingEntityId,
-        postingDate,
-      });
-    }
-    if (accountingPeriods.length > 1) {
-      throw new periodError.PostingPeriodAmbiguous({
-        accountingEntityId,
-        postingDate,
-        accountingPeriodIds: accountingPeriods.map((period) => period.id),
-      });
-    }
-
-    const [accountingPeriod] = accountingPeriods;
-    if (accountingPeriod.status !== EAccountingPeriodStatus.Open) {
-      throw new periodError.PostingPeriodNotOpen({
-        accountingEntityId,
-        postingDate,
-        accountingPeriodId: accountingPeriod.id,
-        status: accountingPeriod.status,
-      });
-    }
+    accountingPeriodValidation.validatePostingPeriod(
+      accountingEntityId,
+      postingDate,
+      accountingPeriods
+    );
   };
 }
 

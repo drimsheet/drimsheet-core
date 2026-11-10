@@ -10,12 +10,12 @@ import {
   journalEntriesInCore,
   journalLinesInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalEntryRepo from '@infra/persistence/repos/journal-entry/journal-entry.repo.impl';
 import journalEntryHistoryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-history.mapper';
 import journalEntryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry.mapper';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/journal-entry-history.mapper');
 jest.mock('../mappers/journal-entry.mapper');
 
@@ -39,8 +39,8 @@ describe('journalEntryRepo', () => {
       id: journalEntryId,
     } as never);
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
   });
 
   it.each([false, true])(
@@ -52,7 +52,7 @@ describe('journalEntryRepo', () => {
       const where = jest.fn().mockReturnValue({ limit });
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
-      jest.mocked(getDbQuery).mockReturnValue({ select } as never);
+      jest.mocked(getDbQueryHelper).mockReturnValue({ select } as never);
       expect(
         await journalEntryRepo.existsByAccountingEntityId(
           journalEntryId,
@@ -68,7 +68,7 @@ describe('journalEntryRepo', () => {
         '"core"."journal_entries"."accounting_entity_id" = $1'
       );
       expect(predicate.params).toEqual([journalEntryId]);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     }
   );
 
@@ -84,13 +84,13 @@ describe('journalEntryRepo', () => {
       const innerJoin = jest.fn().mockReturnValue({ where });
       const from = jest.fn().mockReturnValue({ innerJoin });
       const select = jest.fn().mockReturnValue({ from });
-      jest.mocked(getDbQuery).mockReturnValue({ select } as never);
+      jest.mocked(getDbQueryHelper).mockReturnValue({ select } as never);
 
       await expect(
         journalEntryRepo.existsByAccountId(accountId, journalEntryId, options)
       ).resolves.toBe(expected);
 
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(select).toHaveBeenCalledWith({ id: journalLinesInCore.id });
       expect(from).toHaveBeenCalledWith(journalLinesInCore);
       expect(innerJoin).toHaveBeenCalledWith(
@@ -113,28 +113,38 @@ describe('journalEntryRepo', () => {
   );
 
   it.each([
-    { references: [], expected: false },
-    { references: [{ id: journalEntryId }], expected: true },
+    { references: [], expected: false, effectiveBefore: undefined },
+    {
+      references: [{ id: journalEntryId }],
+      expected: true,
+      effectiveBefore: undefined,
+    },
+    {
+      references: [{ id: journalEntryId }],
+      expected: true,
+      effectiveBefore: new Date('2026-05-01T12:30:00Z'),
+    },
   ])(
     'reports historical posted activity as $expected, excluding drafts',
-    async ({ references, expected }) => {
+    async ({ references, expected, effectiveBefore }) => {
       const accountId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
       const limit = jest.fn().mockResolvedValue(references);
       const where = jest.fn().mockReturnValue({ limit });
       const innerJoin = jest.fn().mockReturnValue({ where });
       const from = jest.fn().mockReturnValue({ innerJoin });
       const select = jest.fn().mockReturnValue({ from });
-      jest.mocked(getDbQuery).mockReturnValue({ select } as never);
+      jest.mocked(getDbQueryHelper).mockReturnValue({ select } as never);
 
       await expect(
         journalEntryRepo.existsPostedByAccountId(
           accountId,
           journalEntryId,
-          options
+          options,
+          effectiveBefore
         )
       ).resolves.toBe(expected);
 
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(select).toHaveBeenCalledWith({ id: journalLinesInCore.id });
       expect(from).toHaveBeenCalledWith(journalLinesInCore);
       expect(innerJoin).toHaveBeenCalledWith(
@@ -150,10 +160,55 @@ describe('journalEntryRepo', () => {
       const predicate = dialect.sqlToQuery(where.mock.calls[0][0] as SQL);
       expect(predicate.sql).toContain('"account_id" = $1');
       expect(predicate.sql).toContain('"accounting_entity_id" = $2');
-      expect(predicate.params).toEqual([accountId, journalEntryId]);
+      if (effectiveBefore) {
+        expect(predicate.sql).toContain('"effective_date" < $3');
+        expect(predicate.params).toEqual([
+          accountId,
+          journalEntryId,
+          '2026-05-01',
+        ]);
+      } else {
+        expect(predicate.params).toEqual([accountId, journalEntryId]);
+      }
       expect(predicate.sql).toContain('"posted_at" is not null');
       expect(predicate.sql).not.toMatch(/status|deleted_at/);
       expect(journalEntryMapper.toDomain).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    { references: [], expected: false },
+    { references: [{ id: journalEntryId }], expected: true },
+  ])(
+    'reports existing opening journals as $expected',
+    async ({ references, expected }) => {
+      const accountId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
+      const limit = jest.fn().mockResolvedValue(references);
+      const where = jest.fn().mockReturnValue({ limit });
+      const innerJoin = jest.fn().mockReturnValue({ where });
+      const from = jest.fn().mockReturnValue({ innerJoin });
+      const select = jest.fn().mockReturnValue({ from });
+      jest.mocked(getDbQueryHelper).mockReturnValue({ select } as never);
+
+      await expect(
+        journalEntryRepo.existsOpeningBalanceByAccountId(
+          accountId,
+          journalEntryId,
+          options
+        )
+      ).resolves.toBe(expected);
+
+      expect(limit).toHaveBeenCalledWith(1);
+      const predicate = new PgDialect().sqlToQuery(
+        where.mock.calls[0][0] as SQL
+      );
+      expect(predicate.sql).toContain('"source_type" = $3');
+      expect(predicate.sql).not.toMatch(/status|posted_at/);
+      expect(predicate.params).toEqual([
+        accountId,
+        journalEntryId,
+        'opening_balance',
+      ]);
     }
   );
 
@@ -182,6 +237,65 @@ describe('journalEntryRepo', () => {
     expect(journalEntriesInCore.id).toBeDefined();
   });
 
+  it.each([false, true])(
+    'looks up the newest draft opening journal for the account (found: %s)',
+    async (found) => {
+      const accountId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
+      const transactionOptions = { ...options, tx: {} };
+      const storedEntry = found ? { id: journalEntryId } : undefined;
+      const entry = { id: journalEntryId, lines: [], attachments: [] };
+      const builder = new QueryBuilder();
+      findFirst.mockResolvedValue(storedEntry);
+      jest.mocked(getDbQueryHelper).mockReturnValue({
+        ...query,
+        select: builder.select.bind(builder),
+      } as never);
+      jest.mocked(journalEntryMapper.toDomain).mockReturnValue(entry as never);
+
+      await expect(
+        journalEntryRepo.findDraftOpeningBalanceByAccountId(
+          accountId,
+          journalEntryId,
+          transactionOptions
+        )
+      ).resolves.toBe(found ? entry : null);
+
+      expect(getDbQueryHelper).toHaveBeenCalledWith(transactionOptions);
+      expect(findFirst).toHaveBeenCalledWith({
+        where: expect.anything(),
+        with: {
+          journalEntryAttachmentsInCores: true,
+          journalLinesInCores: true,
+        },
+        orderBy: [expect.anything(), expect.anything()],
+      });
+      const dialect = new PgDialect();
+      const draftQuery = findFirst.mock.calls[0][0];
+      const predicate = dialect.sqlToQuery(draftQuery.where as SQL);
+      expect(predicate.sql).toContain('"accounting_entity_id" = $1');
+      expect(predicate.sql).toContain('"source_type" = $2');
+      expect(predicate.sql).toContain('"status" = $3');
+      expect(predicate.sql).toContain('"account_id" = $4');
+      expect(predicate.params).toEqual([
+        journalEntryId,
+        'opening_balance',
+        'draft',
+        accountId,
+      ]);
+      expect(
+        draftQuery.orderBy.map((order: SQL) => dialect.sqlToQuery(order).sql)
+      ).toEqual([
+        '"core"."journal_entries"."created_at" desc',
+        '"core"."journal_entries"."id" desc',
+      ]);
+      if (found) {
+        expect(journalEntryMapper.toDomain).toHaveBeenCalledWith(storedEntry);
+      } else {
+        expect(journalEntryMapper.toDomain).not.toHaveBeenCalled();
+      }
+    }
+  );
+
   it('returns null when the journal entry does not exist', async () => {
     findFirst.mockResolvedValue(undefined);
 
@@ -192,11 +306,11 @@ describe('journalEntryRepo', () => {
   });
 
   it('returns no entries without querying for an empty account set', async () => {
-    jest.mocked(getDbQuery).mockClear();
+    jest.mocked(getDbQueryHelper).mockClear();
     expect(
       await journalEntryRepo.findAllByAccountIds([], journalEntryId, options)
     ).toEqual([]);
-    expect(getDbQuery).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
   });
 
   it('loads complete entries once per header, across all states, scoped to the entity', async () => {
@@ -209,7 +323,7 @@ describe('journalEntryRepo', () => {
     const findMany = jest.fn().mockResolvedValue(storedEntries);
     const builder = new QueryBuilder();
     const select = jest.fn((fields) => builder.select(fields));
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       select,
       query: { journalEntriesInCore: { findMany } },
     } as never);
@@ -256,7 +370,7 @@ describe('journalEntryRepo', () => {
     const values = jest.fn().mockResolvedValue(undefined);
     const insert = jest.fn().mockReturnValue({ values });
     const tx = { insert };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
       insert,
     } as never);
@@ -291,7 +405,7 @@ describe('journalEntryRepo', () => {
       update: jest.fn().mockReturnValue({ set }),
       insert: jest.fn().mockReturnValue({ values }),
     };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn(async (callback) => callback(tx as never)),
       insert: jest.fn().mockReturnValue({ values }),
     } as never);
@@ -339,7 +453,9 @@ describe('journalEntryRepo', () => {
   it('deletes only a current-version never-posted non-reversal Draft or Archived entry', async () => {
     const where = jest.fn().mockResolvedValue({ rowCount: 1 });
     const deleteQuery = jest.fn().mockReturnValue({ where });
-    jest.mocked(getDbQuery).mockReturnValue({ delete: deleteQuery } as never);
+    jest
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ delete: deleteQuery } as never);
 
     await journalEntryRepo.delete(journalEntryId, {
       ...options,
@@ -366,7 +482,7 @@ describe('journalEntryRepo', () => {
 
   it('rejects when the version or deletion-safety predicate does not match', async () => {
     const where = jest.fn().mockResolvedValue({ rowCount: 0 });
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       delete: jest.fn().mockReturnValue({ where }),
     } as never);
 
@@ -389,7 +505,7 @@ describe('journalEntryRepo.update trigger errors', () => {
         constraint: 'journal_lines_entity_functional_currency_check',
       },
     };
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(databaseError),
     } as never);
     await expect(
@@ -407,7 +523,7 @@ describe('journalEntryRepo.update trigger errors', () => {
 
   it('propagates unrelated database errors unchanged', async () => {
     const failure = new Error('unavailable');
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(failure),
     } as never);
     await expect(

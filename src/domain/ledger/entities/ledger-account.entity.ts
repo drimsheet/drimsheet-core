@@ -10,7 +10,7 @@ import {
   TAuditedEntity,
 } from '@shared/values/events/types/event.types';
 
-import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
+import getLedgerAccountMaterializedPathHelper from '@domain/ledger/entities/helpers/get-materialized-path.helper';
 import ledgerAccountValidation from '@domain/ledger/entities/validations/ledger-account.validation';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ledgerAccountEvents from '@domain/ledger/events/ledger-account.events';
@@ -284,7 +284,7 @@ function reparentPostingAccount(
 
   ledgerAccountValidation.validateCode(code);
 
-  const materializedPath = getLedgerAccountMaterializedPath(
+  const materializedPath = getLedgerAccountMaterializedPathHelper(
     controlAccount.materializedPath,
     code
   );

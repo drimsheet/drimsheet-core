@@ -13,11 +13,11 @@ import {
   ledgerAccountBalancesInCore,
   ledgerAccountsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
 import ledgerAccountQueryRepo from '@infra/persistence/repos/ledger/queries/ledger-account.query.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('@infra/persistence/repos/ledger/mappers/ledger-account.mapper');
 
 describe('ledgerAccountQueryRepo.findSubAccounts', () => {
@@ -38,9 +38,9 @@ describe('ledgerAccountQueryRepo.findSubAccounts', () => {
       const from = jest.fn().mockReturnValue({ leftJoin });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       jest
         .mocked(ledgerAccountMapper.toDomain)
@@ -61,7 +61,7 @@ describe('ledgerAccountQueryRepo.findSubAccounts', () => {
         '("core"."ledger_accounts"."accounting_entity_id" = $1 and "core"."ledger_accounts"."control_account_id" = $2)'
       );
       expect(predicate.params).toEqual([accountingEntityId, accountId]);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(from).toHaveBeenCalledWith(ledgerAccountsInCore);
       expect(orderBy).toHaveBeenCalledWith(
         ledgerAccountsInCore.materializedPath
@@ -89,9 +89,9 @@ describe('ledgerAccountQueryRepo.findChartOfAccounts', () => {
       const from = jest.fn().mockReturnValue({ leftJoin });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       jest
         .mocked(ledgerAccountMapper.toDomain)
@@ -112,7 +112,7 @@ describe('ledgerAccountQueryRepo.findChartOfAccounts', () => {
         '("core"."ledger_accounts"."accounting_entity_id" = $1 and "core"."ledger_accounts"."type" = $2)'
       );
       expect(predicate.params).toEqual([accountingEntityId, accountClass]);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(from).toHaveBeenCalledWith(ledgerAccountsInCore);
       expect(orderBy).toHaveBeenCalledWith(
         ledgerAccountsInCore.materializedPath
@@ -152,7 +152,7 @@ describe('ledgerAccountQueryRepo.findAll', () => {
       .fn()
       .mockReturnValueOnce({ from: countFrom })
       .mockReturnValueOnce({ from: dataFrom });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
 
     return { countWhere, dataWhere, limit, offset, select, orderBy, leftJoin };
   }
@@ -210,7 +210,7 @@ describe('ledgerAccountQueryRepo.findAll', () => {
       .fn()
       .mockReturnValueOnce({ from: countFrom })
       .mockReturnValueOnce({ from: dataFrom });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
     (ledgerAccountMapper.toDomain as jest.Mock).mockReturnValue(account);
 
     const result = await ledgerAccountQueryRepo.findAll(accountingEntityId, {
@@ -343,7 +343,7 @@ describe('ledgerAccountQueryRepo.findAll', () => {
 
     await ledgerAccountQueryRepo.findAll(accountingEntityId, options);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     const predicate = new PgDialect().sqlToQuery(
       query.countWhere.mock.calls[0][0] as SQL
     );

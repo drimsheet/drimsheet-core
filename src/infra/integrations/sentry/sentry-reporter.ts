@@ -4,8 +4,8 @@ import IReporter from '@shared/contracts/reporter.contract';
 import { sanitizeData } from '@shared/utils/sanitizer';
 
 import vars from '@infra/config/vars.config';
-import safeGetCorrelationId from '@infra/observability/helpers/get-correlation-id';
-import { normalizeTelemetryError } from '@infra/observability/helpers/telemetry-error';
+import safeGetCorrelationIdHelper from '@infra/observability/helpers/get-correlation-id.helper';
+import normalizeTelemetryErrorHelper from '@infra/observability/helpers/normalize-telemetry-error.helper';
 import logger from '@infra/observability/logger';
 
 type TReportContext = NonNullable<Parameters<IReporter['report']>[2]>;
@@ -21,7 +21,7 @@ const REPORT_STRING_FIELDS = [
 ] as const;
 
 function makeSentryError(error: unknown): Error {
-  const normalizedError = normalizeTelemetryError(error);
+  const normalizedError = normalizeTelemetryErrorHelper(error);
   const sentryError = new Error(normalizedError.message);
 
   sentryError.name = normalizedError.name;
@@ -117,7 +117,7 @@ function projectAbuseContext(
 const reporter: IReporter = {
   report(event, error, context) {
     try {
-      const correlationId = safeGetCorrelationId();
+      const correlationId = safeGetCorrelationIdHelper();
       const reportContext = projectReportContext(context);
       const sentryError = makeSentryError(error);
 
@@ -149,7 +149,7 @@ const reporter: IReporter = {
 
   reportAbuse(message, context) {
     try {
-      const correlationId = safeGetCorrelationId();
+      const correlationId = safeGetCorrelationIdHelper();
       const preparedMessage = sanitizeData(message);
       const sanitizedMessage =
         typeof preparedMessage === 'string'

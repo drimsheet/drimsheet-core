@@ -67,7 +67,3 @@ export interface IJournalEntryMakePayload extends Pick<
   lines: IJournalLineMakePayload[];
   attachments?: IFileAttachment[];
 }
-
-export interface IVoidJournalEntryPayload {
-  voidingEntryId: TEntityId;
-}

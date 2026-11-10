@@ -4,7 +4,7 @@ import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 import IJournalLineHistoryRepo from '@domain/journal-entry/repos/journal-line-history.repo';
 
 import { journalLineHistoryInAudit } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalLineHistoryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-line-history.mapper';
 
 const journalLineHistoryRepo: IJournalLineHistoryRepo = {
@@ -30,11 +30,13 @@ const journalLineHistoryRepo: IJournalLineHistoryRepo = {
       return journalLineHistoryMapper.toRepo(line, history, accountingEntityId);
     });
 
-    await getDbQuery(options).insert(journalLineHistoryInAudit).values(values);
+    await getDbQueryHelper(options)
+      .insert(journalLineHistoryInAudit)
+      .values(values);
   },
 
   deleteByJournalEntryId: async (journalEntryId, options) => {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .delete(journalLineHistoryInAudit)
       .where(eq(journalLineHistoryInAudit.journalEntryId, journalEntryId));
   },

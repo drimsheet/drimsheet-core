@@ -3,7 +3,7 @@
 ```mermaid
 sequenceDiagram
     actor Caller
-    participant Create as Create Transfer
+    participant CreateUseCase as Create Transfer
     participant Records as Accounting Records
     participant Parties as Counterparties
     participant Files as Uploaded Attachments
@@ -12,24 +12,24 @@ sequenceDiagram
     participant Balances as Balance Processing
     participant Events as Event Subscribers
 
-    Caller->>Create: Source, destination, charges, amounts, dates, and uploads
-    Create->>Records: Request referenced accounts in selected entity
-    Records-->>Create: Accounts
-    Create->>Parties: Resolve existing or new counterparties
-    Parties-->>Create: Counterparties and any new records
-    Create->>Files: Claim the user's referenced uploads
-    Files-->>Create: Journal attachments
-    Create->>Journal: Requested transfer with accounts, parties, and attachments
-    Journal-->>Create: Validated draft or posted journal and audit
-    Create->>FX: Source disposition and destination acquisition
-    FX-->>Create: Applicable FX records and events, or no effect
-    Create->>Records: Save journal, new parties, audits, FX effects, and pending balance work together
-    Records-->>Create: Changes committed
+    Caller->>CreateUseCase: Source, destination, charges, amounts, dates, and uploads
+    CreateUseCase->>Records: Request referenced accounts in selected entity
+    Records-->>CreateUseCase: Accounts
+    CreateUseCase->>Parties: Resolve existing counterparties by ID
+    Parties-->>CreateUseCase: Existing counterparties
+    CreateUseCase->>Files: Claim the user's referenced uploads
+    Files-->>CreateUseCase: Journal attachments
+    CreateUseCase->>Journal: Requested transfer with accounts, parties, and attachments
+    Journal-->>CreateUseCase: Validated draft or posted journal and audit
+    CreateUseCase->>FX: Source disposition and destination acquisition
+    FX-->>CreateUseCase: Applicable FX records and events, or no effect
+    CreateUseCase->>Records: Save journal, audits, FX effects, and pending balance work together
+    Records-->>CreateUseCase: Changes committed
+    CreateUseCase->>Events: Journal and applicable FX events
     opt Journal posted
-        Create->>Balances: Request journal balance propagation
-        Balances-->>Create: Request accepted
+        CreateUseCase->>Balances: Request journal balance propagation
+        Balances-->>CreateUseCase: Request accepted
     end
-    Create->>Events: Journal, counterparty, and applicable FX events
-    Create-->>Caller: Created journal
-    Note over Create,Balances: Derived balances are applied separately after posting
+    CreateUseCase-->>Caller: Created journal
+    Note over CreateUseCase,Balances: Derived balances are applied separately after posting
 ```

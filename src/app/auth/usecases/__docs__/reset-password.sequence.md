@@ -28,7 +28,7 @@ sequenceDiagram
         alt Preparation or save failed
             Reset->>Tokens: Release reset-token claim
             Tokens-->>Reset: Released or cleanup failure
-            Note over Reset,Tokens: Cleanup failure is reported; original failure is retained
+            Note over Reset,Tokens: Cleanup failure is reported#59; original failure is retained
             Reset-->>Caller: Original failure
         else Changes committed
             Reset->>Tokens: Finalize reset-token consumption

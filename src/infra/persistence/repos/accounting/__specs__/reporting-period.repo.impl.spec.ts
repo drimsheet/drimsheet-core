@@ -9,11 +9,11 @@ import {
   reportingIntervalsInCore,
   reportingPeriodsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import reportingPeriodMapper from '@infra/persistence/repos/accounting/mappers/reporting-period.mapper';
 import reportingPeriodRepo from '@infra/persistence/repos/accounting/reporting-period.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('reportingPeriodRepo reads', () => {
   const [interval] = reportingIntervalEntity.make({
@@ -40,8 +40,10 @@ describe('reportingPeriodRepo reads', () => {
     const from = jest.fn().mockReturnValue({ where, innerJoin });
     const select = jest.fn().mockReturnValue({ from });
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ select } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ select } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     return { select, from, innerJoin, where, limit, orderBy };
   }
 
@@ -57,7 +59,7 @@ describe('reportingPeriodRepo reads', () => {
         eq(reportingPeriodsInCore.id, period.id)
       );
       expect(query.limit).toHaveBeenCalledWith(1);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     }
   );
 
@@ -94,7 +96,7 @@ describe('reportingPeriodRepo reads', () => {
         reportingPeriodsInCore.startDate,
         reportingPeriodsInCore.id
       );
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     }
   );
 });

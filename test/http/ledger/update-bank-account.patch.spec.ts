@@ -25,8 +25,8 @@ import { IUser } from '@domain/user/types/user.types';
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
-import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
-import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
+import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 import mockBalanceQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
@@ -34,9 +34,9 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
 import makeUpdateBankAccountUsecase from '@app/ledger/usecases/update-bank-account.usecase';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import mockFxCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
@@ -137,16 +137,19 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
   });
   beforeEach(async () => {
     jest.resetAllMocks();
-    mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(
-      ledgerAccountBalanceEntity.make({
-        createdBy: account.createdBy,
-        ledgerAccountId: account.id,
-        accountingEntityId: account.accountingEntityId,
-        accountMaterializedPath: account.materializedPath,
-        currencyCode: 'NGN',
-        functionalCurrencyCode: 'NGN',
-      })
-    );
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
+    const balance = ledgerAccountBalanceEntity.make({
+      createdBy: account.createdBy,
+      ledgerAccountId: account.id,
+      accountingEntityId: account.accountingEntityId,
+      accountMaterializedPath: account.materializedPath,
+      currencyCode: 'NGN',
+      functionalCurrencyCode: 'NGN',
+    });
+    mockLedgerAccountBalanceRepo.findByAccountId.mockResolvedValue(balance);
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      balance,
+    ]);
     mockLedgerAccountService.validateCurrencyChange.mockResolvedValue(
       undefined
     );
@@ -166,12 +169,6 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
       throw error;
     });
     mockLedgerAccountRepo.findById.mockResolvedValue(account);
-    mockBalanceEnrichmentAppService.enrich.mockImplementation(
-      async (accounts) =>
-        accounts.map((current) =>
-          ledgerAccountToDtoMapperHelper(current, null, 'NGN')
-        )
-    );
     update.mockImplementation(
       makeUpdateBankAccountUsecase({
         appContext,
@@ -182,12 +179,13 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
         ledgerAccountBalanceService: makeLedgerAccountBalanceService(),
         bankAccountRepo: mockBankAccountRepo,
         cashAccountService,
-        openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
+        journalEntryRepo: mockJournalEntryRepo,
+        openingBalanceEntryService: mockOpeningBalanceEntryService,
+        fxCostBasisLotService: mockFxCostBasisLotService,
+        exchangeRateAppService: mockExchangeRateAppService,
         journalEntryPersistenceAppService:
           mockJournalEntryPersistenceAppService,
-        balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
         fxCostBasisPersistenceAppService: mockFxCostBasisService.persistence,
-        outboxAppService: mockOutboxAppService,
         ledgerBalanceAdjustmentQueue: mockBalanceQueue,
       })
     );
@@ -287,7 +285,7 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
           })
         );
         expect(
-          mockOpeningBalanceEntryAppService.createOrRevise
+          mockOpeningBalanceEntryService.createDraft
         ).not.toHaveBeenCalled();
       }
     );
@@ -323,16 +321,7 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
             },
           ],
         });
-        mockOpeningBalanceEntryAppService.createOrRevise.mockResolvedValue({
-          mutation: {
-            entriesToCreate: [creation],
-            entryUpdate: null,
-            events: creation[1],
-          },
-          currentJournalEntry: creation[0],
-          fxAcquisition: null,
-          entriesForBalancePropagation: [],
-        });
+        mockOpeningBalanceEntryService.createDraft.mockResolvedValue(creation);
         const response = await patch({
           openingBalance,
           ...(includeName
@@ -352,10 +341,19 @@ describe('PATCH /ledger/asset/bank/{accountId}', () => {
           name: includeName ? 'Updated account' : account.name,
           openingBalanceDate: openingBalance.date.toISOString(),
         });
-        expect(
-          mockOpeningBalanceEntryAppService.createOrRevise
-        ).toHaveBeenCalledWith(
-          { account, openingBalance, accountingEntity, actor: actor.id },
+        expect(mockOpeningBalanceEntryService.createDraft).toHaveBeenCalledWith(
+          {
+            accountingEntityId: accountingEntity.id,
+            functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
+            account: expect.objectContaining({
+              id: account.id,
+              openingBalanceDate: openingBalance.date,
+            }),
+            amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
+            exchangeRate: null,
+            effectiveDate: openingBalance.date,
+            createdBy: actor.id,
+          },
           expect.objectContaining({ tx: mockRepoTransaction.context })
         );
         expect(

@@ -11,8 +11,8 @@ export interface ILedgerAccountBalanceDelta {
 }
 
 export default interface ILedgerAccountBalanceAdjustmentService {
-  calculate(
-    journalEntry: IJournalEntry,
-    accounts: ILedgerAccount[]
-  ): ILedgerAccountBalanceDelta[];
+  forJournal(journalEntry: IJournalEntry): {
+    directAccountIds: TEntityId[];
+    calculate(accounts: ILedgerAccount[]): ILedgerAccountBalanceDelta[];
+  };
 }

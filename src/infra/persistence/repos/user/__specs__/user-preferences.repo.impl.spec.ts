@@ -5,11 +5,11 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUserPreferences } from '@app/user/types/user-preferences.types';
 
 import { userPreferencesInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import userPreferencesMapper from '@infra/persistence/repos/user/mappers/user-preferences.mapper';
 import userPreferencesRepo from '@infra/persistence/repos/user/user-preferences.repo.impl';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/user-preferences.mapper');
 
 describe('UserPreferencesRepoImpl', () => {
@@ -26,7 +26,7 @@ describe('UserPreferencesRepoImpl', () => {
     limit: jest.fn(),
     insert: jest.fn(),
   };
-  const mockGetDbQuery = jest.mocked(getDbQuery);
+  const mockGetDbQuery = jest.mocked(getDbQueryHelper);
   const mockUserPreferencesMapper = jest.mocked(userPreferencesMapper);
 
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('UserPreferencesRepoImpl', () => {
     mockQuery.insert.mockReturnValue(mockInsertQuery);
     mockInsertQuery.values.mockReturnValue(mockConflictQuery);
     mockGetDbQuery.mockReturnValue(
-      mockQuery as unknown as ReturnType<typeof getDbQuery>
+      mockQuery as unknown as ReturnType<typeof getDbQueryHelper>
     );
   });
 
@@ -71,7 +71,7 @@ describe('UserPreferencesRepoImpl', () => {
 
     const result = await userPreferencesRepo.findById(userId, options);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(mockQuery.select).toHaveBeenCalled();
     expect(mockQuery.from).toHaveBeenCalledWith(userPreferencesInCore);
     expect(mockQuery.where).toHaveBeenCalled();
@@ -139,9 +139,9 @@ describe('user preferences entity removal', () => {
     const where = jest.fn().mockResolvedValue(undefined);
     const set = jest.fn().mockReturnValue({ where });
     const query = { update: jest.fn().mockReturnValue({ set }) };
-    jest.mocked(getDbQuery).mockReturnValue(query as never);
+    jest.mocked(getDbQueryHelper).mockReturnValue(query as never);
     await userPreferencesRepo.clearAccountingEntity(id, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.update).toHaveBeenCalledWith(userPreferencesInCore);
     expect(set).toHaveBeenCalledWith({
       lastActiveAccountingEntityId: null,

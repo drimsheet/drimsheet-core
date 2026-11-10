@@ -21,7 +21,7 @@ sequenceDiagram
         Archive-->>Caller: Complete without account changes
     else Archival required
         Archive->>Records: Save target and descendant archival changes with audits together
-        Records-->>Archive: Changes committed; journals and balances retained
+        Records-->>Archive: Changes committed#59; journals and balances retained
         Archive->>Events: Accounts archived
         Archive-->>Caller: Complete
     end

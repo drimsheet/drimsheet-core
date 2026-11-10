@@ -5,7 +5,8 @@ sequenceDiagram
     actor Caller
     participant Update as Update Petty Cash Account
     participant Accounts as Cash Account Preparation
-    participant Opening as Opening Journal Preparation
+    participant Opening as Opening Balance Domain Service
+    participant FX as Foreign Exchange Accounting
     participant Records as Accounting Records
     participant Events as Event Subscribers
     participant Balances as Balance Processing
@@ -16,10 +17,20 @@ sequenceDiagram
     Records-->>Accounts: Account, hierarchy, and journal references
     Accounts-->>Update: Updated account and any audit
     opt Opening balance supplied
-        Update->>Opening: Original opening date, requested currency, and opening balance
-        Opening->>Records: Request existing opening journal and posting history
-        Records-->>Opening: Opening-journal eligibility facts
-        Opening-->>Update: Prepared opening-journal change and applicable FX effects
+        Update->>Records: Check historical posting activity under the account lock
+        Records-->>Update: Posting history check
+        Update->>Records: Find draft opening journal if eligible
+        Records-->>Update: Draft journal or no draft
+        Update->>Opening: Update the draft or create a draft or posted journal
+        Opening->>Records: Check journal eligibility
+        opt Creating a posted journal or updating a draft
+            Opening->>Records: Validate the effective accounting period
+        end
+        Opening-->>Update: Current journal, events, and audited changes
+        opt Opening journal posted
+            Update->>FX: Prepare applicable opening acquisition
+            FX-->>Update: FX effect or no effect
+        end
     end
     Update->>Records: Save account, balance-denomination, audit, and any opening-journal or FX changes
     Records-->>Update: Changes and any pending balance work committed together

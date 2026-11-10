@@ -1,12 +1,24 @@
 # Service Philosophy
 
-A service is a named capability with explicit ownership. It is not a bucket for
-related functions, a convenience wrapper, or a way to shorten a use case.
+A service must own a complete, meaningful unit of work with a named capability
+and explicit ownership. It is not a bucket for related functions, a convenience
+wrapper, or a way to shorten a use case.
+
+Complete means fulfilling the capability's owned responsibility with an
+independently meaningful outcome. It does not require persistence, a database
+transaction, or completion of the caller's entire workflow. A domain service may
+complete coordinated creation and return unpersisted entities, events, and audits.
+
+Extracting a preparation phase does not justify a service. Gathering inputs,
+mapping payloads, or assembling intermediate records for one workflow belongs
+with that workflow's owner unless it fulfills an independently meaningful
+capability. Size, reuse, focused tests, and a typed result do not establish that
+boundary by themselves.
 
 Use this sentence before creating or keeping a service:
 
-> This service exists because the system needs a named capability to **\_**,
-> owned by **\_**, with these invariants, side effects, and failure semantics:
+> This service exists to complete **\_**, owned by **\_**, producing the meaningful
+> outcome **\_**, with these invariants, side effects, and failure semantics:
 > **\_**.
 
 If the sentence is awkward, the behavior probably belongs in an entity, value,
@@ -38,7 +50,8 @@ Ask:
 
 Application services own reusable application capabilities. They may coordinate
 domain behavior, read-only repositories, and ports when the capability is
-independently meaningful. They prepare results; they do not persist them.
+independently meaningful. They complete their owned capability and return its
+results without persisting them.
 
 - Define the contract around the capability, not the feature folder.
 - Document whether the service rejects, best-efforts, queues, retries, claims
@@ -53,7 +66,8 @@ independently meaningful. They prepare results; they do not persist them.
 Ask:
 
 1. Is this a reusable application capability?
-2. Does it have an independently meaningful contract?
+2. What complete unit of work and independently meaningful outcome does its
+   contract promise?
 3. What side effects and failure semantics does the caller rely on?
 
 ### Persistence Services
@@ -78,8 +92,10 @@ Use cases own request-specific ordering and orchestration.
 - Coordinate domain/app capabilities for one workflow.
 - Solely initiate persistence, whether through repositories or a dedicated
   persistence service.
-- Own the outer workflow transaction, persistence ordering, history creation,
-  app context updates, and event publication.
+- Own the outer workflow transaction, persistence ordering, workflow-specific
+  history creation, app context updates, and event publication. See
+  [Service Ownership](service-ownership.md#persistence-services) for histories
+  derived inside an atomic write bundle.
 
 ### Repositories
 
@@ -98,8 +114,9 @@ keep their names until a migration is planned.
 
 ## Disposition Vocabulary
 
-- **Keep:** the service has a named capability, correct owner, meaningful
-  contract, tests, and clear failure semantics.
+- **Keep:** the service owns a complete, meaningful unit of work with a named
+  capability, correct owner, meaningful contract, tests, and clear failure
+  semantics.
 - **Narrow:** the service is valid, but contains decisions or side effects owned
   elsewhere.
 - **Split:** the service name hides multiple capabilities with different owners
@@ -127,5 +144,8 @@ keep their names until a migration is planned.
   persistence service. Return the resolved effect so the use case persists it.
 - Not a service: a helper that exists only to hide a few lines inside one use
   case.
+- Not a service: extracting source-entry preparation, domain rectification, and
+  FX-effect preparation from one rectification workflow solely to return its
+  intermediate records.
 - Not a domain service: a persistence workflow that saves domain entities,
   histories, and related records.

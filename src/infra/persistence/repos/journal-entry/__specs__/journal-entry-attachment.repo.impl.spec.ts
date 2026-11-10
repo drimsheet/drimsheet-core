@@ -1,11 +1,11 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import { journalEntryAttachmentsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalEntryAttachmentRepo from '@infra/persistence/repos/journal-entry/journal-entry-attachment.repo.impl';
 import journalEntryAttachmentMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-attachment.mapper';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/journal-entry-attachment.mapper');
 
 describe('journalEntryAttachmentRepo', () => {
@@ -30,8 +30,8 @@ describe('journalEntryAttachmentRepo', () => {
     query.insert.mockReturnValue(insertQuery);
     insertQuery.values.mockReturnValue(conflictQuery);
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
     jest.mocked(journalEntryAttachmentMapper.toRepo).mockReturnValue({
       journalEntryId,
       data: attachments,
@@ -45,7 +45,7 @@ describe('journalEntryAttachmentRepo', () => {
   it('upserts the complete attachment collection by journal entry ID', async () => {
     await journalEntryAttachmentRepo.save(journalEntryId, attachments, options);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(journalEntryAttachmentMapper.toRepo).toHaveBeenCalledWith(
       journalEntryId,
       attachments

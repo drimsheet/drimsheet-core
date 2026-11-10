@@ -1,7 +1,7 @@
 import { and, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import repoError from '@shared/values/errors/repo.error';
 
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
@@ -11,7 +11,7 @@ import {
   ledgerAccountBalanceAdjustmentsInCore,
   ledgerAccountBalancesInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import mapLedgerBalanceFunctionalCurrencyErrorHelper from '@infra/persistence/helpers/map-ledger-balance-functional-currency-error.helper';
 import ledgerAccountBalanceMapper from '@infra/persistence/repos/ledger/mappers/ledger-account-balance.mapper';
 
@@ -23,7 +23,7 @@ const functionalCurrenciesInCore = alias(
 const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
   async create(payload, options) {
     try {
-      const query = getDbQuery(options);
+      const query = getDbQueryHelper(options);
 
       const values = ledgerAccountBalanceMapper.toRepo(payload);
 
@@ -35,7 +35,7 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
 
   async createWithAdjustments(payload, options) {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         await tx
           .insert(ledgerAccountBalancesInCore)
           .values(ledgerAccountBalanceMapper.toRepo(payload.balance));
@@ -57,9 +57,9 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
 
   async update(balance, options) {
     try {
-      validateVersionInRepo(balance, options);
+      validateVersionInRepoHelper(balance, options);
 
-      const updated = await getDbQuery(options)
+      const updated = await getDbQueryHelper(options)
         .update(ledgerAccountBalancesInCore)
         .set(ledgerAccountBalanceMapper.toRepo(balance))
         .where(
@@ -88,7 +88,7 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
   },
 
   async findByAccountId(ledgerAccountId, accountingEntityId, options) {
-    const query = getDbQuery(options);
+    const query = getDbQueryHelper(options);
 
     const [result] = await query
       .select({
@@ -121,9 +121,9 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
   async adjustBalance(payload, options) {
     try {
       const { newBalance, adjustment } = payload;
-      validateVersionInRepo(newBalance, options);
+      validateVersionInRepoHelper(newBalance, options);
 
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         await tx
           .insert(ledgerAccountBalanceAdjustmentsInCore)
           .values(ledgerAccountBalanceMapper.toRepoAdjustment(adjustment));
@@ -158,7 +158,7 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
   },
 
   async findAdjustmentsByAccountId(ledgerAccountId, options) {
-    const result = await getDbQuery(options)
+    const result = await getDbQueryHelper(options)
       .select()
       .from(ledgerAccountBalanceAdjustmentsInCore)
       .where(
@@ -174,7 +174,7 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
   },
 
   async findAllByAccountingEntityId(accountingEntityId, options) {
-    const result = await getDbQuery(options)
+    const result = await getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountBalancesInCore),
         currency: getTableColumns(currenciesInCore),
@@ -204,7 +204,7 @@ const ledgerAccountBalanceRepoImpl: ILedgerAccountBalanceRepo = {
       return [];
     }
 
-    const result = await getDbQuery(options)
+    const result = await getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountBalancesInCore),
         currency: getTableColumns(currenciesInCore),

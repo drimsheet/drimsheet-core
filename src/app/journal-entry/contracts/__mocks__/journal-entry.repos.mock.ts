@@ -13,6 +13,8 @@ export const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
   existsByAccountingEntityId: jest.fn(),
   existsByAccountId: jest.fn(),
   existsPostedByAccountId: jest.fn(),
+  existsOpeningBalanceByAccountId: jest.fn(),
+  findDraftOpeningBalanceByAccountId: jest.fn(),
   findAllByAccountIds: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),

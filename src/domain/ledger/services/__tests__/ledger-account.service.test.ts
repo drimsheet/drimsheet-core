@@ -71,6 +71,8 @@ const mockJournalEntryRepo: jest.Mocked<IJournalEntryRepo> = {
   findById: jest.fn(),
   existsByAccountId: jest.fn(),
   existsPostedByAccountId: jest.fn(),
+  existsOpeningBalanceByAccountId: jest.fn(),
+  findDraftOpeningBalanceByAccountId: jest.fn(),
   findAllByAccountIds: jest.fn(),
 };
 const service = makeLedgerAccountService({

@@ -8,6 +8,7 @@ import { TEntityId } from '@shared/types/uuid';
 import repoError from '@shared/values/errors/repo.error';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
+import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import makeRevenueAccountService from '@domain/ledger/services/revenue-account/revenue-account.service';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
@@ -16,9 +17,10 @@ import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
-import mockBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
-import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-account-to-dto-mapper.helper';
+import {
+  mockLedgerAccountBalanceRepo,
+  mockLedgerAccountRepo,
+} from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import makeUpdateRevenueAccountUsecase from '@app/ledger/usecases/update-revenue-account.usecase';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
@@ -116,12 +118,16 @@ describe('PATCH /ledger/revenue/{accountId}', () => {
       accountingEntity
     );
     mockLedgerAccountRepo.findById.mockResolvedValue(account);
-    mockBalanceEnrichmentAppService.enrich.mockImplementation(
-      async (accounts) =>
-        accounts.map((current) =>
-          ledgerAccountToDtoMapperHelper(current, null, 'NGN')
-        )
-    );
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockResolvedValue([
+      ledgerAccountBalanceEntity.make({
+        createdBy: account.createdBy,
+        ledgerAccountId: account.id,
+        accountingEntityId: account.accountingEntityId,
+        accountMaterializedPath: account.materializedPath,
+        currencyCode: 'NGN',
+        functionalCurrencyCode: 'NGN',
+      }),
+    ]);
     update.mockImplementation(
       makeUpdateRevenueAccountUsecase({
         appContext,
@@ -130,7 +136,7 @@ describe('PATCH /ledger/revenue/{accountId}', () => {
         revenueAccountService: makeRevenueAccountService({
           ledgerAccountRepo: mockLedgerAccountRepo,
         }),
-        balanceEnrichmentAppService: mockBalanceEnrichmentAppService,
+        ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
       })
     );
     app = createApplication();

@@ -68,6 +68,206 @@ const layerImportPaths = {
   },
 };
 
+const isHelperModule = (absoluteFilename) => {
+  const filename = path
+    .relative(repositoryRoot, absoluteFilename)
+    .split(path.sep)
+    .join('/');
+  const isSource = /^src\/(domain|app|infra|interface|shared)\//.test(filename);
+  const isTestOrMock =
+    /\/__(tests|specs|mocks)__\//.test(filename) ||
+    /\.(test|spec|mock)\.ts$/.test(filename);
+  const isHelper =
+    /\.helpers?\.ts$/.test(filename) ||
+    (filename.includes('/helpers/') && !filename.endsWith('.mapper.ts'));
+  return isSource && !isTestOrMock && isHelper;
+};
+
+const helperExports = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Require one default-exported function per helper module.',
+    },
+    messages: {
+      exports:
+        'Helper modules must export exactly one default function and no named exports or re-exports.',
+      function:
+        'Default-export a locally defined helper function, not an object or another value.',
+    },
+    schema: [],
+  },
+  create(context) {
+    if (!isHelperModule(context.filename)) return {};
+
+    return {
+      Program(program) {
+        const isDefaultSpecifier = (node) =>
+          node.type === 'ExportNamedDeclaration' &&
+          !node.source &&
+          node.exportKind !== 'type' &&
+          node.specifiers.length === 1 &&
+          node.specifiers[0].exportKind !== 'type' &&
+          (node.specifiers[0].exported.name ??
+            node.specifiers[0].exported.value) === 'default';
+        const defaultExports = program.body.filter(
+          (node) =>
+            (node.type === 'ExportDefaultDeclaration' &&
+              node.declaration.type !== 'TSDeclareFunction') ||
+            isDefaultSpecifier(node)
+        );
+        const hasOtherExports = program.body.some(
+          (node) =>
+            node.type === 'ExportAllDeclaration' ||
+            node.type === 'TSExportAssignment' ||
+            (node.type === 'ExportNamedDeclaration' &&
+              !isDefaultSpecifier(node))
+        );
+        if (defaultExports.length !== 1 || hasOtherExports) {
+          context.report({ node: program, messageId: 'exports' });
+          return;
+        }
+
+        const unwrap = (node) => {
+          while (
+            node &&
+            [
+              'TSAsExpression',
+              'TSSatisfiesExpression',
+              'TSNonNullExpression',
+              'TSTypeAssertion',
+            ].includes(node.type)
+          ) {
+            node = node.expression;
+          }
+          return node;
+        };
+        const exported = defaultExports[0];
+        let declaration = unwrap(
+          exported.declaration ?? exported.specifiers[0].local
+        );
+        if (declaration.type === 'Identifier') {
+          const name = declaration.name;
+          const implementation = program.body.find(
+            (node) =>
+              node.type === 'FunctionDeclaration' &&
+              node.id?.name === name &&
+              node.body
+          );
+          const variable = program.body
+            .filter(
+              (node) =>
+                node.type === 'VariableDeclaration' && node.kind === 'const'
+            )
+            .flatMap((node) => node.declarations)
+            .find(
+              (node) => node.id.type === 'Identifier' && node.id.name === name
+            );
+          declaration = implementation ?? unwrap(variable?.init);
+        }
+        const isFunction =
+          declaration &&
+          [
+            'FunctionDeclaration',
+            'FunctionExpression',
+            'ArrowFunctionExpression',
+          ].includes(declaration.type);
+        if (!isFunction) {
+          context.report({ node: exported, messageId: 'function' });
+        }
+      },
+    };
+  },
+};
+
+const helperNaming = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description:
+        'Require singular helper filenames and explicit Helper names.',
+    },
+    messages: {
+      filename: 'Name this helper file <subject>.helper.ts, not .helpers.ts.',
+      name: 'Give the exported helper an explicit subject-specific name ending with Helper.',
+    },
+    schema: [],
+  },
+  create(context) {
+    if (!isHelperModule(context.filename)) return {};
+
+    const checkName = (node, declaration) => {
+      while (
+        [
+          'TSAsExpression',
+          'TSSatisfiesExpression',
+          'TSNonNullExpression',
+          'TSTypeAssertion',
+        ].includes(declaration.type)
+      ) {
+        declaration = declaration.expression;
+      }
+      if (declaration.type === 'TSDeclareFunction') return;
+
+      const name = declaration.name ?? declaration.id?.name;
+      const isHelperName = name?.endsWith('Helper') && name.length > 6;
+      if (!isHelperName) {
+        context.report({ node, messageId: 'name' });
+      }
+    };
+
+    return {
+      Program(node) {
+        if (!/^.+\.helper\.ts$/.test(path.basename(context.filename))) {
+          context.report({ node, messageId: 'filename' });
+        }
+      },
+      ExportDefaultDeclaration(node) {
+        checkName(node, node.declaration);
+      },
+      ExportNamedDeclaration(node) {
+        if (node.source || node.exportKind === 'type') return;
+        for (const specifier of node.specifiers) {
+          const isDefault =
+            (specifier.exported.name ?? specifier.exported.value) ===
+              'default' && specifier.exportKind !== 'type';
+          if (isDefault) {
+            checkName(specifier, specifier.local);
+          }
+        }
+      },
+    };
+  },
+};
+
+const helperPlacement = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Keep helpers below business namespace roots.',
+    },
+    messages: {
+      placement:
+        'Move helpers below the business namespace root, such as usecases/helpers or entities/helpers. Technical and shared helper directories are allowed.',
+    },
+    schema: [],
+  },
+  create(context) {
+    const filename = path
+      .relative(repositoryRoot, context.filename)
+      .split(path.sep)
+      .join('/');
+    if (!/^src\/(domain|app)\/[^/]+\/helpers\//.test(filename)) {
+      return {};
+    }
+    return {
+      Program(node) {
+        context.report({ node, messageId: 'placement' });
+      },
+    };
+  },
+};
+
 // Structural checks only: recognize awaited lifecycle calls on the owned
 // transaction. Their presence does not prove cleanup on every execution path.
 const requireTransactionDisposal = {
@@ -256,6 +456,9 @@ export default [
       local: {
         rules: {
           'layer-import-paths': layerImportPaths,
+          'helper-exports': helperExports,
+          'helper-naming': helperNaming,
+          'helper-placement': helperPlacement,
           'require-transaction-disposal': requireTransactionDisposal,
         },
       },
@@ -263,6 +466,9 @@ export default [
     rules: {
       curly: ['error', 'all'],
       'local/layer-import-paths': 'error',
+      'local/helper-exports': 'error',
+      'local/helper-naming': 'error',
+      'local/helper-placement': 'error',
       'local/require-transaction-disposal': 'error',
     },
   },

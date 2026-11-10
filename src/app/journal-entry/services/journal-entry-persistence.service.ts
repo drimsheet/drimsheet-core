@@ -1,3 +1,5 @@
+import { isEqual } from 'lodash';
+
 import {
   IRepoService,
   TRepoTransactionFn,
@@ -14,7 +16,9 @@ import IJournalLineRepo from '@domain/journal-entry/repos/journal-line.repo';
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
-import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService, {
+  IJournalEntryUpdatePersistencePayload,
+} from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 
 interface IDependencies {
   repoService: IRepoService;
@@ -112,6 +116,78 @@ function makeCreate(
   };
 }
 
+/** Writes a prepared header and line changes in the supplied transaction. */
+async function persistEntryUpdate(
+  deps: IDependencies,
+  update: IJournalEntryUpdatePersistencePayload,
+  writeOptions: IRepoOptions
+) {
+  const { lines: _lines, attachments: _attachments, ...header } = update.entry;
+
+  await deps.journalEntryRepo.update(header, {
+    ...writeOptions,
+    expectedVersion: update.expectedVersion,
+    history: update.headerHistory,
+  });
+
+  await deps.journalLineRepo.delete(update.lineIdsToDelete, writeOptions);
+
+  const lineHistoryById = new Map(
+    update.lineHistories.map((history) => [history.entityId, history])
+  );
+
+  if (update.linesToCreate.length) {
+    await deps.journalLineRepo.create(update.linesToCreate, {
+      ...writeOptions,
+      accountingEntityId: header.accountingEntityId,
+      history: update.linesToCreate.map((line) =>
+        lineHistoryById.get(line.id)!
+      ),
+    });
+  }
+
+  for (const line of update.linesToUpdate) {
+    await deps.journalLineRepo.update(line, {
+      ...writeOptions,
+      accountingEntityId: header.accountingEntityId,
+      expectedVersion: line.version - 1,
+      history: lineHistoryById.get(line.id)!,
+    });
+  }
+}
+
+/** Saves a prepared update and attachment changes in the same transaction. */
+function makeUpdate(
+  deps: IDependencies
+): IJournalEntryPersistenceAppService['update'] {
+  return async (update, repoOptions) => {
+    const transactionFn: TRepoTransactionFn = async (tx) => {
+      const writeOptions = { ...repoOptions, tx };
+      await assertPersistedAccountCurrencies(
+        deps,
+        [update.entry],
+        writeOptions
+      );
+      await persistEntryUpdate(deps, update, writeOptions);
+
+      const before = update.headerHistory.diff.before;
+      const attachmentsChanged =
+        before !== null &&
+        'attachments' in before &&
+        !isEqual(before.attachments, update.entry.attachments);
+      if (attachmentsChanged) {
+        await deps.journalEntryAttachmentRepo.save(
+          update.entry.id,
+          update.entry.attachments,
+          writeOptions
+        );
+      }
+    };
+
+    await deps.repoService.runInTransaction(transactionFn, repoOptions.tx);
+  };
+}
+
 /**
  * Persists a prepared rectification bundle without selecting its accounting
  * behavior. The caller owns the outer workflow transaction.
@@ -154,42 +230,11 @@ function makeRectify(
 
       if (payload.entryUpdate) {
         const update = payload.entryUpdate;
-        const { lines: _lines, attachments, ...header } = update.entry;
-
-        await deps.journalEntryRepo.update(header, {
-          ...writeOptions,
-          expectedVersion: update.expectedVersion,
-          history: update.headerHistory,
-        });
-
-        await deps.journalLineRepo.delete(update.lineIdsToDelete, writeOptions);
-
-        const lineHistoryById = new Map(
-          update.lineHistories.map((history) => [history.entityId, history])
-        );
-
-        if (update.linesToCreate.length) {
-          await deps.journalLineRepo.create(update.linesToCreate, {
-            ...writeOptions,
-            accountingEntityId: update.entry.accountingEntityId,
-            history: update.linesToCreate.map((line) =>
-              lineHistoryById.get(line.id)!
-            ),
-          });
-        }
-
-        for (const line of update.linesToUpdate) {
-          await deps.journalLineRepo.update(line, {
-            ...writeOptions,
-            accountingEntityId: update.entry.accountingEntityId,
-            expectedVersion: line.version - 1,
-            history: lineHistoryById.get(line.id)!,
-          });
-        }
+        await persistEntryUpdate(deps, update, writeOptions);
 
         await deps.journalEntryAttachmentRepo.save(
           update.entry.id,
-          attachments,
+          update.entry.attachments,
           writeOptions
         );
       }
@@ -235,6 +280,8 @@ export default function makeJournalEntryPersistenceAppService(
 ) {
   const service: IJournalEntryPersistenceAppService = Object.freeze({
     create: makeCreate(deps),
+    update: makeUpdate(deps),
+    /** @deprecated: use repo methods directly */
     rectify: makeRectify(deps),
     delete: makeDelete(deps),
   });

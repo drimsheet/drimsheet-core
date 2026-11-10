@@ -5,10 +5,10 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IGetCounterpartyAccountTypeParticipationRepoQueryInput } from '@app/counterparty/usecases/reporting/participation-by-account-type/participation-by-account-type.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import counterpartyAccountTypeParticipationRepoQuery from '@infra/persistence/repos/counterparty/queries/participation-by-account-type.reporting';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('counterpartyAccountTypeParticipationRepoQuery', () => {
   const criteria: IGetCounterpartyAccountTypeParticipationRepoQueryInput = {
@@ -25,15 +25,17 @@ describe('counterpartyAccountTypeParticipationRepoQuery', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ execute } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ execute } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     execute.mockResolvedValue({ rows: [] });
   });
 
   it('binds tenant, line-level counterparty, currency and inclusive fiscal-year dates', async () => {
     await counterpartyAccountTypeParticipationRepoQuery(criteria, options);
     const compiled = compiledSql();
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(execute).toHaveBeenCalledTimes(1);
     expect(compiled.params).toEqual([
       criteria.accountingEntityId,

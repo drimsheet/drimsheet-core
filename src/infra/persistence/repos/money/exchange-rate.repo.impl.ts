@@ -1,6 +1,5 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 
-import drizzleFilters from '@shared/helpers/drizzle-filters';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
 import IExchangeRateRepo from '@domain/money/repos/exchange-rate.repo';
@@ -8,13 +7,14 @@ import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 
 import { currencyExchangeRatesInCore } from '@infra/config/drizzle/schema';
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
+import getDrizzleSortDirectionHelper from '@infra/persistence/helpers/get-drizzle-sort-direction.helper';
 import exchangeRateMapper from '@infra/persistence/repos/money/mappers/exchange-rate.mapper';
 
 const exchangeRateRepo: IExchangeRateRepo = {
   create: async (payload, createdBy, options) => {
     const values = Array.isArray(payload) ? payload : [payload];
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     await dbQuery
       .insert(currencyExchangeRatesInCore)
@@ -29,7 +29,7 @@ const exchangeRateRepo: IExchangeRateRepo = {
       return [];
     }
 
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
     const results = await dbQuery
       .selectDistinctOn([currencyExchangeRatesInCore.currencyPair])
       .from(currencyExchangeRatesInCore)
@@ -58,9 +58,9 @@ const exchangeRateRepo: IExchangeRateRepo = {
     }
 
     const whereClause = and(...conditions);
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
-    const direction = drizzleFilters.getSortDirection(
+    const direction = getDrizzleSortDirectionHelper(
       paginationValue.getSortDirection(options.sortDirection)
     );
 
@@ -95,7 +95,7 @@ const exchangeRateRepo: IExchangeRateRepo = {
   },
 
   async findByPairAndDate(currencyPair, asOf, options) {
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const [result] = await dbQuery
       .select()

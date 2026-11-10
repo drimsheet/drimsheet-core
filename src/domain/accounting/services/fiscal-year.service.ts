@@ -1,5 +1,5 @@
 import fiscalYearEntity from '@domain/accounting/entities/fiscal-year.entity';
-import getAccountingJurisdiction from '@domain/accounting/entities/helpers/get-jurisdiction.helper';
+import getAccountingJurisdictionHelper from '@domain/accounting/entities/helpers/get-jurisdiction.helper';
 import periodError from '@domain/accounting/errors/period.error';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import accountingEntityValidation from '@domain/accounting/services/validations/accounting-entity.validation';
@@ -20,7 +20,7 @@ function makeCreate(deps: IDependencies): IFiscalYearService['create'] {
       endDate: input.endDate,
       status: input.status,
     });
-    const jurisdiction = getAccountingJurisdiction(
+    const jurisdiction = getAccountingJurisdictionHelper(
       input.accountingEntity.jurisdictionCode
     );
     accountingEntityValidation.validateFiscalYearLimit(

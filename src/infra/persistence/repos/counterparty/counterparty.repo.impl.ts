@@ -1,8 +1,7 @@
-import { and, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 
-import drizzleFilters from '@shared/helpers/drizzle-filters';
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
-import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
+import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import repoError from '@shared/values/errors/repo.error';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
@@ -11,20 +10,21 @@ import ICounterpartyRepo, {
 } from '@domain/counterparty/repos/counterparty.repo';
 
 import { counterpartiesInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
+import getDrizzleSortDirectionHelper from '@infra/persistence/helpers/get-drizzle-sort-direction.helper';
 import counterpartyMapper from '@infra/persistence/repos/counterparty/mappers/counterparty.mapper';
 
 import counterpartyHistoryRepo from './counterparty-history.repo.impl';
 
 const counterpartyRepo: ICounterpartyRepo = {
   async deleteByAccountingEntityId(accountingEntityId, options) {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .delete(counterpartiesInCore)
       .where(eq(counterpartiesInCore.accountingEntityId, accountingEntityId));
   },
 
   delete: async (id, accountingEntityId, options) => {
-    const deleted = await getDbQuery(options)
+    const deleted = await getDbQueryHelper(options)
       .delete(counterpartiesInCore)
       .where(
         and(
@@ -43,9 +43,9 @@ const counterpartyRepo: ICounterpartyRepo = {
   },
 
   update: async (counterparty, options) => {
-    validateVersionInRepo(counterparty, options);
+    validateVersionInRepoHelper(counterparty, options);
 
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       const updated = await tx
         .update(counterpartiesInCore)
         .set(counterpartyMapper.toRepo(counterparty))
@@ -69,13 +69,13 @@ const counterpartyRepo: ICounterpartyRepo = {
       await counterpartyHistoryRepo.save(
         counterparty,
         options.history,
-        passOnRepoTransaction(options, tx)
+        passOnRepoTransactionHelper(options, tx)
       );
     });
   },
 
   create: async (payload, options) => {
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       await tx
         .insert(counterpartiesInCore)
         .values(counterpartyMapper.toRepo(payload));
@@ -83,7 +83,7 @@ const counterpartyRepo: ICounterpartyRepo = {
       await counterpartyHistoryRepo.save(
         payload,
         options.history,
-        passOnRepoTransaction(options, tx)
+        passOnRepoTransactionHelper(options, tx)
       );
     });
   },
@@ -105,7 +105,7 @@ const counterpartyRepo: ICounterpartyRepo = {
       conditions.push(ilike(counterpartiesInCore.name, `%${options.search}%`));
     }
 
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const roles = options.roles ?? [];
     const hasRoleFilter = roles.length > 0;
@@ -132,7 +132,7 @@ const counterpartyRepo: ICounterpartyRepo = {
       return paginationValue.getPaginatedResponse([], 0, options);
     }
 
-    const direction = drizzleFilters.getSortDirection(
+    const direction = getDrizzleSortDirectionHelper(
       paginationValue.getSortDirection(options.sortDirection)
     );
 
@@ -165,7 +165,7 @@ const counterpartyRepo: ICounterpartyRepo = {
   },
 
   async findById(id, accountingEntityId, options) {
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select()
       .from(counterpartiesInCore)
       .where(
@@ -179,6 +179,26 @@ const counterpartyRepo: ICounterpartyRepo = {
     const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
     const [row] = await query;
     return row ? counterpartyMapper.toDomain(row) : null;
+  },
+
+  async findByIds(ids, accountingEntityId, options) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const baseQuery = getDbQueryHelper(options)
+      .select()
+      .from(counterpartiesInCore)
+      .where(
+        and(
+          inArray(counterpartiesInCore.id, ids),
+          eq(counterpartiesInCore.accountingEntityId, accountingEntityId)
+        )
+      );
+
+    const query = options.lock ? baseQuery.for(options.lock) : baseQuery;
+    const rows = await query;
+    return rows.map(counterpartyMapper.toDomain);
   },
 };
 

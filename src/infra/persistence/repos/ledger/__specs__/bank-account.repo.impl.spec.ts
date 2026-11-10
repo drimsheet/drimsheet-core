@@ -6,10 +6,10 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import { IBankDetails } from '@domain/ledger/types/asset-account.types';
 import bankDetailsValue from '@domain/ledger/values/bank-details.vo';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import bankAccountRepoImpl from '@infra/persistence/repos/ledger/bank-account.repo.impl';
 
-jest.mock('../../../helpers/get-db-query', () => {
+jest.mock('@infra/persistence/helpers/get-db-query.helper', () => {
   return jest.fn();
 });
 
@@ -17,7 +17,7 @@ describe('bankAccountRepoImpl', () => {
   const ledgerAccountId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
   const accountingEntityId =
     '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
-  const mockGetDbQuery = getDbQuery as jest.Mock;
+  const mockGetDbQuery = getDbQueryHelper as jest.Mock;
 
   const bankDetails: IBankDetails = bankDetailsValue.make({
     countryCode: 'NG',

@@ -10,4 +10,5 @@ export const mockCounterpartyRepo: jest.Mocked<ICounterpartyRepo> = {
   update: jest.fn(),
   findAll: jest.fn(),
   findById: jest.fn(),
+  findByIds: jest.fn(),
 };

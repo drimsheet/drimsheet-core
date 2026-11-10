@@ -1,7 +1,7 @@
-import { and, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, lt, ne } from 'drizzle-orm';
 
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
-import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
+import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import repoError from '@shared/values/errors/repo.error';
 
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
@@ -14,7 +14,8 @@ import {
   journalEntriesInCore,
   journalLinesInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import { toRepoDateOnly } from '@infra/persistence/helpers/date.mapper';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import mapJournalFunctionalCurrencyErrorHelper from '@infra/persistence/helpers/map-journal-functional-currency-error.helper';
 import journalEntryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry.mapper';
 
@@ -22,7 +23,7 @@ import journalEntryHistoryRepo from './journal-entry-history.repo.impl';
 
 const journalEntryRepo: IJournalEntryRepo = {
   async existsByAccountingEntityId(accountingEntityId, options) {
-    const entries = await getDbQuery(options)
+    const entries = await getDbQueryHelper(options)
       .select({ id: journalEntriesInCore.id })
       .from(journalEntriesInCore)
       .where(eq(journalEntriesInCore.accountingEntityId, accountingEntityId))
@@ -30,8 +31,13 @@ const journalEntryRepo: IJournalEntryRepo = {
     return entries.length > 0;
   },
 
-  async existsPostedByAccountId(accountId, accountingEntityId, options) {
-    const references = await getDbQuery(options)
+  async existsPostedByAccountId(
+    accountId,
+    accountingEntityId,
+    options,
+    effectiveBefore
+  ) {
+    const references = await getDbQueryHelper(options)
       .select({ id: journalLinesInCore.id })
       .from(journalLinesInCore)
       .innerJoin(
@@ -42,7 +48,40 @@ const journalEntryRepo: IJournalEntryRepo = {
         and(
           eq(journalLinesInCore.accountId, accountId),
           eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
-          isNotNull(journalEntriesInCore.postedAt)
+          isNotNull(journalEntriesInCore.postedAt),
+          effectiveBefore === undefined
+            ? undefined
+            : lt(
+                journalEntriesInCore.effectiveDate,
+                toRepoDateOnly(effectiveBefore)
+              )
+        )
+      )
+      .limit(1);
+
+    return references.length > 0;
+  },
+
+  async existsOpeningBalanceByAccountId(
+    accountId,
+    accountingEntityId,
+    options
+  ) {
+    const references = await getDbQueryHelper(options)
+      .select({ id: journalLinesInCore.id })
+      .from(journalLinesInCore)
+      .innerJoin(
+        journalEntriesInCore,
+        eq(journalEntriesInCore.id, journalLinesInCore.entryId)
+      )
+      .where(
+        and(
+          eq(journalLinesInCore.accountId, accountId),
+          eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
+          eq(
+            journalEntriesInCore.sourceType,
+            EJournalEntrySourceType.OpeningBalance
+          )
         )
       )
       .limit(1);
@@ -51,7 +90,7 @@ const journalEntryRepo: IJournalEntryRepo = {
   },
 
   async existsByAccountId(accountId, accountingEntityId, options) {
-    const references = await getDbQuery(options)
+    const references = await getDbQueryHelper(options)
       .select({ id: journalLinesInCore.id })
       .from(journalLinesInCore)
       .innerJoin(
@@ -69,12 +108,45 @@ const journalEntryRepo: IJournalEntryRepo = {
     return references.length > 0;
   },
 
+  async findDraftOpeningBalanceByAccountId(
+    accountId,
+    accountingEntityId,
+    options
+  ) {
+    const db = getDbQueryHelper(options);
+    const entryIds = db
+      .select({ id: journalLinesInCore.entryId })
+      .from(journalLinesInCore)
+      .where(eq(journalLinesInCore.accountId, accountId));
+    const entry = await db.query.journalEntriesInCore.findFirst({
+      where: and(
+        eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
+        eq(
+          journalEntriesInCore.sourceType,
+          EJournalEntrySourceType.OpeningBalance
+        ),
+        eq(journalEntriesInCore.status, EJournalEntryStatus.Draft),
+        inArray(journalEntriesInCore.id, entryIds)
+      ),
+      with: {
+        journalEntryAttachmentsInCores: true,
+        journalLinesInCores: true,
+      },
+      orderBy: [
+        desc(journalEntriesInCore.createdAt),
+        desc(journalEntriesInCore.id),
+      ],
+    });
+
+    return entry ? journalEntryMapper.toDomain(entry) : null;
+  },
+
   async findAllByAccountIds(accountIds, accountingEntityId, options) {
     if (accountIds.length === 0) {
       return [];
     }
 
-    const db = getDbQuery(options);
+    const db = getDbQueryHelper(options);
     const entryIds = db
       .select({ id: journalLinesInCore.entryId })
       .from(journalLinesInCore)
@@ -100,23 +172,23 @@ const journalEntryRepo: IJournalEntryRepo = {
       ? options.history
       : [options.history];
 
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       const entries = entriesArray.map(journalEntryMapper.toRepo);
       await tx.insert(journalEntriesInCore).values(entries);
 
       await journalEntryHistoryRepo.create(
         entriesArray,
         historiesArray,
-        passOnRepoTransaction(options, tx)
+        passOnRepoTransactionHelper(options, tx)
       );
     });
   },
 
   update: async (payload, options) => {
-    validateVersionInRepo(payload, options);
+    validateVersionInRepoHelper(payload, options);
 
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         const updated = await tx
           .update(journalEntriesInCore)
           .set(journalEntryMapper.toRepo(payload))
@@ -137,7 +209,7 @@ const journalEntryRepo: IJournalEntryRepo = {
         await journalEntryHistoryRepo.create(
           payload,
           options.history,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {
@@ -146,7 +218,7 @@ const journalEntryRepo: IJournalEntryRepo = {
   },
 
   delete: async (id, options) => {
-    const deleted = await getDbQuery(options)
+    const deleted = await getDbQueryHelper(options)
       .delete(journalEntriesInCore)
       .where(
         and(
@@ -170,7 +242,7 @@ const journalEntryRepo: IJournalEntryRepo = {
   },
 
   async findById(id, options) {
-    const response = await getDbQuery(
+    const response = await getDbQueryHelper(
       options
     ).query.journalEntriesInCore.findFirst({
       where: eq(journalEntriesInCore.id, id),

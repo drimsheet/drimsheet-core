@@ -7,11 +7,11 @@ import { TEntityId } from '@shared/types/uuid';
 import { IAccountingPeriod } from '@domain/accounting/types/accounting-period.types';
 
 import { accountingPeriodsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import accountingPeriodRepo from '@infra/persistence/repos/accounting/accounting-period.repo.impl';
 import accountingPeriodMapper from '@infra/persistence/repos/accounting/mappers/accounting-period.mapper';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock(
   '@infra/persistence/repos/accounting/mappers/accounting-period.mapper'
 );
@@ -37,7 +37,7 @@ describe('accountingPeriodRepoImpl', () => {
     const innerJoin = jest.fn().mockReturnValue({ where });
     const from = jest.fn().mockReturnValue({ where, innerJoin });
     const select = jest.fn().mockReturnValue({ from });
-    (getDbQuery as jest.Mock).mockReturnValue({ select });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ select });
     return { select, from, where, baseQuery };
   }
 
@@ -64,7 +64,7 @@ describe('accountingPeriodRepoImpl', () => {
       expect(predicate.params).toEqual([id, accountingEntityId]);
       expect(query.from).toHaveBeenCalledWith(accountingPeriodsInCore);
       expect(query.baseQuery.limit).toHaveBeenCalledWith(1);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(accountingPeriodMapper.toDomain).toHaveBeenCalledTimes(
         exists ? 1 : 0
       );
@@ -107,7 +107,7 @@ describe('accountingPeriodRepoImpl', () => {
         accountingPeriodsInCore.id
       );
       expect(query.baseQuery.limit).not.toHaveBeenCalled();
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(accountingPeriodMapper.toDomain).toHaveBeenCalledTimes(
         rows.length
       );
@@ -132,7 +132,7 @@ describe('accountingPeriodRepoImpl', () => {
       '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."start_date" <= $2 and "core"."accounting_periods"."end_date" > $3)'
     );
     expect(accountingPeriodMapper.toDomain).toHaveBeenCalledWith(row);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
   });
 
   it('findByDate returns null when no period contains the date', async () => {
@@ -214,7 +214,7 @@ describe('accountingPeriodRepoImpl', () => {
     expect(predicate.sql).toBe(
       '("core"."accounting_periods"."accounting_entity_id" = $1 and "core"."accounting_periods"."start_date" < $2 and "core"."accounting_periods"."end_date" > $3)'
     );
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
   });
 
   it('uses the supplied transaction', async () => {
@@ -228,7 +228,7 @@ describe('accountingPeriodRepoImpl', () => {
     await accountingPeriodRepo.findAllByDate(accountingEntityId, date, options);
     await accountingPeriodRepo.findByDate(accountingEntityId, date, options);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
   });
   it.each(['findByDate', 'findAllByDate', 'findByRange'] as const)(
     'passes the requested row lock to %s',
@@ -249,7 +249,7 @@ describe('accountingPeriodRepoImpl', () => {
         await accountingPeriodRepo[method](accountingEntityId, date, options);
       }
       expect(query.baseQuery.for).toHaveBeenCalledWith('update');
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     }
   );
 });

@@ -4,11 +4,11 @@ import IBackgroundJobCheckpointRepo from '@shared/contracts/background-job-check
 
 import { backgroundJobCheckpointsInCore } from '@infra/config/drizzle/schema';
 import { fromRepoDate } from '@infra/persistence/helpers/date.mapper';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 const backgroundJobCheckpointRepo: IBackgroundJobCheckpointRepo = {
   async getLastSucceededAt(jobKey, options) {
-    const [checkpoint] = await getDbQuery(options)
+    const [checkpoint] = await getDbQueryHelper(options)
       .select({
         lastSucceededAt: backgroundJobCheckpointsInCore.lastSucceededAt,
       })
@@ -20,7 +20,7 @@ const backgroundJobCheckpointRepo: IBackgroundJobCheckpointRepo = {
   },
 
   async recordSuccess(jobKey, options) {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .insert(backgroundJobCheckpointsInCore)
       .values({ jobKey, lastSucceededAt: sql`clock_timestamp()` })
       .onConflictDoUpdate({

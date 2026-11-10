@@ -8,9 +8,9 @@ import appError from '@shared/values/errors/app.error';
 import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.repo';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 
-import getHttpHeaderValue from './get-http-header-value';
+import getHttpHeaderValueHelper from './get-http-header-value.helper';
 
-export default async function getAccountingEntityFromRequest(
+export default async function getAccountingEntityFromRequestHelper(
   req: Request,
   repo: IAccountingEntityRepo,
   repoOptions: IReadRepoOptions,
@@ -20,7 +20,7 @@ export default async function getAccountingEntityFromRequest(
     return null;
   }
 
-  const id = getHttpHeaderValue('x-accounting-entity-id', req.headers);
+  const id = getHttpHeaderValueHelper('x-accounting-entity-id', req.headers);
 
   if (!id) {
     return null;

@@ -1,7 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import getJournalLineDescription from '@domain/journal-entry/entities/helpers/get-description.helper';
-import getOppositeJournalSide from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
+import getJournalLineDescriptionHelper from '@domain/journal-entry/entities/helpers/get-description.helper';
+import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalLineEntity from '@domain/journal-entry/entities/journal-line.entity';
 import journalLineValidation from '@domain/journal-entry/entities/validations/journal-line.validation';
 import { EJournalLineItemEvent } from '@domain/journal-entry/events/journal-line-item.events';
@@ -305,20 +305,22 @@ describe('JournalLineItem Entity', () => {
       });
     });
 
-    describe('getJournalLineDescription', () => {
+    describe('getJournalLineDescriptionHelper', () => {
       it('should return trimmed description', () => {
-        expect(getJournalLineDescription('  test desc  ')).toBe('test desc');
+        expect(getJournalLineDescriptionHelper('  test desc  ')).toBe(
+          'test desc'
+        );
       });
 
       it('should return null if value is empty or null', () => {
-        expect(getJournalLineDescription(null)).toBeNull();
-        expect(getJournalLineDescription(undefined)).toBeNull();
-        expect(getJournalLineDescription('')).toBeNull();
+        expect(getJournalLineDescriptionHelper(null)).toBeNull();
+        expect(getJournalLineDescriptionHelper(undefined)).toBeNull();
+        expect(getJournalLineDescriptionHelper('')).toBeNull();
       });
 
       it('should throw if description is too long', () => {
         const longDesc = 'a'.repeat(101);
-        expect(() => getJournalLineDescription(longDesc)).toThrow();
+        expect(() => getJournalLineDescriptionHelper(longDesc)).toThrow();
       });
     });
 
@@ -401,15 +403,15 @@ describe('JournalLineItem Entity', () => {
       });
     });
 
-    describe('getOppositeJournalSide', () => {
+    describe('getOppositeJournalSideHelper', () => {
       it('should return Credit when given Debit', () => {
-        expect(getOppositeJournalSide(EJournalSide.Debit)).toBe(
+        expect(getOppositeJournalSideHelper(EJournalSide.Debit)).toBe(
           EJournalSide.Credit
         );
       });
 
       it('should return Debit when given Credit', () => {
-        expect(getOppositeJournalSide(EJournalSide.Credit)).toBe(
+        expect(getOppositeJournalSideHelper(EJournalSide.Credit)).toBe(
           EJournalSide.Debit
         );
       });

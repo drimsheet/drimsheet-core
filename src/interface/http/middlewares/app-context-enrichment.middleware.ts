@@ -10,8 +10,8 @@ import IActorService from '@domain/user/types/actor.service.types';
 import ITokenAppService from '@app/auth/contracts/token-service.contract';
 import { IAppContextData } from '@app/context/types/app-context.types';
 
-import getAccountingEntityFromRequest from '@interface/http/helpers/get-accounting-entity-from-request.helper';
-import getAuthUserFromRequest from '@interface/http/helpers/get-auth-user-from-request.helper';
+import getAccountingEntityFromRequestHelper from '@interface/http/helpers/get-accounting-entity-from-request.helper';
+import getAuthUserFromRequestHelper from '@interface/http/helpers/get-auth-user-from-request.helper';
 
 export default function makeAppContextEnrichmentMiddleware(
   appContext: IAppContextService<IAppContextData>,
@@ -24,7 +24,7 @@ export default function makeAppContextEnrichmentMiddleware(
     const { correlationId } = appContext.get();
     const repoOptions: IReadRepoOptions = { correlationId };
 
-    const user = await getAuthUserFromRequest(
+    const user = await getAuthUserFromRequestHelper(
       req,
       tokenAppService,
       userRepo,
@@ -35,7 +35,7 @@ export default function makeAppContextEnrichmentMiddleware(
       ? await actorService.resolveUser(user, repoOptions)
       : undefined;
 
-    const accountingEntity = await getAccountingEntityFromRequest(
+    const accountingEntity = await getAccountingEntityFromRequestHelper(
       req,
       accountingEntityRepo,
       repoOptions,

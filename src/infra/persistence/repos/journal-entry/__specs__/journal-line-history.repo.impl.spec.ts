@@ -1,11 +1,11 @@
 import { TEntityId } from '@shared/types/uuid';
 
 import { journalLineHistoryInAudit } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import journalLineHistoryRepo from '@infra/persistence/repos/journal-entry/journal-line-history.repo.impl';
 import journalLineHistoryMapper from '@infra/persistence/repos/journal-entry/mappers/journal-line-history.mapper';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/journal-line-history.mapper');
 
 describe('journalLineHistoryRepo', () => {
@@ -22,7 +22,9 @@ describe('journalLineHistoryRepo', () => {
   });
 
   it('rejects a line without matching history', async () => {
-    jest.mocked(getDbQuery).mockReturnValue({ insert: jest.fn() } as never);
+    jest
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ insert: jest.fn() } as never);
 
     await expect(
       journalLineHistoryRepo.create(
@@ -44,7 +46,7 @@ describe('journalLineHistoryRepo', () => {
   it('creates history for single and multiple lines', async () => {
     const values = jest.fn().mockResolvedValue(undefined);
     const insert = jest.fn().mockReturnValue({ values });
-    jest.mocked(getDbQuery).mockReturnValue({ insert } as never);
+    jest.mocked(getDbQueryHelper).mockReturnValue({ insert } as never);
 
     await journalLineHistoryRepo.create(
       {
@@ -72,7 +74,9 @@ describe('journalLineHistoryRepo', () => {
   it('deletes all line history for a journal entry', async () => {
     const where = jest.fn().mockResolvedValue(undefined);
     const deleteQuery = jest.fn().mockReturnValue({ where });
-    jest.mocked(getDbQuery).mockReturnValue({ delete: deleteQuery } as never);
+    jest
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ delete: deleteQuery } as never);
 
     await journalLineHistoryRepo.deleteByJournalEntryId(lineId, options);
 

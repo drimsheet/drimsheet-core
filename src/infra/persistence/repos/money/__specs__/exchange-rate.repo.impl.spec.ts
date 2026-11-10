@@ -1,10 +1,10 @@
 import { desc, inArray } from 'drizzle-orm';
 
 import { currencyExchangeRatesInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import exchangeRateRepo from '@infra/persistence/repos/money/exchange-rate.repo.impl';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('drizzle-orm', () => {
   const drizzle =
     jest.requireActual<typeof import('drizzle-orm')>('drizzle-orm');
@@ -28,7 +28,7 @@ describe('exchangeRateRepoImpl incremental reads', () => {
       })
     ).resolves.toEqual([]);
 
-    expect(getDbQuery).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
   });
 
   it('finds and maps the latest exchange rate for each requested currency pair', async () => {
@@ -61,7 +61,7 @@ describe('exchangeRateRepoImpl incremental reads', () => {
     const where = jest.fn().mockReturnValue({ orderBy });
     const from = jest.fn().mockReturnValue({ where });
     const selectDistinctOn = jest.fn().mockReturnValue({ from });
-    (getDbQuery as jest.Mock).mockReturnValue({ selectDistinctOn });
+    (getDbQueryHelper as jest.Mock).mockReturnValue({ selectDistinctOn });
 
     await expect(
       exchangeRateRepo.findLatest(currencyPairs, options)
@@ -88,7 +88,7 @@ describe('exchangeRateRepoImpl incremental reads', () => {
       },
     ]);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(selectDistinctOn).toHaveBeenCalledWith([
       currencyExchangeRatesInCore.currencyPair,
     ]);

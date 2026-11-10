@@ -11,11 +11,11 @@ import {
   accountingIntervalHistoryInAudit,
   accountingIntervalsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import accountingIntervalRepo from '@infra/persistence/repos/accounting/accounting-interval.repo.impl';
 import accountingIntervalMapper from '@infra/persistence/repos/accounting/mappers/accounting-interval.mapper';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('accountingIntervalRepo creation', () => {
   const [interval, , audits] = accountingIntervalEntity.make({
@@ -56,9 +56,9 @@ describe('accountingIntervalRepo creation', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     return { values, insert, committed };
   }
@@ -66,7 +66,7 @@ describe('accountingIntervalRepo creation', () => {
   it('saves the header and audit together using the supplied transaction', async () => {
     const fake = fakeTransaction();
     await accountingIntervalRepo.create(header, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(fake.insert.mock.calls.map((call) => call[0])).toEqual([
       accountingIntervalsInCore,
       accountingIntervalHistoryInAudit,
@@ -127,9 +127,9 @@ describe('accountingIntervalRepo creation', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       const readOptions = { correlationId: 'uniqueness' };
       await expect(
@@ -149,7 +149,7 @@ describe('accountingIntervalRepo creation', () => {
       ]);
       expect(from).toHaveBeenCalledWith(accountingIntervalsInCore);
       expect(limit).toHaveBeenCalledWith(1);
-      expect(getDbQuery).toHaveBeenCalledWith(readOptions);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(readOptions);
     }
   );
 });

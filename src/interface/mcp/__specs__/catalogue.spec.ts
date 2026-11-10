@@ -75,10 +75,9 @@ const exchangeRate = {
   source: 'Central Bank',
 };
 const openingBalance = { amount, exchangeRate, date: timestamp };
-const counterpartyDetails = { name: 'Supplier', type: 'organization' };
 const line = {
   accountId: id,
-  counterparty: counterpartyDetails,
+  counterpartyId: id,
   amount,
   exchangeRate,
   description: null,
@@ -637,6 +636,32 @@ describe('MCP tool catalogue', () => {
         ...(tool.argument as object),
         postedAt: null,
       });
+    }
+  );
+
+  it.each(['create_payment', 'create_receipt', 'create_transfer'])(
+    'rejects embedded counterparty details before dispatching %s',
+    async (name) => {
+      const tool = cases.find((entry) => entry.name === name)!;
+      const { counterpartyId: _id, ...lineWithoutCounterpartyId } = line;
+      const legacyLine = {
+        ...lineWithoutCounterpartyId,
+        counterparty: { name: 'Supplier', type: 'organization' },
+      };
+      const overrides =
+        name === 'create_payment'
+          ? { sourceLine: legacyLine }
+          : name === 'create_receipt'
+            ? { destinationLine: legacyLine }
+            : { chargeLines: [legacyLine] };
+
+      const response = await send('tools/call', {
+        name,
+        arguments: { ...tool.input, ...overrides },
+      });
+
+      expect(response.result.isError).toBe(true);
+      expect(tool.useCase).not.toHaveBeenCalled();
     }
   );
 

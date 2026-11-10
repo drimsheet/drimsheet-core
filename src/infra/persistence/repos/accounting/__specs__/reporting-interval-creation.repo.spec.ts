@@ -11,11 +11,11 @@ import {
   reportingIntervalHistoryInAudit,
   reportingIntervalsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import reportingIntervalMapper from '@infra/persistence/repos/accounting/mappers/reporting-interval.mapper';
 import reportingIntervalRepo from '@infra/persistence/repos/accounting/reporting-interval.repo.impl';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('reportingIntervalRepo creation', () => {
   const [interval, , audits] = reportingIntervalEntity.make({
@@ -56,9 +56,9 @@ describe('reportingIntervalRepo creation', () => {
       }
     );
     jest
-      .mocked(getDbQuery)
+      .mocked(getDbQueryHelper)
       .mockReturnValue({ transaction } as unknown as ReturnType<
-        typeof getDbQuery
+        typeof getDbQueryHelper
       >);
     return { values, insert, committed };
   }
@@ -66,7 +66,7 @@ describe('reportingIntervalRepo creation', () => {
   it('saves the header and audit together using the supplied transaction', async () => {
     const fake = fakeTransaction();
     await reportingIntervalRepo.create(header, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(fake.insert.mock.calls.map((call) => call[0])).toEqual([
       reportingIntervalsInCore,
       reportingIntervalHistoryInAudit,
@@ -126,9 +126,9 @@ describe('reportingIntervalRepo creation', () => {
       const from = jest.fn().mockReturnValue({ where });
       const select = jest.fn().mockReturnValue({ from });
       jest
-        .mocked(getDbQuery)
+        .mocked(getDbQueryHelper)
         .mockReturnValue({ select } as unknown as ReturnType<
-          typeof getDbQuery
+          typeof getDbQueryHelper
         >);
       const readOptions = { correlationId: 'uniqueness' };
       await expect(
@@ -148,7 +148,7 @@ describe('reportingIntervalRepo creation', () => {
       ]);
       expect(from).toHaveBeenCalledWith(reportingIntervalsInCore);
       expect(limit).toHaveBeenCalledWith(1);
-      expect(getDbQuery).toHaveBeenCalledWith(readOptions);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(readOptions);
     }
   );
 });

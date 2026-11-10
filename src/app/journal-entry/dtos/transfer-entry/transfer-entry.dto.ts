@@ -1,3 +1,4 @@
+import { IJournalEntryAttachmentsUpdateReq } from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto';
 import { IJournalLineReq } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import { IMoneyDto } from '@app/money/dtos/money/money.dto';
@@ -23,4 +24,27 @@ export interface ITransferEntryReq {
   effectiveDate: Date;
   postedAt: Date | null;
   memo: string | null;
+}
+
+interface IUpdateDraftTransferAssetLineReq {
+  id?: string;
+  accountId?: string;
+  amount?: IMoneyDto;
+  exchangeRate?: IExchangeRateDto | null;
+  description?: string | null;
+  sequenceOrder?: number;
+}
+
+interface IUpdateDraftTransferChargeLineReq extends IUpdateDraftTransferAssetLineReq {
+  counterpartyId?: string | null;
+}
+
+export interface IUpdateDraftTransferReq {
+  attachments?: IJournalEntryAttachmentsUpdateReq;
+  effectiveDate?: Date;
+  sourceLine?: IUpdateDraftTransferAssetLineReq;
+  destinationLine?: IUpdateDraftTransferAssetLineReq;
+  /** When supplied, replaces the charge set. IDs retain existing charges. */
+  chargeLines?: IUpdateDraftTransferChargeLineReq[];
+  memo?: string | null;
 }

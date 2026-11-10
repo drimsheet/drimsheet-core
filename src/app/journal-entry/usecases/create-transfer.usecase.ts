@@ -3,9 +3,9 @@
  * Creates a transfer journal between source and destination accounts in the
  * selected accounting entity, including any charge lines. Supports draft
  * creation through a null postedAt or posting through a supplied date. Resolves
- * charge counterparties and claims the user's attachment uploads. Saves the
- * journal, new counterparties, audits, applicable foreign-exchange disposition
- * and acquisition, and pending balance work together. Requests balance
+ * charge counterparty IDs and claims the user's attachment uploads. Saves the
+ * journal, audits, applicable foreign-exchange disposition and acquisition,
+ * and pending balance work together. Requests balance
  * processing for posted entries, publishes events, and returns the journal.
  *
  * WHEN TO USE
@@ -19,26 +19,22 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
 import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
-import { ECounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
+import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import {
   ICreateTransferEntryPayload,
-  IJournalEntryService,
-} from '@domain/journal-entry/types/journal-entry.service.types';
-import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
+  ITransferEntryService,
+} from '@domain/journal-entry/types/transfer-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ICounterpartyAppService from '@app/counterparty/contracts/counterparty.service.contract';
 import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
@@ -46,27 +42,30 @@ import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 import { transferEntryReqValidation } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto.validation';
-import getLedgerAccountHelper from '@app/journal-entry/helpers/account-getter.helper';
-import getNewCounterpartiesHelper from '@app/journal-entry/helpers/get-new-counterparties.helper';
-import helpers from '@app/journal-entry/helpers/transfer-entry.helpers';
+import getLedgerAccountHelper from '@app/journal-entry/usecases/helpers/account-getter.helper';
+import getCounterpartiesHelper from '@app/journal-entry/usecases/helpers/get-counterparties.helper';
+import getTransferChargeAccountsHelper from '@app/journal-entry/usecases/helpers/get-transfer-charge-accounts.helper';
+import getTransferDestinationLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-destination-line-payload.helper';
+import getTransferSourceLinePayloadHelper from '@app/journal-entry/usecases/helpers/get-transfer-source-line-payload.helper';
+import transformTransferChargeLinesToJournalLinesHelper from '@app/journal-entry/usecases/helpers/transform-transfer-charge-lines-to-journal-lines.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
+import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
-  counterpartyAppService: ICounterpartyAppService;
-  fileManagementAppService: IFileManagementAppService;
-  journalEntryService: IJournalEntryService;
-  ledgerAccountRepo: ILedgerAccountRepo;
   counterpartyRepo: ICounterpartyRepo;
+  fileManagementAppService: IFileManagementAppService;
+  transferEntryService: ITransferEntryService;
+  ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
   eventBus: IEventBus;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
-  fxLotAppService: IFxLotAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
@@ -93,37 +92,32 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       repoOptions,
     });
 
-    const chargeAccounts = await helpers.getChargeAccounts(
+    const chargeAccounts = await getTransferChargeAccountsHelper(
       payload.chargeLines,
       accountingEntity,
       deps.ledgerAccountRepo,
       repoOptions
     );
 
-    const chargeCounterpartiesPayload = payload.chargeLines.flatMap((line) =>
-      line.counterparty ? [line.counterparty] : []
+    const chargeCounterpartyIds = payload.chargeLines.map(
+      (line) => line.counterpartyId
     );
-    const allCounterparties =
-      await deps.counterpartyAppService.findOrCreateMany(
-        chargeCounterpartiesPayload,
-        accountingEntity.id,
-        actor.id,
-        payload.postedAt === null
-          ? ECounterpartyStatus.Draft
-          : ECounterpartyStatus.Active,
-        repoOptions
-      );
+    const allCounterparties = await getCounterpartiesHelper({
+      ids: chargeCounterpartyIds,
+      accountingEntityId: accountingEntity.id,
+      repo: deps.counterpartyRepo,
+      repoOptions,
+    });
 
-    const destinationLinePayload = helpers.getDestinationPayload(
+    const destinationLinePayload = getTransferDestinationLinePayloadHelper(
       payload,
       destinationAccount
     );
 
-    const chargeLinePayloads = helpers.transformChargeLineToJournalLine(
+    const chargeLinePayloads = transformTransferChargeLinesToJournalLinesHelper(
       payload,
       allCounterparties,
-      chargeAccounts,
-      deps.counterpartyAppService
+      chargeAccounts
     );
 
     const attachments = await deps.fileManagementAppService.claimUploads({
@@ -132,7 +126,7 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       references: payload.attachmentReferences ?? [],
     });
 
-    const sourceLinePayload = helpers.getSourceLinePayload(
+    const sourceLinePayload = getTransferSourceLinePayloadHelper(
       payload,
       sourceAccount
     );
@@ -156,10 +150,7 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
     const {
       journalEntry: [journalEntry, journalEntryEvents, journalEntryAudit],
       destinationAssetAccount,
-    } = await deps.journalEntryService.createTransfer(
-      transferPayload,
-      repoOptions
-    );
+    } = await deps.transferEntryService.create(transferPayload, repoOptions);
 
     const journalHeaderHistory = historyValue.make(
       journalEntryAudit.header,
@@ -170,34 +161,42 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
       historyValue.make(line, actor.id, correlationId)
     );
 
-    const newCounterparties = getNewCounterpartiesHelper(
-      allCounterparties,
-      actor.id,
-      correlationId
-    );
-
-    const dispositionResult = await deps.fxLotAppService.dispose(
-      { journalEntry, account: sourceAccount, actor: actor.id },
-      repoOptions
-    );
-    const acquisitionResult = await deps.fxLotAppService.acquire(
-      { journalEntry, account: destinationAssetAccount, actor: actor.id },
-      repoOptions
-    );
-
     const shouldUpdateBalance =
       journalEntry.status === EJournalEntryStatus.Posted;
 
-    const dbTransactionFn: TRepoTransactionFn = async (tx) => {
-      const writeOptions = { correlationId, tx };
+    const dispositionResult = shouldUpdateBalance
+      ? await deps.fxCostBasisLotService.dispose(
+          {
+            journalEntry,
+            account: sourceAccount,
+            createdBy: actor.id,
+            officialRate: await resolveOfficialRateHelper(
+              deps.exchangeRateAppService,
+              journalEntry.lines,
+              sourceAccount.id,
+              repoOptions
+            ),
+          },
+          repoOptions
+        )
+      : null;
+    const acquisitionResult = shouldUpdateBalance
+      ? deps.fxCostBasisLotService.acquire({
+          journalEntry,
+          account: destinationAssetAccount,
+          createdBy: actor.id,
+          officialRate: await resolveOfficialRateHelper(
+            deps.exchangeRateAppService,
+            journalEntry.lines,
+            destinationAssetAccount.id,
+            repoOptions
+          ),
+        })
+      : null;
 
-      for (const counterpartyWithHistory of newCounterparties.records) {
-        const [counterparty, history] = counterpartyWithHistory;
-        await deps.counterpartyRepo.create(counterparty, {
-          ...writeOptions,
-          history,
-        });
-      }
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeOptions = { correlationId, tx: transaction.context };
 
       await deps.journalEntryPersistenceAppService.create(
         journalEntry,
@@ -208,46 +207,39 @@ export default function makeCreateTransferUsecase(deps: IDependencies) {
 
       if (dispositionResult) {
         await deps.fxCostBasisPersistenceAppService.persistDisposition(
-          dispositionResult.records,
+          dispositionResult,
+          actor.id,
           writeOptions
         );
       }
 
       if (acquisitionResult) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
-          acquisitionResult.records,
+          acquisitionResult,
+          actor.id,
           writeOptions
         );
       }
+
+      await transaction.commit();
+
+      const fxEvents: IEvent<unknown>[] = [
+        ...getFxLotEventsHelper(dispositionResult),
+        ...getFxLotEventsHelper(acquisitionResult),
+      ];
+
+      const allEvents: IEvent<unknown>[] = [...journalEntryEvents, ...fxEvents];
+      await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
 
       if (shouldUpdateBalance) {
-        await deps.outboxAppService.createBalancePropagation(
-          journalEntry.id,
-          writeOptions
-        );
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
+          journalEntryId: journalEntry.id,
+        });
       }
-    };
 
-    await deps.repoService.runInTransaction(dbTransactionFn);
-
-    if (shouldUpdateBalance) {
-      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
-        journalEntryId: journalEntry.id,
-      });
+      return journalEntryDtoMapper.toDto(journalEntry);
+    } catch (error) {
+      return await transaction.handleError(error);
     }
-
-    const fxEvents: IEvent<unknown>[] = [
-      ...(dispositionResult?.events ?? []),
-      ...(acquisitionResult?.events ?? []),
-    ];
-
-    const allEvents: IEvent<unknown>[] = [
-      ...newCounterparties.events,
-      ...journalEntryEvents,
-      ...fxEvents,
-    ];
-    await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
-
-    return journalEntryDtoMapper.toDto(journalEntry);
   };
 }

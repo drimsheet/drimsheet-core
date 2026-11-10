@@ -18,10 +18,10 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
 
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ILedgerAccountQueryRepo, {
   IFindAllLedgerAccountsOptions,
 } from '@app/ledger/contracts/ledger-account.query.repo.contract';
@@ -30,11 +30,12 @@ import {
   ILedgerAccountDto,
 } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { getLedgerAccountQueryValidationSchema } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
+import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   ledgerAccountQueryRepo: ILedgerAccountQueryRepo;
-  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
+  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
 }
 
 export default function makeGetLedgerAccountsUsecase(deps: IDependencies) {
@@ -60,9 +61,10 @@ export default function makeGetLedgerAccountsUsecase(deps: IDependencies) {
       accountRepoOptions
     );
 
-    const data = await deps.balanceEnrichmentAppService.enrich(
+    const data = await loadLedgerAccountDtosWithBalancesHelper(
+      deps.ledgerAccountBalanceRepo,
       ledgerAccountsRes.data,
-      accountingEntity,
+      accountingEntity.id,
       repoOptions
     );
 

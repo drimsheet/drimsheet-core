@@ -1,6 +1,6 @@
 import { EXPENSE_LEDGER_CODES } from '@domain/ledger/config/expense-codes.config';
-import getLedgerAccountMaterializedPath from '@domain/ledger/entities/helpers/get-materialized-path.helper';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getLedgerAccountMaterializedPathHelper from '@domain/ledger/entities/helpers/get-materialized-path.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -64,7 +64,7 @@ function makeCreateHeader(
       accountingEntityId: payload.accountingEntity.id,
       code: LEDGER_CODE.HEADER,
       materializedPath: LEDGER_CODE.HEADER,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Expense),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Expense),
       type: ELedgerType.Expense,
       subType: EExpenseSubType.LossOnAssetDisposal,
       behavior: EExpenseAccountBehavior.AssetDisposalLoss,
@@ -140,7 +140,7 @@ function makeCreateSubAccount(
       repoOptions
     );
 
-    const materializedPath = getLedgerAccountMaterializedPath(
+    const materializedPath = getLedgerAccountMaterializedPathHelper(
       controlAccount.materializedPath,
       code
     );
@@ -150,7 +150,7 @@ function makeCreateSubAccount(
       accountingEntityId: payload.accountingEntityId,
       code: code as TAssetDisposalLossLedgerCode,
       materializedPath,
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Expense),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Expense),
       type: ELedgerType.Expense,
       subType: EExpenseSubType.LossOnAssetDisposal,
       behavior: EExpenseAccountBehavior.AssetDisposalLoss,

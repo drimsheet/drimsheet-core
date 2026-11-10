@@ -17,19 +17,20 @@ import { TEntityId } from '@shared/types/uuid';
 import stringUtils from '@shared/utils/string';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ILedgerAccountQueryRepo from '@app/ledger/contracts/ledger-account.query.repo.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
+import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   ledgerAccountRepo: ILedgerAccountRepo;
   ledgerAccountQueryRepo: ILedgerAccountQueryRepo;
-  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
+  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
 }
 
 export default function makeGetLedgerSubAccountsUsecase(deps: IDependencies) {
@@ -58,9 +59,10 @@ export default function makeGetLedgerSubAccountsUsecase(deps: IDependencies) {
       repoOptions
     );
 
-    return deps.balanceEnrichmentAppService.enrich(
+    return loadLedgerAccountDtosWithBalancesHelper(
+      deps.ledgerAccountBalanceRepo,
       subAccounts,
-      accountingEntity,
+      accountingEntity.id,
       repoOptions
     );
   };

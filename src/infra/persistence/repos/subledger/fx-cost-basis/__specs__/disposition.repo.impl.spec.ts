@@ -13,12 +13,12 @@ import {
   subledgerFxCostBasisLotDispositionHistoryInAudit,
   subledgerFxCostBasisLotDispositionsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import fxCostBasisLotDispositionRepo from '@infra/persistence/repos/subledger/fx-cost-basis/disposition.repo.impl';
 import fxCostBasisLotDispositionHistoryMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/disposition-history.mapper';
 import fxCostBasisLotDispositionMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/disposition.mapper';
 
-jest.mock('../../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../mappers/disposition.mapper');
 jest.mock('../mappers/disposition-history.mapper');
 
@@ -60,8 +60,8 @@ describe('FX Cost-Basis Lot Disposition Repo', () => {
       ),
     };
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
     jest
       .mocked(fxCostBasisLotDispositionMapper.toRepo)
       .mockReturnValue(
@@ -79,7 +79,7 @@ describe('FX Cost-Basis Lot Disposition Repo', () => {
 
     await fxCostBasisLotDispositionRepo.create(payload, options);
 
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.transaction).toHaveBeenCalledTimes(1);
     expect(tx.insert).toHaveBeenNthCalledWith(
       1,
@@ -101,9 +101,9 @@ describe('FX Cost-Basis Lot Disposition Repo', () => {
 
   it('propagates database transaction failures unchanged', async () => {
     const databaseError = new Error('database unavailable');
-    jest.mocked(getDbQuery).mockReturnValue({
+    jest.mocked(getDbQueryHelper).mockReturnValue({
       transaction: jest.fn().mockRejectedValue(databaseError),
-    } as unknown as ReturnType<typeof getDbQuery>);
+    } as unknown as ReturnType<typeof getDbQueryHelper>);
 
     await expect(
       fxCostBasisLotDispositionRepo.create(payload, options)
@@ -118,8 +118,8 @@ describe('FX Cost-Basis Lot Disposition Repo', () => {
       ),
     };
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(query as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(query as unknown as ReturnType<typeof getDbQueryHelper>);
     jest
       .mocked(fxCostBasisLotDispositionMapper.toRepo)
       .mockImplementation(() => {

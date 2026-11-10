@@ -6,7 +6,8 @@ import stringUtils from '@shared/utils/string';
 import generateUUID from '@shared/utils/uuid-generator';
 import { IEvent } from '@shared/values/events/types/event.types';
 
-import getJournalLineDescription from '@domain/journal-entry/entities/helpers/get-description.helper';
+import getJournalLineDescriptionHelper from '@domain/journal-entry/entities/helpers/get-description.helper';
+import getOppositeJournalSideHelper from '@domain/journal-entry/entities/helpers/get-opposite-side.helper';
 import journalLineValidation from '@domain/journal-entry/entities/validations/journal-line.validation';
 import journalLineError from '@domain/journal-entry/errors/journal-line.error';
 import journalLineEvents from '@domain/journal-entry/events/journal-line-item.events';
@@ -20,11 +21,18 @@ import {
   IJournalLineMakePayload,
 } from '@domain/journal-entry/types/journal-line.types';
 import journalLineAudit from '@domain/journal-entry/values/journal-line-audit.vo';
+import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 
-function make(
-  entryPayload: Pick<IJournalEntry, 'id' | 'memo' | 'createdAt' | 'createdBy'>,
-  payload: IJournalLineMakePayload
+type TJournalLineHeader = Pick<
+  IJournalEntry,
+  'id' | 'memo' | 'createdAt' | 'createdBy'
+>;
+
+function makeLine(
+  entryPayload: TJournalLineHeader,
+  payload: IJournalLineMakePayload,
+  recordedFunctionalAmount?: IMoney
 ): [IJournalLine, IEvent<IJournalLine>[], IJournalLineAudit] {
   stringUtils.validateUUID(
     entryPayload.id,
@@ -48,14 +56,16 @@ function make(
     journalLineError.InvalidCreatedAt
   );
 
-  const functionalAmount = payload.exchangeRate
-    ? moneyValue.convert(
-        payload.amount,
-        payload.exchangeRate,
-        payload.functionalCurrency
-      )
-    : payload.amount;
-  const description = getJournalLineDescription(
+  const functionalAmount =
+    recordedFunctionalAmount ??
+    (payload.exchangeRate
+      ? moneyValue.convert(
+          payload.amount,
+          payload.exchangeRate,
+          payload.functionalCurrency
+        )
+      : payload.amount);
+  const description = getJournalLineDescriptionHelper(
     payload.description ?? entryPayload.memo
   );
 
@@ -96,6 +106,28 @@ function make(
   return [Object.freeze(lineItem), [event], audit];
 }
 
+function make(header: TJournalLineHeader, payload: IJournalLineMakePayload) {
+  return makeLine(header, payload);
+}
+
+/** Creates the opposite posting using the line's recorded functional amount. */
+function reverse(header: TJournalLineHeader, original: IJournalLine) {
+  return makeLine(
+    header,
+    {
+      accountId: original.accountId,
+      counterpartyId: original.counterpartyId,
+      sequenceOrder: original.sequenceOrder,
+      amount: original.amount,
+      exchangeRate: original.exchangeRate,
+      side: getOppositeJournalSideHelper(original.side),
+      description: original.description,
+      functionalCurrency: original.functionalAmount.currency,
+    },
+    original.functionalAmount
+  );
+}
+
 function update(
   line: IJournalLine,
   payload: IJournalLine
@@ -124,7 +156,7 @@ function update(
         payload.functionalAmount.currency
       )
     : payload.amount;
-  const description = getJournalLineDescription(payload.description);
+  const description = getJournalLineDescriptionHelper(payload.description);
   const isUnchanged =
     line.accountId === payload.accountId &&
     line.counterpartyId === payload.counterpartyId &&
@@ -169,6 +201,7 @@ function update(
 
 const journalLineEntity = Object.freeze({
   make,
+  reverse,
   update,
   ...journalLineValidation,
 });

@@ -14,7 +14,7 @@ interface IRectificationEntryCreate {
   lineHistories: IJournalLineHistory[];
 }
 
-interface IRectificationEntryUpdate {
+export interface IJournalEntryUpdatePersistencePayload {
   entry: IJournalEntry;
   expectedVersion: number;
   headerHistory: IJournalEntryHistory | IJournalEntryRectificationHistory;
@@ -26,7 +26,7 @@ interface IRectificationEntryUpdate {
 
 export interface IJournalEntryRectificationPersistencePayload {
   entriesToCreate: IRectificationEntryCreate[];
-  entryUpdate: IRectificationEntryUpdate | null;
+  entryUpdate: IJournalEntryUpdatePersistencePayload | null;
 }
 
 export interface IDeleteJournalEntryPersistencePayload {
@@ -43,7 +43,21 @@ export default interface IJournalEntryPersistenceAppService {
     repoOptions: IRepoOptions
   ): Promise<void>;
 
-  /** Applies the same account-currency lock/check to every entry in the rectification bundle. */
+  /**
+   * Saves a versioned journal update, its line and attachment changes, and
+   * their history together.
+   * Locks referenced accounts. Without a caller transaction, resolves after
+   * commit.
+   */
+  update(
+    payload: IJournalEntryUpdatePersistencePayload,
+    repoOptions: IRepoOptions
+  ): Promise<void>;
+
+  /**
+   * Locks and checks account currencies for every entry in the atomic bundle.
+   * Without a caller transaction, resolves after commit.
+   */
   rectify(
     payload: IJournalEntryRectificationPersistencePayload,
     repoOptions: IRepoOptions

@@ -2,10 +2,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 
-import {
-  UCounterpartyStatus,
-  UCounterpartyType,
-} from '@domain/counterparty/types/counterparty.types';
+import { UCounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
 import {
   UJournalEntrySourceType,
   UJournalEntryStatus,
@@ -45,17 +42,11 @@ export interface IGetJournalEntriesQuery extends IPaginationDto {
 
 export interface IJournalLineReq {
   accountId: string;
-  counterparty: IJournalCounterpartyReq | null;
+  counterpartyId: string | null;
   amount: IMoneyDto;
   exchangeRate: IExchangeRateDto | null;
   description: string | null;
   sequenceOrder: number;
-}
-
-export interface IJournalCounterpartyReq {
-  id?: string;
-  name: string;
-  type?: UCounterpartyType;
 }
 
 export interface IJournalLineDto {
@@ -74,11 +65,10 @@ export interface IJournalLineDto {
   updatedAt: Date;
 }
 
-export interface IJournalHeaderDto {
+interface IJournalHeaderFieldsDto {
   sourceType: UJournalEntrySourceType;
   memo: string | null;
   status: UJournalEntryStatus;
-  effectiveDate: Date;
   postedAt: Date | null;
   voidedAt: Date | null;
   voidingEntryId: string | null;
@@ -87,11 +77,19 @@ export interface IJournalHeaderDto {
   updatedAt: Date;
 }
 
-export interface IJournalEntryDto extends IJournalHeaderDto {
+export interface IJournalHeaderDto extends IJournalHeaderFieldsDto {
+  effectiveDate: Date;
+}
+
+interface IJournalEntryFieldsDto extends IJournalHeaderFieldsDto {
   id: string;
   accountingEntityId: string;
   attachments: IFileAttachment[];
   lines: IJournalLineDto[];
+}
+
+export interface IJournalEntryDto extends IJournalEntryFieldsDto {
+  effectiveDate: Date;
 }
 
 interface IJournalLineListDto {

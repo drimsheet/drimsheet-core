@@ -5,11 +5,9 @@ import counterpartyEntity from '@domain/counterparty/entities/counterparty.entit
 import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import journalEntryServiceValidation from '@domain/journal-entry/services/validations/journal-entry.validation';
-import {
-  ICreateReceiptEntryPayload,
-  IJournalEntryLinePayload,
-} from '@domain/journal-entry/types/journal-entry.service.types';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import { IJournalEntryLinePayload } from '@domain/journal-entry/types/journal-entry.service.types';
+import { ICreateReceiptEntryPayload } from '@domain/journal-entry/types/receipt-entry.service.types';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import {
@@ -67,7 +65,7 @@ describe('journalEntryServiceValidation', () => {
       type,
       subType: EAssetSubType.CashAndCashEquivalent,
       behavior,
-      normalBalance: getLedgerAccountNormalBalance(type),
+      normalBalance: getLedgerAccountNormalBalanceHelper(type),
       isControlAccount: false,
       controlAccountId: null,
       name: 'Transfer account',

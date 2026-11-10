@@ -29,6 +29,7 @@ import {
   EJournalEntrySourceType,
   UJournalEntrySourceType,
 } from '@domain/journal-entry/types/journal-entry.types';
+import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 import {
   ELedgerAccountSubType,
   ULedgerAccountSubType,
@@ -37,18 +38,18 @@ import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/ledger-account-balance-enrichment.service.contract';
 import ILedgerAccountQueryRepo, {
   IFindAllLedgerAccountsOptions,
 } from '@app/ledger/contracts/ledger-account.query.repo.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 import { getPermittedPostingAccountsQueryValidationSchema } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto.validation';
+import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   ledgerAccountQueryRepo: ILedgerAccountQueryRepo;
-  balanceEnrichmentAppService: ILedgerAccountBalanceEnrichmentAppService;
+  ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;
 }
 
 const journalEntryRules: Partial<
@@ -122,9 +123,10 @@ export default function makeGetPermittedPostingAccountsUsecase(
       accountRepoOptions
     );
 
-    const data = await deps.balanceEnrichmentAppService.enrich(
+    const data = await loadLedgerAccountDtosWithBalancesHelper(
+      deps.ledgerAccountBalanceRepo,
       ledgerAccountsResponse.data,
-      accountingEntity,
+      accountingEntity.id,
       repoOptions
     );
 

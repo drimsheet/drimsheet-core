@@ -12,12 +12,12 @@ import makeCounterpartyService from '@domain/counterparty/services/counterparty.
 import { mockJournalLineRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
 
 import { counterpartiesInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import counterpartyHistoryRepo from '@infra/persistence/repos/counterparty/counterparty-history.repo.impl';
 import counterpartyRepo from '@infra/persistence/repos/counterparty/counterparty.repo.impl';
 import counterpartyMapper from '@infra/persistence/repos/counterparty/mappers/counterparty.mapper';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock(
   '@infra/persistence/repos/counterparty/counterparty-history.repo.impl'
 );
@@ -59,8 +59,8 @@ const history = historyValue.make(audit!, generateUUID(), 'correlation');
 const options = { history, correlationId: 'correlation' };
 function useQuery(query: unknown) {
   jest
-    .mocked(getDbQuery)
-    .mockReturnValue(query as ReturnType<typeof getDbQuery>);
+    .mocked(getDbQueryHelper)
+    .mockReturnValue(query as ReturnType<typeof getDbQueryHelper>);
 }
 
 function makeWriteQuery() {
@@ -98,7 +98,7 @@ describe('conditional counterparty deletion', () => {
       counterparty.accountingEntityId,
       options
     );
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.delete).toHaveBeenCalledTimes(1);
     expect(query.delete).toHaveBeenCalledWith(counterpartiesInCore);
     const statement = new PgDialect().sqlToQuery(where.mock.calls[0][0] as SQL);
@@ -156,7 +156,7 @@ describe('Counterparty repository', () => {
   it('writes only parent and full history for an address-less vendor', async () => {
     const { tx, values } = makeWriteQuery();
     await counterpartyRepo.create(counterparty, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(tx.insert).toHaveBeenCalledTimes(1);
     expect(tx.insert).toHaveBeenCalledWith(counterpartiesInCore);
     expect(values).toHaveBeenCalledWith(row);
@@ -179,7 +179,7 @@ describe('Counterparty repository', () => {
       tx: query,
       history: employerHistory,
     });
-    expect(getDbQuery).toHaveBeenCalledWith({
+    expect(getDbQueryHelper).toHaveBeenCalledWith({
       ...options,
       tx: query,
       history: employerHistory,
@@ -263,8 +263,8 @@ describe('Counterparty repository reads', () => {
       select: jest.fn().mockReturnValue({ from }),
     };
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue(db as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue(db as unknown as ReturnType<typeof getDbQueryHelper>);
     return { db, from, where, countWhere, orderBy, limit, offset };
   }
 
@@ -328,7 +328,7 @@ describe('Counterparty repository reads', () => {
       ).toContain('"id" desc');
       expect(fake.limit).toHaveBeenCalledWith(2);
       expect(fake.offset).toHaveBeenCalledWith(2);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     }
   );
 
@@ -361,7 +361,7 @@ describe('Counterparty repository reads', () => {
     expect(
       dialect.sqlToQuery(fake.orderBy.mock.calls[0][0] as SQL).sql
     ).toContain('"created_at"');
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
   });
 
   it('retains totals beyond the last page', async () => {
@@ -403,10 +403,107 @@ describe('Counterparty repository reads', () => {
           options
         )
       ).toEqual(entity);
-      expect(getDbQuery).toHaveBeenCalledWith(options);
+      expect(getDbQueryHelper).toHaveBeenCalledWith(options);
       expect(fake.db.select).toHaveBeenCalledTimes(1);
     }
   );
+});
+
+describe('Counterparty repository bulk reads', () => {
+  beforeEach(() => jest.resetAllMocks());
+
+  function bulkQuery(
+    rows: Parameters<typeof counterpartyMapper.toDomain>[0][]
+  ) {
+    const lock = jest.fn().mockResolvedValue(rows);
+    const baseQuery = Object.assign(Promise.resolve(rows), { for: lock });
+    const where = jest.fn().mockReturnValue(baseQuery);
+    const from = jest.fn().mockReturnValue({ where });
+    const select = jest.fn().mockReturnValue({ from });
+    const db = { select };
+    useQuery(db);
+    return { db, where, from, lock };
+  }
+
+  it('returns an empty batch without querying', async () => {
+    await expect(
+      counterpartyRepo.findByIds([], counterparty.accountingEntityId, {
+        correlationId: 'bulk-read',
+      })
+    ).resolves.toEqual([]);
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
+  });
+
+  it('retrieves matching tenant records in one query regardless of duplicates, missing IDs, or result order', async () => {
+    const fake = bulkQuery([counterpartyMapper.toRepo(employer), row]);
+    const missingId = generateUUID();
+    const ids = [counterparty.id, employer.id, counterparty.id, missingId];
+    const readOptions = { correlationId: 'bulk-read' };
+
+    const counterparties = await counterpartyRepo.findByIds(
+      ids,
+      counterparty.accountingEntityId,
+      readOptions
+    );
+
+    expect(counterparties).toEqual([employer, counterparty]);
+    expect(fake.db.select).toHaveBeenCalledTimes(1);
+    expect(fake.from).toHaveBeenCalledWith(counterpartiesInCore);
+    const predicate = new PgDialect().sqlToQuery(
+      fake.where.mock.calls[0][0] as SQL
+    );
+    expect(predicate.sql).toContain('"core"."counterparties"."id" in');
+    expect(predicate.sql).toContain(
+      '"core"."counterparties"."accounting_entity_id"'
+    );
+    expect(predicate.params).toEqual([...ids, counterparty.accountingEntityId]);
+    expect(fake.lock).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).toHaveBeenCalledWith(readOptions);
+  });
+
+  it('returns no records when IDs are missing from the selected entity', async () => {
+    bulkQuery([]);
+    await expect(
+      counterpartyRepo.findByIds(
+        [generateUUID()],
+        counterparty.accountingEntityId,
+        { correlationId: 'bulk-read' }
+      )
+    ).resolves.toEqual([]);
+  });
+
+  it('honors a requested read lock in the supplied transaction', async () => {
+    const fake = bulkQuery([row]);
+    const readOptions = {
+      correlationId: 'bulk-read',
+      tx: { _brand: 'DrimsheetTransactionContext' as const },
+      lock: 'update' as const,
+    };
+
+    await expect(
+      counterpartyRepo.findByIds(
+        [counterparty.id],
+        counterparty.accountingEntityId,
+        readOptions
+      )
+    ).resolves.toEqual([counterparty]);
+    expect(fake.lock).toHaveBeenCalledWith('update');
+    expect(getDbQueryHelper).toHaveBeenCalledWith(readOptions);
+  });
+
+  it('propagates query failures to the caller', async () => {
+    const fake = bulkQuery([]);
+    const failure = new Error('bulk read failed');
+    fake.where.mockRejectedValueOnce(failure);
+
+    await expect(
+      counterpartyRepo.findByIds(
+        [counterparty.id],
+        counterparty.accountingEntityId,
+        { correlationId: 'bulk-read' }
+      )
+    ).rejects.toBe(failure);
+  });
 });
 
 describe('versioned counterparty updates', () => {
@@ -473,7 +570,7 @@ describe('versioned counterparty updates', () => {
           ...invalid,
         } as never)
       ).rejects.toThrow();
-      expect(getDbQuery).not.toHaveBeenCalled();
+      expect(getDbQueryHelper).not.toHaveBeenCalled();
       expect(counterpartyHistoryRepo.save).not.toHaveBeenCalled();
     }
   );
@@ -517,9 +614,9 @@ describe('counterparty setup deletion', () => {
     const options = { correlationId: 'remove', tx: {} };
     const where = jest.fn().mockResolvedValue(undefined);
     const query = { delete: jest.fn().mockReturnValue({ where }) };
-    jest.mocked(getDbQuery).mockReturnValue(query as never);
+    jest.mocked(getDbQueryHelper).mockReturnValue(query as never);
     await counterpartyRepo.deleteByAccountingEntityId(id, options);
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(query.delete).toHaveBeenCalledWith(counterpartiesInCore);
     expect(where).toHaveBeenCalledWith(
       eq(counterpartiesInCore.accountingEntityId, id)

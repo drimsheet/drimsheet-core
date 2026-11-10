@@ -1,11 +1,11 @@
 import { and, eq } from 'drizzle-orm';
 
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 
 import IAccountingContextRepo from '@domain/accounting/repos/accounting-context.repo';
 
 import { accountingContextsInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import mapAccountingContextConflictErrorHelper from '@infra/persistence/helpers/map-accounting-context-conflict-error.helper';
 import accountingContextMapper from '@infra/persistence/repos/accounting/mappers/accounting-context.mapper';
 
@@ -13,7 +13,7 @@ import accountingContextHistoryRepo from './accounting-context-history.repo.impl
 
 const accountingContextRepoImpl: IAccountingContextRepo = {
   async existsByFiscalYear(fiscalYearId, options) {
-    const rows = await getDbQuery(options)
+    const rows = await getDbQueryHelper(options)
       .select({ id: accountingContextsInCore.id })
       .from(accountingContextsInCore)
       .where(eq(accountingContextsInCore.fiscalYearId, fiscalYearId))
@@ -22,7 +22,7 @@ const accountingContextRepoImpl: IAccountingContextRepo = {
   },
 
   async update(context, options) {
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       await tx
         .update(accountingContextsInCore)
         .set(accountingContextMapper.toRepo(context))
@@ -31,13 +31,13 @@ const accountingContextRepoImpl: IAccountingContextRepo = {
       await accountingContextHistoryRepo.save(
         context,
         options.history,
-        passOnRepoTransaction(options, tx)
+        passOnRepoTransactionHelper(options, tx)
       );
     });
   },
 
   async findByFiscalYear(accountingEntityId, fiscalYearId, options) {
-    const [row] = await getDbQuery(options)
+    const [row] = await getDbQueryHelper(options)
       .select()
       .from(accountingContextsInCore)
       .where(
@@ -51,7 +51,7 @@ const accountingContextRepoImpl: IAccountingContextRepo = {
   },
 
   findById: async (id, options) => {
-    const [row] = await getDbQuery(options)
+    const [row] = await getDbQueryHelper(options)
       .select()
       .from(accountingContextsInCore)
       .where(eq(accountingContextsInCore.id, id))
@@ -60,7 +60,7 @@ const accountingContextRepoImpl: IAccountingContextRepo = {
   },
 
   async deleteByAccountingEntityId(accountingEntityId, options) {
-    await getDbQuery(options)
+    await getDbQueryHelper(options)
       .delete(accountingContextsInCore)
       .where(
         eq(accountingContextsInCore.accountingEntityId, accountingEntityId)
@@ -69,7 +69,7 @@ const accountingContextRepoImpl: IAccountingContextRepo = {
 
   create: async (payload, options) => {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         await tx
           .insert(accountingContextsInCore)
           .values(accountingContextMapper.toRepo(payload));
@@ -77,7 +77,7 @@ const accountingContextRepoImpl: IAccountingContextRepo = {
         await accountingContextHistoryRepo.save(
           payload,
           options.history,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {

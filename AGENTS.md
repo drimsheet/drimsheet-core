@@ -2,6 +2,14 @@
 
 Read this before changing the repository.
 
+## Project Folder Boundary
+
+Keep project file listings, searches, and reads within the folders explicitly
+added to the current project, including the active worktree. If no project
+folders are configured, use the current repository root. Resolve symlink
+targets against the same boundary. If the task requires another folder, ask
+the user to add it to the project before inspecting it.
+
 ## Start Here
 
 1. Read `.agents/README.md`.
@@ -18,9 +26,22 @@ Read this before changing the repository.
     reporter events.
 11. Follow `.agents/rules/controller-ordering.md` when adding, changing, or
     reviewing controller endpoints.
+12. Follow `.agents/rules/helpers.md` for helpers in every layer.
 
 For reporting use-case work, load
 `.agents/skills/reporting-usecase-creation/SKILL.md`.
+
+## Pre-1.0 Changes
+
+Use the `version` in `package.json` to determine release status. For versions
+below `1.0.0`:
+
+- Assume there are no existing records to preserve.
+- Target the current API and data model. Skip backward-compatibility code and
+  legacy data handling.
+- Existing database migration files may be edited directly when changing the
+  schema. Follow the [migration skill](.agents/skills/migration/SKILL.md) for
+  generated Drizzle schemas.
 
 ## Planning
 

@@ -1,6 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm';
 
-import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import repoError from '@shared/values/errors/repo.error';
 
 import IFxCostBasisLotRepo from '@domain/subledger/fx-cost-basis/repos/lot.repo';
@@ -10,13 +10,13 @@ import {
   subledgerFxCostBasisLotHistoryInAudit,
   subledgerFxCostBasisLotsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import fxCostBasisLotHistoryMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/lot-history.mapper';
 import fxCostBasisLotMapper from '@infra/persistence/repos/subledger/fx-cost-basis/mappers/lot.mapper';
 
 const fxCostBasisLotRepo: IFxCostBasisLotRepo = {
   findById: async (id, options) => {
-    const result = await getDbQuery(options)
+    const result = await getDbQueryHelper(options)
       .select()
       .from(subledgerFxCostBasisLotsInCore)
       .where(eq(subledgerFxCostBasisLotsInCore.id, id))
@@ -26,7 +26,7 @@ const fxCostBasisLotRepo: IFxCostBasisLotRepo = {
   },
 
   findOpenByAccountId: async (accountingEntityId, ledgerAccountId, options) => {
-    const results = await getDbQuery(options)
+    const results = await getDbQueryHelper(options)
       .select()
       .from(subledgerFxCostBasisLotsInCore)
       .where(
@@ -48,7 +48,7 @@ const fxCostBasisLotRepo: IFxCostBasisLotRepo = {
   },
 
   create: async (payload, options) => {
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       const repoModel = fxCostBasisLotMapper.toRepo(payload);
       await tx.insert(subledgerFxCostBasisLotsInCore).values(repoModel);
 
@@ -62,9 +62,9 @@ const fxCostBasisLotRepo: IFxCostBasisLotRepo = {
   },
 
   update: async (payload, options) => {
-    validateVersionInRepo(payload, options);
+    validateVersionInRepoHelper(payload, options);
 
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       const repoModel = fxCostBasisLotMapper.toRepo(payload);
       const updated = await tx
         .update(subledgerFxCostBasisLotsInCore)

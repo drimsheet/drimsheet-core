@@ -3,8 +3,11 @@
 Follow [Service Philosophy](service-philosophy.md) for the doctrine, layer
 questions, and disposition vocabulary.
 
-Extract a service only when it represents a named capability with a clear
-owner. Do not create a service merely to shorten a use case.
+Extract a service only when it owns a complete, meaningful unit of work with a
+named capability and a clear owner, as defined in
+[Service Philosophy](service-philosophy.md). Identify the outcome its contract
+completes before extracting it. A preparation phase or a shorter use case alone
+does not justify a service; keep workflow-specific preparation with its owner.
 
 ## Naming
 
@@ -36,11 +39,14 @@ owner. Do not create a service merely to shorten a use case.
 
 - Own reusable application capabilities that coordinate domain behavior or
   ports, such as bootstrapping all ledger account families.
-- Have an independently meaningful contract and focused tests.
+- Have a contract that promises the complete outcome of the owned capability
+  and focused tests that verify it.
 - Define failure semantics in the service contract: whether the capability
   rejects or is best-effort.
-- Return prepared results to the use case. They must not invoke write
-  repositories or persistence services, and they must not decide to persist.
+- Return the results of the completed capability to the use case. Those results
+  may be unpersisted records; returning prepared records alone does not establish
+  a capability. They must not invoke write repositories or persistence services,
+  and they must not decide to persist.
 - May perform reads required by the capability, including transaction-scoped
   invariant reads supplied by the calling use case.
 - For best-effort capabilities, the implementation catches and reports failures
@@ -57,8 +63,11 @@ owner. Do not create a service merely to shorten a use case.
   services must never call them.
 - Compose repository writes and storage-level invariants only when one persisted
   bundle must be atomic.
-- Persist prepared domain/application records as supplied; do not revalidate
-  entities, histories, events, or application-owned outbox decisions.
+- Accept prepared records or domain mutation results. When accepting a domain
+  result, construct the write payload for the same atomic bundle, including
+  audit histories, expected versions, and outbox records directly derived
+  from that result. Do not rerun domain validation, make workflow decisions,
+  or publish events.
 - May join a caller-owned transaction or create the transaction required for
   their own bundle, but they do not own the outer workflow or the decision to
   persist.
@@ -85,12 +94,15 @@ owner. Do not create a service merely to shorten a use case.
 - Own the request-specific workflow and ordering.
 - Are the only layer allowed to initiate repository writes or invoke persistence
   services.
-- Coordinate repository writes, outer transaction boundaries, history creation,
-  application context updates, and event publication.
+- Coordinate repository writes, outer transaction boundaries, workflow-specific
+  history creation, application context updates, and event publication.
 - Use a dedicated persistence service when multiple repository writes or
   storage-level invariants form one reusable atomic persistence bundle.
 
 ## Decision Check
+
+First identify the complete, meaningful unit of work and its outcome. If the
+extraction only packages a preparation phase, keep it with the current owner.
 
 1. Business invariant or coordinated domain creation? Domain service.
 2. Reusable non-persistence application capability? Application service.

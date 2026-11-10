@@ -9,7 +9,7 @@ import repoError from '@shared/values/errors/repo.error';
 
 import { usersInCore } from '@infra/config/drizzle/schema';
 import { postgres } from '@infra/config/postgres.config';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import repoService from '@infra/services/repo.service';
 
 jest.mock('@infra/config/postgres.config', () => ({
@@ -85,7 +85,7 @@ describe('repoService manual transactions', () => {
   it('executes Drizzle queries with parameter binding and result mapping on the acquired client', async () => {
     const client = makeClient();
     const transaction = await repoService.createTransaction();
-    const db = getDbQuery({ correlationId, tx: transaction.context });
+    const db = getDbQueryHelper({ correlationId, tx: transaction.context });
     client.query.mockResolvedValueOnce({ command: 'SELECT', rows: [['42']] });
 
     const rows = await db
@@ -368,7 +368,7 @@ describe('repoService manual transactions', () => {
   it('uses savepoints for nested repository transactions without committing or releasing the outer transaction', async () => {
     const client = makeClient();
     const transaction = await repoService.createTransaction();
-    const db = getDbQuery({ correlationId, tx: transaction.context });
+    const db = getDbQueryHelper({ correlationId, tx: transaction.context });
     const failure = new Error('nested write failed');
 
     await db.transaction(async (tx) => {
@@ -383,7 +383,7 @@ describe('repoService manual transactions', () => {
     ).rejects.toBe(failure);
     await repoService.runInTransaction(async (tx) => {
       expect(tx).toBe(transaction.context);
-      await getDbQuery({ correlationId, tx }).execute(sql`select 2`);
+      await getDbQueryHelper({ correlationId, tx }).execute(sql`select 2`);
     }, transaction.context);
 
     expect(client.release).not.toHaveBeenCalled();

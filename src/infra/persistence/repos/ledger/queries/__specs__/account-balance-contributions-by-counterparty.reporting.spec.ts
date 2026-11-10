@@ -5,11 +5,11 @@ import { TEntityId } from '@shared/types/uuid';
 
 import type { TGetAccountBalanceContributionsByCounterpartyRepoQuery } from '@app/ledger/usecases/reporting/account-balance-contributions-by-counterparty/account-balance-contributions-by-counterparty.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import { ICounterpartyModel } from '@infra/persistence/repos/counterparty/mappers/counterparty.mapper';
 import accountBalanceContributionsByCounterpartyRepoQuery from '@infra/persistence/repos/ledger/queries/account-balance-contributions-by-counterparty.reporting';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('accountBalanceContributionsByCounterpartyRepoQuery', () => {
   const criteria: Parameters<TGetAccountBalanceContributionsByCounterpartyRepoQuery>[0] =
@@ -39,15 +39,17 @@ describe('accountBalanceContributionsByCounterpartyRepoQuery', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ execute } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ execute } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     execute.mockResolvedValue({ rows: [] });
   });
 
   it('binds the requested account, tenant and functional currency and scopes every joined owner', async () => {
     await accountBalanceContributionsByCounterpartyRepoQuery(criteria, options);
     const compiled = compiledQuery();
-    expect(getDbQuery).toHaveBeenCalledWith(options);
+    expect(getDbQueryHelper).toHaveBeenCalledWith(options);
     expect(compiled.params).toEqual([
       criteria.accountId,
       criteria.accountingEntityId,

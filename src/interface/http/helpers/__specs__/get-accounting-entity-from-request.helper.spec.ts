@@ -8,9 +8,9 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 
-import getAccountingEntityFromRequest from '@interface/http/helpers/get-accounting-entity-from-request.helper';
+import getAccountingEntityFromRequestHelper from '@interface/http/helpers/get-accounting-entity-from-request.helper';
 
-describe('getAccountingEntityFromRequest', () => {
+describe('getAccountingEntityFromRequestHelper', () => {
   const accountingEntityId =
     '123e4567-e89b-12d3-a456-426614174000' as TEntityId;
   const userId = 'user-id' as TEntityId;
@@ -26,7 +26,7 @@ describe('getAccountingEntityFromRequest', () => {
   });
 
   it('returns null if the user ID is not provided', async () => {
-    const accountingEntity = await getAccountingEntityFromRequest(
+    const accountingEntity = await getAccountingEntityFromRequestHelper(
       mockReq as Request,
       mockAccountingEntityRepo,
       repoOptions
@@ -37,7 +37,7 @@ describe('getAccountingEntityFromRequest', () => {
   });
 
   it('returns null if the accounting entity header is missing', async () => {
-    const accountingEntity = await getAccountingEntityFromRequest(
+    const accountingEntity = await getAccountingEntityFromRequestHelper(
       mockReq as Request,
       mockAccountingEntityRepo,
       repoOptions,
@@ -52,7 +52,7 @@ describe('getAccountingEntityFromRequest', () => {
     mockReq.headers = { 'x-accounting-entity-id': 'invalid-uuid' };
 
     await expect(
-      getAccountingEntityFromRequest(
+      getAccountingEntityFromRequestHelper(
         mockReq as Request,
         mockAccountingEntityRepo,
         repoOptions,
@@ -65,7 +65,7 @@ describe('getAccountingEntityFromRequest', () => {
     mockReq.headers = { 'x-accounting-entity-id': accountingEntityId };
     mockAccountingEntityRepo.findByIdAndUserId.mockResolvedValue(null);
 
-    const accountingEntity = await getAccountingEntityFromRequest(
+    const accountingEntity = await getAccountingEntityFromRequestHelper(
       mockReq as Request,
       mockAccountingEntityRepo,
       repoOptions,
@@ -91,7 +91,7 @@ describe('getAccountingEntityFromRequest', () => {
       expectedAccountingEntity
     );
 
-    const accountingEntity = await getAccountingEntityFromRequest(
+    const accountingEntity = await getAccountingEntityFromRequestHelper(
       mockReq as Request,
       mockAccountingEntityRepo,
       repoOptions,

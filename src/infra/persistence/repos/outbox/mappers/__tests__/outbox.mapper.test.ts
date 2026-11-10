@@ -14,13 +14,13 @@ describe('outboxMapper', () => {
       outboxMapper.toRepo({
         id,
         correlationId,
-        type: EOutboxType.BalancePropagation,
+        type: EOutboxType.MissingOfficialFxRate,
         data: null,
       })
     ).toEqual({
       id,
       correlationId,
-      type: EOutboxType.BalancePropagation,
+      type: EOutboxType.MissingOfficialFxRate,
       data: null,
     });
   });
@@ -30,7 +30,7 @@ describe('outboxMapper', () => {
     const row: IOutboxRepoModel = {
       id,
       correlationId,
-      type: EOutboxType.BalancePropagation,
+      type: EOutboxType.MissingOfficialFxRate,
       data: null,
       createdAt,
     };
@@ -38,7 +38,7 @@ describe('outboxMapper', () => {
     expect(outboxMapper.toDomain(row)).toEqual({
       id,
       correlationId,
-      type: EOutboxType.BalancePropagation,
+      type: EOutboxType.MissingOfficialFxRate,
       data: null,
       createdAt: new Date(createdAt),
     });

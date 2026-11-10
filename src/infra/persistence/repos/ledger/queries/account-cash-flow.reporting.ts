@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 
 import type { TGetAccountCashFlowRepoQuery } from '@app/ledger/usecases/reporting/account-cash-flow/account-cash-flow.usecase';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 
 interface IAggregateRow extends Record<string, unknown> {
   bucket_index: number;
@@ -16,7 +16,7 @@ const accountCashFlowRepoQuery: TGetAccountCashFlowRepoQuery = async (
 ) => {
   const from = criteria.from.toISOString().slice(0, 10);
   const to = criteria.to.toISOString().slice(0, 10);
-  const aggregates = await getDbQuery(options).execute<IAggregateRow>(sql`
+  const aggregates = await getDbQueryHelper(options).execute<IAggregateRow>(sql`
       SELECT
         floor((entry.effective_date - ${from}::date)::numeric
           / ${criteria.bucketDays}::numeric)::integer AS bucket_index,

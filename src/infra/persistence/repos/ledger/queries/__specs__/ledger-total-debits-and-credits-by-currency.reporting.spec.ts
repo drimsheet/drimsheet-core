@@ -3,10 +3,10 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 
 import { TEntityId } from '@shared/types/uuid';
 
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import query from '@infra/persistence/repos/ledger/queries/ledger-total-debits-and-credits-by-currency.reporting';
 
-jest.mock('@infra/persistence/helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 
 describe('ledgerTotalDebitsAndCreditsByCurrencyRepoQuery', () => {
   const execute = jest.fn<Promise<{ rows: Record<string, string>[] }>, [SQL]>();
@@ -18,15 +18,17 @@ describe('ledgerTotalDebitsAndCreditsByCurrencyRepoQuery', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ execute } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ execute } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
     execute.mockResolvedValue({ rows: [] });
   });
   it('scopes original-currency sums by tenant, class and inclusive effective dates, excluding only draft and voided entries', async () => {
     await expect(query(criteria, { correlationId: 'totals' })).resolves.toEqual(
       []
     );
-    expect(getDbQuery).toHaveBeenCalledWith({ correlationId: 'totals' });
+    expect(getDbQueryHelper).toHaveBeenCalledWith({ correlationId: 'totals' });
     const compiled = new PgDialect().sqlToQuery(execute.mock.calls[0][0]);
     const sql = compiled.sql.replace(/\s+/g, ' ');
     expect(compiled.params).toEqual([

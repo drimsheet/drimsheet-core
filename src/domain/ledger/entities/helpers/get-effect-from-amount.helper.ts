@@ -6,7 +6,7 @@ import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 import moneyValidation from '@domain/money/values/validations/money.validation';
 
-export default function getLedgerAccountBalanceEffect(
+export default function getLedgerAccountBalanceEffectHelper(
   amount: IMoney
 ): ULedgerAccountBalanceEffect {
   moneyValidation.validate(amount);

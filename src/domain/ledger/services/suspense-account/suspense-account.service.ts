@@ -1,6 +1,6 @@
 import { ASSET_LEDGER_CODES } from '@domain/ledger/config/asset-codes.config';
 import { LIABILITY_LEDGER_CODES } from '@domain/ledger/config/liability-codes.config';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
@@ -67,7 +67,7 @@ function makeCreateAssetSuspense(
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
 
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Asset),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Asset),
       code,
       materializedPath: code,
       type: ELedgerType.Asset,
@@ -125,7 +125,7 @@ function makeCreateLiabilitySuspense(
       name: payload.name,
       accountingEntityId: payload.accountingEntityId,
 
-      normalBalance: getLedgerAccountNormalBalance(ELedgerType.Liability),
+      normalBalance: getLedgerAccountNormalBalanceHelper(ELedgerType.Liability),
       code,
       materializedPath: code,
       type: ELedgerType.Liability,

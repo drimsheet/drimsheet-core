@@ -1,6 +1,6 @@
 import { and, eq, getTableColumns } from 'drizzle-orm';
 
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
 
 import IReportingPeriodRepo from '@domain/accounting/repos/reporting-period.repo';
 
@@ -8,14 +8,14 @@ import {
   reportingIntervalsInCore,
   reportingPeriodsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import reportingPeriodMapper from '@infra/persistence/repos/accounting/mappers/reporting-period.mapper';
 
 import reportingPeriodHistoryRepo from './reporting-period-history.repo.impl';
 
 const reportingPeriodRepoImpl: IReportingPeriodRepo = {
   findById: async (id, options) => {
-    const [row] = await getDbQuery(options)
+    const [row] = await getDbQueryHelper(options)
       .select()
       .from(reportingPeriodsInCore)
       .where(eq(reportingPeriodsInCore.id, id))
@@ -24,7 +24,7 @@ const reportingPeriodRepoImpl: IReportingPeriodRepo = {
   },
 
   findAllByFiscalYear: async (accountingEntityId, fiscalYearId, options) => {
-    const rows = await getDbQuery(options)
+    const rows = await getDbQueryHelper(options)
       .select(getTableColumns(reportingPeriodsInCore))
       .from(reportingPeriodsInCore)
       .innerJoin(
@@ -43,14 +43,14 @@ const reportingPeriodRepoImpl: IReportingPeriodRepo = {
   },
 
   create: async (payload, options) => {
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       await tx
         .insert(reportingPeriodsInCore)
         .values(payload.map(reportingPeriodMapper.toRepo));
       await reportingPeriodHistoryRepo.save(
         payload,
         options.history,
-        passOnRepoTransaction(options, tx)
+        passOnRepoTransactionHelper(options, tx)
       );
     });
   },

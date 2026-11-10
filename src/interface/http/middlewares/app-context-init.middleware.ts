@@ -7,7 +7,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 
-import getHttpHeaderValue from '@interface/http/helpers/get-http-header-value';
+import getHttpHeaderValueHelper from '@interface/http/helpers/get-http-header-value.helper';
 
 function handleSetRefreshToken(
   res: Response,
@@ -42,7 +42,7 @@ export default function makeAppContextInitMiddleware(
   varsConfig: IVarsConfig
 ): RequestHandler {
   return (req, res, next) => {
-    const suppliedCorrelationId = getHttpHeaderValue(
+    const suppliedCorrelationId = getHttpHeaderValueHelper(
       'x-correlation-id',
       req.headers
     );
@@ -51,7 +51,10 @@ export default function makeAppContextInitMiddleware(
       stringUtils.isUUID(suppliedCorrelationId)
         ? suppliedCorrelationId
         : generateUUID();
-    const idempotencyKey = getHttpHeaderValue('x-idempotency-key', req.headers);
+    const idempotencyKey = getHttpHeaderValueHelper(
+      'x-idempotency-key',
+      req.headers
+    );
 
     res.setHeader('x-correlation-id', correlationId);
 

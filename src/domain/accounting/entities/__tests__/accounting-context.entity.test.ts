@@ -2,9 +2,9 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import accountingContextEntity from '@domain/accounting/entities/accounting-context.entity';
-import getAccountingContextDescription from '@domain/accounting/entities/helpers/get-description.helper';
-import getAccountingJurisdiction from '@domain/accounting/entities/helpers/get-jurisdiction.helper';
-import getAccountingStandard from '@domain/accounting/entities/helpers/get-standard.helper';
+import getAccountingContextDescriptionHelper from '@domain/accounting/entities/helpers/get-description.helper';
+import getAccountingJurisdictionHelper from '@domain/accounting/entities/helpers/get-jurisdiction.helper';
+import getAccountingStandardHelper from '@domain/accounting/entities/helpers/get-standard.helper';
 import accountingContextValidation from '@domain/accounting/entities/validations/accounting-context.validation';
 import accountingError from '@domain/accounting/errors/accounting.error';
 import { EAccountingContextEvents } from '@domain/accounting/events/accounting-context.events';
@@ -60,30 +60,30 @@ describe('accountingContextEntity', () => {
     });
   });
 
-  describe('getAccountingContextDescription', () => {
+  describe('getAccountingContextDescriptionHelper', () => {
     it('returns sanitized description if provided', () => {
-      expect(getAccountingContextDescription('  Valid description  ')).toBe(
-        'Valid description'
-      );
+      expect(
+        getAccountingContextDescriptionHelper('  Valid description  ')
+      ).toBe('Valid description');
     });
 
     it('returns null if description is null', () => {
-      expect(getAccountingContextDescription(null)).toBeNull();
+      expect(getAccountingContextDescriptionHelper(null)).toBeNull();
     });
   });
 
-  describe('getAccountingJurisdiction', () => {
+  describe('getAccountingJurisdictionHelper', () => {
     it('returns jurisdiction for a valid code', () => {
-      const jurisdiction = getAccountingJurisdiction('US');
+      const jurisdiction = getAccountingJurisdictionHelper('US');
       expect(jurisdiction.code).toBe('US');
     });
 
     it('throws InvalidJurisdiction if code is empty', () => {
-      expect(() => getAccountingJurisdiction('')).toThrow();
+      expect(() => getAccountingJurisdictionHelper('')).toThrow();
     });
 
     it('throws InvalidJurisdiction if code is invalid', () => {
-      expect(() => getAccountingJurisdiction('INVALID_CODE')).toThrow();
+      expect(() => getAccountingJurisdictionHelper('INVALID_CODE')).toThrow();
     });
   });
 
@@ -108,15 +108,15 @@ describe('accountingContextEntity', () => {
     });
   });
 
-  describe('getAccountingStandard', () => {
+  describe('getAccountingStandardHelper', () => {
     it('returns standard for a valid code', () => {
-      const standard = getAccountingStandard('US_GAAP');
+      const standard = getAccountingStandardHelper('US_GAAP');
       expect(standard.code).toBe('US_GAAP');
     });
 
     it('throws InvalidStandard if code is invalid', () => {
       // @ts-expect-error testing invalid standard code
-      expect(() => getAccountingStandard('INVALID')).toThrow();
+      expect(() => getAccountingStandardHelper('INVALID')).toThrow();
     });
   });
 

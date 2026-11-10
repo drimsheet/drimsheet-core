@@ -4922,7 +4922,7 @@
             }
           }
         },
-        "description": "Delete a never-posted journal entry or reverse a previously-posted entry.",
+        "description": "Deletes a draft journal entry. Other statuses return 400.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -5180,16 +5180,16 @@
         }
       }
     },
-    "/journal-entries/{id}/rectify": {
-      "post": {
-        "operationId": "rectifyJournalEntry",
+    "/journal-entries/{id}/meta": {
+      "patch": {
+        "operationId": "updateJournalEntryMeta",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IJournalEntryRectificationDto"
+                  "$ref": "#/components/schemas/IJournalEntryDto"
                 }
               }
             }
@@ -5265,7 +5265,7 @@
             }
           }
         },
-        "description": "Correct a journal entry while preserving its accounting audit trail.",
+        "description": "Updates the memo, existing line descriptions, and supporting attachments\nof a draft or posted journal entry.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -5283,7 +5283,777 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TJournalEntryRectificationReq"
+                "$ref": "#/components/schemas/IJournalEntryMetaUpdateReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/journal-entries/opening-balance/{id}": {
+      "patch": {
+        "operationId": "updateDraftOpeningBalance",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Updates the amount, effective date, exchange rate, memo, or attachments of a draft opening balance.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IUpdateDraftOpeningBalanceReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/journal-entries/payment/{id}": {
+      "patch": {
+        "operationId": "updateDraftPayment",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Updates the memo, effective date, lines, or attachments of a draft payment.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IUpdateDraftPaymentReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/journal-entries/payment/{id}/void-and-replace": {
+      "post": {
+        "operationId": "voidAndReplacePayment",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Voids and reverses a posted payment and records a draft or posted replacement.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IPaymentEntryReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/journal-entries/receipt/{id}": {
+      "patch": {
+        "operationId": "updateDraftReceipt",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Edits a draft receipt's memo, effective date, lines, or attachments.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IUpdateDraftReceiptReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/journal-entries/receipt/{id}/void-and-replace": {
+      "post": {
+        "operationId": "voidAndReplaceReceipt",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Voids and reverses a posted receipt and records a draft or posted replacement.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IReceiptEntryReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/journal-entries/transfer/{id}": {
+      "patch": {
+        "operationId": "updateDraftTransfer",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Edits a draft transfer's memo, effective date, lines, or attachments.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IUpdateDraftTransferReq"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/journal-entries/transfer/{id}/void-and-replace": {
+      "post": {
+        "operationId": "voidAndReplaceTransfer",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IJournalEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Voids and reverses a posted transfer and records its replacement.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ITransferEntryReq"
               }
             }
           }
@@ -5698,6 +6468,99 @@
           }
         },
         "description": "Archive a journal entry without changing its financial effect.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/journal-entries/{id}/void": {
+      "post": {
+        "operationId": "voidJournalEntry",
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Voids a posted journal entry and posts its offsetting reversal.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [
@@ -10997,10 +11860,6 @@
           "status": {
             "$ref": "#/components/schemas/UJournalEntryStatus"
           },
-          "effectiveDate": {
-            "type": "string",
-            "format": "date-time"
-          },
           "postedAt": {
             "type": "string",
             "format": "date-time",
@@ -11025,19 +11884,23 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "required": [
           "sourceType",
           "memo",
           "status",
-          "effectiveDate",
           "postedAt",
           "voidedAt",
           "voidingEntryId",
           "createdBy",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "effectiveDate"
         ],
         "type": "object",
         "additionalProperties": false
@@ -11826,10 +12689,6 @@
           "status": {
             "$ref": "#/components/schemas/UJournalEntryStatus"
           },
-          "effectiveDate": {
-            "type": "string",
-            "format": "date-time"
-          },
           "postedAt": {
             "type": "string",
             "format": "date-time",
@@ -11852,6 +12711,10 @@
             "format": "date-time"
           },
           "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveDate": {
             "type": "string",
             "format": "date-time"
           },
@@ -11878,13 +12741,13 @@
           "sourceType",
           "memo",
           "status",
-          "effectiveDate",
           "postedAt",
           "voidedAt",
           "voidingEntryId",
           "createdBy",
           "createdAt",
           "updatedAt",
+          "effectiveDate",
           "id",
           "accountingEntityId",
           "attachments",
@@ -12080,10 +12943,6 @@
           "status": {
             "$ref": "#/components/schemas/UJournalEntryStatus"
           },
-          "effectiveDate": {
-            "type": "string",
-            "format": "date-time"
-          },
           "postedAt": {
             "type": "string",
             "format": "date-time",
@@ -12126,13 +12985,16 @@
               "$ref": "#/components/schemas/IJournalLineDto"
             },
             "type": "array"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "required": [
           "sourceType",
           "memo",
           "status",
-          "effectiveDate",
           "postedAt",
           "voidedAt",
           "voidingEntryId",
@@ -12142,24 +13004,9 @@
           "id",
           "accountingEntityId",
           "attachments",
-          "lines"
+          "lines",
+          "effectiveDate"
         ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IJournalCounterpartyReq": {
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "$ref": "#/components/schemas/UCounterpartyType"
-          }
-        },
-        "required": ["name"],
         "type": "object",
         "additionalProperties": false
       },
@@ -12168,8 +13015,8 @@
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "$ref": "#/components/schemas/IJournalCounterpartyReq"
+          "counterpartyId": {
+            "type": "string"
           },
           "amount": {
             "$ref": "#/components/schemas/IMoneyDto"
@@ -12193,7 +13040,7 @@
         },
         "required": [
           "accountId",
-          "counterparty",
+          "counterpartyId",
           "amount",
           "exchangeRate",
           "description",
@@ -12249,8 +13096,8 @@
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "$ref": "#/components/schemas/IJournalCounterpartyReq"
+          "counterpartyId": {
+            "type": "string"
           },
           "amount": {
             "$ref": "#/components/schemas/IMoneyDto"
@@ -12274,7 +13121,7 @@
         },
         "required": [
           "accountId",
-          "counterparty",
+          "counterpartyId",
           "amount",
           "exchangeRate",
           "description",
@@ -12365,12 +13212,8 @@
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IJournalCounterpartyReq"
-              }
-            ],
+          "counterpartyId": {
+            "type": "string",
             "nullable": true
           },
           "amount": {
@@ -12395,7 +13238,7 @@
         },
         "required": [
           "accountId",
-          "counterparty",
+          "counterpartyId",
           "amount",
           "exchangeRate",
           "description",
@@ -12450,46 +13293,99 @@
         "type": "object",
         "additionalProperties": false
       },
-      "UJournalEntryRectificationMode": {
-        "type": "string",
-        "enum": ["update_draft", "update_meta", "void_and_replace"]
-      },
-      "IJournalEntryRectificationDto": {
+      "IJournalEntryAttachmentsUpdateReq": {
         "properties": {
-          "mode": {
-            "$ref": "#/components/schemas/UJournalEntryRectificationMode"
+          "add": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Upload references for files to attach. An empty list is a no-op."
           },
-          "originalJournalEntryId": {
-            "type": "string"
-          },
-          "currentJournalEntryId": {
-            "type": "string"
-          },
-          "reversingJournalEntryId": {
-            "type": "string",
-            "nullable": true
-          },
-          "journalEntry": {
-            "$ref": "#/components/schemas/IJournalEntryDto"
+          "remove": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Stored attachment URLs from this journal entry. An empty list is a no-op."
           }
         },
-        "required": [
-          "mode",
-          "originalJournalEntryId",
-          "currentJournalEntryId",
-          "reversingJournalEntryId",
-          "journalEntry"
-        ],
         "type": "object",
         "additionalProperties": false
       },
-      "IJournalEntryRectificationCounterpartyLineReq": {
+      "IJournalEntryMetaUpdateReq": {
         "properties": {
+          "attachments": {
+            "$ref": "#/components/schemas/IJournalEntryAttachmentsUpdateReq"
+          },
+          "header": {
+            "properties": {
+              "memo": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "type": "object"
+          },
+          "lines": {
+            "items": {
+              "properties": {
+                "description": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "id": {
+                  "$ref": "#/components/schemas/TEntityId"
+                }
+              },
+              "required": ["id"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IUpdateDraftOpeningBalanceReq": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exchangeRate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IExchangeRateDto"
+              }
+            ],
+            "nullable": true
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "attachments": {
+            "$ref": "#/components/schemas/IJournalEntryAttachmentsUpdateReq"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IUpdateDraftPaymentLineReq": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
           "accountId": {
             "type": "string"
           },
-          "counterparty": {
-            "$ref": "#/components/schemas/IJournalCounterpartyReq"
+          "counterpartyId": {
+            "type": "string",
+            "nullable": true
           },
           "amount": {
             "$ref": "#/components/schemas/IMoneyDto"
@@ -12509,119 +13405,101 @@
           "sequenceOrder": {
             "type": "number",
             "format": "double"
-          },
-          "id": {
-            "type": "string"
           }
         },
-        "required": [
-          "accountId",
-          "counterparty",
-          "amount",
-          "exchangeRate",
-          "description",
-          "sequenceOrder"
-        ],
         "type": "object",
         "additionalProperties": false
       },
-      "IPaymentJournalEntryRectificationReq": {
+      "IUpdateDraftPaymentReq": {
         "properties": {
           "attachments": {
-            "items": {
-              "$ref": "#/components/schemas/IFileAttachment"
-            },
-            "type": "array"
+            "$ref": "#/components/schemas/IJournalEntryAttachmentsUpdateReq"
           },
           "effectiveDate": {
             "type": "string",
             "format": "date-time"
           },
-          "postedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "memo": {
-            "type": "string",
-            "nullable": true
-          },
-          "sourceType": {
-            "type": "string",
-            "enum": ["payment"],
-            "nullable": false
-          },
           "sourceLine": {
-            "$ref": "#/components/schemas/IJournalEntryRectificationCounterpartyLineReq"
+            "$ref": "#/components/schemas/IUpdateDraftPaymentLineReq"
           },
           "destinationLines": {
             "items": {
-              "$ref": "#/components/schemas/IJournalEntryRectificationCounterpartyLineReq"
+              "$ref": "#/components/schemas/IUpdateDraftPaymentLineReq"
             },
-            "type": "array"
-          }
-        },
-        "required": [
-          "attachments",
-          "effectiveDate",
-          "postedAt",
-          "memo",
-          "sourceType",
-          "sourceLine",
-          "destinationLines"
-        ],
-        "type": "object",
-        "additionalProperties": false
-      },
-      "IReceiptJournalEntryRectificationReq": {
-        "properties": {
-          "attachments": {
-            "items": {
-              "$ref": "#/components/schemas/IFileAttachment"
-            },
-            "type": "array"
-          },
-          "effectiveDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "postedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+            "type": "array",
+            "description": "When supplied, replaces the destination set. IDs retain existing lines."
           },
           "memo": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IUpdateDraftReceiptLineReq": {
+        "properties": {
+          "id": {
+            "type": "string"
           },
-          "sourceType": {
+          "accountId": {
+            "type": "string"
+          },
+          "counterpartyId": {
             "type": "string",
-            "enum": ["receipt"],
-            "nullable": false
+            "nullable": true
+          },
+          "amount": {
+            "$ref": "#/components/schemas/IMoneyDto"
+          },
+          "exchangeRate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IExchangeRateDto"
+              }
+            ],
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "sequenceOrder": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
+      "IUpdateDraftReceiptReq": {
+        "properties": {
+          "attachments": {
+            "$ref": "#/components/schemas/IJournalEntryAttachmentsUpdateReq"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date-time"
           },
           "sourceLines": {
             "items": {
-              "$ref": "#/components/schemas/IJournalEntryRectificationCounterpartyLineReq"
+              "$ref": "#/components/schemas/IUpdateDraftReceiptLineReq"
             },
-            "type": "array"
+            "type": "array",
+            "description": "When supplied, replaces the source set. IDs retain existing lines."
           },
           "destinationLine": {
-            "$ref": "#/components/schemas/IJournalEntryRectificationCounterpartyLineReq"
+            "$ref": "#/components/schemas/IUpdateDraftReceiptLineReq"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
           }
         },
-        "required": [
-          "attachments",
-          "effectiveDate",
-          "postedAt",
-          "memo",
-          "sourceType",
-          "sourceLines",
-          "destinationLine"
-        ],
         "type": "object",
         "additionalProperties": false
       },
-      "ITransferJournalEntryRectificationLineReq": {
+      "IUpdateDraftTransferAssetLineReq": {
         "properties": {
           "id": {
             "type": "string"
@@ -12649,28 +13527,16 @@
             "format": "double"
           }
         },
-        "required": [
-          "accountId",
-          "amount",
-          "exchangeRate",
-          "description",
-          "sequenceOrder"
-        ],
         "type": "object",
         "additionalProperties": false
       },
-      "IJournalEntryRectificationLineReq": {
+      "IUpdateDraftTransferChargeLineReq": {
         "properties": {
-          "accountId": {
+          "id": {
             "type": "string"
           },
-          "counterparty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IJournalCounterpartyReq"
-              }
-            ],
-            "nullable": true
+          "accountId": {
+            "type": "string"
           },
           "amount": {
             "$ref": "#/components/schemas/IMoneyDto"
@@ -12691,85 +13557,43 @@
             "type": "number",
             "format": "double"
           },
-          "id": {
-            "type": "string"
+          "counterpartyId": {
+            "type": "string",
+            "nullable": true
           }
         },
-        "required": [
-          "accountId",
-          "counterparty",
-          "amount",
-          "exchangeRate",
-          "description",
-          "sequenceOrder"
-        ],
         "type": "object",
         "additionalProperties": false
       },
-      "ITransferJournalEntryRectificationReq": {
+      "IUpdateDraftTransferReq": {
         "properties": {
           "attachments": {
-            "items": {
-              "$ref": "#/components/schemas/IFileAttachment"
-            },
-            "type": "array"
+            "$ref": "#/components/schemas/IJournalEntryAttachmentsUpdateReq"
           },
           "effectiveDate": {
             "type": "string",
             "format": "date-time"
           },
-          "postedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "sourceLine": {
+            "$ref": "#/components/schemas/IUpdateDraftTransferAssetLineReq"
+          },
+          "destinationLine": {
+            "$ref": "#/components/schemas/IUpdateDraftTransferAssetLineReq"
+          },
+          "chargeLines": {
+            "items": {
+              "$ref": "#/components/schemas/IUpdateDraftTransferChargeLineReq"
+            },
+            "type": "array",
+            "description": "When supplied, replaces the charge set. IDs retain existing charges."
           },
           "memo": {
             "type": "string",
             "nullable": true
-          },
-          "sourceType": {
-            "type": "string",
-            "enum": ["transfer"],
-            "nullable": false
-          },
-          "sourceLine": {
-            "$ref": "#/components/schemas/ITransferJournalEntryRectificationLineReq"
-          },
-          "destinationLine": {
-            "$ref": "#/components/schemas/ITransferJournalEntryRectificationLineReq"
-          },
-          "chargeLines": {
-            "items": {
-              "$ref": "#/components/schemas/IJournalEntryRectificationLineReq"
-            },
-            "type": "array"
           }
         },
-        "required": [
-          "attachments",
-          "effectiveDate",
-          "postedAt",
-          "memo",
-          "sourceType",
-          "sourceLine",
-          "destinationLine",
-          "chargeLines"
-        ],
         "type": "object",
         "additionalProperties": false
-      },
-      "TJournalEntryRectificationReq": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/IPaymentJournalEntryRectificationReq"
-          },
-          {
-            "$ref": "#/components/schemas/IReceiptJournalEntryRectificationReq"
-          },
-          {
-            "$ref": "#/components/schemas/ITransferJournalEntryRectificationReq"
-          }
-        ]
       },
       "Readonly_Record_string.string__": {
         "properties": {},

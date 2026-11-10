@@ -1,24 +1,39 @@
-import { IJournalEntryRectificationService } from '@domain/journal-entry/types/journal-entry-rectification.types';
-import { IJournalEntryRemovalService } from '@domain/journal-entry/types/journal-entry-removal.types';
 import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
-
-export const mockJournalEntryRectificationService: jest.Mocked<IJournalEntryRectificationService> =
-  {
-    rectify: jest.fn(),
-    reverse: jest.fn(),
-  };
-
-export const mockJournalEntryRemovalService: jest.Mocked<IJournalEntryRemovalService> =
-  {
-    prepare: jest.fn(),
-  };
+import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening-balance-entry.service.types';
+import { IPaymentEntryService } from '@domain/journal-entry/types/payment-entry.service.types';
+import { IReceiptEntryService } from '@domain/journal-entry/types/receipt-entry.service.types';
+import { ITransferEntryService } from '@domain/journal-entry/types/transfer-entry.service.types';
 
 export const mockJournalEntryService: jest.Mocked<IJournalEntryService> = {
-  postDraftPayment: jest.fn(),
-  postDraftReceipt: jest.fn(),
-  postDraftTransfer: jest.fn(),
-  postDraftOpeningBalance: jest.fn(),
-  createPayment: jest.fn(),
-  createReceipt: jest.fn(),
-  createTransfer: jest.fn(),
+  void: jest.fn(),
+};
+
+export const mockOpeningBalanceEntryService: jest.Mocked<IOpeningBalanceEntryService> =
+  {
+    create: jest.fn(),
+    createDraft: jest.fn(),
+    updateDraft: jest.fn(),
+    postDraft: jest.fn(),
+    voidAndReplace: jest.fn(),
+  };
+
+export const mockPaymentEntryService: jest.Mocked<IPaymentEntryService> = {
+  create: jest.fn(),
+  updateDraft: jest.fn(),
+  postDraft: jest.fn(),
+  voidAndReplace: jest.fn(),
+};
+
+export const mockReceiptEntryService: jest.Mocked<IReceiptEntryService> = {
+  create: jest.fn(),
+  updateDraft: jest.fn(),
+  postDraft: jest.fn(),
+  voidAndReplace: jest.fn(),
+};
+
+export const mockTransferEntryService: jest.Mocked<ITransferEntryService> = {
+  create: jest.fn(),
+  updateDraft: jest.fn(),
+  postDraft: jest.fn(),
+  voidAndReplace: jest.fn(),
 };

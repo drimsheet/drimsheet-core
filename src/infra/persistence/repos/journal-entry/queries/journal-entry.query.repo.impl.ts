@@ -1,16 +1,5 @@
-import {
-  and,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNotNull,
-  lte,
-  ne,
-  sql,
-} from 'drizzle-orm';
+import { and, eq, gte, ilike, inArray, lte, ne, sql } from 'drizzle-orm';
 
-import drizzleFilters from '@shared/helpers/drizzle-filters';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
 import {
@@ -27,32 +16,13 @@ import {
   journalLinesInCore,
   ledgerAccountsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
+import getDrizzleSortDirectionHelper from '@infra/persistence/helpers/get-drizzle-sort-direction.helper';
 import journalEntryDetailsMapper from '@infra/persistence/repos/journal-entry/mappers/journal-entry-details.mapper';
 
 const journalEntryQueryRepo: IJournalEntryQueryRepo = {
-  async existsPostedByAccountId(accountId, accountingEntityId, options) {
-    const references = await getDbQuery(options)
-      .select({ id: journalLinesInCore.id })
-      .from(journalLinesInCore)
-      .innerJoin(
-        journalEntriesInCore,
-        eq(journalEntriesInCore.id, journalLinesInCore.entryId)
-      )
-      .where(
-        and(
-          eq(journalLinesInCore.accountId, accountId),
-          eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
-          isNotNull(journalEntriesInCore.postedAt)
-        )
-      )
-      .limit(1);
-
-    return references.length > 0;
-  },
-
   async existsByCounterpartyId(counterpartyId, accountingEntityId, options) {
-    const references = await getDbQuery(options)
+    const references = await getDbQueryHelper(options)
       .select({ id: journalLinesInCore.id })
       .from(journalLinesInCore)
       .innerJoin(
@@ -71,7 +41,7 @@ const journalEntryQueryRepo: IJournalEntryQueryRepo = {
   },
 
   async findById(id, accountingEntityId, options) {
-    const entry = await getDbQuery(
+    const entry = await getDbQueryHelper(
       options
     ).query.journalEntriesInCore.findFirst({
       where: and(
@@ -97,7 +67,7 @@ const journalEntryQueryRepo: IJournalEntryQueryRepo = {
   },
 
   async findAll(accountingEntityId, options) {
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
     const conditions = [
       eq(journalEntriesInCore.accountingEntityId, accountingEntityId),
       ne(journalEntriesInCore.sourceType, EJournalEntrySourceType.Reversal),
@@ -230,7 +200,7 @@ const journalEntryQueryRepo: IJournalEntryQueryRepo = {
       return paginationValue.getPaginatedResponse([], 0, options);
     }
 
-    const direction = drizzleFilters.getSortDirection(
+    const direction = getDrizzleSortDirectionHelper(
       paginationValue.getSortDirection(options.sortDirection)
     );
     const orderByColumn =

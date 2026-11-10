@@ -8,9 +8,9 @@ import { IUser } from '@domain/user/types/user.types';
 import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
-import getAuthUserFromRequest from '@interface/http/helpers/get-auth-user-from-request.helper';
+import getAuthUserFromRequestHelper from '@interface/http/helpers/get-auth-user-from-request.helper';
 
-describe('getAuthUserFromRequest', () => {
+describe('getAuthUserFromRequestHelper', () => {
   const userId = 'user-id' as TEntityId;
   const repoOptions: IReadRepoOptions = {
     correlationId: 'request-correlation-id',
@@ -24,7 +24,7 @@ describe('getAuthUserFromRequest', () => {
   });
 
   function getUserFromRequest() {
-    return getAuthUserFromRequest(
+    return getAuthUserFromRequestHelper(
       mockReq as Request,
       mockTokenAppService,
       mockUserRepo,

@@ -54,10 +54,9 @@ Use the folder that owns the behavior.
   persistence bundle; they do not own workflow ordering.
 - Config files configure adapters. They are not helper folders.
 - Shared must not contain product-specific rules or framework assumptions.
-- Domain validations and helpers follow
+- Helpers in every layer follow [Helper Rules](helpers.md).
+- Domain validations follow
   [Domain Validations And Helpers](domain-validations.md).
-- Helpers outside the domain layer inherit the owner of the behavior they
-  contain.
 
 ## Placement Check
 

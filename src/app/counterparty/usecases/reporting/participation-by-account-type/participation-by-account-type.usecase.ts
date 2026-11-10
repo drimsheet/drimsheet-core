@@ -16,7 +16,7 @@ import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 import IFiscalYearRepo from '@domain/accounting/repos/fiscal-year.repo';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
-import getLedgerAccountNormalBalance from '@domain/ledger/entities/helpers/get-normal-balance.helper';
+import getLedgerAccountNormalBalanceHelper from '@domain/ledger/entities/helpers/get-normal-balance.helper';
 import currencyEntity from '@domain/money/entities/currency.entity';
 import { ICurrency } from '@domain/money/types/currency.types';
 import moneyValue from '@domain/money/values/money.vo';
@@ -134,7 +134,7 @@ function buildNetAmount(
   const debits = moneyValue.make(aggregate?.debits ?? 0n, currency, true);
   const credits = moneyValue.make(aggregate?.credits ?? 0n, currency, true);
   const amount =
-    getLedgerAccountNormalBalance(type) === 'debit'
+    getLedgerAccountNormalBalanceHelper(type) === 'debit'
       ? moneyValue.subtract(debits, credits)
       : moneyValue.subtract(credits, debits);
   reportingValidation.validateAmountLimit(amount);

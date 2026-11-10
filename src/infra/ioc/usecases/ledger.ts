@@ -33,13 +33,12 @@ import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty
 import makeUpdateRevenueAccountUsecase from '@app/ledger/usecases/update-revenue-account.usecase';
 
 import {
+  fxCostBasisLotService,
   fxCostBasisPersistenceAppService,
-  fxLotAppService,
 } from '@infra/ioc/services/fx-lot-cost-basis';
 import {
   journalEntryPersistenceAppService,
-  journalEntryService,
-  openingBalanceEntryAppService,
+  openingBalanceEntryService,
 } from '@infra/ioc/services/journal-entry';
 import {
   assetDisposalLossAccountService,
@@ -54,11 +53,10 @@ import {
   giftsAccountService,
   grantsAccountService,
   interestAccountService,
-  ledgerAccountBalanceEnrichmentAppService,
+  ledgerAccountBalanceAdjustmentService,
   ledgerAccountBalanceService,
   ledgerAccountPersistenceAppService,
   ledgerAccountService,
-  ledgerBalancePropagationPreparationAppService,
   payablesAccountService,
   receivablesAccountService,
   rentAndUtilitiesAccountService,
@@ -70,15 +68,13 @@ import {
   unrealizedGainAccountService,
   unrealizedLossAccountService,
 } from '@infra/ioc/services/ledger';
-import outboxAppService from '@infra/ioc/services/outbox';
+import { exchangeRateAppService } from '@infra/ioc/services/money';
 import { repoService } from '@infra/ioc/services/repo';
 import messaging from '@infra/messaging';
-import observability from '@infra/observability';
 import { makeTracedUseCase } from '@infra/observability/usecase-tracing';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
-import outboxRepo from '@infra/persistence/repos/outbox';
 import appContext from '@infra/services/app-context.service';
 
 export const getLedgerAccountCurrencyUpdateEligibilityUseCase =
@@ -124,11 +120,11 @@ export const activateCashAccountUseCase = makeTracedUseCase(
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     cashAccountService,
     journalEntryQueryRepo: journalEntryRepos.queries.journalEntry,
-    journalEntryService,
+    openingBalanceEntryService,
     journalEntryPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     eventBus: messaging.eventBus,
@@ -176,7 +172,7 @@ export const getLedgerAccountsUseCase = makeTracedUseCase(
   makeGetLedgerAccountsUsecase({
     appContext: appContext,
     ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -185,7 +181,7 @@ export const getChartOfAccountsUseCase = makeTracedUseCase(
   makeGetChartOfAccountsUsecase({
     appContext,
     ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -194,7 +190,7 @@ export const getPermittedPostingAccountsUseCase = makeTracedUseCase(
   makeGetPermittedPostingAccountsUsecase({
     appContext,
     ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -212,7 +208,7 @@ export const getLedgerAccountUseCase = makeTracedUseCase(
   makeGetLedgerAccountUseCase({
     appContext: appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -231,7 +227,7 @@ export const getLedgerSubAccountsUseCase = makeTracedUseCase(
     appContext,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountQueryRepo: ledgerRepos.queries.ledgerAccount,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -240,11 +236,10 @@ export const adjustLedgerAccountBalanceUseCase = makeTracedUseCase(
   makeAdjustLedgerAccountBalanceUseCase({
     appContext,
     repoService,
-    outboxRepo,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    ledgerAccountRepo: ledgerRepos.ledgerAccount,
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
-    balancePropagationPreparationAppService:
-      ledgerBalancePropagationPreparationAppService,
-    reporter: observability.reporter,
+    ledgerAccountBalanceAdjustmentService,
   })
 );
 
@@ -263,13 +258,13 @@ export const createPettyCashAccountUseCase = makeTracedUseCase(
     appContext: appContext,
     eventBus: messaging.eventBus,
     cashAccountService,
-    openingBalanceEntryAppService,
+    openingBalanceEntryService,
     journalEntryPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     ledgerAccountPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );
@@ -284,11 +279,12 @@ export const updatePettyCashAccountUseCase = makeTracedUseCase(
     ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
     ledgerAccountBalanceService,
     cashAccountService,
-    openingBalanceEntryAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    openingBalanceEntryService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     journalEntryPersistenceAppService,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
   })
 );
@@ -304,11 +300,12 @@ export const updateBankAccountUseCase = makeTracedUseCase(
     ledgerAccountBalanceService,
     bankAccountRepo: ledgerRepos.bankAccount,
     cashAccountService,
-    openingBalanceEntryAppService,
+    journalEntryRepo: journalEntryRepos.journalEntry,
+    openingBalanceEntryService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     journalEntryPersistenceAppService,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
     fxCostBasisPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
   })
 );
@@ -320,13 +317,13 @@ export const createBankAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     cashAccountService,
     bankAccountRepo: ledgerRepos.bankAccount,
-    openingBalanceEntryAppService,
+    openingBalanceEntryService,
     journalEntryPersistenceAppService,
-    outboxAppService,
     ledgerBalanceAdjustmentQueue: messaging.queues.ledgerBalanceAdjustment,
     repoService,
     ledgerAccountPersistenceAppService,
-    fxLotAppService,
+    fxCostBasisLotService,
+    exchangeRateAppService,
     fxCostBasisPersistenceAppService,
   })
 );
@@ -383,7 +380,7 @@ export const updateRevenueAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     revenueAccountService,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 
@@ -394,7 +391,7 @@ export const updateExpenseAccountUseCase = makeTracedUseCase(
     eventBus: messaging.eventBus,
     ledgerAccountRepo: ledgerRepos.ledgerAccount,
     expenseAccountService,
-    balanceEnrichmentAppService: ledgerAccountBalanceEnrichmentAppService,
+    ledgerAccountBalanceRepo: ledgerRepos.ledgerAccountBalance,
   })
 );
 

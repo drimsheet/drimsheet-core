@@ -7,11 +7,11 @@ import repoError from '@shared/values/errors/repo.error';
 import { IUserAuth } from '@app/auth/contracts/auth.types';
 
 import { userAuthInCore } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import userAuthMapper from '@infra/persistence/repos/auth/mappers/user-auth.mapper';
 import userAuthRepo from '@infra/persistence/repos/user/user-auth.repo.impl';
 
-jest.mock('../../../helpers/get-db-query');
+jest.mock('@infra/persistence/helpers/get-db-query.helper');
 jest.mock('../../auth/mappers/user-auth.mapper');
 jest.mock('drizzle-orm', () => {
   const drizzle =
@@ -42,8 +42,10 @@ describe('userAuthRepo strict updates', () => {
     const set = jest.fn().mockReturnValue({ where });
     const update = jest.fn().mockReturnValue({ set });
     jest
-      .mocked(getDbQuery)
-      .mockReturnValue({ update } as unknown as ReturnType<typeof getDbQuery>);
+      .mocked(getDbQueryHelper)
+      .mockReturnValue({ update } as unknown as ReturnType<
+        typeof getDbQueryHelper
+      >);
 
     return set;
   }
@@ -79,6 +81,6 @@ describe('userAuthRepo strict updates', () => {
       })
     ).rejects.toBeInstanceOf(repoError.VersionMismatch);
 
-    expect(getDbQuery).not.toHaveBeenCalled();
+    expect(getDbQueryHelper).not.toHaveBeenCalled();
   });
 });

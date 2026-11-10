@@ -10,8 +10,8 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import passOnRepoTransaction from '@shared/helpers/passon-repo-transaction';
-import validateVersionInRepo from '@shared/helpers/validate-version-in-repo';
+import passOnRepoTransactionHelper from '@shared/helpers/pass-on-repo-transaction.helper';
+import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import repoError from '@shared/values/errors/repo.error';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
@@ -22,7 +22,7 @@ import {
   journalLinesInCore,
   ledgerAccountsInCore,
 } from '@infra/config/drizzle/schema';
-import getDbQuery from '@infra/persistence/helpers/get-db-query';
+import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import ledgerAccountMapper from '@infra/persistence/repos/ledger/mappers/ledger-account.mapper';
 
 import ledgerAccountHistoryRepo from './ledger-account-history.repo.impl';
@@ -47,7 +47,7 @@ function isSuspenseDuplicate(error: unknown): boolean {
 
 const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   delete: async (id, options) => {
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       const deleted = await tx.delete(ledgerAccountsInCore).where(
         and(
           eq(ledgerAccountsInCore.id, id),
@@ -71,21 +71,21 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
 
       await ledgerAccountHistoryRepo.deleteByAccountId(
         id,
-        passOnRepoTransaction(options, tx)
+        passOnRepoTransactionHelper(options, tx)
       );
     });
   },
 
   create: async (payload, options) => {
     try {
-      await getDbQuery(options).transaction(async (tx) => {
+      await getDbQueryHelper(options).transaction(async (tx) => {
         const accountsArray = Array.isArray(payload) ? payload : [payload];
         const valuesArray = accountsArray.map(ledgerAccountMapper.toRepo);
 
         await tx.insert(ledgerAccountsInCore).values(valuesArray);
         await ledgerAccountHistoryRepo.save(
           options.history,
-          passOnRepoTransaction(options, tx)
+          passOnRepoTransactionHelper(options, tx)
         );
       });
     } catch (error) {
@@ -97,9 +97,9 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   },
 
   update: async (account, options) => {
-    validateVersionInRepo(account, options);
+    validateVersionInRepoHelper(account, options);
 
-    await getDbQuery(options).transaction(async (tx) => {
+    await getDbQueryHelper(options).transaction(async (tx) => {
       const updated = await tx
         .update(ledgerAccountsInCore)
         .set(ledgerAccountMapper.toRepo(account))
@@ -119,13 +119,13 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
 
       await ledgerAccountHistoryRepo.save(
         options.history,
-        passOnRepoTransaction(options, tx)
+        passOnRepoTransactionHelper(options, tx)
       );
     });
   },
 
   findById: async (id, accountingEntityId, options) => {
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),
@@ -155,7 +155,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
     if (ids.length === 0) {
       return [];
     }
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),
@@ -192,7 +192,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
       return [];
     }
 
-    const result = await getDbQuery(options)
+    const result = await getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),
@@ -213,7 +213,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   },
 
   findDescendants: async (accountingEntityId, materializedPath, options) => {
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),
@@ -240,7 +240,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   },
 
   findByCode: async (code, accountingEntityId, options) => {
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select({
         ...getTableColumns(ledgerAccountsInCore),
         currency: getTableColumns(currenciesInCore),
@@ -268,7 +268,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   },
 
   findBySubType: async (accountingEntityId, type, subType, options) => {
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const results = await dbQuery
       .select({
@@ -292,7 +292,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   },
 
   findByBehavior: async (accountingEntityId, behavior, options) => {
-    const dbQuery = getDbQuery(options);
+    const dbQuery = getDbQueryHelper(options);
 
     const results = await dbQuery
       .select({
@@ -315,7 +315,7 @@ const ledgerAccountRepoImpl: ILedgerAccountRepo = {
   },
 
   findLatestBySubType: async (accountingEntityId, type, subType, options) => {
-    const baseQuery = getDbQuery(options)
+    const baseQuery = getDbQueryHelper(options)
       .select({
         id: ledgerAccountsInCore.id,
         code: ledgerAccountsInCore.code,

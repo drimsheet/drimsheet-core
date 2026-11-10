@@ -15,8 +15,8 @@ import { EAccountingEntityType } from '@domain/accounting/types/accounting-entit
 
 import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
-import mockBalanceEnrichment from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
+import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
 
 import { configureRateLimiter } from '@infra/config/rate-limiter.config';
@@ -156,12 +156,11 @@ describe('POST /mcp', () => {
     jest.resetAllMocks();
     mockLedgerAccountQueryRepo.findAll.mockResolvedValue({ data: [], meta });
     mockJournalEntryQueryRepo.findAll.mockResolvedValue({ data: [], meta });
-    mockBalanceEnrichment.enrich.mockResolvedValue([]);
     jest.mocked(getLedgerAccountsUseCase).mockImplementation(
       makeGetLedgerAccountsUsecase({
         appContext,
         ledgerAccountQueryRepo: mockLedgerAccountQueryRepo,
-        balanceEnrichmentAppService: mockBalanceEnrichment,
+        ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
       })
     );
     jest.mocked(getJournalEntriesUseCase).mockImplementation(

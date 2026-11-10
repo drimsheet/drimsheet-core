@@ -1,7 +1,11 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
+import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
+import {
+  EJournalEntryStatus,
+  IJournalEntry,
+} from '@domain/journal-entry/types/journal-entry.types';
 import {
   EJournalSide,
   IJournalLine,
@@ -68,18 +72,22 @@ describe('ledgerAccountBalanceAdjustmentService', () => {
       createdBy: 'a1111111-1111-4111-8111-111111111111' as TEntityId,
       id: generateUUID(),
       accountingEntityId,
+      status: EJournalEntryStatus.Posted,
+      postedAt: new Date('2026-09-22T00:00:00.000Z'),
       lines,
     }) as IJournalEntry;
 
   it('nets direct lines and aggregates shared ancestor deltas once', () => {
-    const result = ledgerAccountBalanceAdjustmentService.calculate(
+    const propagation = ledgerAccountBalanceAdjustmentService.forJournal(
       journal([
         line(childOneId, EJournalSide.Debit, 100n, 150_000n),
         line(childOneId, EJournalSide.Credit, 20n, 30_000n),
         line(childTwoId, EJournalSide.Credit, 50n, 75_000n),
-      ]),
-      [parent, childOne, childTwo]
+      ])
     );
+    expect(propagation.directAccountIds).toEqual([childOneId, childTwoId]);
+
+    const result = propagation.calculate([parent, childOne, childTwo]);
 
     expect(result).toEqual(
       expect.arrayContaining([
@@ -115,10 +123,11 @@ describe('ledgerAccountBalanceAdjustmentService', () => {
   it('uses functional amounts for a null-currency account', () => {
     const nullCurrencyAccount = account(childOneId, '100000.100001', null);
 
-    const result = ledgerAccountBalanceAdjustmentService.calculate(
-      journal([line(childOneId, EJournalSide.Debit, 100n, 150_000n)]),
-      [parent, nullCurrencyAccount]
-    );
+    const result = ledgerAccountBalanceAdjustmentService
+      .forJournal(
+        journal([line(childOneId, EJournalSide.Debit, 100n, 150_000n)])
+      )
+      .calculate([parent, nullCurrencyAccount]);
 
     expect(result).toEqual(
       expect.arrayContaining([
@@ -131,54 +140,89 @@ describe('ledgerAccountBalanceAdjustmentService', () => {
   });
 
   it('excludes opening-balance equity and its path from propagation', () => {
-    const result = ledgerAccountBalanceAdjustmentService.calculate(
-      journal([
-        line(
-          openingBalanceEquityId,
-          EJournalSide.Credit,
-          100n,
-          100n,
-          SYSTEM_CURRENCIES.NGN
-        ),
-      ]),
-      [openingBalanceEquity]
-    );
+    const entry = journal([
+      line(
+        openingBalanceEquityId,
+        EJournalSide.Credit,
+        100n,
+        100n,
+        SYSTEM_CURRENCIES.NGN
+      ),
+    ]);
+
+    const result = ledgerAccountBalanceAdjustmentService
+      .forJournal(entry)
+      .calculate([openingBalanceEquity]);
 
     expect(result).toEqual([]);
   });
 
   it('rejects when a required ancestor is missing', () => {
     expect(() =>
-      ledgerAccountBalanceAdjustmentService.calculate(
-        journal([line(childOneId, EJournalSide.Debit, 100n, 150_000n)]),
-        [childOne]
-      )
+      ledgerAccountBalanceAdjustmentService
+        .forJournal(
+          journal([line(childOneId, EJournalSide.Debit, 100n, 150_000n)])
+        )
+        .calculate([childOne])
     ).toThrow();
   });
 
   it('rejects when a directly referenced account is missing', () => {
     expect(() =>
-      ledgerAccountBalanceAdjustmentService.calculate(
-        journal([line(childOneId, EJournalSide.Debit, 100n, 150_000n)]),
-        [parent]
-      )
+      ledgerAccountBalanceAdjustmentService
+        .forJournal(
+          journal([line(childOneId, EJournalSide.Debit, 100n, 150_000n)])
+        )
+        .calculate([parent])
     ).toThrow();
   });
 
   it('rejects mismatched journal-line currency for a fixed-currency account', () => {
-    expect(() =>
-      ledgerAccountBalanceAdjustmentService.calculate(
-        journal([
-          line(
-            childOneId,
-            EJournalSide.Debit,
-            100n,
-            150_000n,
-            SYSTEM_CURRENCIES.EUR
-          ),
-        ]),
-        [parent, childOne]
-      )
-    ).toThrow();
+    const entry = journal([
+      line(
+        childOneId,
+        EJournalSide.Debit,
+        100n,
+        150_000n,
+        SYSTEM_CURRENCIES.EUR
+      ),
+    ]);
+
+    const propagation = ledgerAccountBalanceAdjustmentService.forJournal(entry);
+
+    expect(() => propagation.calculate([parent, childOne])).toThrow();
   });
+
+  it('calculates pending deltas for a journal archived after posting', () => {
+    const entry = journal([
+      line(childOneId, EJournalSide.Debit, 100n, 150_000n),
+    ]);
+    const propagation = ledgerAccountBalanceAdjustmentService.forJournal({
+      ...entry,
+      status: EJournalEntryStatus.Archived,
+    });
+
+    expect(propagation.calculate([parent, childOne])).toHaveLength(2);
+  });
+
+  it.each([
+    [EJournalEntryStatus.Draft, null],
+    [EJournalEntryStatus.Archived, null],
+    [EJournalEntryStatus.Voided, new Date('2026-09-22T00:00:00.000Z')],
+  ] as const)(
+    'rejects an ineligible %s journal before resolving account IDs',
+    (status, postedAt) => {
+      const entry = journal([
+        line(childOneId, EJournalSide.Debit, 100n, 150_000n),
+      ]);
+
+      expect(() =>
+        ledgerAccountBalanceAdjustmentService.forJournal({
+          ...entry,
+          status,
+          postedAt,
+        })
+      ).toThrow(journalEntryError.InvalidJournalEntry);
+    }
+  );
 });

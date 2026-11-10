@@ -7,15 +7,15 @@ import { IUser } from '@domain/user/types/user.types';
 
 import ITokenAppService from '@app/auth/contracts/token-service.contract';
 
-import getHttpHeaderValue from './get-http-header-value';
+import getHttpHeaderValueHelper from './get-http-header-value.helper';
 
-export default async function getAuthUserFromRequest(
+export default async function getAuthUserFromRequestHelper(
   req: Request,
   tokenAppService: ITokenAppService,
   userRepo: IUserRepo,
   repoOptions: IReadRepoOptions
 ): Promise<IUser | null> {
-  const bearerToken = getHttpHeaderValue('authorization', req.headers);
+  const bearerToken = getHttpHeaderValueHelper('authorization', req.headers);
 
   if (!bearerToken) {
     return null;

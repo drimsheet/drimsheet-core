@@ -9,7 +9,7 @@
  *
  * WHEN TO USE
  * Use to finalize a saved transfer draft with its existing financial content,
- * including charges. Use rectify-journal-entry when that content must change.
+ * including charges.
  *
  * SEQUENCE DIAGRAM
  * @see ./__docs__/post-draft-transfer.sequence.md
@@ -26,28 +26,30 @@ import eventValue from '@shared/values/events/event.vo';
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
-import { IJournalEntryService } from '@domain/journal-entry/types/journal-entry.service.types';
+import { ITransferEntryService } from '@domain/journal-entry/types/transfer-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
 import journalEntryMutationPolicy from '@app/journal-entry/policies/journal-entry-mutation.policy';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
+import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   counterpartyRepo: ICounterpartyRepo;
   ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryRepo: IJournalEntryRepo;
-  journalEntryService: IJournalEntryService;
+  transferEntryService: ITransferEntryService;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
-  fxLotAppService: IFxLotAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
   repoService: IRepoService;
   eventBus: IEventBus;
@@ -105,7 +107,7 @@ export default function makePostDraftTransferUsecase(deps: IDependencies) {
         originalEntry.accountingEntityId,
         lockedReadOptions
       );
-      const posting = await deps.journalEntryService.postDraftTransfer(
+      const posting = await deps.transferEntryService.postDraft(
         { entry: originalEntry, accounts, counterparties, actor: actor.id },
         transactionOptions
       );
@@ -116,22 +118,31 @@ export default function makePostDraftTransferUsecase(deps: IDependencies) {
         return;
       }
 
-      const fxDisposition = await deps.fxLotAppService.dispose(
+      const fxDisposition = await deps.fxCostBasisLotService.dispose(
         {
           journalEntry: entry,
           account: posting.sourceAccount,
-          actor: actor.id,
+          createdBy: actor.id,
+          officialRate: await resolveOfficialRateHelper(
+            deps.exchangeRateAppService,
+            entry.lines,
+            posting.sourceAccount.id,
+            repoOptions
+          ),
         },
         repoOptions
       );
-      const fxAcquisition = await deps.fxLotAppService.acquire(
-        {
-          journalEntry: entry,
-          account: posting.destinationAssetAccount,
-          actor: actor.id,
-        },
-        repoOptions
-      );
+      const fxAcquisition = deps.fxCostBasisLotService.acquire({
+        journalEntry: entry,
+        account: posting.destinationAssetAccount,
+        createdBy: actor.id,
+        officialRate: await resolveOfficialRateHelper(
+          deps.exchangeRateAppService,
+          entry.lines,
+          posting.destinationAssetAccount.id,
+          repoOptions
+        ),
+      });
       const persistence = getJournalEntryPersistencePayloadHelper(
         {
           entriesToCreate: [],
@@ -149,7 +160,6 @@ export default function makePostDraftTransferUsecase(deps: IDependencies) {
         correlationId
       );
 
-      // Persist the prepared journal, FX disposition/acquisition, and propagation outbox atomically.
       await deps.journalEntryPersistenceAppService.rectify(
         persistence,
         transactionOptions
@@ -157,29 +167,26 @@ export default function makePostDraftTransferUsecase(deps: IDependencies) {
 
       if (fxDisposition) {
         await deps.fxCostBasisPersistenceAppService.persistDisposition(
-          fxDisposition.records,
+          fxDisposition,
+          actor.id,
           transactionOptions
         );
       }
 
       if (fxAcquisition) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
-          fxAcquisition.records,
+          fxAcquisition,
+          actor.id,
           transactionOptions
         );
       }
-
-      await deps.outboxAppService.createBalancePropagation(
-        entry.id,
-        transactionOptions
-      );
 
       await transaction.commit();
 
       const events = [
         ...journalEvents,
-        ...(fxDisposition?.events ?? []),
-        ...(fxAcquisition?.events ?? []),
+        ...getFxLotEventsHelper(fxDisposition),
+        ...getFxLotEventsHelper(fxAcquisition),
       ];
       await deps.eventBus.publish(
         eventValue.enrichAll(events, { correlationId, idempotencyKey })

@@ -5,7 +5,6 @@ import dateUtils from '@shared/utils/date';
 import serializeBigIntInObj from '@shared/utils/serialize-bigint-in-object';
 import stringUtils from '@shared/utils/string';
 
-import getJournalEntryMemo from '@domain/journal-entry/entities/helpers/get-memo.helper';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 import {
   EJournalEntrySourceType,
@@ -20,6 +19,17 @@ import {
 } from '@domain/journal-entry/types/journal-line.types';
 import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
+
+const MAX_ATTACHMENTS = 3;
+
+function validateAttachmentCount(count: number) {
+  if (count > MAX_ATTACHMENTS) {
+    throw new journalEntryError.InvalidAttachmentCount({
+      count,
+      maxAttachments: MAX_ATTACHMENTS,
+    });
+  }
+}
 
 function validateStatus(status: UJournalEntryStatus) {
   if (!Object.values(EJournalEntryStatus).includes(status)) {
@@ -146,6 +156,13 @@ function validateVoidingEntryId(value: TEntityId | null) {
 }
 
 function validateVoid(entry: IJournalEntry) {
+  if (entry.sourceType === EJournalEntrySourceType.Reversal) {
+    throw new journalEntryError.RectificationNotPermitted({
+      journalEntryId: entry.id,
+      sourceType: entry.sourceType,
+    });
+  }
+
   const isPosted = entry.status === EJournalEntryStatus.Posted;
   const isArchivedAfterPosting =
     entry.status === EJournalEntryStatus.Archived && entry.postedAt !== null;
@@ -158,9 +175,21 @@ function validateVoid(entry: IJournalEntry) {
   }
 }
 
+function validateDelete(entry: IJournalEntry) {
+  const { sourceType, status, postedAt } = entry;
+  const isDeletableDraft =
+    status === EJournalEntryStatus.Draft &&
+    postedAt === null &&
+    sourceType !== EJournalEntrySourceType.Reversal;
+
+  if (!isDeletableDraft) {
+    throw new journalEntryError.DeletionNotPermitted({ sourceType, status });
+  }
+}
+
 function hasOnlyMetadataChanges(
   entry: IJournalEntry,
-  newEntry: Partial<IJournalEntry> & { id: TEntityId }
+  newEntry: Partial<IJournalEntry>
 ) {
   const lines = newEntry.lines ?? entry.lines;
   const hasHeaderAccountingChange =
@@ -168,8 +197,6 @@ function hasOnlyMetadataChanges(
       newEntry.accountingEntityId !== entry.accountingEntityId) ||
     (newEntry.sourceType !== undefined &&
       newEntry.sourceType !== entry.sourceType) ||
-    (newEntry.memo !== undefined &&
-      getJournalEntryMemo(newEntry.memo) !== entry.memo) ||
     (newEntry.status !== undefined && newEntry.status !== entry.status) ||
     (newEntry.effectiveDate !== undefined &&
       !isEqual(newEntry.effectiveDate, entry.effectiveDate)) ||
@@ -269,6 +296,7 @@ function validateBalancePropagation(entry: IJournalEntry) {
 }
 
 const journalEntryValidation = Object.freeze({
+  validateAttachmentCount,
   validateStatus,
   validateTransition,
   validateLine,
@@ -279,7 +307,7 @@ const journalEntryValidation = Object.freeze({
   validateVoidedAt,
   validateVoidingEntryId,
   validateVoid,
-  hasOnlyMetadataChanges,
+  validateDelete,
   validateUpdate,
   validateBalancePropagation,
 });

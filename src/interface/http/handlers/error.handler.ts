@@ -11,7 +11,9 @@ import errorUtils from '@shared/utils/error';
 import appError from '@shared/values/errors/app.error';
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
-import httpErrorParser from '@interface/http/helpers/http-error-parser';
+import parseTsoaValidationErrorHelper from '@interface/http/helpers/parse-tsoa-validation-error.helper';
+import parsedErrorToHttpErrorDtoHelper from '@interface/http/helpers/parsed-error-to-http-error-dto.helper';
+import toHttpErrorDtoHelper from '@interface/http/helpers/to-http-error-dto.helper';
 
 const errorKeyStatusCode = {
   [EErrorKeyStatusSuffix.Invalid]: 400,
@@ -52,12 +54,12 @@ function makeHttpErrorHandler(deps: IDependencies) {
           outcome: 'rejected',
         });
       }
-      const validationErrors = httpErrorParser.parseTsoaValidationError(error);
+      const validationErrors = parseTsoaValidationErrorHelper(error);
       const errRes = new appError.UnprocessableEntity(validationErrors);
 
       return res
         .status(errorKeyStatusCode[EErrorKeyStatusSuffix.ValidationError])
-        .json(httpErrorParser.toHttp(errRes, validationErrors));
+        .json(toHttpErrorDtoHelper(errRes, validationErrors));
     }
 
     const parsedError = errorUtils.parseError(error);
@@ -73,7 +75,7 @@ function makeHttpErrorHandler(deps: IDependencies) {
 
       return res
         .status(errorKeyStatusCode[EErrorKeyStatusSuffix.Unexpected])
-        .json(httpErrorParser.toHttp(serverError));
+        .json(toHttpErrorDtoHelper(serverError));
     }
 
     const statusCode = errorKeyStatusCode[statusSuffix];
@@ -87,7 +89,7 @@ function makeHttpErrorHandler(deps: IDependencies) {
 
     return res
       .status(statusCode)
-      .json(httpErrorParser.fromParsedError(parsedError, parsedError.errorKey));
+      .json(parsedErrorToHttpErrorDtoHelper(parsedError, parsedError.errorKey));
   };
 }
 

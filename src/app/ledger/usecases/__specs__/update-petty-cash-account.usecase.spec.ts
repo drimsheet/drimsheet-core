@@ -10,6 +10,7 @@ import accountingEntityEntity from '@domain/accounting/entities/accounting-entit
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import ledgerAccountBalanceEntity from '@domain/ledger/entities/ledger-account-balance.entity';
 import ledgerAccountEntity from '@domain/ledger/entities/ledger-account.entity';
+import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import ledgerAccountBalanceAdjustmentService from '@domain/ledger/services/ledger-account-balance-adjustment.service';
 import makeLedgerAccountBalanceService from '@domain/ledger/services/ledger-account-balance.service';
 import { IPettyCashAccount } from '@domain/ledger/types/asset-account.types';
@@ -20,9 +21,8 @@ import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import mockOpeningBalanceEntryAppService from '@app/journal-entry/contracts/__mocks__/opening-balance-entry.service.mock';
-import mockLedgerAccountBalanceEnrichmentAppService from '@app/ledger/contracts/__mocks__/ledger-account-balance-enrichment.service.mock';
 import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import {
   mockAssetAccountService,
@@ -32,13 +32,13 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import makeLedgerBalancePropagationPreparationAppService from '@app/ledger/services/ledger-balance-propagation-preparation.service';
+import makeAdjustLedgerAccountBalanceUseCase from '@app/ledger/usecases/adjust-ledger-account-balance.usecase';
 import makeUpdatePettyCashAccountUseCase from '@app/ledger/usecases/update-petty-cash-account.usecase';
-import mockOutboxAppService from '@app/outbox/contracts/__mocks__/outbox.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
+import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
 import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
-import { TFxLotAcquisitionAppResult } from '@app/subledger/fx-cost-basis/types/fx-lot.service.types';
 
 const [actor] = actorEntity.makeUser({
   email: 'petty-cash-update@example.com',
@@ -93,11 +93,12 @@ const deps = {
   ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
   ledgerAccountBalanceService: mockLedgerAccountBalanceService,
   cashAccountService: mockAssetAccountService,
-  openingBalanceEntryAppService: mockOpeningBalanceEntryAppService,
+  journalEntryRepo: mockJournalEntryRepo,
+  openingBalanceEntryService: mockOpeningBalanceEntryService,
+  fxCostBasisLotService: mockFxCostBasisLotService,
+  exchangeRateAppService: mockExchangeRateAppService,
   journalEntryPersistenceAppService: mockJournalEntryPersistenceAppService,
-  balanceEnrichmentAppService: mockLedgerAccountBalanceEnrichmentAppService,
   fxCostBasisPersistenceAppService: mockFxLotCostBasisAppService.persistence,
-  outboxAppService: mockOutboxAppService,
   ledgerBalanceAdjustmentQueue: mockLedgerAccountBalanceAdjustmentQueue,
 };
 
@@ -106,11 +107,16 @@ describe('update petty cash account workflow', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockExchangeRateAppService.getOfficialRate.mockResolvedValue(null);
+    mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValue(false);
+    mockJournalEntryRepo.findDraftOpeningBalanceByAccountId.mockResolvedValue(
+      null
+    );
     account = makeAccount();
     mockLedgerAccountBalanceService.updateBalance.mockImplementation(
       makeLedgerAccountBalanceService().updateBalance
     );
-    mockLedgerAccountBalanceRepo.findByAccountId.mockImplementation(async () =>
+    const makeBalance = () =>
       ledgerAccountBalanceEntity.make({
         createdBy: account.createdBy,
         ledgerAccountId: account.id,
@@ -118,7 +124,12 @@ describe('update petty cash account workflow', () => {
         accountMaterializedPath: account.materializedPath,
         currencyCode: 'NGN',
         functionalCurrencyCode: 'NGN',
-      })
+      });
+    mockLedgerAccountBalanceRepo.findByAccountId.mockImplementation(async () =>
+      makeBalance()
+    );
+    mockLedgerAccountBalanceRepo.findAllByAccountIds.mockImplementation(
+      async () => [makeBalance()]
     );
     mockAppContext.get.mockReturnValue({
       actor,
@@ -131,11 +142,6 @@ describe('update petty cash account workflow', () => {
     });
     mockAssetAccountService.updatePettyCashSubAccount.mockImplementation(
       async (changes) => ledgerAccountEntity.update(account, changes)
-    );
-    mockLedgerAccountBalanceEnrichmentAppService.enrich.mockImplementation(
-      async ([updated]) => [
-        { id: updated.id, name: updated.name } as ILedgerAccountDto,
-      ]
     );
   });
 
@@ -271,9 +277,7 @@ describe('update petty cash account workflow', () => {
       }),
       transactionOptions
     );
-    expect(
-      mockOpeningBalanceEntryAppService.createOrRevise
-    ).not.toHaveBeenCalled();
+    expect(mockOpeningBalanceEntryService.create).not.toHaveBeenCalled();
     expect(mockLedgerAccountRepo.update).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Branch cash', version: 2 }),
       expect.objectContaining({
@@ -296,9 +300,7 @@ describe('update petty cash account workflow', () => {
     });
 
     expect(mockLedgerAccountRepo.update).not.toHaveBeenCalled();
-    expect(
-      mockOpeningBalanceEntryAppService.createOrRevise
-    ).not.toHaveBeenCalled();
+    expect(mockOpeningBalanceEntryService.create).not.toHaveBeenCalled();
     expect(mockRepoTransaction.commit).toHaveBeenCalledTimes(1);
   });
 
@@ -332,28 +334,29 @@ describe('update petty cash account workflow', () => {
         },
       ],
     });
-    mockOpeningBalanceEntryAppService.createOrRevise.mockResolvedValueOnce({
-      mutation: {
-        entriesToCreate: [creation],
-        entryUpdate: null,
-        events: creation[1],
-      },
-      currentJournalEntry: creation[0],
-      fxAcquisition: null,
-      entriesForBalancePropagation: [],
-    });
+    mockOpeningBalanceEntryService.createDraft.mockResolvedValueOnce(creation);
 
     await makeUpdatePettyCashAccountUseCase(deps)(account.id, {
       name: 'Branch cash',
       openingBalance,
     });
 
-    expect(
-      mockOpeningBalanceEntryAppService.createOrRevise
-    ).toHaveBeenCalledWith(
-      { account, openingBalance, accountingEntity, actor: actor.id },
+    expect(mockOpeningBalanceEntryService.createDraft).toHaveBeenCalledWith(
+      {
+        accountingEntityId: accountingEntity.id,
+        functionalCurrencyCode: accountingEntity.functionalCurrencyCode,
+        account: expect.objectContaining({
+          id: account.id,
+          openingBalanceDate: openingBalance.date,
+        }),
+        amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.NGN },
+        exchangeRate: null,
+        effectiveDate: openingBalance.date,
+        createdBy: actor.id,
+      },
       transactionOptions
     );
+    expect(mockFxCostBasisLotService.acquire).not.toHaveBeenCalled();
     expect(mockJournalEntryPersistenceAppService.rectify).toHaveBeenCalledWith(
       expect.objectContaining({
         entriesToCreate: [expect.objectContaining({ entry: creation[0] })],
@@ -412,46 +415,36 @@ describe('update petty cash account workflow', () => {
         },
       ],
     });
-    const records = {
-      lot: { id: account.id },
-      acquisition: { id: account.id },
-      lotHistory: { entityId: account.id },
-      acquisitionHistory: { entityId: account.id },
-      missingOfficialRateOutbox: null,
-    } as unknown as TFxLotAcquisitionAppResult['records'];
-    const fxEvent = {
-      type: 'fx_cost_basis_lot_created',
-      data: { id: account.id },
-      occurredAt: openingBalanceDate,
-      enrichedAt: null,
-    };
-    mockOpeningBalanceEntryAppService.createOrRevise.mockResolvedValueOnce({
-      mutation: {
-        entriesToCreate: [creation],
-        entryUpdate: null,
-        events: creation[1],
-      },
-      currentJournalEntry: creation[0],
-      fxAcquisition: { records, events: [fxEvent] },
-      entriesForBalancePropagation: [creation[0]],
-    });
+    const fxAcquisition = makeFxAcquisitionResult();
+    const [, lotEvents] = fxAcquisition.lot;
+    const [, acquisitionEvents] = fxAcquisition.acquisition;
+    mockOpeningBalanceEntryService.create.mockResolvedValueOnce(creation);
+
+    mockFxCostBasisLotService.acquire.mockReturnValueOnce(fxAcquisition);
 
     const response = await makeUpdatePettyCashAccountUseCase(deps)(account.id, {
       currencyCode: 'USD',
       openingBalance: foreignOpeningBalance,
     });
 
-    expect(
-      mockOpeningBalanceEntryAppService.createOrRevise
-    ).toHaveBeenCalledWith(
+    expect(mockOpeningBalanceEntryService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         account: expect.objectContaining({
           currency: SYSTEM_CURRENCIES.USD,
-          openingBalanceDate: null,
+          openingBalanceDate,
         }),
       }),
       transactionOptions
     );
+    expect(mockFxCostBasisLotService.acquire).toHaveBeenCalledWith({
+      journalEntry: creation[0],
+      account: expect.objectContaining({
+        currency: SYSTEM_CURRENCIES.USD,
+        openingBalanceDate,
+      }),
+      createdBy: actor.id,
+      officialRate: null,
+    });
     expect(response).toMatchObject({
       id: account.id,
       name: account.name,
@@ -464,11 +457,7 @@ describe('update petty cash account workflow', () => {
     });
     expect(
       mockFxLotCostBasisAppService.persistence.persistAcquisition
-    ).toHaveBeenCalledWith(records, transactionOptions);
-    expect(mockOutboxAppService.createBalancePropagation).toHaveBeenCalledWith(
-      creation[0].id,
-      transactionOptions
-    );
+    ).toHaveBeenCalledWith(fxAcquisition, actor.id, transactionOptions);
     expect(mockLedgerAccountBalanceAdjustmentQueue.add).toHaveBeenCalledWith(
       correlationId,
       {
@@ -482,7 +471,8 @@ describe('update petty cash account workflow', () => {
             .results[0].value
         )[1],
         ...creation[1],
-        fxEvent,
+        ...lotEvents,
+        ...acquisitionEvents,
       ].map((event) => ({
         ...event,
         correlationId,
@@ -496,7 +486,6 @@ describe('update petty cash account workflow', () => {
       mockLedgerAccountBalanceRepo.update,
       mockJournalEntryPersistenceAppService.rectify,
       mockFxLotCostBasisAppService.persistence.persistAcquisition,
-      mockOutboxAppService.createBalancePropagation,
     ]) {
       expect(write).toHaveBeenCalledTimes(1);
       expect(write.mock.invocationCallOrder[0]).toBeLessThan(commitOrder);
@@ -509,10 +498,10 @@ describe('update petty cash account workflow', () => {
       mockLedgerAccountBalanceAdjustmentQueue.add.mock.invocationCallOrder[0]
     ).toBeGreaterThan(commitOrder);
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
 
-    // Run the queued journal through the real propagation preparation using the saved balance.
+    // Run the queued journal through the balance worker using the saved balance.
     const [savedBalance] = mockLedgerAccountBalanceRepo.update.mock.calls[0];
     const [savedAccount] = mockLedgerAccountRepo.update.mock.calls[0];
     const parent: ILedgerAccount = {
@@ -551,24 +540,24 @@ describe('update petty cash account workflow', () => {
       savedBalance,
       parentBalance,
     ]);
-    const propagation = makeLedgerBalancePropagationPreparationAppService({
+    const adjustLedgerAccountBalance = makeAdjustLedgerAccountBalanceUseCase({
+      appContext: mockAppContext,
+      repoService: mockRepoService,
       journalEntryRepo: mockJournalEntryRepo,
       ledgerAccountRepo: mockLedgerAccountRepo,
       ledgerAccountBalanceRepo: mockLedgerAccountBalanceRepo,
       ledgerAccountBalanceAdjustmentService,
     });
-    const adjustments = await propagation.prepare(creation[0].id, {
-      correlationId,
-    });
+    await adjustLedgerAccountBalance({ journalEntryId: creation[0].id });
+
+    const adjustments = mockLedgerAccountBalanceRepo.adjustBalance.mock.calls;
     expect(adjustments).toHaveLength(2);
     expect(
       adjustments.find(
-        (item) =>
-          item.balanceAdjustment.newBalance.ledgerAccountId === account.id
+        ([adjustment]) => adjustment.newBalance.ledgerAccountId === account.id
       )
-    ).toMatchObject({
-      expectedVersion: 2,
-      balanceAdjustment: {
+    ).toMatchObject([
+      {
         newBalance: {
           amount: { amount: 25_000n, currency: SYSTEM_CURRENCIES.USD },
           functionalAmount: {
@@ -577,27 +566,41 @@ describe('update petty cash account workflow', () => {
           },
         },
       },
-    });
+      { ...transactionOptions, expectedVersion: 2 },
+    ]);
     expect(
       adjustments.find(
-        (item) =>
-          item.balanceAdjustment.newBalance.ledgerAccountId === parent.id
+        ([adjustment]) => adjustment.newBalance.ledgerAccountId === parent.id
       )
-    ).toMatchObject({
-      expectedVersion: 1,
-      balanceAdjustment: {
+    ).toMatchObject([
+      {
         newBalance: {
           amount: { amount: 37_500_000n, currency: SYSTEM_CURRENCIES.NGN },
         },
       },
-    });
+      { ...transactionOptions, expectedVersion: 1 },
+    ]);
+  });
+
+  it('locks opening-balance edits after any posting', async () => {
+    mockJournalEntryRepo.existsPostedByAccountId.mockResolvedValueOnce(true);
+
+    await expect(
+      makeUpdatePettyCashAccountUseCase(deps)(account.id, { openingBalance })
+    ).rejects.toBeInstanceOf(ledgerAccountError.OpeningBalanceLocked);
+
+    expect(
+      mockJournalEntryRepo.findDraftOpeningBalanceByAccountId
+    ).not.toHaveBeenCalled();
+    expect(
+      mockJournalEntryPersistenceAppService.rectify
+    ).not.toHaveBeenCalled();
+    expect(mockRepoTransaction.commit).not.toHaveBeenCalled();
   });
 
   it('delegates failures to the transaction without disposing it again', async () => {
     const failure = new Error('journal update failed');
-    mockOpeningBalanceEntryAppService.createOrRevise.mockRejectedValueOnce(
-      failure
-    );
+    mockOpeningBalanceEntryService.createDraft.mockRejectedValueOnce(failure);
 
     await expect(
       makeUpdatePettyCashAccountUseCase(deps)(account.id, {
@@ -624,7 +627,7 @@ describe('update petty cash account workflow', () => {
     expect(mockRepoTransaction.handleError).toHaveBeenCalledWith(failure);
     expect(mockEventBus.publish).not.toHaveBeenCalled();
     expect(
-      mockLedgerAccountBalanceEnrichmentAppService.enrich
+      mockLedgerAccountBalanceRepo.findAllByAccountIds
     ).not.toHaveBeenCalled();
   });
 

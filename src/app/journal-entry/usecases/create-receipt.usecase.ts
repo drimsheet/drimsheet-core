@@ -2,10 +2,10 @@
  * SUMMARY
  * Creates a receipt journal for the selected accounting entity, with one or
  * more source lines and one destination. A null postedAt creates a draft; a
- * posting date requests a posted entry. Resolves counterparties and claims the
- * user's attachment uploads. Saves the journal, new counterparties, audit
- * history, applicable foreign-exchange acquisition, and pending balance work
- * together. Requests balance processing for posted entries, publishes events,
+ * posting date requests a posted entry. Resolves counterparty IDs and claims the
+ * user's attachment uploads. Saves the journal, audit history, applicable
+ * foreign-exchange acquisition, and pending balance work together. Requests
+ * balance processing for posted entries, publishes events,
  * and returns the journal; derived balances are updated separately.
  *
  * WHEN TO USE
@@ -18,10 +18,7 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import IEventBus from '@shared/contracts/event-bus.contract';
-import {
-  IRepoService,
-  TRepoTransactionFn,
-} from '@shared/contracts/repo.contract';
+import { IRepoService } from '@shared/contracts/repo.contract';
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import eventValue from '@shared/values/events/event.vo';
@@ -29,18 +26,17 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import historyValue from '@shared/values/history/history.vo';
 
 import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
-import { ECounterpartyStatus } from '@domain/counterparty/types/counterparty.types';
+import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
 import {
   ICreateReceiptEntryPayload,
-  IJournalEntryService,
-} from '@domain/journal-entry/types/journal-entry.service.types';
-import { EJournalEntryStatus } from '@domain/journal-entry/types/journal-entry.types';
+  IReceiptEntryService,
+} from '@domain/journal-entry/types/receipt-entry.service.types';
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
+import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ICounterpartyAppService from '@app/counterparty/contracts/counterparty.service.contract';
 import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
@@ -48,27 +44,27 @@ import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { IReceiptEntryReq } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto';
 import { receiptEntryReqValidation } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto.validation';
-import getNewCounterpartiesHelper from '@app/journal-entry/helpers/get-new-counterparties.helper';
+import getCounterpartiesHelper from '@app/journal-entry/usecases/helpers/get-counterparties.helper';
 import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
+import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IOutboxAppService from '@app/outbox/contracts/outbox.service.contract';
 import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
-import IFxLotAppService from '@app/subledger/fx-cost-basis/contracts/fx-lot.service.contract';
+import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
+import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
-  counterpartyAppService: ICounterpartyAppService;
-  fileManagementAppService: IFileManagementAppService;
-  journalEntryService: IJournalEntryService;
-  ledgerAccountRepo: ILedgerAccountRepo;
   counterpartyRepo: ICounterpartyRepo;
+  fileManagementAppService: IFileManagementAppService;
+  receiptEntryService: IReceiptEntryService;
+  ledgerAccountRepo: ILedgerAccountRepo;
   journalEntryPersistenceAppService: IJournalEntryPersistenceAppService;
   repoService: IRepoService;
   eventBus: IEventBus;
-  outboxAppService: IOutboxAppService;
   ledgerBalanceAdjustmentQueue: ILedgerBalanceAdjustmentQueue;
-  fxLotAppService: IFxLotAppService;
+  fxCostBasisLotService: IFxCostBasisLotService;
+  exchangeRateAppService: IExchangeRateAppService;
   fxCostBasisPersistenceAppService: IFxCostBasisPersistenceAppService;
 }
 
@@ -108,21 +104,16 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
       sourceAccounts.push(sourceAccount);
     }
 
-    const allCounterpartiesPayload = payload.sourceLines
-      .map((sourceLine) => sourceLine.counterparty)
-      .concat(payload.destinationLine.counterparty)
-      .filter(Boolean);
+    const counterpartyIds = payload.sourceLines
+      .map((sourceLine) => sourceLine.counterpartyId)
+      .concat(payload.destinationLine.counterpartyId);
 
-    const allCounterparties =
-      await deps.counterpartyAppService.findOrCreateMany(
-        allCounterpartiesPayload,
-        accountingEntity.id,
-        actor.id,
-        payload.postedAt === null
-          ? ECounterpartyStatus.Draft
-          : ECounterpartyStatus.Active,
-        repoOptions
-      );
+    const allCounterparties = await getCounterpartiesHelper({
+      ids: counterpartyIds,
+      accountingEntityId: accountingEntity.id,
+      repo: deps.counterpartyRepo,
+      repoOptions,
+    });
 
     const destinationAccount = await deps.ledgerAccountRepo.findById(
       payload.destinationLine.accountId as TEntityId,
@@ -142,11 +133,9 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
           ? exchangeRateValue.make(sourceLine.exchangeRate)
           : null;
 
-        const sourceLineCounterparty =
-          deps.counterpartyAppService.getFoundOrCreated(
-            sourceLine.counterparty,
-            allCounterparties
-          )?.data[0] ?? null;
+        const sourceLineCounterparty = allCounterparties.find(
+          (candidate) => candidate.id === sourceLine.counterpartyId
+        )!;
 
         return {
           account: sourceAccounts[index],
@@ -163,11 +152,9 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
       ? exchangeRateValue.make(payload.destinationLine.exchangeRate)
       : null;
 
-    const destinationLineCounterparty =
-      deps.counterpartyAppService.getFoundOrCreated(
-        payload.destinationLine.counterparty,
-        allCounterparties
-      )?.data[0] ?? null;
+    const destinationLineCounterparty = allCounterparties.find(
+      (candidate) => candidate.id === payload.destinationLine.counterpartyId
+    )!;
 
     const destinationLinePayload: ICreateReceiptEntryPayload['destinationLine'] =
       {
@@ -194,7 +181,7 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
     };
 
     const [journalEntry, journalEntryEvents, journalEntryAudit] =
-      await deps.journalEntryService.createReceipt(receiptPayload, repoOptions);
+      await deps.receiptEntryService.create(receiptPayload, repoOptions);
 
     const journalHeaderHistory = historyValue.make(
       journalEntryAudit.header,
@@ -205,30 +192,26 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
       historyValue.make(line, actor.id, correlationId)
     );
 
-    const newCounterparties = getNewCounterpartiesHelper(
-      allCounterparties,
-      actor.id,
-      correlationId
-    );
-
     const shouldUpdateBalance =
       journalEntry.status === EJournalEntryStatus.Posted;
 
-    const fxResult = await deps.fxLotAppService.acquire(
-      { journalEntry, account: destinationAccount, actor: actor.id },
-      repoOptions
-    );
+    const fxResult = shouldUpdateBalance
+      ? deps.fxCostBasisLotService.acquire({
+          journalEntry,
+          account: destinationAccount,
+          createdBy: actor.id,
+          officialRate: await resolveOfficialRateHelper(
+            deps.exchangeRateAppService,
+            journalEntry.lines,
+            destinationAccount.id,
+            repoOptions
+          ),
+        })
+      : null;
 
-    const dbTransactionFn: TRepoTransactionFn = async (tx) => {
-      const writeOptions = { correlationId, tx };
-
-      for (const counterpartyWithHistory of newCounterparties.records) {
-        const [counterparty, history] = counterpartyWithHistory;
-        await deps.counterpartyRepo.create(counterparty, {
-          ...writeOptions,
-          history,
-        });
-      }
+    const transaction = await deps.repoService.createTransaction();
+    try {
+      const writeOptions = { correlationId, tx: transaction.context };
 
       await deps.journalEntryPersistenceAppService.create(
         journalEntry,
@@ -239,35 +222,30 @@ export default function makeCreateReceiptUsecase(deps: IDependencies) {
 
       if (fxResult) {
         await deps.fxCostBasisPersistenceAppService.persistAcquisition(
-          fxResult.records,
+          fxResult,
+          actor.id,
           writeOptions
         );
       }
+
+      await transaction.commit();
+
+      const allEvents: IEvent<unknown>[] = [
+        ...journalEntryEvents,
+        ...getFxLotEventsHelper(fxResult),
+      ];
+
+      await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
 
       if (shouldUpdateBalance) {
-        await deps.outboxAppService.createBalancePropagation(
-          journalEntry.id,
-          writeOptions
-        );
+        await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
+          journalEntryId: journalEntry.id,
+        });
       }
-    };
 
-    await deps.repoService.runInTransaction(dbTransactionFn);
-
-    if (shouldUpdateBalance) {
-      await deps.ledgerBalanceAdjustmentQueue.add(correlationId, {
-        journalEntryId: journalEntry.id,
-      });
+      return journalEntryDtoMapper.toDto(journalEntry);
+    } catch (error) {
+      return await transaction.handleError(error);
     }
-
-    const allEvents: IEvent<unknown>[] = [
-      ...newCounterparties.events,
-      ...journalEntryEvents,
-      ...(fxResult?.events ?? []),
-    ];
-
-    await deps.eventBus.publish(eventValue.enrichAll(allEvents, repoOptions));
-
-    return journalEntryDtoMapper.toDto(journalEntry);
   };
 }
