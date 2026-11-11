@@ -4,7 +4,10 @@ import mockRepoService, {
 } from '@shared/contracts/__mocks__/repo.mock';
 import { ERepoLock } from '@shared/types/repo.types';
 import generateUUID from '@shared/utils/uuid-generator';
-import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
+import {
+  EFileAttachmentType,
+  IFileAttachment,
+} from '@shared/values/file-attachments/types/file-attachment.types';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -197,7 +200,7 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
     const attachment = {
       url: 'https://files.example.com/corrected-payment.pdf',
       name: 'corrected-payment.pdf',
-      type: 'application/pdf',
+      type: EFileAttachmentType.Pdf,
       size: 1024,
     };
     mockFileManagementAppService.claimUploads.mockResolvedValue([attachment]);
@@ -300,7 +303,7 @@ describe('makeVoidAndReplacePaymentUsecase', () => {
       const attachment = {
         url: 'https://files.example.com/original-payment.pdf',
         name: 'original-payment.pdf',
-        type: 'application/pdf',
+        type: EFileAttachmentType.Pdf,
         size: 1024,
       };
       const original = await makeOriginalPayment(effectiveDate, [attachment]);

@@ -5,7 +5,10 @@ import mockRepoService, {
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
-import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
+import {
+  EFileAttachmentType,
+  IFileAttachment,
+} from '@shared/values/file-attachments/types/file-attachment.types';
 
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -49,7 +52,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
   const attachment = {
     url: 'https://files.example.com/receipt.pdf',
     name: 'receipt.pdf',
-    type: 'application/pdf',
+    type: EFileAttachmentType.Pdf,
     size: 1024,
   };
   const usecase = makeUpdateJournalEntryMetaUsecase({

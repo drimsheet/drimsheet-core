@@ -1,5 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import mockFileStorageClient from '@app/file/contracts/__mocks__/file-storage-client.mock';
 import fileAppError from '@app/file/errors/file.error';
@@ -79,7 +80,7 @@ describe.each([
         file: {
           url: 'https://example.com/file',
           name: '  Réçeipt (FINAL).png  ',
-          type: 'image/png',
+          type: EFileAttachmentType.Png,
           size: maxBytes,
         },
       },
@@ -183,7 +184,7 @@ describe.each([
       {
         url: storedPng.fileUrl,
         name: '  Réçeipt (FINAL).png  ',
-        type: 'image/png',
+        type: EFileAttachmentType.Png,
         size: maxBytes,
       },
     ]);

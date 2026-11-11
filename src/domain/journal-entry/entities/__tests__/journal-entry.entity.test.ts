@@ -1,4 +1,5 @@
 import { TEntityId } from '@shared/types/uuid';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import getJournalEntryMemoHelper from '@domain/journal-entry/entities/helpers/get-memo.helper';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -166,7 +167,14 @@ describe('JournalEntry Entity', () => {
       expect(entry.createdAt).toEqual(new Date('2026-04-15T00:00:00.000Z'));
       expect(entry.updatedAt).toEqual(new Date('2026-04-15T00:00:00.000Z'));
       expect(entry.createdBy).toBe(validPayload.createdBy);
-      expect(entry.attachments).toEqual(validPayload.attachments);
+      expect(entry.attachments).toEqual([
+        {
+          url: 'https://files.example.com/receipt.png',
+          name: 'Original receipt.png',
+          type: EFileAttachmentType.Png,
+          size: 1024,
+        },
+      ]);
       expect(Object.isFrozen(entry.attachments)).toBe(true);
       expect(Object.isFrozen(entry.attachments[0])).toBe(true);
 
@@ -762,12 +770,15 @@ describe('JournalEntry Entity', () => {
         'a1111111-1111-4111-8111-111111111111' as TEntityId
       );
 
-      expect(updatedEntry.attachments).toEqual(attachments);
+      const expectedAttachments = [
+        { ...attachments[0], type: EFileAttachmentType.Pdf },
+      ];
+      expect(updatedEntry.attachments).toEqual(expectedAttachments);
       expect(updatedEntry.lines[0].description).toBe('Corrected description');
       expect(updatedEntry.memo).toBe(entry.memo);
       expect(audit?.header.diff).toMatchObject({
         before: { attachments: entry.attachments },
-        after: { attachments },
+        after: { attachments: expectedAttachments },
       });
     });
 

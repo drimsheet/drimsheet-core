@@ -2,6 +2,7 @@ import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 import repoError from '@shared/values/errors/repo.error';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -235,7 +236,7 @@ describe('update draft transfer use case', () => {
       {
         url: 'https://files.example.com/transfer.pdf',
         name: 'transfer.pdf',
-        type: 'application/pdf',
+        type: EFileAttachmentType.Pdf,
         size: 1024,
       },
     ];

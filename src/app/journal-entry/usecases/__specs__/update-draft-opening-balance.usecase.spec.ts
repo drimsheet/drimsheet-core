@@ -1,5 +1,6 @@
 import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import generateUUID from '@shared/utils/uuid-generator';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
@@ -71,7 +72,7 @@ describe('update draft opening balance use case', () => {
       {
         url: 'https://files.example.com/opening-balance.pdf',
         name: 'opening-balance.pdf',
-        type: 'application/pdf',
+        type: EFileAttachmentType.Pdf,
         size: 1024,
       },
     ];

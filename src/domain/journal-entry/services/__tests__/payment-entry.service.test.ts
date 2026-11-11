@@ -1,6 +1,7 @@
 import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import periodError from '@domain/accounting/errors/period.error';
@@ -350,7 +351,9 @@ describe('paymentEntryService', () => {
           sequenceOrder: 3,
         }),
       ]);
-      expect(entry.attachments).toEqual(payload.attachments);
+      expect(entry.attachments).toEqual([
+        { ...payload.attachments[0], type: EFileAttachmentType.Pdf },
+      ]);
       expect(events.map((event) => event.type)).toEqual([
         EJournalEntryEvent.Created,
         EJournalLineItemEvent.Created,
