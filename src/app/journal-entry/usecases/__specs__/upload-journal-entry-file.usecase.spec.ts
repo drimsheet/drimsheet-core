@@ -1,5 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import { IActor } from '@domain/user/types/actor.types';
 
@@ -84,12 +85,12 @@ describe('uploadJournalEntryFileUsecase', () => {
         {
           accountId: payload.accountId,
           sourceType,
-          actor,
+          actorId,
           accountingEntityId: '123e4567-e89b-12d3-a456-426614174004',
           file: {
             url: storedFile.fileUrl,
             name: 'receipt.png',
-            type: storedFile.contentType,
+            type: EFileAttachmentType.Png,
             size: storedFile.size,
           },
         }

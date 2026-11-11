@@ -41,7 +41,7 @@ export default function makeUploadJournalEntryFileUsecase(deps: IDependencies) {
     await deps.journalEntryExtractionQueue.add(correlationId, {
       accountId: payload.accountId,
       sourceType: payload.sourceType,
-      actor,
+      actorId: actor.id,
       accountingEntityId: accountingEntity.id,
       file,
     });

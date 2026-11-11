@@ -3,7 +3,6 @@ import { Queue } from 'bullmq';
 import mockQueueMetrics from '@shared/contracts/__mocks__/queue-metrics.mock';
 import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
-import { TEntityId } from '@shared/types/uuid';
 
 import { JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME } from '@app/journal-entry/contracts/journal-entry-extraction-queue.contract';
 import { IJournalEntryExtractionDto } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
@@ -29,19 +28,7 @@ jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
 describe('makeJournalEntryExtractionQueue', () => {
   const payload: IJournalEntryExtractionDto = {
     accountId: '123e4567-e89b-12d3-a456-426614174002',
-    actor: {
-      id: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
-      type: 'user',
-      username: 'uploader',
-      displayName: 'Uploader',
-      ownerActorId: null,
-      agentName: null,
-      status: 'active',
-      createdBy: '123e4567-e89b-12d3-a456-426614174003' as TEntityId,
-      version: 1,
-      createdAt: new Date('2026-11-11T00:00:00Z'),
-      updatedAt: new Date('2026-11-11T00:00:00Z'),
-    },
+    actorId: '123e4567-e89b-12d3-a456-426614174003',
     accountingEntityId: '123e4567-e89b-12d3-a456-426614174004',
     file: {
       url: 'https://example.com/receipt.png',
