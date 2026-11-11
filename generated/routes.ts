@@ -2283,6 +2283,16 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  IJournalEntryUploadReq: {
+    dataType: 'refObject',
+    properties: {
+      reference: { dataType: 'string', required: true },
+      accountId: { dataType: 'string', required: true },
+      sourceType: { ref: 'UJournalEntrySourceType' },
+    },
+    additionalProperties: false,
+  },
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   IJournalLineDto: {
     dataType: 'refObject',
     properties: {
@@ -2879,8 +2889,11 @@ const models: TsoaRoute.Models = {
   UFileUploadPurpose: {
     dataType: 'refAlias',
     type: {
-      dataType: 'enum',
-      enums: ['journal_entry_attachment'],
+      dataType: 'union',
+      subSchemas: [
+        { dataType: 'enum', enums: ['journal_entry_attachment'] },
+        { dataType: 'enum', enums: ['journal_entry_creation'] },
+      ],
       validators: {},
     },
   },
@@ -6318,6 +6331,55 @@ export function RegisterRoutes(app: Router) {
           next,
           validatedArgs,
           successStatus: 200,
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
+  );
+  // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+  const argsJournalEntryController_uploadJournalEntryFile: Record<
+    string,
+    TsoaRoute.ParameterSchema
+  > = {
+    body: {
+      in: 'body',
+      name: 'body',
+      required: true,
+      ref: 'IJournalEntryUploadReq',
+    },
+  };
+  app.post(
+    '/api/v1/journal-entries/upload',
+    ...fetchMiddlewares<RequestHandler>(JournalEntryController),
+    ...fetchMiddlewares<RequestHandler>(
+      JournalEntryController.prototype.uploadJournalEntryFile
+    ),
+
+    async function JournalEntryController_uploadJournalEntryFile(
+      request: ExRequest,
+      response: ExResponse,
+      next: any
+    ) {
+      // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+      let validatedArgs: any[] = [];
+      try {
+        validatedArgs = templateService.getValidatedArgs({
+          args: argsJournalEntryController_uploadJournalEntryFile,
+          request,
+          response,
+        });
+
+        const controller = new JournalEntryController();
+
+        await templateService.apiHandler({
+          methodName: 'uploadJournalEntryFile',
+          controller,
+          response,
+          next,
+          validatedArgs,
+          successStatus: 204,
         });
       } catch (err) {
         return next(err);

@@ -15,6 +15,7 @@ import makeUpdateDraftPaymentUsecase from '@app/journal-entry/usecases/update-dr
 import makeUpdateDraftReceiptUsecase from '@app/journal-entry/usecases/update-draft-receipt.usecase';
 import makeUpdateDraftTransferUsecase from '@app/journal-entry/usecases/update-draft-transfer.usecase';
 import makeUpdateJournalEntryMetaUsecase from '@app/journal-entry/usecases/update-journal-entry-meta.usecase';
+import makeUploadJournalEntryFileUsecase from '@app/journal-entry/usecases/upload-journal-entry-file.usecase';
 import makeVoidAndReplacePaymentUsecase from '@app/journal-entry/usecases/void-and-replace-payment.usecase';
 import makeVoidAndReplaceReceiptUsecase from '@app/journal-entry/usecases/void-and-replace-receipt.usecase';
 import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
@@ -41,6 +42,11 @@ import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import appContext from '@infra/services/app-context.service';
+
+export const uploadJournalEntryFileUseCase = makeTracedUseCase(
+  'journalEntry.uploadJournalEntryFileUseCase',
+  makeUploadJournalEntryFileUsecase({ appContext, fileManagementAppService })
+);
 
 export const updateJournalEntryMetaUseCase = makeTracedUseCase(
   'journalEntry.updateJournalEntryMetaUseCase',
