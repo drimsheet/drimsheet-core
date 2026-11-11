@@ -45,7 +45,11 @@ import appContext from '@infra/services/app-context.service';
 
 export const uploadJournalEntryFileUseCase = makeTracedUseCase(
   'journalEntry.uploadJournalEntryFileUseCase',
-  makeUploadJournalEntryFileUsecase({ appContext, fileManagementAppService })
+  makeUploadJournalEntryFileUsecase({
+    appContext,
+    fileManagementAppService,
+    journalEntryExtractionQueue: messaging.queues.journalEntryExtraction,
+  })
 );
 
 export const updateJournalEntryMetaUseCase = makeTracedUseCase(
