@@ -54,11 +54,11 @@ jest.mock('@infra/runtime/lifecycle/observability.lifecycle', () => ({
 }));
 jest.mock('@infra/runtime/servers/express', () => {
   mockLoading('server');
-  return { __esModule: true, default: mockSetupServer };
+  return { setupServer: mockSetupServer };
 });
 jest.mock('@infra/runtime/bootstrap/currencies.bootstrap', () => {
   mockLoading('currencies');
-  return { __esModule: true, default: mockInitializeCurrencies };
+  return { bootstrapCurrencies: mockInitializeCurrencies };
 });
 
 describe('HTTP dependency loading', () => {
@@ -97,8 +97,9 @@ describe('HTTP dependency loading', () => {
     async (phase) => {
       mockFailAt = phase;
       await jest.isolateModulesAsync(async () => {
-        const { default: runHttp } =
-          await import('@infra/runtime/lifecycle/http-runtime.lifecycle');
+        const { default: runHttp } = jest.requireActual<
+          typeof import('@infra/runtime/lifecycle/http-runtime.lifecycle')
+        >('@infra/runtime/lifecycle/http-runtime.lifecycle');
         expect(mockEvents).toEqual([]);
         await runHttp();
       });
@@ -130,8 +131,9 @@ describe('HTTP dependency loading', () => {
     async (phase) => {
       mockStopAt = phase;
       await jest.isolateModulesAsync(async () => {
-        const { default: runHttp } =
-          await import('@infra/runtime/lifecycle/http-runtime.lifecycle');
+        const { default: runHttp } = jest.requireActual<
+          typeof import('@infra/runtime/lifecycle/http-runtime.lifecycle')
+        >('@infra/runtime/lifecycle/http-runtime.lifecycle');
         await runHttp();
       });
       expect(mockEvents[mockEvents.length - 1]).toBe(phase);

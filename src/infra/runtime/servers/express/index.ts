@@ -3,7 +3,7 @@ import setupOAuth from '@infra/integrations/oauth/google-oauth.strategy';
 
 import createApplication from '@interface/http/application';
 
-function setupServer() {
+export function setupServer() {
   setupOAuth();
 
   const app = createApplication();

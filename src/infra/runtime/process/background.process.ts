@@ -2,7 +2,7 @@ import bootstrapObservability from '@infra/runtime/bootstrap/observability.boots
 
 async function startBackground(): Promise<void> {
   // Load clients only after observability has installed instrumentation.
-  const { default: runBackground } =
+  const { runBackground } =
     await import('@infra/runtime/lifecycle/background-runtime.lifecycle');
   await runBackground();
 }

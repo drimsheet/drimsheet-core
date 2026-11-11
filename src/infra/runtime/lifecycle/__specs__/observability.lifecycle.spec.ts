@@ -35,9 +35,9 @@ async function loadObservabilityLifecycle(): Promise<TObservabilityLifecycle> {
   let lifecycle: TObservabilityLifecycle | undefined;
 
   await jest.isolateModulesAsync(async () => {
-    lifecycle = (
-      await import('@infra/runtime/lifecycle/observability.lifecycle')
-    ).default;
+    lifecycle = jest.requireActual<
+      typeof import('@infra/runtime/lifecycle/observability.lifecycle')
+    >('@infra/runtime/lifecycle/observability.lifecycle').default;
   });
 
   if (!lifecycle) {

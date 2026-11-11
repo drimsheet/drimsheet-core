@@ -84,3 +84,5 @@ export default async function runBackground(): Promise<void> {
     }
   }
 }
+
+export { runBackground };

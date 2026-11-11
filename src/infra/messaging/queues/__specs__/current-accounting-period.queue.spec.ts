@@ -28,9 +28,9 @@ describe('current accounting period queue', () => {
     mockQueueAdd.mockReset().mockResolvedValue(undefined);
     mockQueueConstructor.mockImplementation(() => ({ add: mockQueueAdd }));
     await jest.isolateModulesAsync(async () => {
-      const makeQueue = (
-        await import('@infra/messaging/queues/current-accounting-period.queue')
-      ).default;
+      const makeQueue = jest.requireActual<
+        typeof import('@infra/messaging/queues/current-accounting-period.queue')
+      >('@infra/messaging/queues/current-accounting-period.queue').default;
       queue = makeQueue(mockTracer);
     });
     mockTracer.getPropagationCarrier.mockReturnValue({

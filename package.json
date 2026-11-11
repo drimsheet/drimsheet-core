@@ -2,7 +2,7 @@
   "name": "drimsheet-core",
   "version": "0.1.0-alpha.1",
   "engines": {
-    "node": ">=22.23.3 <23"
+    "node": ">=26.13.0 <27"
   },
   "main": "index.js",
   "directories": {
@@ -22,7 +22,7 @@
     "start:background": "node ./dist/src/infra/runtime/process/background.process.js",
     "start": "npm run db:migrate up && exec node ./dist/src/infra/runtime/process/http.process.js",
     "dev": "bash scripts/dev.sh",
-    "dev:background": "nodemon --signal SIGTERM --exec 'ts-node -r tsconfig-paths/register src/infra/runtime/process/background.process.ts'",
+    "dev:background": "nodemon --signal SIGTERM --exec 'tsx src/infra/runtime/process/background.process.ts'",
     "format:all": "prettier --write \"src/**/*.{ts,js,json,md}\" \"test/**/*.ts\"",
     "format:changed": "prettier --write --cache .",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" && node scripts/check-import-path-policy.mjs",
@@ -134,6 +134,7 @@
     "qs": "^6.16.0",
     "swagger-ui-express": "^5.0.1",
     "tsoa": "^7.0.0-alpha.0",
+    "unpdf": "2.1.0",
     "uuid": "^11.1.1",
     "winston": "^3.19.0",
     "zod": "^4.3.6"

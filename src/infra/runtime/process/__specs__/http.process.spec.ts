@@ -14,7 +14,7 @@ jest.mock('@infra/runtime/bootstrap/observability.bootstrap', () => ({
 }));
 jest.mock('@infra/runtime/lifecycle/http-runtime.lifecycle', () => {
   mockLoadOrder.push('lifecycle');
-  return { __esModule: true, default: mockRun };
+  return { runHttp: mockRun };
 });
 
 describe('HTTP entrypoint', () => {
@@ -22,7 +22,9 @@ describe('HTTP entrypoint', () => {
     const originalExitCode = process.exitCode;
     try {
       await jest.isolateModulesAsync(async () => {
-        await import('@infra/runtime/process/http.process');
+        jest.requireActual<
+          typeof import('@infra/runtime/process/http.process')
+        >('@infra/runtime/process/http.process');
         await new Promise((resolve) => setImmediate(resolve));
       });
       expect(mockLoadOrder).toEqual(['observability', 'lifecycle', 'run']);

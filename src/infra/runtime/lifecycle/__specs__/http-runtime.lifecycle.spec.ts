@@ -6,13 +6,13 @@ import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 import { postgres } from '@infra/config/postgres.config';
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
 import { bootstrapAccountingContext } from '@infra/runtime/bootstrap/accounting-context.bootstrap';
-import bootstrapCurrencies from '@infra/runtime/bootstrap/currencies.bootstrap';
-import eventsRegistry from '@infra/runtime/bootstrap/events.bootstrap';
+import { bootstrapCurrencies } from '@infra/runtime/bootstrap/currencies.bootstrap';
+import { eventsRegistry } from '@infra/runtime/bootstrap/events.bootstrap';
 import runtimeHealth from '@infra/runtime/health';
 import runHttp from '@infra/runtime/lifecycle/http-runtime.lifecycle';
 import observabilityLifecycle from '@infra/runtime/lifecycle/observability.lifecycle';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
-import setupServer from '@infra/runtime/servers/express';
+import { setupServer } from '@infra/runtime/servers/express';
 
 jest.mock('@infra/config/postgres.config', () => ({
   postgres: { $client: { end: jest.fn() } },
@@ -35,12 +35,10 @@ jest.mock('@infra/runtime/bootstrap/accounting-context.bootstrap', () => ({
   bootstrapAccountingContext: jest.fn(),
 }));
 jest.mock('@infra/runtime/bootstrap/currencies.bootstrap', () => ({
-  __esModule: true,
-  default: jest.fn(),
+  bootstrapCurrencies: jest.fn(),
 }));
 jest.mock('@infra/runtime/bootstrap/events.bootstrap', () => ({
-  __esModule: true,
-  default: jest.fn(),
+  eventsRegistry: jest.fn(),
 }));
 jest.mock('@infra/runtime/health', () => ({
   __esModule: true,
@@ -63,8 +61,7 @@ jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
   default: { shutdown: jest.fn() },
 }));
 jest.mock('@infra/runtime/servers/express', () => ({
-  __esModule: true,
-  default: jest.fn(),
+  setupServer: jest.fn(),
 }));
 
 function deferred() {

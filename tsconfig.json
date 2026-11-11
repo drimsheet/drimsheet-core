@@ -3,11 +3,16 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "target": "es2021",
-    "module": "commonjs",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "paths": {
       "@domain/*": ["./src/domain/*"],
       "@app/*": ["./src/app/*"],
-      "@infra/*": ["./src/infra/*"],
+      "@infra/*": [
+        "./src/infra/*",
+        "./src/infra/*.ts",
+        "./src/infra/*/index.ts"
+      ],
       "@interface/*": ["./src/interface/*"],
       "@shared/*": ["./src/shared/*"]
     },

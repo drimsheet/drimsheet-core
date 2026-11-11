@@ -12,7 +12,7 @@ jest.mock('@infra/runtime/bootstrap/observability.bootstrap', () => ({
 }));
 jest.mock('@infra/runtime/lifecycle/background-runtime.lifecycle', () => {
   mockLoadOrder.push('lifecycle');
-  return { __esModule: true, default: mockRun };
+  return { runBackground: mockRun };
 });
 
 describe('background entrypoint', () => {
@@ -20,7 +20,9 @@ describe('background entrypoint', () => {
     const originalExitCode = process.exitCode;
     try {
       await jest.isolateModulesAsync(async () => {
-        await import('@infra/runtime/process/background.process');
+        jest.requireActual<
+          typeof import('@infra/runtime/process/background.process')
+        >('@infra/runtime/process/background.process');
         await new Promise((resolve) => setImmediate(resolve));
       });
       expect(mockLoadOrder).toEqual(['observability', 'lifecycle', 'run']);
