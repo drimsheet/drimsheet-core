@@ -11,11 +11,13 @@ jest.mock('@shared/utils/uuid-generator', () => ({
   default: jest.fn(),
 }));
 
-describe('FileManagementAppService', () => {
+describe.each([
+  [EFileUploadPurpose.JournalEntryAttachment, 5 * 1024 * 1024],
+  [EFileUploadPurpose.JournalEntryCreation, 15 * 1024 * 1024],
+] as const)('FileManagementAppService %s', (purpose, maxBytes) => {
   const reference = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
   const secondReference = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
   const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
-  const purpose = EFileUploadPurpose.JournalEntryAttachment;
   const mockedGenerateUUID = jest.mocked(generateUUID);
 
   const getService = () =>
@@ -54,7 +56,7 @@ describe('FileManagementAppService', () => {
         {
           name: '  Réçeipt (FINAL).png  ',
           type: ' image/png ',
-          size: 5 * 1024 * 1024,
+          size: maxBytes,
           purpose,
         },
       ],
@@ -78,7 +80,7 @@ describe('FileManagementAppService', () => {
           url: 'https://example.com/file',
           name: '  Réçeipt (FINAL).png  ',
           type: 'image/png',
-          size: 5 * 1024 * 1024,
+          size: maxBytes,
         },
       },
     ]);
@@ -88,7 +90,7 @@ describe('FileManagementAppService', () => {
 
   it.each([
     ['image/svg+xml', 1024, fileAppError.InvalidUploadType],
-    ['image/png', 5 * 1024 * 1024 + 1, fileAppError.InvalidUploadSize],
+    ['image/png', maxBytes + 1, fileAppError.InvalidUploadSize],
   ])(
     'rejects invalid upload metadata before signing',
     async (type, size, ErrorClass) => {
@@ -163,10 +165,9 @@ describe('FileManagementAppService', () => {
   });
 
   it('claims an uploaded file using canonical storage data', async () => {
-    const maxSize = 5 * 1024 * 1024;
     mockFileStorageClient.readFile.mockResolvedValue({
       ...storedPng,
-      size: maxSize,
+      size: maxBytes,
     });
     const result = await getService().claimUploads({
       userId,
@@ -183,7 +184,7 @@ describe('FileManagementAppService', () => {
         url: storedPng.fileUrl,
         name: '  Réçeipt (FINAL).png  ',
         type: 'image/png',
-        size: maxSize,
+        size: maxBytes,
       },
     ]);
     expect(Object.isFrozen(result)).toBe(true);
@@ -221,7 +222,7 @@ describe('FileManagementAppService', () => {
     ],
     [
       'oversized stored file',
-      { ...storedPng, size: 5 * 1024 * 1024 + 1 },
+      { ...storedPng, size: maxBytes + 1 },
       fileAppError.InvalidUploadSize,
     ],
     [

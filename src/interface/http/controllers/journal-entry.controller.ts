@@ -17,6 +17,7 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
+import { IJournalEntryUploadReq } from '@app/journal-entry/dtos/journal-entry-upload/journal-entry-upload.dto';
 import { IGetJournalEntriesQuery } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { IJournalEntryMetaUpdateReq } from '@app/journal-entry/dtos/meta-update/meta-update.dto';
 import { IUpdateDraftOpeningBalanceReq } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
@@ -51,6 +52,7 @@ import {
   updateDraftReceiptUseCase,
   updateDraftTransferUseCase,
   updateJournalEntryMetaUseCase,
+  uploadJournalEntryFileUseCase,
   voidAndReplacePaymentUseCase,
   voidAndReplaceReceiptUseCase,
   voidAndReplaceTransferUseCase,
@@ -98,6 +100,26 @@ export class JournalEntryController extends Controller {
   )
   public async getJournalEntry(@Path() id: string) {
     return getJournalEntryUseCase(id);
+  }
+
+  /** Claims an uploaded file for journal entry creation. */
+  @Post('/upload')
+  @OperationId('uploadJournalEntryFile')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async uploadJournalEntryFile(
+    @Body() body: IJournalEntryUploadReq
+  ): Promise<void> {
+    await uploadJournalEntryFileUseCase(body);
   }
 
   /**
