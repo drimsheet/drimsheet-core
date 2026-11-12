@@ -61,6 +61,7 @@ describe('uploadJournalEntryFileUsecase', () => {
       accountingEntity: { id: '123e4567-e89b-12d3-a456-426614174004' },
     } as IAppContextData &
       Required<Pick<IAppContextData, 'user' | 'actor' | 'accountingEntity'>>);
+    mockFileStorageClient.getFileKey.mockReturnValue(key);
     mockFileStorageClient.readFile.mockResolvedValue(storedFile);
     mockJournalEntryExtractionQueue.add.mockResolvedValue(undefined);
   });

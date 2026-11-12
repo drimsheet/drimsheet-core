@@ -68,6 +68,13 @@ function isMissingObjectError(error: unknown) {
   );
 }
 
+/** Builds the canonical user- and purpose-scoped object key. */
+function makeGetFileKey(): IFileStorageClient['getFileKey'] {
+  return ({ userId, purpose, reference }) => {
+    return `${userId}/${purpose}/${reference}`;
+  };
+}
+
 /**
  * Creates the storage capability that prepares a presigned object write.
  */
@@ -220,6 +227,7 @@ export default function makeBlackblazeClient(
     config,
   };
   const storageClient: IFileStorageClient = {
+    getFileKey: makeGetFileKey(),
     preSignUpload: makePreSignUpload(deps),
     getDownloadUrl: makeGetDownloadUrl(deps),
     readFile: makeReadFile(deps),

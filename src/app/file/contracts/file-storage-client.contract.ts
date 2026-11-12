@@ -1,3 +1,11 @@
+import { UFileUploadPurpose } from '@app/file/types/file.types';
+
+interface IGetFileKeyPayload {
+  userId: string;
+  purpose: UFileUploadPurpose;
+  reference: string;
+}
+
 interface IPreSignFileUploadPayload {
   key: string;
   contentType: string;
@@ -29,6 +37,9 @@ interface IStoredFile {
 }
 
 export default interface IFileStorageClient {
+  /** Builds the canonical object key used for upload signing and claiming. */
+  getFileKey(payload: IGetFileKeyPayload): string;
+
   preSignUpload(
     payload: IPreSignFileUploadPayload
   ): Promise<IFileUploadInstruction>;

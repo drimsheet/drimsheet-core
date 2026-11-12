@@ -63,7 +63,11 @@ async function claimUpload(
     throw new fileAppError.InvalidUploadReference({ reference });
   }
 
-  const key = `${payload.userId}/${payload.purpose}/${reference}`;
+  const key = deps.fileStorageClient.getFileKey({
+    userId: payload.userId,
+    purpose: payload.purpose,
+    reference,
+  });
   let storedFile;
 
   try {
@@ -140,8 +144,13 @@ function makePreSignUploads(
 
       const signedUploads = await Promise.all(
         uploadRequests.map(async (uploadRequest) => {
+          const key = deps.fileStorageClient.getFileKey({
+            userId: payload.userId,
+            purpose: uploadRequest.file.purpose,
+            reference: uploadRequest.reference,
+          });
           const upload = await deps.fileStorageClient.preSignUpload({
-            key: `${payload.userId}/${uploadRequest.file.purpose}/${uploadRequest.reference}`,
+            key,
             contentType: uploadRequest.contentType,
             metadata: Object.freeze({
               [ORIGINAL_NAME_METADATA_KEY]: uploadRequest.encodedName,

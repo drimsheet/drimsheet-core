@@ -8,6 +8,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 import fileAppError from '@app/file/errors/file.error';
+import { EFileUploadPurpose } from '@app/file/types/file.types';
 
 import makeBlackblazeClient from '@infra/integrations/blackblaze/blackblaze-client';
 
@@ -42,6 +43,23 @@ describe('blackblazeClient', () => {
   it('defers S3 client setup until a storage operation is requested', () => {
     expect(() => makeBlackblazeClient({ ...config, region: '' })).not.toThrow();
   });
+
+  it.each(Object.values(EFileUploadPurpose))(
+    'builds the canonical storage key for %s',
+    (purpose) => {
+      const client = makeBlackblazeClient(config);
+
+      expect(
+        client.getFileKey({
+          userId: 'user-id',
+          purpose,
+          reference: 'reference',
+        })
+      ).toBe(`user-id/${purpose}/reference`);
+      expect(presign).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
+    }
+  );
 
   it('presigns one PutObject request with metadata-bound instructions', async () => {
     const client = makeBlackblazeClient(config);

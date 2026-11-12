@@ -19,6 +19,7 @@ describe.each([
   const reference = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
   const secondReference = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
   const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
+  const key = 'storage-managed-upload-key';
   const mockedGenerateUUID = jest.mocked(generateUUID);
 
   const getService = () =>
@@ -41,6 +42,7 @@ describe.each([
   beforeEach(() => {
     jest.clearAllMocks();
     mockedGenerateUUID.mockReturnValue(reference);
+    mockFileStorageClient.getFileKey.mockReturnValue(key);
     mockFileStorageClient.preSignUpload.mockResolvedValue({
       uploadUrl: 'https://example.com/file?signature=secret',
       fileUrl: 'https://example.com/file',
@@ -66,8 +68,13 @@ describe.each([
       ],
     });
 
+    expect(mockFileStorageClient.getFileKey).toHaveBeenCalledWith({
+      userId,
+      purpose,
+      reference,
+    });
     expect(mockFileStorageClient.preSignUpload).toHaveBeenNthCalledWith(1, {
-      key: `${userId}/${purpose}/${reference}`,
+      key,
       contentType: 'image/png',
       metadata: {
         'original-name': Buffer.from('  Réçeipt (FINAL).png  ').toString(
@@ -179,8 +186,13 @@ describe.each([
       references: [reference],
     });
 
+    expect(mockFileStorageClient.getFileKey).toHaveBeenCalledWith({
+      userId,
+      purpose,
+      reference,
+    });
     expect(mockFileStorageClient.readFile).toHaveBeenNthCalledWith(1, {
-      key: `${userId}/${purpose}/${reference}`,
+      key,
       range: { start: 0, end: 11 },
     });
     expect(result).toEqual([
@@ -277,9 +289,7 @@ describe.each([
           references: [reference],
         })
       ).rejects.toThrow(ErrorClass);
-      expect(mockFileStorageClient.deleteFile).toHaveBeenCalledWith(
-        `${userId}/${purpose}/${reference}`
-      );
+      expect(mockFileStorageClient.deleteFile).toHaveBeenCalledWith(key);
     }
   );
 
@@ -304,6 +314,7 @@ describe.each([
         references: ['not-a-uuid'],
       })
     ).rejects.toThrow(fileAppError.InvalidUploadReference);
+    expect(mockFileStorageClient.getFileKey).not.toHaveBeenCalled();
     expect(mockFileStorageClient.readFile).not.toHaveBeenCalled();
   });
 
