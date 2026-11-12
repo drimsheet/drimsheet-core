@@ -4,6 +4,7 @@ import makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment
 import makeCreateReceiptUsecase from '@app/journal-entry/usecases/create-receipt.usecase';
 import makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transfer.usecase';
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
+import makeExtractJournalEntryUsecase from '@app/journal-entry/usecases/extract-journal-entry.usecase';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 import makeGetJournalEntryUsecase from '@app/journal-entry/usecases/get-journal-entry.usecase';
 import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post-draft-opening-balance.usecase';
@@ -21,7 +22,11 @@ import makeVoidAndReplaceReceiptUsecase from '@app/journal-entry/usecases/void-a
 import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
 import makeVoidJournalEntryUsecase from '@app/journal-entry/usecases/void-journal-entry.usecase';
 
-import { fileManagementAppService } from '@infra/ioc/services/file';
+import {
+  fileManagementAppService,
+  fileStorageClient,
+  pdfService,
+} from '@infra/ioc/services/file';
 import {
   fxCostBasisLotService,
   fxCostBasisPersistenceAppService,
@@ -42,6 +47,15 @@ import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import appContext from '@infra/services/app-context.service';
+
+export const extractJournalEntryUseCase = makeTracedUseCase(
+  'journalEntry.extractJournalEntryUseCase',
+  makeExtractJournalEntryUsecase({
+    appContext,
+    fileStorageClient,
+    pdfService,
+  })
+);
 
 export const uploadJournalEntryFileUseCase = makeTracedUseCase(
   'journalEntry.uploadJournalEntryFileUseCase',

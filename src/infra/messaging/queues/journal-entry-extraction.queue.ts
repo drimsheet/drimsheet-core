@@ -17,9 +17,10 @@ import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let journalEntryExtractionQueue:
-  Queue<ITraceEnvelope<IJournalEntryExtractionDto>> | undefined;
+  | Queue<ITraceEnvelope<IJournalEntryExtractionDto>>
+  | undefined;
 
-function getJournalEntryExtractionQueue(): Queue<
+export function getJournalEntryExtractionQueue(): Queue<
   ITraceEnvelope<IJournalEntryExtractionDto>
 > {
   journalEntryExtractionQueue ??= new Queue(

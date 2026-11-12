@@ -99,6 +99,46 @@ describe('blackblazeClient', () => {
     ).rejects.toEqual(new fileAppError.UploadUnexpected());
   });
 
+  it.each([
+    'https://s3.us-west-004.backblazeb2.com/drimsheet-files/files/id',
+    'https://drimsheet-files.s3.us-west-004.backblazeb2.com/files/id',
+    'https://s3.us-west-004.backblazeb2.com/drimsheet-files/files/%69d?old=signature#fragment',
+  ])('signs a five-minute download URL for %s', async (fileUrl) => {
+    const client = makeBlackblazeClient(config);
+    const downloadUrl =
+      'https://s3.us-west-004.backblazeb2.com/drimsheet-files/files/id?X-Amz-Signature=download';
+    presign.mockResolvedValue(downloadUrl);
+
+    await expect(client.getDownloadUrl(fileUrl)).resolves.toBe(downloadUrl);
+
+    const [s3Client, command, options] = presign.mock.calls[0];
+    expect(s3Client).toBeInstanceOf(S3Client);
+    expect(command).toBeInstanceOf(GetObjectCommand);
+    expect((command as GetObjectCommand).input).toEqual({
+      Bucket: 'drimsheet-files',
+      Key: 'files/id',
+    });
+    expect(options).toEqual({ expiresIn: 300 });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('maps download signing failures without provider details', async () => {
+    presign.mockRejectedValue(new Error('sensitive provider detail'));
+
+    await expect(
+      makeBlackblazeClient(config).getDownloadUrl(
+        'https://s3.us-west-004.backblazeb2.com/drimsheet-files/files/id'
+      )
+    ).rejects.toEqual(new fileAppError.DownloadUnexpected());
+  });
+
+  it('maps malformed download URLs without calling the signer', async () => {
+    await expect(
+      makeBlackblazeClient(config).getDownloadUrl('not-a-url')
+    ).rejects.toEqual(new fileAppError.DownloadUnexpected());
+    expect(presign).not.toHaveBeenCalled();
+  });
+
   it('reads provider metadata and only the requested byte range', async () => {
     const data = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
     send

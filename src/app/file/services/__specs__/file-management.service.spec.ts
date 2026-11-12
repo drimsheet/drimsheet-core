@@ -47,6 +47,9 @@ describe.each([
       headers: Object.freeze({ 'Content-Type': 'image/png' }),
     });
     mockFileStorageClient.readFile.mockResolvedValue(storedPng);
+    mockFileStorageClient.getDownloadUrl.mockResolvedValue(
+      'https://example.com/file?signature=download'
+    );
     mockFileStorageClient.deleteFile.mockResolvedValue();
   });
 
@@ -190,6 +193,37 @@ describe.each([
     ]);
     expect(Object.isFrozen(result)).toBe(true);
     expect(Object.isFrozen(result[0])).toBe(true);
+  });
+
+  it('gets a signed download URL from a file attachment', async () => {
+    const fileAttachment = {
+      url: storedPng.fileUrl,
+      name: 'receipt.png',
+      type: EFileAttachmentType.Png,
+      size: storedPng.size,
+    };
+
+    await expect(getService().getDownloadUrl(fileAttachment)).resolves.toBe(
+      'https://example.com/file?signature=download'
+    );
+
+    expect(mockFileStorageClient.getDownloadUrl).toHaveBeenCalledWith(
+      fileAttachment.url
+    );
+  });
+
+  it('propagates download signing failures', async () => {
+    const error = new fileAppError.DownloadUnexpected();
+    mockFileStorageClient.getDownloadUrl.mockRejectedValue(error);
+
+    await expect(
+      getService().getDownloadUrl({
+        url: storedPng.fileUrl,
+        name: 'receipt.png',
+        type: EFileAttachmentType.Png,
+        size: storedPng.size,
+      })
+    ).rejects.toBe(error);
   });
 
   it('rejects excessive claim references before reading storage', async () => {

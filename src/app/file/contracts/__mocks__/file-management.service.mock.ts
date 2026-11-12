@@ -3,6 +3,7 @@ import IFileManagementAppService from '@app/file/contracts/file-management.servi
 const mockFileManagementAppService: jest.Mocked<IFileManagementAppService> = {
   preSignUploads: jest.fn(),
   claimUploads: jest.fn(),
+  getDownloadUrl: jest.fn(),
 };
 
 export default mockFileManagementAppService;

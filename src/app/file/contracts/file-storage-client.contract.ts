@@ -33,6 +33,9 @@ export default interface IFileStorageClient {
     payload: IPreSignFileUploadPayload
   ): Promise<IFileUploadInstruction>;
 
+  /** Returns a five-minute signed read URL; rejects signing failures. */
+  getDownloadUrl(fileUrl: string): Promise<string>;
+
   readFile(payload: IReadStoredFilePayload): Promise<IStoredFile | null>;
 
   deleteFile(key: string): Promise<void>;

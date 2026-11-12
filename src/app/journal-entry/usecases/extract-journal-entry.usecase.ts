@@ -3,23 +3,24 @@ import IPdfService from '@shared/contracts/pdf.service.contract';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
+import IFileStorageClient from '@app/file/contracts/file-storage-client.contract';
 import { IJournalEntryExtractionDto } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
+  fileStorageClient: IFileStorageClient;
   pdfService: IPdfService;
 }
 
-function makeExtractJournalEntryUsecase(deps: IDependencies) {
+export default function makeExtractJournalEntryUsecase(deps: IDependencies) {
   return async (payload: IJournalEntryExtractionDto) => {
-    const { actor, accountingEntity, correlationId } = deps.appContext.get([
-      'actor',
-      'accountingEntity',
-    ]);
+    const downloadUrl = await deps.fileStorageClient.getDownloadUrl(
+      payload.file.url
+    );
 
     const pdfTextContent =
       payload.file.type === EFileAttachmentType.Pdf
-        ? deps.pdfService.convertToText(payload.file.url)
+        ? await deps.pdfService.convertToText(downloadUrl)
         : null;
 
     console.log('>>>>>>>>>>>>>>>>', pdfTextContent);

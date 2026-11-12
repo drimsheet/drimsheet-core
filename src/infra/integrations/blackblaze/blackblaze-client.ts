@@ -11,6 +11,7 @@ import IFileStorageClient from '@app/file/contracts/file-storage-client.contract
 import fileAppError from '@app/file/errors/file.error';
 
 const UPLOAD_URL_EXPIRY_SECONDS = 5 * 60;
+const DOWNLOAD_URL_EXPIRY_SECONDS = 5 * 60;
 
 interface IBlackblazeConfig {
   appKeyId: string;
@@ -112,6 +113,35 @@ function makePreSignUpload(
 }
 
 /**
+ * Signs a five-minute object read URL and maps provider signing failures.
+ */
+function makeGetDownloadUrl(
+  deps: IDependencies
+): IFileStorageClient['getDownloadUrl'] {
+  return async (fileUrl) => {
+    try {
+      const url = new URL(fileUrl);
+      const bucketPath = `/${encodeURIComponent(deps.config.bucketName)}/`;
+      const objectPath = url.pathname.startsWith(bucketPath)
+        ? url.pathname.slice(bucketPath.length)
+        : url.pathname.slice(1);
+      const key = decodeURIComponent(objectPath);
+
+      return await getSignedUrl(
+        deps.getClient(),
+        new GetObjectCommand({
+          Bucket: deps.config.bucketName,
+          Key: key,
+        }),
+        { expiresIn: DOWNLOAD_URL_EXPIRY_SECONDS }
+      );
+    } catch {
+      throw new fileAppError.DownloadUnexpected();
+    }
+  };
+}
+
+/**
  * Creates the storage capability that reads object data and provider metadata.
  */
 function makeReadFile(deps: IDependencies): IFileStorageClient['readFile'] {
@@ -191,6 +221,7 @@ export default function makeBlackblazeClient(
   };
   const storageClient: IFileStorageClient = {
     preSignUpload: makePreSignUpload(deps),
+    getDownloadUrl: makeGetDownloadUrl(deps),
     readFile: makeReadFile(deps),
     deleteFile: makeDeleteFile(deps),
   };
