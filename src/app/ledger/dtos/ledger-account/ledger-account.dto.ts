@@ -1,7 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 import { IPaginationDto } from '@shared/values/pagination/dto/pagination.dto';
 
-import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
+import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.types';
 import {
   ULedgerAccountCurrencyUpdateReason,
   ULedgerAccountDeletionReason,

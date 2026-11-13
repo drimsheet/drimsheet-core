@@ -8,7 +8,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import {
   ELedgerAccountBehavior,
   ULedgerAccountBehavior,
-} from '@domain/ledger/types/account-behaviors.tyypes';
+} from '@domain/ledger/types/account-behaviors.types';
 import {
   ELedgerAccountSubType,
   ULedgerAccountSubType,

@@ -1,3 +1,5 @@
+// TODO: move to aggregate
+
 import { EAssetAccountBehavior } from './asset-account.types';
 import { EEquityAccountBehavior } from './equity-account.types';
 import { EExpenseAccountBehavior } from './expense-account.types';

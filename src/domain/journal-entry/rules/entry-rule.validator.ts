@@ -1,5 +1,5 @@
 import { IJournalEntryRulePermits } from '@domain/journal-entry/types/entry.rules.types';
-import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
+import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.types';
 import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
 import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 

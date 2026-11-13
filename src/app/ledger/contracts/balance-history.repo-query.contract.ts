@@ -2,7 +2,7 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 import { IDateRange } from '@shared/values/date-range/types/date-range.types';
 
-import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
+import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.types';
 import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
 import { ULedgerType, UNormalBalance } from '@domain/ledger/types/ledger.types';
 import { UCurrencyCode } from '@domain/money/config/currencies.config';

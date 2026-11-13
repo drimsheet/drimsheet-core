@@ -5,7 +5,7 @@ import {
 import { TEntityId } from '@shared/types/uuid';
 import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
 
-import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
+import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.types';
 import { UAssetSubType } from '@domain/ledger/types/asset-account.types';
 import { UEquitySubType } from '@domain/ledger/types/equity-account.types';
 import { UExpenseSubType } from '@domain/ledger/types/expense-account.types';
