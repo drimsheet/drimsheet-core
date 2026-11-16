@@ -3,10 +3,10 @@ import generateUUID from '@shared/utils/uuid-generator';
 import fileAttachmentValue from '@shared/values/file-attachments/file-attachment.vo';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
+import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import IFileManagementAppService, {
   IClaimManagedFileUploadsPayload,
-} from '@app/file/contracts/file-management.service.contract';
-import IFileStorageClient from '@app/file/contracts/file-storage-client.contract';
+} from '@app/file/contracts/services/file-management.service.contract';
 import fileAppError from '@app/file/errors/file.error';
 import fileUploadPolicy from '@app/file/policies/file-upload.policy';
 import { UFileUploadPurpose } from '@app/file/types/file.types';

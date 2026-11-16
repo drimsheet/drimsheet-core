@@ -8,7 +8,7 @@ import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 import makeGetCounterpartyDeletionEligibilityUsecase from '@app/counterparty/usecases/get-counterparty-deletion-eligibility.usecase';
-import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
+import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/query-repos/__mocks__/journal-entry.query.repo.mock';
 
 describe('get counterparty deletion eligibility use case', () => {
   const actorId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;

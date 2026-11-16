@@ -2,7 +2,7 @@ import { InferSelectModel } from 'drizzle-orm';
 
 import { TEntityId } from '@shared/types/uuid';
 
-import { IUserSession } from '@app/auth/contracts/auth.types';
+import { IUserSession } from '@app/auth/types/auth.types';
 
 import { userSessionsInCore } from '@infra/config/drizzle/schema';
 import {

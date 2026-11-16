@@ -38,7 +38,6 @@ import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import {
   mockAssetAccountService,
   mockAssetDisposalLossAccountService,
@@ -65,6 +64,7 @@ import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/services/__mocks__/ledger-account-persistence.service.mock';
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
 import makeLedgerAccountPersistenceAppService from '@app/ledger/services/ledger-account-persistence.service';
 import makeGetRecommendedBootstrapUsecase from '@app/ledger/usecases/get-recommended-bootstrap.usecase';

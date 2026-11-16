@@ -9,7 +9,7 @@ import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/ac
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeSwitchAccountingEntityUsecase from '@app/accounting/usecases/switch-accounting-entity.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
+import mockUserPreferencesAppService from '@app/user/contracts/services/__mocks__/user-preferences.service.mock';
 
 const actor = {
   ...actorEntity.makeUser({

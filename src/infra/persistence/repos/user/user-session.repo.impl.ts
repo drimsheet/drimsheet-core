@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 
-import IUserSessionRepo from '@app/auth/contracts/user-session.repo.contract';
+import IUserSessionRepo from '@app/auth/contracts/repos/user-session.repo.contract';
 
 import { userSessionsInCore as userSessions } from '@infra/config/drizzle/schema';
 import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';

@@ -15,8 +15,8 @@
 
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
-import ITokenAppService from '@app/auth/contracts/token-service.contract';
-import IUserSessionRepo from '@app/auth/contracts/user-session.repo.contract';
+import IUserSessionRepo from '@app/auth/contracts/repos/user-session.repo.contract';
+import ITokenAppService from '@app/auth/contracts/services/token-service.contract';
 import authError from '@app/auth/errors/auth.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
 

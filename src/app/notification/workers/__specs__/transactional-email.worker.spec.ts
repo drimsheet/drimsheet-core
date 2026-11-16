@@ -1,6 +1,6 @@
 import appError from '@shared/values/errors/app.error';
 
-import mockTransactionalEmailAgent from '@app/notification/contracts/__mocks__/transactional-email-agent.mock';
+import mockTransactionalEmailAgent from '@app/notification/contracts/clients/__mocks__/transactional-email-agent.mock';
 import { ITransactionalEmailDto } from '@app/notification/dtos/transactional-email/transactional-email.dto';
 import makeTransactionalEmailWorker from '@app/notification/workers/transactional-email.worker';
 

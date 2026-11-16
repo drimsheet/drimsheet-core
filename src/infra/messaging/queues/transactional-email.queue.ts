@@ -9,7 +9,7 @@ import { ITraceEnvelope } from '@shared/types/observability.types';
 
 import ITransactionalEmailQueue, {
   TRANSACTIONAL_EMAIL_QUEUE_NAME,
-} from '@app/notification/contracts/transactional-email-queue.contract';
+} from '@app/notification/contracts/queues/transactional-email-queue.contract';
 import { ITransactionalEmailDto } from '@app/notification/dtos/transactional-email/transactional-email.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
@@ -17,7 +17,8 @@ import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let transactionalEmailQueue:
-  Queue<ITraceEnvelope<ITransactionalEmailDto>> | undefined;
+  | Queue<ITraceEnvelope<ITransactionalEmailDto>>
+  | undefined;
 
 export function getTransactionalEmailQueue(): Queue<
   ITraceEnvelope<ITransactionalEmailDto>

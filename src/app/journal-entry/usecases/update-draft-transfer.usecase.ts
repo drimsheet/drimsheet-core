@@ -24,8 +24,8 @@ import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import { ITransferEntryService } from '@domain/journal-entry/types/transfer-entry.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
-import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IFileManagementAppService from '@app/file/contracts/services/file-management.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/journal-entry-persistence.service.contract';
 import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { IUpdateDraftTransferReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';

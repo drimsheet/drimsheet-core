@@ -16,7 +16,7 @@ import IAppContextService from '@shared/contracts/app-context.service.contract';
 import appError from '@shared/values/errors/app.error';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
+import IUserPreferencesRepo from '@app/user/contracts/repos/user-preferences.repo.contract';
 import { IUserPreferences } from '@app/user/types/user-preferences.types';
 
 interface IDependencies {

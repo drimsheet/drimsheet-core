@@ -16,7 +16,7 @@ import {
 } from '@domain/ledger/types/ledger.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 
@@ -39,8 +39,9 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual<
-    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
-  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+    typeof import('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+    .default,
 }));
 
 jest.mock('@infra/ioc/services/auth', () => ({

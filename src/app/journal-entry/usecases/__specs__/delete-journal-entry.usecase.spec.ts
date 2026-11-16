@@ -15,7 +15,6 @@ import moneyValue from '@domain/money/values/money.vo';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import {
   mockJournalEntryAttachmentRepo,
   mockJournalEntryHistoryRepo,
@@ -23,6 +22,7 @@ import {
   mockJournalLineHistoryRepo,
   mockJournalLineRepo,
 } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/__mocks__/journal-entry-persistence.service.mock';
 import makeJournalEntryPersistenceAppService from '@app/journal-entry/services/journal-entry-persistence.service';
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';

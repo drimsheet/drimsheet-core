@@ -14,7 +14,7 @@
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 import dateUtils from '@shared/utils/date';
 
-import INextCurrentReportingPeriodQueryRepo from '@app/accounting/contracts/next-current-reporting-period.query.repo.contract';
+import INextCurrentReportingPeriodQueryRepo from '@app/accounting/contracts/query-repos/next-current-reporting-period.query.repo.contract';
 import { INextCurrentReportingPeriodDto } from '@app/accounting/dtos/current-reporting-period/current-reporting-period.dto';
 import { IAppContextData } from '@app/context/types/app-context.types';
 

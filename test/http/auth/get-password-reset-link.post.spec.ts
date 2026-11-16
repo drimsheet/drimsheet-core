@@ -6,7 +6,7 @@ import request from 'supertest';
 import appError from '@shared/values/errors/app.error';
 
 import { IRequestPasswordResetReq } from '@app/auth/dtos/auth/auth.dto';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 
 import { makeIpRateLimitKey } from '@infra/config/rate-limiter.config';
 import middlewares from '@infra/ioc/middlewares/http';
@@ -26,8 +26,9 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual<
-    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
-  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+    typeof import('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+    .default,
 }));
 
 const ENDPOINT = '/api/v1/auth/get-password-reset-link';

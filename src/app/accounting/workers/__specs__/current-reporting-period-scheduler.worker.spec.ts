@@ -1,6 +1,6 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
-import mockCurrentReportingPeriodQueue from '@app/accounting/contracts/__mocks__/current-reporting-period-queue.mock';
+import mockCurrentReportingPeriodQueue from '@app/accounting/contracts/queues/__mocks__/current-reporting-period-queue.mock';
 import { INextCurrentReportingPeriodDto } from '@app/accounting/dtos/current-reporting-period/current-reporting-period.dto';
 import makeCurrentReportingPeriodSchedulerWorker from '@app/accounting/workers/current-reporting-period-scheduler.worker';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';

@@ -1,4 +1,4 @@
-import ITransactionalEmailTemplate from '@app/notification/contracts/transactional-email-template.contract';
+import ITransactionalEmailTemplate from '@app/notification/contracts/templates/transactional-email-template.contract';
 
 import emailVerificationEmailTemplate from './email-verification-email';
 import passwordResetRequestEmailTemplate from './password-reset-request-email';

@@ -8,7 +8,7 @@ import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balan
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
-import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/services/ledger-account-persistence.service.contract';
 
 interface IDependencies {
   ledgerAccountBalanceRepo: ILedgerAccountBalanceRepo;

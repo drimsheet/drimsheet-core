@@ -21,7 +21,7 @@ import { IAccountingEntitySwitchReq } from '@app/accounting/dtos/accounting/acco
 import { accountingEntitySwitchReqSchema } from '@app/accounting/dtos/accounting/accounting.dto.validation';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
+import IUserPreferencesAppService from '@app/user/contracts/services/user-preferences.service.contract';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;

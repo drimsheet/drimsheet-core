@@ -1,6 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import { EAuthStrategy, IUserAuth } from '@app/auth/contracts/auth.types';
+import { EAuthStrategy, IUserAuth } from '@app/auth/types/auth.types';
 
 import userAuthMapper, {
   IUserAuthModel,

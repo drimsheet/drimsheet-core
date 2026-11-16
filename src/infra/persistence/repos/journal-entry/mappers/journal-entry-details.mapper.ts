@@ -3,7 +3,7 @@ import { TEntityId } from '@shared/types/uuid';
 import {
   IJournalEntryDetails,
   IJournalLineDetails,
-} from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+} from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 
 import { fromRepoDate } from '@infra/persistence/helpers/date.mapper';
 import { ICounterpartyModel } from '@infra/persistence/repos/counterparty/mappers/counterparty.mapper';

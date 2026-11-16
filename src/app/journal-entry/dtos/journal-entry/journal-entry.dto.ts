@@ -11,7 +11,7 @@ import { UJournalSide } from '@domain/journal-entry/types/journal-line.types';
 import { ULedgerType } from '@domain/ledger/types/ledger.types';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 
-import { UJournalEntrySortBy } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import { UJournalEntrySortBy } from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import { IMoneyDto } from '@app/money/dtos/money/money.dto';
 

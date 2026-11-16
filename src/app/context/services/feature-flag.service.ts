@@ -1,6 +1,6 @@
 import IFeatureFlagService from '@shared/contracts/feature-flag.service.contract';
 
-import IFeatureFlagAppService from '@app/context/contracts/feature-flag.service.contract';
+import IFeatureFlagAppService from '@app/context/contracts/services/feature-flag.service.contract';
 
 interface IDependencies {
   featureFlagService: IFeatureFlagService;

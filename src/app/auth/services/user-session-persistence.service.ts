@@ -3,8 +3,8 @@ import {
   TRepoTransactionFn,
 } from '@shared/contracts/repo.contract';
 
-import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
-import IUserSessionRepo from '@app/auth/contracts/user-session.repo.contract';
+import IUserSessionRepo from '@app/auth/contracts/repos/user-session.repo.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/services/user-session-persistence.service.contract';
 
 interface IDependencies {
   userSessionRepo: IUserSessionRepo;

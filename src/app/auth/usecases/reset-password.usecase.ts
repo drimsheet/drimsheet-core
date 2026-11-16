@@ -32,14 +32,14 @@ import IUserRepo from '@domain/user/repos/user.repo';
 import IActorService from '@domain/user/types/actor.service.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import IPasswordAppService from '@app/auth/contracts/password-service.contract';
-import ITokenAppService from '@app/auth/contracts/token-service.contract';
-import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
-import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
-import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
+import IUserAuthRepo from '@app/auth/contracts/repos/user-auth.repo.contract';
+import IPasswordAppService from '@app/auth/contracts/services/password-service.contract';
+import ITokenAppService from '@app/auth/contracts/services/token-service.contract';
+import IUserAuthAppService from '@app/auth/contracts/services/user-auth.service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/services/user-session-persistence.service.contract';
 import IUserSessionAppService, {
   IPreparedUserSession,
-} from '@app/auth/contracts/user-session.service.contract';
+} from '@app/auth/contracts/services/user-session.service.contract';
 import { IAccessToken, IResetPasswordReq } from '@app/auth/dtos/auth/auth.dto';
 import { resetPasswordReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
 import authError from '@app/auth/errors/auth.error';

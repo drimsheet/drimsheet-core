@@ -7,7 +7,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-import IFileStorageClient from '@app/file/contracts/file-storage-client.contract';
+import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import fileAppError from '@app/file/errors/file.error';
 
 const UPLOAD_URL_EXPIRY_SECONDS = 5 * 60;

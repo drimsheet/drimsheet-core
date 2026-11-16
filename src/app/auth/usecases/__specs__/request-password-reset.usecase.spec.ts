@@ -8,13 +8,13 @@ import userEvents from '@domain/user/events/user.events';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock';
-import { IUserAuth } from '@app/auth/contracts/auth.types';
+import mockUserAuthRepo from '@app/auth/contracts/repos/__mocks__/user-auth.repo.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
+import { IUserAuth } from '@app/auth/types/auth.types';
 import makeRequestPasswordResetUseCase from '@app/auth/usecases/request-password-reset.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockTransactionalEmailAppService from '@app/notification/contracts/__mocks__/transactional-email-service.mock';
+import mockTransactionalEmailAppService from '@app/notification/contracts/services/__mocks__/transactional-email-service.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 describe('makeRequestPasswordResetUseCase', () => {

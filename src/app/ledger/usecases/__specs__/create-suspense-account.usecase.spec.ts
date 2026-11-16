@@ -13,9 +13,9 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockPersistence from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import { mockSuspenseAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockPersistence from '@app/ledger/contracts/services/__mocks__/ledger-account-persistence.service.mock';
 import { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/suspense-account.dto';
 import makeCreateSuspenseAccountUsecase from '@app/ledger/usecases/create-suspense-account.usecase';
 

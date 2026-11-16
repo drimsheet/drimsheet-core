@@ -10,8 +10,8 @@ import {
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockExchangeRateProvider from '@app/money/contracts/__mocks__/exchange-rate-provider.mock';
 import { mockExchangeRateRepo } from '@app/money/contracts/__mocks__/money.repos.mock';
+import mockExchangeRateProvider from '@app/money/contracts/providers/__mocks__/exchange-rate-provider.mock';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import makeIngestExchangeRateUseCase from '@app/money/usecases/ingest-exchange-rate.usecase';
 

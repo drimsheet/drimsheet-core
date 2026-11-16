@@ -31,7 +31,7 @@ import IExchangeRateRepo from '@domain/money/repos/exchange-rate.repo';
 import exchangeRateValue from '@domain/money/values/exchange-rate.vo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IExchangeRateProvider from '@app/money/contracts/exchange-rate-provider.contract';
+import IExchangeRateProvider from '@app/money/contracts/providers/exchange-rate-provider.contract';
 import { IExchangeRateIngestionDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import { exchangeRateIngestionDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 

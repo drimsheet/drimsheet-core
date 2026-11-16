@@ -27,7 +27,7 @@ import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
+import IUserPreferencesRepo from '@app/user/contracts/repos/user-preferences.repo.contract';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;

@@ -3,10 +3,10 @@ import type { Worker } from 'bullmq';
 import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import { CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-accounting-period-queue.contract';
+import { CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/queues/current-accounting-period-queue.contract';
 import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
-import { LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME } from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
-import { TRANSACTIONAL_EMAIL_QUEUE_NAME } from '@app/notification/contracts/transactional-email-queue.contract';
+import { LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME } from '@app/ledger/contracts/queues/ledger-balance-adjustment-queue.contract';
+import { TRANSACTIONAL_EMAIL_QUEUE_NAME } from '@app/notification/contracts/queues/transactional-email-queue.contract';
 
 const mockQueueConstructor = jest.fn();
 const mockQueueClose = jest.fn<Promise<void>, [name: string]>();

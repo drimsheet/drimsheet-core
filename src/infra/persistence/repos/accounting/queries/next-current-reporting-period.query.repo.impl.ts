@@ -1,6 +1,6 @@
 import { lt } from 'drizzle-orm';
 
-import INextCurrentReportingPeriodQueryRepo from '@app/accounting/contracts/next-current-reporting-period.query.repo.contract';
+import INextCurrentReportingPeriodQueryRepo from '@app/accounting/contracts/query-repos/next-current-reporting-period.query.repo.contract';
 
 import { reportingIntervalsInCore } from '@infra/config/drizzle/schema';
 import { toRepoDate } from '@infra/persistence/helpers/date.mapper';

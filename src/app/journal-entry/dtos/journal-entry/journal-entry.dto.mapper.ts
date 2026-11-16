@@ -1,7 +1,7 @@
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 import { IJournalLine } from '@domain/journal-entry/types/journal-line.types';
 
-import { IJournalEntryDetails } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import { IJournalEntryDetails } from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
 
 import {

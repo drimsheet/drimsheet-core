@@ -2,7 +2,7 @@ import { InferSelectModel } from 'drizzle-orm';
 
 import { TEntityId } from '@shared/types/uuid';
 
-import { IUserAuth, UAuthStrategy } from '@app/auth/contracts/auth.types';
+import { IUserAuth, UAuthStrategy } from '@app/auth/types/auth.types';
 
 import { userAuthInCore } from '@infra/config/drizzle/schema';
 import {

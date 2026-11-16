@@ -6,10 +6,10 @@ import { IActor } from '@domain/user/types/actor.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockFileStorageClient from '@app/file/contracts/__mocks__/file-storage-client.mock';
+import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import fileAppError from '@app/file/errors/file.error';
 import makeFileManagementAppService from '@app/file/services/file-management.service';
-import mockJournalEntryExtractionQueue from '@app/journal-entry/contracts/__mocks__/journal-entry-extraction-queue.mock';
+import mockJournalEntryExtractionQueue from '@app/journal-entry/contracts/queues/__mocks__/journal-entry-extraction-queue.mock';
 import { IJournalEntryUploadReq } from '@app/journal-entry/dtos/journal-entry-upload/journal-entry-upload.dto';
 import makeUploadJournalEntryFileUsecase from '@app/journal-entry/usecases/upload-journal-entry-file.usecase';
 

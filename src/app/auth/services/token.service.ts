@@ -11,7 +11,7 @@ import { ICacheStorage } from '@shared/contracts/cache-storage.contract';
 import ITokenAppService, {
   IAuthTokenPayload,
   IPasswordResetTokenClaim,
-} from '@app/auth/contracts/token-service.contract';
+} from '@app/auth/contracts/services/token-service.contract';
 import authError from '@app/auth/errors/auth.error';
 
 interface IDependencies {

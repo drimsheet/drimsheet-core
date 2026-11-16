@@ -10,7 +10,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 import moneyValue from '@domain/money/values/money.vo';
 
-import { IJournalEntryDetails } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import { IJournalEntryDetails } from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 
 describe('Journal Entry DTO Mapper', () => {

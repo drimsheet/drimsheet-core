@@ -8,7 +8,7 @@ import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import type { TBalanceHistoryRepoQuery } from '@app/ledger/contracts/balance-history.repo-query.contract';
+import type { TBalanceHistoryRepoQuery } from '@app/ledger/contracts/query-repos/balance-history.repo-query.contract';
 import reportingError from '@app/ledger/errors/reporting.error';
 
 import makeGetBalanceHistoryByTypeUsecase from './balance-history-by-type.usecase';

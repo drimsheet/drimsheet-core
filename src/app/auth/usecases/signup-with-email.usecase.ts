@@ -32,13 +32,13 @@ import IActorService from '@domain/user/types/actor.service.types';
 import IUserIdentityService from '@domain/user/types/user-identity.service.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import { EAuthStrategy } from '@app/auth/contracts/auth.types';
-import IEmailVerificationAppService from '@app/auth/contracts/email-verification-service.contract';
-import IPasswordAppService from '@app/auth/contracts/password-service.contract';
-import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
-import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
+import IUserAuthRepo from '@app/auth/contracts/repos/user-auth.repo.contract';
+import IEmailVerificationAppService from '@app/auth/contracts/services/email-verification-service.contract';
+import IPasswordAppService from '@app/auth/contracts/services/password-service.contract';
+import IUserAuthAppService from '@app/auth/contracts/services/user-auth.service.contract';
 import { IUserSignupReq } from '@app/auth/dtos/auth/auth.dto';
 import { userSignupReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
+import { EAuthStrategy } from '@app/auth/types/auth.types';
 import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {

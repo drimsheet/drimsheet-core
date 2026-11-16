@@ -1,7 +1,7 @@
 import ILogger from '@shared/contracts/logger.contract';
 import { ELogOutcome } from '@shared/types/observability.types';
 
-import IExchangeRateProvider from '@app/money/contracts/exchange-rate-provider.contract';
+import IExchangeRateProvider from '@app/money/contracts/providers/exchange-rate-provider.contract';
 
 import { fetchCbnExchangeRates } from './cbn-exchange-rate.client';
 import { mapCbnExchangeRates } from './cbn-exchange-rate.mapper';

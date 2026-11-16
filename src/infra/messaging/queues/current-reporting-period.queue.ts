@@ -5,7 +5,7 @@ import { ITraceEnvelope } from '@shared/types/observability.types';
 
 import ICurrentReportingPeriodQueue, {
   CURRENT_REPORTING_PERIOD_QUEUE_NAME,
-} from '@app/accounting/contracts/current-reporting-period-queue.contract';
+} from '@app/accounting/contracts/queues/current-reporting-period-queue.contract';
 import { INextCurrentReportingPeriodDto } from '@app/accounting/dtos/current-reporting-period/current-reporting-period.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
@@ -13,7 +13,8 @@ import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let currentReportingPeriodQueue:
-  Queue<ITraceEnvelope<INextCurrentReportingPeriodDto>> | undefined;
+  | Queue<ITraceEnvelope<INextCurrentReportingPeriodDto>>
+  | undefined;
 
 function getCurrentReportingPeriodQueue(): Queue<
   ITraceEnvelope<INextCurrentReportingPeriodDto>

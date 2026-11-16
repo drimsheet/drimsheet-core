@@ -14,11 +14,11 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
 import {
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockLedgerAccountQueryRepo from '@app/ledger/contracts/query-repos/__mocks__/ledger-account.query.repo.mock';
 import makeGetLedgerSubAccountsUsecase from '@app/ledger/usecases/get-ledger-sub-accounts.usecase';
 
 describe('getLedgerSubAccountsUsecase', () => {

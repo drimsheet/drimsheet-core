@@ -16,7 +16,7 @@ import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
+import IUserPreferencesAppService from '@app/user/contracts/services/user-preferences.service.contract';
 import { IUserPreferencesUpdateDto } from '@app/user/dtos/user/user.dto';
 import { userPreferencesUpdateDtoSchema } from '@app/user/dtos/user/user.dto.validation';
 import { IUserPreferences } from '@app/user/types/user-preferences.types';

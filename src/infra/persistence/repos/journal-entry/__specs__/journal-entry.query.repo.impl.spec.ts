@@ -5,7 +5,7 @@ import { PgDialect, QueryBuilder } from 'drizzle-orm/pg-core';
 import { TEntityId } from '@shared/types/uuid';
 import paginationValue from '@shared/values/pagination/pagination.vo';
 
-import { IFindAllJournalEntriesOptions } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import { IFindAllJournalEntriesOptions } from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 
 import * as relations from '@infra/config/drizzle/relations';
 import {

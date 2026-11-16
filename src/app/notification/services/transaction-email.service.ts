@@ -1,9 +1,9 @@
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ITransactionalEmailQueue from '@app/notification/contracts/transactional-email-queue.contract';
-import ITransactionalEmailAppService from '@app/notification/contracts/transactional-email-service.contract';
-import ITransactionalEmailTemplate from '@app/notification/contracts/transactional-email-template.contract';
+import ITransactionalEmailQueue from '@app/notification/contracts/queues/transactional-email-queue.contract';
+import ITransactionalEmailAppService from '@app/notification/contracts/services/transactional-email-service.contract';
+import ITransactionalEmailTemplate from '@app/notification/contracts/templates/transactional-email-template.contract';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;

@@ -9,8 +9,8 @@ import moneyValue from '@domain/money/values/money.vo';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
-import { IJournalEntryDetails } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/query-repos/__mocks__/journal-entry.query.repo.mock';
+import { IJournalEntryDetails } from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 

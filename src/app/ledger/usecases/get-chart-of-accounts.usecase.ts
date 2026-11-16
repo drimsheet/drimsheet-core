@@ -19,7 +19,7 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balance.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountQueryRepo from '@app/ledger/contracts/ledger-account.query.repo.contract';
+import ILedgerAccountQueryRepo from '@app/ledger/contracts/query-repos/ledger-account.query.repo.contract';
 import {
   IChartOfAccountsNodeDto,
   IGetChartOfAccountsQuery,

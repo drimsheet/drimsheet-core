@@ -1,5 +1,5 @@
-import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
-import IUserPreferencesAppService from '@app/user/contracts/user-preferences.service.contract';
+import IUserPreferencesRepo from '@app/user/contracts/repos/user-preferences.repo.contract';
+import IUserPreferencesAppService from '@app/user/contracts/services/user-preferences.service.contract';
 import userPreferencesAppError from '@app/user/errors/user-preferences.error';
 import { IUserAppPreferences } from '@app/user/types/user-preferences.types';
 

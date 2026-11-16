@@ -1,6 +1,6 @@
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
-import { IBalanceHistoryRepoQueryOutput } from '@app/ledger/contracts/balance-history.repo-query.contract';
+import { IBalanceHistoryRepoQueryOutput } from '@app/ledger/contracts/query-repos/balance-history.repo-query.contract';
 import reportingError from '@app/ledger/errors/reporting.error';
 import buildBalanceHistoryHelper from '@app/ledger/usecases/helpers/reporting/build-balance-history.helper';
 

@@ -3,8 +3,8 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockQueue from '@app/notification/contracts/__mocks__/transactional-email-queue.mock';
-import mockTransactionalEmailTemplate from '@app/notification/contracts/__mocks__/transactional-email-template.mock';
+import mockQueue from '@app/notification/contracts/queues/__mocks__/transactional-email-queue.mock';
+import mockTransactionalEmailTemplate from '@app/notification/contracts/templates/__mocks__/transactional-email-template.mock';
 import makeTransactionalEmailAppService from '@app/notification/services/transaction-email.service';
 
 describe('transactionEmailAppService', () => {

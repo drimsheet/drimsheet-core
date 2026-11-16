@@ -7,10 +7,10 @@ import makeUserIdentityService from '@domain/user/services/user-identity.service
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock';
-import mockUserAuthAppService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
-import { EAuthStrategy, IUserAuth } from '@app/auth/contracts/auth.types';
+import mockUserAuthRepo from '@app/auth/contracts/repos/__mocks__/user-auth.repo.mock';
+import mockUserAuthAppService from '@app/auth/contracts/services/__mocks__/user-auth.service.mock';
 import { IOAuthProfile } from '@app/auth/dtos/auth/auth.dto';
+import { EAuthStrategy, IUserAuth } from '@app/auth/types/auth.types';
 import makeLoginWithGoogleUseCase from '@app/auth/usecases/login-with-google.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';

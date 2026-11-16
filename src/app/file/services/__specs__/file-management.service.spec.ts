@@ -2,7 +2,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import mockFileStorageClient from '@app/file/contracts/__mocks__/file-storage-client.mock';
+import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import fileAppError from '@app/file/errors/file.error';
 import makeFileManagementAppService from '@app/file/services/file-management.service';
 import { EFileUploadPurpose } from '@app/file/types/file.types';

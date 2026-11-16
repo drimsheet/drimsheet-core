@@ -10,7 +10,7 @@ import { ICounterparty } from '@domain/counterparty/types/counterparty.types';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockFiscalYearRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
@@ -40,7 +40,7 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual(
-    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+    '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock'
   ).default,
 }));
 jest.mock('@infra/ioc/services/auth', () => ({

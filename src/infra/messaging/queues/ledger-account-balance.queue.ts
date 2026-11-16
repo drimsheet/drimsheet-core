@@ -9,7 +9,7 @@ import { ITraceEnvelope } from '@shared/types/observability.types';
 
 import ILedgerBalanceAdjustmentQueue, {
   LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME,
-} from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
+} from '@app/ledger/contracts/queues/ledger-balance-adjustment-queue.contract';
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
@@ -17,7 +17,8 @@ import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 
 let ledgerAccountBalanceAdjustmentQueue:
-  Queue<ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>> | undefined;
+  | Queue<ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>>
+  | undefined;
 
 export function getLedgerAccountBalanceAdjustmentQueue(): Queue<
   ITraceEnvelope<ILedgerAccountBalanceAdjustmentDto>

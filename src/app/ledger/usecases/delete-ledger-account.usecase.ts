@@ -28,7 +28,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import ILedgerAccountService from '@domain/ledger/types/ledger-account.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/journal-entry-persistence.service.contract';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;

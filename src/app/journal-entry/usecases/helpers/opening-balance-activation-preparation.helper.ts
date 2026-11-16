@@ -4,7 +4,7 @@ import { IOpeningBalanceEntryService } from '@domain/journal-entry/types/opening
 import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
-import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
+import IExchangeRateAppService from '@app/money/contracts/services/exchange-rate.service.contract';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 interface IDependencies {

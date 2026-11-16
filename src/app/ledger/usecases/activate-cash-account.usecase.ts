@@ -35,14 +35,14 @@ import ICashAccountService from '@domain/ledger/types/cash-account.service.types
 import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
-import IJournalEntryQueryRepo from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import IJournalEntryQueryRepo from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/journal-entry-persistence.service.contract';
 import openingBalanceActivationPreparationHelper from '@app/journal-entry/usecases/helpers/opening-balance-activation-preparation.helper';
-import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
+import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/queues/ledger-balance-adjustment-queue.contract';
 import { ICashAccountActivationDto } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { cashAccountActivationDtoValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
-import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
-import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IExchangeRateAppService from '@app/money/contracts/services/exchange-rate.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/services/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 
 interface IDependencies {

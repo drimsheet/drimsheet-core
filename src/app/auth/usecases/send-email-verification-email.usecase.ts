@@ -22,7 +22,7 @@ import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import IUserRepo from '@domain/user/repos/user.repo';
 import emailValue from '@domain/user/values/email.vo';
 
-import IEmailVerificationAppService from '@app/auth/contracts/email-verification-service.contract';
+import IEmailVerificationAppService from '@app/auth/contracts/services/email-verification-service.contract';
 import authError from '@app/auth/errors/auth.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
 

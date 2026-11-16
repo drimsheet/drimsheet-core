@@ -21,7 +21,7 @@ import ILedgerAccountBalanceRepo from '@domain/ledger/repos/ledger-account-balan
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountQueryRepo from '@app/ledger/contracts/ledger-account.query.repo.contract';
+import ILedgerAccountQueryRepo from '@app/ledger/contracts/query-repos/ledger-account.query.repo.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';

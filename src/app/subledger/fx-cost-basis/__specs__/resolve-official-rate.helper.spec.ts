@@ -11,7 +11,7 @@ import {
 } from '@domain/money/types/exchange-rate.types';
 import moneyValue from '@domain/money/values/money.vo';
 
-import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/services/__mocks__/exchange-rate.service.mock';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 
 describe('resolveOfficialRateHelper', () => {

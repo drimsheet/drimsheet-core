@@ -13,9 +13,9 @@ import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
+import IFileManagementAppService from '@app/file/contracts/services/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
-import IJournalEntryExtractionQueue from '@app/journal-entry/contracts/journal-entry-extraction-queue.contract';
+import IJournalEntryExtractionQueue from '@app/journal-entry/contracts/queues/journal-entry-extraction-queue.contract';
 import { IJournalEntryUploadReq } from '@app/journal-entry/dtos/journal-entry-upload/journal-entry-upload.dto';
 import { journalEntryUploadReqValidation } from '@app/journal-entry/dtos/journal-entry-upload/journal-entry-upload.dto.validation';
 

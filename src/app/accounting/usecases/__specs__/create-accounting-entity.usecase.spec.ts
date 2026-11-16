@@ -25,8 +25,8 @@ import makeGetAccountingContextUsecase from '@app/accounting/usecases/get-accoun
 import makeGetReportingContextUsecase from '@app/accounting/usecases/get-reporting-context.usecase';
 import makeGetUserAccountingEntitiesUseCase from '@app/accounting/usecases/get-user-accounting-entities.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
-import { mockUserPreferencesRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
+import { mockUserPreferencesRepo } from '@app/user/contracts/repos/__mocks__/user-preferences.repo.mock';
+import mockUserPreferencesAppService from '@app/user/contracts/services/__mocks__/user-preferences.service.mock';
 
 const actor = actorEntity.makeUser({
   email: 'actor@example.com',

@@ -1,9 +1,9 @@
 import { ICacheStorage } from '@shared/contracts/cache-storage.contract';
 import IVarsConfig from '@shared/contracts/vars-config.contract';
 
-import IEmailVerificationAppService from '@app/auth/contracts/email-verification-service.contract';
-import ITokenAppService from '@app/auth/contracts/token-service.contract';
-import ITransactionalEmailAppService from '@app/notification/contracts/transactional-email-service.contract';
+import IEmailVerificationAppService from '@app/auth/contracts/services/email-verification-service.contract';
+import ITokenAppService from '@app/auth/contracts/services/token-service.contract';
+import ITransactionalEmailAppService from '@app/notification/contracts/services/transactional-email-service.contract';
 
 export const EMAIL_VERIFICATION_COOL_DOWN_SECONDS = 60;
 

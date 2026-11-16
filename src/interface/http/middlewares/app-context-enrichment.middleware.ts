@@ -7,7 +7,7 @@ import IAccountingEntityRepo from '@domain/accounting/repos/accounting-entity.re
 import IUserRepo from '@domain/user/repos/user.repo';
 import IActorService from '@domain/user/types/actor.service.types';
 
-import ITokenAppService from '@app/auth/contracts/token-service.contract';
+import ITokenAppService from '@app/auth/contracts/services/token-service.contract';
 import { IAppContextData } from '@app/context/types/app-context.types';
 
 import getAccountingEntityFromRequestHelper from '@interface/http/helpers/get-accounting-entity-from-request.helper';

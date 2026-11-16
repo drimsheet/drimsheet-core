@@ -27,7 +27,7 @@ import historyValue from '@shared/values/history/history.vo';
 import { IPayablesAccountService } from '@domain/ledger/types/payables.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/services/ledger-account-persistence.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateTradePayableAccountDto } from '@app/ledger/dtos/payable-account/payable-account.dto';
 import { createTradePayableAccountValidation } from '@app/ledger/dtos/payable-account/payable-account.dto.validation';

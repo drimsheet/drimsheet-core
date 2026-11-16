@@ -7,9 +7,9 @@ import appError from '@shared/values/errors/app.error';
 import userEntity from '@domain/user/entities/user.entity';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/services/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/services/__mocks__/user-session.service.mock';
 import authError from '@app/auth/errors/auth.error';
 import makeVerifyEmailAddressUseCase from '@app/auth/usecases/verify-email.usecase';
 import mockAppContext, {
