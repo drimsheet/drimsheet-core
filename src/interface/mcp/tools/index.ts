@@ -1,10 +1,11 @@
-import { counterpartyTools } from '@interface/mcp/tools/counterparties';
-import { journalEntryTools } from '@interface/mcp/tools/journal-entries';
-import { ledgerTools } from '@interface/mcp/tools/ledger';
-import { moneyTools } from '@interface/mcp/tools/money';
-import IMcpTool from '@interface/mcp/types/mcp-tool.types';
+import { IAgentTool } from '@shared/types/ai.types';
 
-export const mcpTools: IMcpTool[] = [
+import { counterpartyTools } from '@infra/ioc/tools/counterparty';
+import { journalEntryTools } from '@infra/ioc/tools/journal-entry';
+import { ledgerTools } from '@infra/ioc/tools/ledger';
+import { moneyTools } from '@infra/ioc/tools/money';
+
+export const mcpTools: IAgentTool[] = [
   ...counterpartyTools,
   ...journalEntryTools,
   ...ledgerTools,

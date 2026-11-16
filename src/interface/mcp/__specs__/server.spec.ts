@@ -2,19 +2,18 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import z from 'zod';
 
 import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
+import { IAgentTool } from '@shared/types/ai.types';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
 import { IJournalEntryListDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
+import makeGetJournalEntriesTool from '@app/journal-entry/tools/get-journal-entries.tool';
+import makeGetLedgerAccountsTool from '@app/ledger/tools/get-ledger-accounts.tool';
 
 import { getJournalEntriesUseCase } from '@infra/ioc/usecases/journal-entry';
 import { getLedgerAccountsUseCase } from '@infra/ioc/usecases/ledger';
 
-import toToolResultHelper from '@interface/mcp/helpers/to-tool-result.helper';
 import createMcpServer from '@interface/mcp/server';
-import getJournalEntriesTool from '@interface/mcp/tools/journal-entries/get-journal-entries.tool';
-import getLedgerAccountsTool from '@interface/mcp/tools/ledger/get-ledger-accounts.tool';
-import IMcpTool from '@interface/mcp/types/mcp-tool.types';
 
 jest.mock('@infra/ioc/usecases/ledger', () => ({
   getLedgerAccountsUseCase: jest.fn(),
@@ -38,7 +37,7 @@ jest.mock('@infra/ioc/handlers/mcp', () => {
 
 jest.mock('@interface/mcp/tools', () => ({ mcpTools: [] }));
 
-const toolCatalogue = jest.requireMock<{ mcpTools: IMcpTool[] }>(
+const toolCatalogue = jest.requireMock<{ mcpTools: IAgentTool[] }>(
   '@interface/mcp/tools'
 );
 
@@ -53,7 +52,10 @@ describe('MCP server', () => {
     jest.resetAllMocks();
     getLedgerAccounts.mockResolvedValue({ data: [], meta });
     getJournalEntries.mockResolvedValue({ data: [], meta });
-    toolCatalogue.mcpTools = [getLedgerAccountsTool, getJournalEntriesTool];
+    toolCatalogue.mcpTools = [
+      makeGetLedgerAccountsTool({ usecase: getLedgerAccountsUseCase }),
+      makeGetJournalEntriesTool({ usecase: getJournalEntriesUseCase }),
+    ];
     handler = createMcpHandler(() =>
       createMcpServer({
         version: 'test',
@@ -116,12 +118,15 @@ describe('MCP server', () => {
       message: z.string().trim().default('hello'),
     });
     const outputSchema = z.object({ echoed: z.string() });
-    const echoTool: IMcpTool<typeof inputSchema, typeof outputSchema> = {
+    const echoTool: IAgentTool<
+      typeof inputSchema,
+      z.output<typeof outputSchema>
+    > = {
       name: 'echo',
       description: 'Echo the parsed message.',
       inputSchema,
       outputSchema,
-      func: (input) => toToolResultHelper({ echoed: input.message }),
+      func: (input) => ({ echoed: input.message }),
     };
     await handler.close();
     toolCatalogue.mcpTools = [echoTool];

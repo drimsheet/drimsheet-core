@@ -4,18 +4,13 @@ import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IFileStorageClient from '@app/file/contracts/file-storage-client.contract';
-import {
-  IJournalEntryExtractionAiResponse,
-  IJournalEntryExtractionDto,
-} from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { IJournalEntryExtractionDto } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
   fileStorageClient: IFileStorageClient;
   pdfService: IPdfService;
-  journalEntryLlmExtractor: (
-    input: string
-  ) => Promise<IJournalEntryExtractionAiResponse>;
+  extractionAiAgent: (input: string) => Promise<void>;
 }
 
 export default function makeExtractJournalEntryUsecase(deps: IDependencies) {
@@ -34,10 +29,7 @@ export default function makeExtractJournalEntryUsecase(deps: IDependencies) {
       return;
     }
 
-    // an agent should be called here
-
-    const extractedEntries =
-      await deps.journalEntryLlmExtractor(pdfTextContent);
+    await deps.extractionAiAgent(pdfTextContent);
 
     /**
      * STEPS

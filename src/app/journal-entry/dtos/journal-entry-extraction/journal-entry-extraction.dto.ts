@@ -1,3 +1,4 @@
+import { IAiAssessment, TAiAssessmentValue } from '@shared/types/ai.types';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import {
@@ -11,10 +12,6 @@ import { ULedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.t
 import { ULedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
 import { ULedgerType, UNormalBalance } from '@domain/ledger/types/ledger.types';
 
-import {
-  IAiAssessmentDto,
-  TAiAssessmentValue,
-} from '@app/ai/dtos/assessment/assessment.dto';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import { IMoneyDto } from '@app/money/dtos/money/money.dto';
 
@@ -63,7 +60,7 @@ interface IEntryResponse {
 }
 
 export interface IJournalEntryExtractionAiResponse {
-  ledgerAccounts: IAiAssessmentDto<ILedgerAccountResponse>[];
-  counterparties: IAiAssessmentDto<ICounterpartyResponse>[];
-  entries: IAiAssessmentDto<IEntryResponse>[];
+  ledgerAccounts: IAiAssessment<ILedgerAccountResponse>[];
+  counterparties: IAiAssessment<ICounterpartyResponse>[];
+  entries: IAiAssessment<IEntryResponse>[];
 }
