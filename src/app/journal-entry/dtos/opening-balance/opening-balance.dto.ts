@@ -16,5 +16,6 @@ export interface IUpdateDraftOpeningBalanceReq {
   effectiveDate?: Date;
   exchangeRate?: IExchangeRateDto | null;
   memo?: string | null;
+  // TODO: why are we including file attachments for opening balance?
   attachments?: IJournalEntryAttachmentsUpdateReq;
 }

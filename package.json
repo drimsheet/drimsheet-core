@@ -128,6 +128,7 @@
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.23",
     "node-cron": "^4.6.0",
+    "openai": "^7.57.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.20.0",

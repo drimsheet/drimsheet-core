@@ -32,6 +32,8 @@ const {
   B2_S3_ENDPOINT = '',
   B2_REGION = '',
 
+  OPEN_AI_KEY = '',
+
   PORT = 3000,
   POSTGRES_URL = '',
   REDIS_URL = '',
@@ -68,6 +70,7 @@ const vars: IVarsConfig = Object.freeze({
   B2_BUCKET_NAME,
   B2_S3_ENDPOINT,
   B2_REGION,
+  OPEN_AI_KEY,
   PORT: +PORT,
   POSTGRES_URL,
   REDIS_URL,

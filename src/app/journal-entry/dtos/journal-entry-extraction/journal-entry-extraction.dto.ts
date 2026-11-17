@@ -23,6 +23,10 @@ export interface IJournalEntryExtractionDto {
   file: IFileAttachment;
 }
 
+export interface IJournalEntriesExtractionInput {
+  value: IFileAttachment | string;
+}
+
 interface ILedgerAccountResponse {
   temporaryId: string;
   name: TAiAssessmentValue<string>;

@@ -22,6 +22,7 @@ import makeVoidAndReplaceReceiptUsecase from '@app/journal-entry/usecases/void-a
 import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
 import makeVoidJournalEntryUsecase from '@app/journal-entry/usecases/void-journal-entry.usecase';
 
+import journalEntryLlmExtractor from '@infra/integrations/openai/journal-entry-extractor';
 import {
   fileManagementAppService,
   fileStorageClient,
@@ -54,6 +55,7 @@ export const extractJournalEntryUseCase = makeTracedUseCase(
     appContext,
     fileStorageClient,
     pdfService,
+    extractionAiAgent: journalEntryLlmExtractor,
   })
 );
 

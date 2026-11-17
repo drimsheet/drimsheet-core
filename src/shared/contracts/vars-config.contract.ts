@@ -26,6 +26,8 @@ export default interface IVarsConfig {
   B2_S3_ENDPOINT: string;
   B2_REGION: string;
 
+  OPEN_AI_KEY: string;
+
   PORT: number;
 
   POSTGRES_URL: string;
