@@ -1,9 +1,10 @@
 import { Response } from 'openai/resources/responses/responses';
 
+import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import journalEntryAppError from '@app/journal-entry/errors/journal-entry.error';
 
 import openAiClient from '@infra/integrations/openai/client';
-import journalEntryLlmExtractor from '@infra/integrations/openai/journal-entry-extractor';
+import makeJournalEntryLlmExtractor from '@infra/integrations/openai/journal-entry-extractor';
 
 jest.mock('@infra/integrations/openai/client', () => ({
   __esModule: true,
@@ -113,9 +114,15 @@ function expectClosedObjects(schema: unknown): void {
 
 describe('OpenAI journal-entry extractor', () => {
   const createResponse = jest.mocked(openAiClient.responses.create);
+  const getDownloadUrl = mockFileStorageClient.getDownloadUrl;
+  const downloadUrl = 'https://example.com/source?signature=test';
+  const journalEntryLlmExtractor = makeJournalEntryLlmExtractor(
+    mockFileStorageClient
+  );
 
   beforeEach(() => {
     createResponse.mockReset().mockResolvedValue(providerResponse);
+    getDownloadUrl.mockReset().mockResolvedValue(downloadUrl);
   });
 
   it('sends source text with a strict schema and returns extracted data', async () => {
@@ -126,6 +133,7 @@ describe('OpenAI journal-entry extractor', () => {
     );
 
     expect(createResponse).toHaveBeenCalledTimes(1);
+    expect(getDownloadUrl).not.toHaveBeenCalled();
     expect(createResponse).toHaveBeenCalledWith({
       model: 'gpt-5.5',
       instructions: expect.stringContaining('__undetermined__'),
@@ -160,12 +168,13 @@ describe('OpenAI journal-entry extractor', () => {
 
       await journalEntryLlmExtractor({ value });
 
+      expect(getDownloadUrl).toHaveBeenCalledWith(value.url);
       expect(createResponse).toHaveBeenCalledWith(
         expect.objectContaining({
           input: [
             {
               role: 'user',
-              content: [{ type: 'input_file', file_url: value.url }],
+              content: [{ type: 'input_file', file_url: downloadUrl }],
             },
           ],
         })
@@ -185,6 +194,7 @@ describe('OpenAI journal-entry extractor', () => {
 
       await journalEntryLlmExtractor({ value });
 
+      expect(getDownloadUrl).toHaveBeenCalledWith(value.url);
       expect(createResponse).toHaveBeenCalledWith(
         expect.objectContaining({
           input: [
@@ -193,7 +203,7 @@ describe('OpenAI journal-entry extractor', () => {
               content: [
                 {
                   type: 'input_image',
-                  image_url: value.url,
+                  image_url: downloadUrl,
                   detail: 'auto',
                 },
               ],
@@ -203,6 +213,24 @@ describe('OpenAI journal-entry extractor', () => {
       );
     }
   );
+
+  it('propagates signing failures before calling the provider', async () => {
+    const signingError = new Error('signing failed');
+    getDownloadUrl.mockRejectedValue(signingError);
+
+    await expect(
+      journalEntryLlmExtractor({
+        value: {
+          url: 'https://example.com/receipt',
+          name: 'receipt.png',
+          type: 'png',
+          size: 1024,
+        },
+      })
+    ).rejects.toBe(signingError);
+
+    expect(createResponse).not.toHaveBeenCalled();
+  });
 
   it('validates and normalizes counterparties, dates, money, and references', async () => {
     const extraction = {
@@ -304,6 +332,28 @@ describe('OpenAI journal-entry extractor', () => {
       }),
     ]);
   });
+
+  it.each([null, '__undetermined__'])(
+    'preserves an exchange rate of %s',
+    async (exchangeRate) => {
+      const entry = {
+        ...extractedEntry,
+        lines: [{ ...extractedLine, exchangeRate }],
+      };
+      const extraction = {
+        ...emptyExtraction,
+        entries: [{ value: entry, confidence: 1, evidence: [] }],
+      };
+      createResponse.mockResolvedValue({
+        ...providerResponse,
+        output_text: JSON.stringify(extraction),
+      });
+
+      await expect(journalEntryLlmExtractor({ value: '' })).resolves.toEqual(
+        extraction
+      );
+    }
+  );
 
   it.each(['ledgerAccounts', 'counterparties', 'entries'])(
     'preserves an undetermined assessment in %s',

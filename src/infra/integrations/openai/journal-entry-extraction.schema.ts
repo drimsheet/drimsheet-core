@@ -1,13 +1,18 @@
 import z from 'zod';
 
-import { journalEntryExtractionAiResponseValidation } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+import { aiAssessmentValidation } from '@shared/values/ai-assessment/dto/ai-assessment.dto.validation';
+
+import { counterpartyAiProposalDtoValidation } from '@app/counterparty/dtos/counterparty-ai-proposal/counterparty-ai-proposal.dto.validation';
+import {
+  journalEntryAiProposalDtoValidation,
+  journalLineAiProposalDtoValidation,
+} from '@app/journal-entry/dtos/journal-entry-ai-proposal/journal-entry-proposals.dto.validation';
+import { IJournalEntryExtractionAiResponse } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { ledgerAccountAiProposalDtoValidation } from '@app/ledger/dtos/ledger-account-ai-proposal/ledger-account-ai-proposal.dto.validation';
 import { exchangeRateJsonDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 
-const responseShape = journalEntryExtractionAiResponseValidation.shape;
-const counterpartyAssessmentValidation = responseShape.counterparties.element;
-const counterpartyValidation =
-  counterpartyAssessmentValidation.shape.value.options[0];
-const roleDetailsShape = counterpartyValidation.shape.roleDetails.shape;
+const roleDetailsShape =
+  counterpartyAiProposalDtoValidation.shape.roleDetails.shape;
 
 // Structured Outputs requires every property. Null denotes an absent role;
 // parsing translates it back to the application's optional role details.
@@ -26,34 +31,33 @@ const roleDetailsValidation = z.strictObject({
     .transform((value) => value ?? undefined),
 });
 
-const entryAssessmentValidation = responseShape.entries.element;
-const entryValidation = entryAssessmentValidation.shape.value.options[0];
-const lineValidation = entryValidation.shape.lines.element;
-
-const openAiJournalEntryExtractionValidation =
-  journalEntryExtractionAiResponseValidation.extend({
-    counterparties: z.array(
-      counterpartyAssessmentValidation.extend({
-        value: counterpartyValidation
-          .extend({ roleDetails: roleDetailsValidation })
-          .or(counterpartyAssessmentValidation.shape.value.options[1]),
-      })
-    ),
-    entries: z.array(
-      entryAssessmentValidation.extend({
-        value: entryValidation
-          .extend({
-            lines: z.array(
-              lineValidation.extend({
-                exchangeRate: exchangeRateJsonDtoValidation
-                  .nullable()
-                  .or(lineValidation.shape.exchangeRate.options[1]),
-              })
-            ),
-          })
-          .or(entryAssessmentValidation.shape.value.options[1]),
-      })
-    ),
+const openAiCounterpartyProposalValidation =
+  counterpartyAiProposalDtoValidation.extend({
+    roleDetails: roleDetailsValidation,
   });
+
+const openAiJournalLineProposalValidation =
+  journalLineAiProposalDtoValidation.extend({
+    exchangeRate: exchangeRateJsonDtoValidation
+      .nullable()
+      .or(z.literal('__undetermined__')),
+  });
+
+const openAiJournalEntryProposalValidation =
+  journalEntryAiProposalDtoValidation.extend({
+    lines: z.array(openAiJournalLineProposalValidation),
+  });
+
+const openAiJournalEntryExtractionValidation = z.strictObject({
+  ledgerAccounts: z.array(
+    aiAssessmentValidation(ledgerAccountAiProposalDtoValidation)
+  ),
+  counterparties: z.array(
+    aiAssessmentValidation(openAiCounterpartyProposalValidation)
+  ),
+  entries: z.array(
+    aiAssessmentValidation(openAiJournalEntryProposalValidation)
+  ),
+}) satisfies z.ZodType<IJournalEntryExtractionAiResponse>;
 
 export default openAiJournalEntryExtractionValidation;

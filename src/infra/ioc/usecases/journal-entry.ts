@@ -4,9 +4,9 @@ import makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment
 import makeCreateReceiptUsecase from '@app/journal-entry/usecases/create-receipt.usecase';
 import makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transfer.usecase';
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
-import makeExtractJournalEntryUsecase from '@app/journal-entry/usecases/extract-journal-entry.usecase';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 import makeGetJournalEntryUsecase from '@app/journal-entry/usecases/get-journal-entry.usecase';
+import makeInitiateJournalEntryExtractionUsecase from '@app/journal-entry/usecases/initiate-journal-entry-extraction.usecase';
 import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post-draft-opening-balance.usecase';
 import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-payment.usecase';
 import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
@@ -16,13 +16,11 @@ import makeUpdateDraftPaymentUsecase from '@app/journal-entry/usecases/update-dr
 import makeUpdateDraftReceiptUsecase from '@app/journal-entry/usecases/update-draft-receipt.usecase';
 import makeUpdateDraftTransferUsecase from '@app/journal-entry/usecases/update-draft-transfer.usecase';
 import makeUpdateJournalEntryMetaUsecase from '@app/journal-entry/usecases/update-journal-entry-meta.usecase';
-import makeUploadJournalEntryFileUsecase from '@app/journal-entry/usecases/upload-journal-entry-file.usecase';
 import makeVoidAndReplacePaymentUsecase from '@app/journal-entry/usecases/void-and-replace-payment.usecase';
 import makeVoidAndReplaceReceiptUsecase from '@app/journal-entry/usecases/void-and-replace-receipt.usecase';
 import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
 import makeVoidJournalEntryUsecase from '@app/journal-entry/usecases/void-journal-entry.usecase';
 
-import journalEntryLlmExtractor from '@infra/integrations/openai/journal-entry-extractor';
 import {
   fileManagementAppService,
   fileStorageClient,
@@ -49,20 +47,12 @@ import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import appContext from '@infra/services/app-context.service';
 
-export const extractJournalEntryUseCase = makeTracedUseCase(
-  'journalEntry.extractJournalEntryUseCase',
-  makeExtractJournalEntryUsecase({
+export const initiateJournalEntryExtractionUseCase = makeTracedUseCase(
+  'journalEntry.initiateJournalEntryExtractionUseCase',
+  makeInitiateJournalEntryExtractionUsecase({
     appContext,
     fileStorageClient,
     pdfService,
-    extractionAiAgent: journalEntryLlmExtractor,
-  })
-);
-
-export const uploadJournalEntryFileUseCase = makeTracedUseCase(
-  'journalEntry.uploadJournalEntryFileUseCase',
-  makeUploadJournalEntryFileUsecase({
-    appContext,
     fileManagementAppService,
     journalEntryExtractionQueue: messaging.queues.journalEntryExtraction,
   })

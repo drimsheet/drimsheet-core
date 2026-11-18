@@ -1,6 +1,6 @@
 import { UJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
 
-export interface IJournalEntryUploadReq {
+export interface IInitiateJournalEntryExtractionReq {
   /**
    * Opaque handle returned when preparing the journal-entry creation upload.
    * @format uuid

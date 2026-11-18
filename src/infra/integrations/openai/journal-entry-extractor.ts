@@ -4,14 +4,12 @@ import z from 'zod';
 import getFileAttachmentTypeHelper from '@shared/values/file-attachments/helpers/get-file-attachment-type.helper';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
+import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import {
   IJournalEntriesExtractionInput,
   IJournalEntryExtractionAiResponse,
 } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
-import {
-  journalEntriesExtractionInputValidation,
-  journalEntryExtractionAiResponseValidation,
-} from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+import { journalEntriesExtractionInputValidation } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
 import journalEntryAppError from '@app/journal-entry/errors/journal-entry.error';
 
 import openAiClient from './client';
@@ -51,59 +49,58 @@ const extractionJsonSchema = z.toJSONSchema(
 );
 
 /**
- * Extracts and validates proposed journal data without persisting it.
+ * Builds the structured extractor for text and managed attachments.
+ * Signs attachment URLs for OpenAI.
  * Rejects provider failures and missing, incomplete, or invalid output.
  */
-export default async function journalEntryLlmExtractor(
-  input: IJournalEntriesExtractionInput
-): Promise<IJournalEntryExtractionAiResponse> {
-  const { value } = journalEntriesExtractionInputValidation.parse(input);
-  let content: ResponseInputContent;
+export default function makeJournalEntryLlmExtractor(
+  fileStorageClient: IFileStorageClient
+) {
+  return async (
+    input: IJournalEntriesExtractionInput
+  ): Promise<IJournalEntryExtractionAiResponse> => {
+    const { value } = journalEntriesExtractionInputValidation.parse(input);
+    let content: ResponseInputContent;
+    if (typeof value === 'string') {
+      content = { type: 'input_text', text: value };
+    } else {
+      const fileType = getFileAttachmentTypeHelper(value.type);
+      const isImage =
+        fileType === EFileAttachmentType.Jpg ||
+        fileType === EFileAttachmentType.Png;
+      const downloadUrl = await fileStorageClient.getDownloadUrl(value.url);
 
-  if (typeof value === 'string') {
-    content = { type: 'input_text', text: value };
-  } else {
-    const fileType = getFileAttachmentTypeHelper(value.type);
-    const isImage =
-      fileType === EFileAttachmentType.Jpg ||
-      fileType === EFileAttachmentType.Png;
+      content = isImage
+        ? { type: 'input_image', image_url: downloadUrl, detail: 'auto' }
+        : { type: 'input_file', file_url: downloadUrl };
+    }
 
-    content = isImage
-      ? { type: 'input_image', image_url: value.url, detail: 'auto' }
-      : { type: 'input_file', file_url: value.url };
-  }
-
-  const response = await openAiClient.responses.create({
-    model: 'gpt-5.5',
-    instructions: extractionInstructions,
-    input: [{ role: 'user', content: [content] }],
-    text: {
-      format: {
-        type: 'json_schema',
-        name: 'journal_entry_extraction',
-        strict: true,
-        schema: extractionJsonSchema,
+    const response = await openAiClient.responses.create({
+      model: 'gpt-5.5',
+      instructions: extractionInstructions,
+      input: [{ role: 'user', content: [content] }],
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'journal_entry_extraction',
+          strict: true,
+          schema: extractionJsonSchema,
+        },
       },
-    },
-  });
+    });
 
-  const hasUnusableOutput =
-    response.status !== 'completed' || response.output_text.length === 0;
-  if (hasUnusableOutput) {
-    throw new journalEntryAppError.ExtractionUnexpected();
-  }
+    const hasUnusableOutput =
+      response.status !== 'completed' || response.output_text.length === 0;
+    if (hasUnusableOutput) {
+      throw new journalEntryAppError.ExtractionUnexpected();
+    }
 
-  try {
-    const extractedEntries = openAiJournalEntryExtractionValidation.parse(
-      JSON.parse(response.output_text)
-    );
-
-    const res =
-      journalEntryExtractionAiResponseValidation.parse(extractedEntries);
-
-    console.log('>>>>>>>>>>>>>>>>>>>>>>>', res.entries.slice(0, 3));
-    return res;
-  } catch {
-    throw new journalEntryAppError.ExtractionUnexpected();
-  }
+    try {
+      return openAiJournalEntryExtractionValidation.parse(
+        JSON.parse(response.output_text)
+      );
+    } catch {
+      throw new journalEntryAppError.ExtractionUnexpected();
+    }
+  };
 }

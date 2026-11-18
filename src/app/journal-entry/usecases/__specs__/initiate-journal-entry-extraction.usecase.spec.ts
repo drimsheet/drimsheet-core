@@ -1,3 +1,4 @@
+import IPdfService from '@shared/contracts/pdf.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import appError from '@shared/values/errors/app.error';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
@@ -10,10 +11,10 @@ import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-st
 import fileAppError from '@app/file/errors/file.error';
 import makeFileManagementAppService from '@app/file/services/file-management.service';
 import mockJournalEntryExtractionQueue from '@app/journal-entry/contracts/queues/__mocks__/journal-entry-extraction-queue.mock';
-import { IJournalEntryUploadReq } from '@app/journal-entry/dtos/journal-entry-upload/journal-entry-upload.dto';
-import makeUploadJournalEntryFileUsecase from '@app/journal-entry/usecases/upload-journal-entry-file.usecase';
+import { IInitiateJournalEntryExtractionReq } from '@app/journal-entry/dtos/initiate-journal-entry-extraction/initiate-journal-entry-extraction.dto';
+import makeInitiateJournalEntryExtractionUsecase from '@app/journal-entry/usecases/initiate-journal-entry-extraction.usecase';
 
-describe('uploadJournalEntryFileUsecase', () => {
+describe('initiateJournalEntryExtractionUsecase', () => {
   const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
   const actorId = '123e4567-e89b-12d3-a456-426614174005' as TEntityId;
   const actor: IActor = {
@@ -31,7 +32,7 @@ describe('uploadJournalEntryFileUsecase', () => {
   };
   const reference = '123e4567-e89b-12d3-a456-426614174002';
   const key = `${userId}/journal_entry_creation/${reference}`;
-  const payload: IJournalEntryUploadReq = {
+  const payload: IInitiateJournalEntryExtractionReq = {
     reference,
     accountId: '123e4567-e89b-12d3-a456-426614174003',
   };
@@ -44,8 +45,14 @@ describe('uploadJournalEntryFileUsecase', () => {
     },
     data: Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   };
-  const usecase = makeUploadJournalEntryFileUsecase({
+  const downloadUrl = 'https://example.com/receipt?signature=test';
+  const pdfService: jest.Mocked<IPdfService> = {
+    convertToText: jest.fn(),
+  };
+  const usecase = makeInitiateJournalEntryExtractionUsecase({
     appContext: mockAppContext,
+    fileStorageClient: mockFileStorageClient,
+    pdfService,
     fileManagementAppService: makeFileManagementAppService({
       fileStorageClient: mockFileStorageClient,
     }),
@@ -63,6 +70,7 @@ describe('uploadJournalEntryFileUsecase', () => {
       Required<Pick<IAppContextData, 'user' | 'actor' | 'accountingEntity'>>);
     mockFileStorageClient.getFileKey.mockReturnValue(key);
     mockFileStorageClient.readFile.mockResolvedValue(storedFile);
+    mockFileStorageClient.getDownloadUrl.mockResolvedValue(downloadUrl);
     mockJournalEntryExtractionQueue.add.mockResolvedValue(undefined);
   });
 
@@ -81,6 +89,7 @@ describe('uploadJournalEntryFileUsecase', () => {
         key,
         range: { start: 0, end: 11 },
       });
+      expect(pdfService.convertToText).not.toHaveBeenCalled();
       expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith(
         'upload-correlation',
         {
@@ -88,7 +97,7 @@ describe('uploadJournalEntryFileUsecase', () => {
           sourceType,
           actorId,
           accountingEntityId: '123e4567-e89b-12d3-a456-426614174004',
-          file: {
+          value: {
             url: storedFile.fileUrl,
             name: 'receipt.png',
             type: EFileAttachmentType.Png,
@@ -98,6 +107,36 @@ describe('uploadJournalEntryFileUsecase', () => {
       );
     }
   );
+
+  it('enqueues extracted text for a PDF upload', async () => {
+    const fileUrl = 'https://example.com/receipt.pdf';
+    const pdfText = 'Receipt total: 100 NGN';
+    mockFileStorageClient.readFile.mockResolvedValue({
+      ...storedFile,
+      fileUrl,
+      contentType: 'application/pdf',
+      metadata: {
+        'original-name': Buffer.from('receipt.pdf').toString('base64url'),
+      },
+      data: Uint8Array.from([0x25, 0x50, 0x44, 0x46, 0x2d]),
+    });
+    pdfService.convertToText.mockResolvedValue(pdfText);
+
+    await usecase(payload);
+
+    expect(mockFileStorageClient.getDownloadUrl).toHaveBeenCalledWith(fileUrl);
+    expect(pdfService.convertToText).toHaveBeenCalledWith(downloadUrl);
+    expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith(
+      'upload-correlation',
+      {
+        accountId: payload.accountId,
+        sourceType: undefined,
+        actorId,
+        accountingEntityId: '123e4567-e89b-12d3-a456-426614174004',
+        value: pdfText,
+      }
+    );
+  });
 
   it('rejects a missing upload', async () => {
     mockFileStorageClient.readFile.mockResolvedValue(null);
@@ -156,7 +195,7 @@ describe('uploadJournalEntryFileUsecase', () => {
     'rejects invalid DTO fields before accessing storage',
     async (invalidPayload) => {
       await expect(
-        usecase(invalidPayload as IJournalEntryUploadReq)
+        usecase(invalidPayload as IInitiateJournalEntryExtractionReq)
       ).rejects.toThrow(appError.UnprocessableEntity);
       expect(mockFileStorageClient.readFile).not.toHaveBeenCalled();
       expect(mockJournalEntryExtractionQueue.add).not.toHaveBeenCalled();

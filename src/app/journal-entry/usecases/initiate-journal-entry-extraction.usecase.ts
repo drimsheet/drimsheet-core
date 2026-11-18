@@ -10,24 +10,31 @@
  * Not required for this straightforward workflow.
  */
 import IAppContextService from '@shared/contracts/app-context.service.contract';
+import IPdfService from '@shared/contracts/pdf.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
+import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import IFileManagementAppService from '@app/file/contracts/services/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import IJournalEntryExtractionQueue from '@app/journal-entry/contracts/queues/journal-entry-extraction-queue.contract';
-import { IJournalEntryUploadReq } from '@app/journal-entry/dtos/journal-entry-upload/journal-entry-upload.dto';
-import { journalEntryUploadReqValidation } from '@app/journal-entry/dtos/journal-entry-upload/journal-entry-upload.dto.validation';
+import { IInitiateJournalEntryExtractionReq } from '@app/journal-entry/dtos/initiate-journal-entry-extraction/initiate-journal-entry-extraction.dto';
+import { initiateJournalEntryExtractionReqValidation } from '@app/journal-entry/dtos/initiate-journal-entry-extraction/initiate-journal-entry-extraction.dto.validation';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;
+  fileStorageClient: IFileStorageClient;
+  pdfService: IPdfService;
   fileManagementAppService: IFileManagementAppService;
   journalEntryExtractionQueue: IJournalEntryExtractionQueue;
 }
 
-export default function makeUploadJournalEntryFileUsecase(deps: IDependencies) {
-  return async (payload: IJournalEntryUploadReq): Promise<void> => {
-    zodValidationRunner(journalEntryUploadReqValidation, payload);
+export default function makeInitiateJournalEntryExtractionUsecase(
+  deps: IDependencies
+) {
+  return async (payload: IInitiateJournalEntryExtractionReq): Promise<void> => {
+    zodValidationRunner(initiateJournalEntryExtractionReqValidation, payload);
 
     const { user, actor, accountingEntity, correlationId } =
       deps.appContext.get(['user', 'actor', 'accountingEntity']);
@@ -38,12 +45,19 @@ export default function makeUploadJournalEntryFileUsecase(deps: IDependencies) {
       references: [payload.reference],
     });
 
+    const downloadUrl = await deps.fileStorageClient.getDownloadUrl(file.url);
+
+    const contentValue =
+      file.type === EFileAttachmentType.Pdf
+        ? await deps.pdfService.convertToText(downloadUrl)
+        : file;
+
     await deps.journalEntryExtractionQueue.add(correlationId, {
       accountId: payload.accountId,
       sourceType: payload.sourceType,
       actorId: actor.id,
       accountingEntityId: accountingEntity.id,
-      file,
+      value: contentValue,
     });
   };
 }

@@ -12,7 +12,7 @@ import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__
 import fileAppError from '@app/file/errors/file.error';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
-import { uploadJournalEntryFileUseCase } from '@infra/ioc/usecases/journal-entry';
+import { initiateJournalEntryExtractionUseCase } from '@infra/ioc/usecases/journal-entry';
 import accountingRepos from '@infra/persistence/repos/accounting';
 import userRepos from '@infra/persistence/repos/user';
 
@@ -42,7 +42,7 @@ jest.mock('@infra/ioc/services/auth', () => ({
 
 jest.mock('@infra/ioc/usecases/journal-entry', () => ({
   __esModule: true,
-  uploadJournalEntryFileUseCase: jest.fn(),
+  initiateJournalEntryExtractionUseCase: jest.fn(),
 }));
 
 jest.mock('@infra/persistence/repos/accounting', () => ({
@@ -59,7 +59,7 @@ jest.mock('@infra/persistence/repos/user', () => ({
   },
 }));
 
-const ENDPOINT = '/api/v1/journal-entries/upload';
+const ENDPOINT = '/api/v1/journal-entries/initiate-extraction';
 const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
 const accountingEntityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
 
@@ -68,9 +68,11 @@ const payload = {
   accountId: '123e4567-e89b-12d3-a456-426614174003',
 };
 
-describe('POST /journal-entries/upload', () => {
+describe('POST /journal-entries/initiate-extraction', () => {
   let server: Server;
-  const mockUpload = jest.mocked(uploadJournalEntryFileUseCase);
+  const mockInitiateExtraction = jest.mocked(
+    initiateJournalEntryExtractionUseCase
+  );
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -89,7 +91,7 @@ describe('POST /journal-entries/upload', () => {
         ownerId: userId,
         functionalCurrencyCode: 'NGN',
       } as IAccountingEntity);
-    mockUpload.mockResolvedValue(undefined);
+    mockInitiateExtraction.mockResolvedValue(undefined);
     server = await startTestServer(createApplication());
   });
 
@@ -112,7 +114,7 @@ describe('POST /journal-entries/upload', () => {
         const response = await send(body);
         expect(response.status).toBe(204);
         expect(response.text).toBe('');
-        expect(mockUpload).toHaveBeenCalledWith(
+        expect(mockInitiateExtraction).toHaveBeenCalledWith(
           expect.objectContaining(payload)
         );
       }
@@ -121,7 +123,9 @@ describe('POST /journal-entries/upload', () => {
 
   describe('400 Response', () => {
     it('returns file claim errors', async () => {
-      mockUpload.mockRejectedValue(new fileAppError.InvalidUploadReference());
+      mockInitiateExtraction.mockRejectedValue(
+        new fileAppError.InvalidUploadReference()
+      );
       const response = await send();
       expect(response.status).toBe(400);
       expect(response.body.errorKey).toBe(
@@ -134,7 +138,7 @@ describe('POST /journal-entries/upload', () => {
     it('requires authentication', async () => {
       const response = await request(server).post(ENDPOINT).send(payload);
       expect(response.status).toBe(401);
-      expect(mockUpload).not.toHaveBeenCalled();
+      expect(mockInitiateExtraction).not.toHaveBeenCalled();
     });
   });
 
@@ -148,7 +152,7 @@ describe('POST /journal-entries/upload', () => {
         } as IAccountingEntity);
       const response = await send();
       expect(response.status).toBe(403);
-      expect(mockUpload).not.toHaveBeenCalled();
+      expect(mockInitiateExtraction).not.toHaveBeenCalled();
     });
   });
 
@@ -161,11 +165,11 @@ describe('POST /journal-entries/upload', () => {
     ])('rejects malformed DTOs', async (body) => {
       const response = await send(body);
       expect(response.status).toBe(422);
-      expect(mockUpload).not.toHaveBeenCalled();
+      expect(mockInitiateExtraction).not.toHaveBeenCalled();
     });
 
     it('returns usecase validation errors', async () => {
-      mockUpload.mockRejectedValue(
+      mockInitiateExtraction.mockRejectedValue(
         new appError.UnprocessableEntity([
           {
             field: 'reference',

@@ -30,7 +30,7 @@ describe('makeJournalEntryExtractionQueue', () => {
     accountId: '123e4567-e89b-12d3-a456-426614174002',
     actorId: '123e4567-e89b-12d3-a456-426614174003',
     accountingEntityId: '123e4567-e89b-12d3-a456-426614174004',
-    file: {
+    value: {
       url: 'https://example.com/receipt.png',
       name: 'receipt.png',
       type: 'image/png',

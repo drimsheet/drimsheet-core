@@ -2283,7 +2283,7 @@ const models: TsoaRoute.Models = {
     additionalProperties: false,
   },
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  IJournalEntryUploadReq: {
+  IInitiateJournalEntryExtractionReq: {
     dataType: 'refObject',
     properties: {
       reference: { dataType: 'string', required: true },
@@ -6338,7 +6338,7 @@ export function RegisterRoutes(app: Router) {
     }
   );
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-  const argsJournalEntryController_uploadJournalEntryFile: Record<
+  const argsJournalEntryController_initiateJournalEntryExtraction: Record<
     string,
     TsoaRoute.ParameterSchema
   > = {
@@ -6346,17 +6346,17 @@ export function RegisterRoutes(app: Router) {
       in: 'body',
       name: 'body',
       required: true,
-      ref: 'IJournalEntryUploadReq',
+      ref: 'IInitiateJournalEntryExtractionReq',
     },
   };
   app.post(
-    '/api/v1/journal-entries/upload',
+    '/api/v1/journal-entries/initiate-extraction',
     ...fetchMiddlewares<RequestHandler>(JournalEntryController),
     ...fetchMiddlewares<RequestHandler>(
-      JournalEntryController.prototype.uploadJournalEntryFile
+      JournalEntryController.prototype.initiateJournalEntryExtraction
     ),
 
-    async function JournalEntryController_uploadJournalEntryFile(
+    async function JournalEntryController_initiateJournalEntryExtraction(
       request: ExRequest,
       response: ExResponse,
       next: any
@@ -6366,7 +6366,7 @@ export function RegisterRoutes(app: Router) {
       let validatedArgs: any[] = [];
       try {
         validatedArgs = templateService.getValidatedArgs({
-          args: argsJournalEntryController_uploadJournalEntryFile,
+          args: argsJournalEntryController_initiateJournalEntryExtraction,
           request,
           response,
         });
@@ -6374,7 +6374,7 @@ export function RegisterRoutes(app: Router) {
         const controller = new JournalEntryController();
 
         await templateService.apiHandler({
-          methodName: 'uploadJournalEntryFile',
+          methodName: 'initiateJournalEntryExtraction',
           controller,
           response,
           next,

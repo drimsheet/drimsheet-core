@@ -4937,9 +4937,9 @@
         ]
       }
     },
-    "/journal-entries/upload": {
+    "/journal-entries/initiate-extraction": {
       "post": {
-        "operationId": "uploadJournalEntryFile",
+        "operationId": "initiateJournalEntryExtraction",
         "responses": {
           "204": {
             "description": ""
@@ -4995,7 +4995,7 @@
             }
           }
         },
-        "description": "Claims an uploaded file for journal entry creation.",
+        "description": "Initiates journal entry extraction from an uploaded file.",
         "tags": ["Journal Entry"],
         "security": [],
         "parameters": [],
@@ -5004,7 +5004,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/IJournalEntryUploadReq"
+                "$ref": "#/components/schemas/IInitiateJournalEntryExtractionReq"
               }
             }
           }
@@ -12935,7 +12935,7 @@
         "type": "object",
         "additionalProperties": false
       },
-      "IJournalEntryUploadReq": {
+      "IInitiateJournalEntryExtractionReq": {
         "properties": {
           "reference": {
             "type": "string",
