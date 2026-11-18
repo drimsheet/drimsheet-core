@@ -5,6 +5,7 @@ module.exports = {
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testPathIgnorePatterns: ['/node_modules/'],
   moduleNameMapper: {
+    '^unpdf$': '<rootDir>/test/setup/unpdf-loader.cjs',
     '^@domain/(.*)$': '<rootDir>/src/domain/$1',
     '^@app/(.*)$': '<rootDir>/src/app/$1',
     '^@infra/(.*)$': '<rootDir>/src/infra/$1',
