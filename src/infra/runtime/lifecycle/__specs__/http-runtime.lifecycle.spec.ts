@@ -3,6 +3,7 @@ import { Server } from 'node:http';
 import mockLogger from '@shared/contracts/__mocks__/logger.mock';
 import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 
+import { closeMongoConnection } from '@infra/config/mongodb.config';
 import { postgres } from '@infra/config/postgres.config';
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
 import { bootstrapAccountingContext } from '@infra/runtime/bootstrap/accounting-context.bootstrap';
@@ -14,6 +15,9 @@ import observabilityLifecycle from '@infra/runtime/lifecycle/observability.lifec
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
 import { setupServer } from '@infra/runtime/servers/express';
 
+jest.mock('@infra/config/mongodb.config', () => ({
+  closeMongoConnection: jest.fn(),
+}));
 jest.mock('@infra/config/postgres.config', () => ({
   postgres: { $client: { end: jest.fn() } },
 }));
@@ -92,6 +96,7 @@ describe('HTTP runtime lifecycle', () => {
     launchDarklyLifecycle.shutdown,
     queueLifecycle.shutdown,
     postgres.$client.end,
+    closeMongoConnection,
     observabilityLifecycle.shutdown,
   ];
 
@@ -377,7 +382,7 @@ describe('HTTP runtime lifecycle', () => {
     expect(process.exitCode).toBe(1);
   });
 
-  it.each([0, 1, 2, 3])(
+  it.each([0, 1, 2, 3, 4])(
     'waits for resource %s to close before continuing cleanup',
     async (index) => {
       const pending = deferred();
@@ -396,7 +401,14 @@ describe('HTTP runtime lifecycle', () => {
     }
   );
 
-  it.each(['http', 'feature-flags', 'messaging', 'postgres', 'observability'])(
+  it.each([
+    'http',
+    'feature-flags',
+    'messaging',
+    'postgres',
+    'mongodb',
+    'observability',
+  ])(
     'reports %s cleanup failure and continues independent cleanup',
     async (resource) => {
       const failure = new Error('Close failed');
@@ -404,6 +416,7 @@ describe('HTTP runtime lifecycle', () => {
         'feature-flags',
         'messaging',
         'postgres',
+        'mongodb',
         'observability',
       ].indexOf(resource);
       if (resource === 'http') {

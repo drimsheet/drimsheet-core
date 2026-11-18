@@ -36,6 +36,7 @@ const {
 
   PORT = 3000,
   POSTGRES_URL = '',
+  MONGODB_URL = '',
   REDIS_URL = '',
   SENTRY_DSN = '',
   SENTRY_TRACES_SAMPLE_RATE = '0',
@@ -73,6 +74,7 @@ const vars: IVarsConfig = Object.freeze({
   OPEN_AI_KEY,
   PORT: +PORT,
   POSTGRES_URL,
+  MONGODB_URL,
   REDIS_URL,
   SENTRY_DSN,
   SENTRY_TRACES_SAMPLE_RATE,

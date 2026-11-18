@@ -22,6 +22,19 @@ _Figure 1: View the mermaid sourcecode here:&#x20;_[_05.1-level-1-system.mermaid
 
 ---
 
+### Agent storage contracts
+
+The application layer owns the agent storage boundary through
+`src/app/<namespace>/contracts/agent-repos/`. These contracts describe storage
+operations in application terms, independently of MongoDB.
+
+The infrastructure layer implements that boundary under
+`src/infra/persistence/repos/<namespace>`, using the shared MongoDB client
+configured in `src/infra/config/mongodb.config.ts`. MongoDB stores agent workflow
+state; PostgreSQL remains authoritative for accounting records. The rationale
+for this separation is recorded in
+[ADR 0021](adrs/0021-mongo-db-for-agent-workflow-storage.md).
+
 ## 5.2 Level 2 (Whitebox: Domain Layer)
 
 Zooming into the `Domain Layer` (the center of our architecture), the system is decomposed into bounded modules that enforce accounting entity ownership, ledger structure, journal posting rules, currency constraints, subledger detail, and user identity.

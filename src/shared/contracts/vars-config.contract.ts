@@ -31,6 +31,7 @@ export default interface IVarsConfig {
   PORT: number;
 
   POSTGRES_URL: string;
+  MONGODB_URL: string;
   REDIS_URL: string;
 
   SENTRY_DSN: string;

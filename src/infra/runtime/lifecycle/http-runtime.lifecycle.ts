@@ -3,6 +3,7 @@ import type { Server } from 'node:http';
 
 import { ELogOutcome } from '@shared/types/observability.types';
 
+import { closeMongoConnection } from '@infra/config/mongodb.config';
 import vars from '@infra/config/vars.config';
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
@@ -77,6 +78,7 @@ export default async function runHttp(): Promise<void> {
     );
     await closeResource('messaging', () => queueLifecycle.shutdown());
     await closeResource('postgres', () => postgres?.$client.end());
+    await closeResource('mongodb', closeMongoConnection);
     await closeResource('observability', () =>
       observabilityLifecycle.shutdown(signal)
     );

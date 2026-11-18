@@ -34,3 +34,4 @@ The following architectural decision records (ADRs) capture the critical technic
 | [ADR-0018](./adrs/0018-first-class-domain-validations.md)                      | First-Class Domain Validations                           | Accepted                                     |
 | [ADR-0019](./adrs/0019-internal-concurrency-tokens.md)                         | Internal Concurrency Tokens                              | Accepted                                     |
 | [ADR-0020](./adrs/0020-dedicated-scheduling-runtime.md)                        | Dedicated background runtime                             | Accepted                                     |
+| [ADR-0021](./adrs/0021-mongo-db-for-agent-workflow-storage.md)                 | MongoDB for Agent Workflow Storage                       | Accepted                                     |
