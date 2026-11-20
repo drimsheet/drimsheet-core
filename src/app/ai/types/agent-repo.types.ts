@@ -11,5 +11,5 @@ export interface IAgentRepoOptions {
     id: TEntityId;
     name: string;
   };
-  agentRunId: TEntityId;
+  contextId: TEntityId;
 }

@@ -5,6 +5,7 @@ import appError from '@shared/values/errors/app.error';
 const EErrorKeys = {
   InvalidId: 'app_error_agent_context_id_invalid',
   InvalidCorrelationId: 'app_error_agent_context_correlation_id_invalid',
+  NotFound: 'app_error_agent_context_not_found',
 } as const satisfies TErrorKeys<'app_error_agent_context'>;
 
 type UAgentContextError = (typeof EErrorKeys)[keyof typeof EErrorKeys];

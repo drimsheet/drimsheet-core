@@ -6,9 +6,7 @@ import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-
 
 import { IActor } from '@domain/user/types/actor.types';
 
-import mockAgentContextAppService from '@app/ai/contracts/__mocks__/agent-context.service.mock';
 import mockJournalEntryExtractionQueue from '@app/ai/contracts/queues/__mocks__/journal-entry-extraction-queue.mock';
-import { IAgentRunContext } from '@app/ai/types/agent-run-context.types';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import fileAppError from '@app/file/errors/file.error';
@@ -17,24 +15,14 @@ import { IInitiateJournalEntryExtractionReq } from '@app/journal-entry/dtos/init
 import makeInitiateJournalEntryExtractionUsecase from '@app/journal-entry/usecases/initiate-journal-entry-extraction.usecase';
 
 describe('initiateJournalEntryExtractionUsecase', () => {
-  const agentRunContext: IAgentRunContext = {
-    id: generateUUID(),
+  const expectedContext = {
     accountingEntityId: generateUUID(),
     correlationId: generateUUID(),
-    agentActor: { id: generateUUID(), name: 'Drimsheet AI' },
-    delegatingActor: { actorId: generateUUID(), name: 'Uploader' },
-    initiatedOn: new Date('2026-11-20T10:00:00Z'),
-    completedOn: null,
-  };
-
-  const expectedContext = {
-    ...agentRunContext,
-    initiatedOn: '2026-11-20T10:00:00.000Z',
-    completedOn: null,
+    delegatingActorId: generateUUID(),
   };
 
   const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
-  const actorId = agentRunContext.delegatingActor.actorId as TEntityId;
+  const actorId = expectedContext.delegatingActorId;
   const actor: IActor = {
     id: actorId,
     type: 'user',
@@ -68,7 +56,6 @@ describe('initiateJournalEntryExtractionUsecase', () => {
     convertToText: jest.fn(),
   };
   const usecase = makeInitiateJournalEntryExtractionUsecase({
-    agentContextAppService: mockAgentContextAppService,
     appContext: mockAppContext,
     fileStorageClient: mockFileStorageClient,
     pdfService,
@@ -81,17 +68,14 @@ describe('initiateJournalEntryExtractionUsecase', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockAppContext.get.mockReturnValue({
-      correlationId: agentRunContext.correlationId,
+      correlationId: expectedContext.correlationId,
       user: { id: userId },
       actor,
-      accountingEntity: { id: agentRunContext.accountingEntityId },
+      accountingEntity: { id: expectedContext.accountingEntityId },
     });
     mockFileStorageClient.getFileKey.mockReturnValue(key);
     mockFileStorageClient.readFile.mockResolvedValue(storedFile);
     mockFileStorageClient.getDownloadUrl.mockResolvedValue(downloadUrl);
-    mockAgentContextAppService.createRunContext.mockResolvedValue(
-      agentRunContext
-    );
     mockJournalEntryExtractionQueue.add.mockResolvedValue(undefined);
   });
 
@@ -111,16 +95,6 @@ describe('initiateJournalEntryExtractionUsecase', () => {
         range: { start: 0, end: 11 },
       });
       expect(pdfService.convertToText).not.toHaveBeenCalled();
-      expect(mockAgentContextAppService.createRunContext).toHaveBeenCalledWith(
-        {
-          accountingEntityId: agentRunContext.accountingEntityId,
-          correlationId: agentRunContext.correlationId,
-          agentActorUsername: 'drimsheet-core-ai',
-          delegatingActorUsername: actor.username,
-          initiatedOn: expect.any(Date),
-        },
-        { correlationId: agentRunContext.correlationId }
-      );
       expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith({
         value: {
           url: storedFile.fileUrl,

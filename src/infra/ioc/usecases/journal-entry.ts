@@ -21,7 +21,6 @@ import makeVoidAndReplaceReceiptUsecase from '@app/journal-entry/usecases/void-a
 import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
 import makeVoidJournalEntryUsecase from '@app/journal-entry/usecases/void-journal-entry.usecase';
 
-import { agentContextAppService } from '@infra/ioc/services/ai';
 import {
   fileManagementAppService,
   fileStorageClient,
@@ -51,7 +50,6 @@ import appContext from '@infra/services/app-context.service';
 export const initiateJournalEntryExtractionUseCase = makeTracedUseCase(
   'journalEntry.initiateJournalEntryExtractionUseCase',
   makeInitiateJournalEntryExtractionUsecase({
-    agentContextAppService,
     appContext,
     fileStorageClient,
     pdfService,

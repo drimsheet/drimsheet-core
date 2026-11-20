@@ -6,7 +6,6 @@ import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 
 import { JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME } from '@app/ai/contracts/queues/journal-entry-extraction-queue.contract';
-import { IAgentRunContextDto } from '@app/ai/dtos/agent-run-context/agent-run-context.dto';
 import { IJournalEntryExtractionDto } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 
 import makeJournalEntryExtractionQueue from '@infra/messaging/queues/journal-entry-extraction.queue';
@@ -28,14 +27,10 @@ jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
 }));
 
 describe('makeJournalEntryExtractionQueue', () => {
-  const context: IAgentRunContextDto = {
-    id: generateUUID(),
+  const context = {
     accountingEntityId: generateUUID(),
     correlationId: generateUUID(),
-    agentActor: { id: generateUUID(), name: 'Drimsheet AI' },
-    delegatingActor: { actorId: generateUUID(), name: 'Uploader' },
-    initiatedOn: '2026-11-20T10:00:00.000Z',
-    completedOn: null,
+    delegatingActorId: generateUUID(),
   };
 
   const payload: IJournalEntryExtractionDto = {

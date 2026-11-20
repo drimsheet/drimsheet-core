@@ -26,12 +26,12 @@ describe('agentContextAppService', () => {
     functionalCurrencyCode: 'NGN',
     jurisdictionCode: 'NG',
   });
+  const initiatedOn = new Date('2026-11-20T10:00:00.000Z');
   const input = {
     accountingEntityId: accountingEntity.id,
     correlationId: generateUUID(),
     agentActorUsername: agentActor.username,
-    delegatingActorUsername: delegatingActor.username,
-    initiatedOn: new Date('2026-11-20T10:00:00.000Z'),
+    delegatingActorId: delegatingActor.id,
   };
   const repoOptions = { correlationId: input.correlationId };
   const service = makeAgentContextAppService({
@@ -41,26 +41,28 @@ describe('agentContextAppService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    jest.useFakeTimers({ now: initiatedOn });
     mockAccountingEntityRepo.findById.mockResolvedValue(accountingEntity);
-    mockActorRepo.findByUsername
-      .mockResolvedValueOnce(delegatingActor)
-      .mockResolvedValueOnce(agentActor);
+    mockActorRepo.findById.mockResolvedValue(delegatingActor);
+    mockActorRepo.findByUsername.mockResolvedValue(agentActor);
   });
 
-  it('builds the context for the supplied run and resolved actors', async () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('builds a new run context for the resolved actors', async () => {
     const context = await service.createRunContext(input, repoOptions);
 
     expect(mockAccountingEntityRepo.findById).toHaveBeenCalledWith(
       input.accountingEntityId,
       repoOptions
     );
-    expect(mockActorRepo.findByUsername).toHaveBeenNthCalledWith(
-      1,
-      input.delegatingActorUsername,
+    expect(mockActorRepo.findById).toHaveBeenCalledWith(
+      input.delegatingActorId,
       repoOptions
     );
-    expect(mockActorRepo.findByUsername).toHaveBeenNthCalledWith(
-      2,
+    expect(mockActorRepo.findByUsername).toHaveBeenCalledWith(
       input.agentActorUsername,
       repoOptions
     );
@@ -73,8 +75,35 @@ describe('agentContextAppService', () => {
         actorId: delegatingActor.id,
         name: delegatingActor.displayName,
       },
-      initiatedOn: input.initiatedOn,
+      initiatedOn,
       completedOn: null,
+    });
+  });
+
+  it('maps an agent run context to repository options', () => {
+    const contextId = generateUUID();
+    const agentRepoOptions = service.getAgentRepoOptions({
+      id: contextId,
+      accountingEntityId: input.accountingEntityId,
+      correlationId: input.correlationId,
+      agentActor: { id: agentActor.id, name: agentActor.displayName },
+      delegatingActor: {
+        actorId: delegatingActor.id,
+        name: delegatingActor.displayName,
+      },
+      initiatedOn,
+      completedOn: null,
+    });
+
+    expect(agentRepoOptions).toEqual({
+      accountingEntityId: input.accountingEntityId,
+      correlationId: input.correlationId,
+      agentActor: { id: agentActor.id, name: agentActor.displayName },
+      delegatingActor: {
+        id: delegatingActor.id,
+        name: delegatingActor.displayName,
+      },
+      contextId,
     });
   });
 
@@ -86,7 +115,7 @@ describe('agentContextAppService', () => {
       )
     ).rejects.toBeInstanceOf(agentContextAppError.InvalidCorrelationId);
     expect(mockAccountingEntityRepo.findById).not.toHaveBeenCalled();
-    expect(mockActorRepo.findByUsername).not.toHaveBeenCalled();
+    expect(mockActorRepo.findById).not.toHaveBeenCalled();
   });
 
   it('rejects a missing accounting entity', async () => {
@@ -95,16 +124,16 @@ describe('agentContextAppService', () => {
     await expect(
       service.createRunContext(input, repoOptions)
     ).rejects.toBeInstanceOf(accountingAppError.EntityNotFound);
-    expect(mockActorRepo.findByUsername).not.toHaveBeenCalled();
+    expect(mockActorRepo.findById).not.toHaveBeenCalled();
   });
 
   it('rejects a missing delegating actor', async () => {
-    mockActorRepo.findByUsername.mockReset().mockResolvedValueOnce(null);
+    mockActorRepo.findById.mockResolvedValue(null);
 
     await expect(
       service.createRunContext(input, repoOptions)
     ).rejects.toBeInstanceOf(actorError.NotFound);
-    expect(mockActorRepo.findByUsername).toHaveBeenCalledTimes(1);
+    expect(mockActorRepo.findByUsername).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -116,10 +145,7 @@ describe('agentContextAppService', () => {
       actorError.Disabled,
     ],
   ] as const)('rejects an agent actor that is %s', async (_, actor, error) => {
-    mockActorRepo.findByUsername
-      .mockReset()
-      .mockResolvedValueOnce(delegatingActor)
-      .mockResolvedValueOnce(actor);
+    mockActorRepo.findByUsername.mockResolvedValue(actor);
 
     await expect(
       service.createRunContext(input, repoOptions)

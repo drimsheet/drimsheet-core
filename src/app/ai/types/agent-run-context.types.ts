@@ -10,7 +10,7 @@ export interface IAgentRunContext {
   };
   delegatingActor: {
     name: string;
-    actorId: string;
+    actorId: TEntityId;
   };
   initiatedOn: Date;
   completedOn: Date | null;

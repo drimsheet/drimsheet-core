@@ -7,22 +7,27 @@ import IActorRepo from '@domain/user/repos/actor.repo';
 import { EActorStatus, EActorType } from '@domain/user/types/actor.types';
 
 import accountingAppError from '@app/accounting/errors/accounting.error';
-import IAgentContextAppService from '@app/ai/contracts/agent-run-context.service.contract';
+import IRunContextAgentRepo from '@app/ai/contracts/repos/run-context.agent.repo.contract';
+import IAgentContextAppService from '@app/ai/contracts/services/agent-context.service.contract';
 import agentContextAppError from '@app/ai/errors/agent-context.error';
+import { IAgentRunContext } from '@app/ai/types/agent-run-context.types';
 
 interface IDependencies {
   actorRepo: IActorRepo;
   accountingEntityRepo: IAccountingEntityRepo;
+  runContextAgentRepo: IRunContextAgentRepo;
 }
 
 /**
- * Resolves the accounting entity and actors for an existing run. Rejects an
+ * Resolves the accounting entity and actors for a new run. Rejects an
  * invalid correlation ID, missing records, or an ineligible agent actor.
  */
 function makeCreateRunContext(
   deps: IDependencies
 ): IAgentContextAppService['createRunContext'] {
   return async (input, repoOptions) => {
+    const initiatedOn = new Date();
+
     stringUtils.validateUUID(
       input.correlationId,
       agentContextAppError.InvalidCorrelationId
@@ -37,8 +42,8 @@ function makeCreateRunContext(
       throw new accountingAppError.EntityNotFound();
     }
 
-    const delegatingActor = await deps.actorRepo.findByUsername(
-      input.delegatingActorUsername,
+    const delegatingActor = await deps.actorRepo.findById(
+      input.delegatingActorId,
       repoOptions
     );
 
@@ -63,7 +68,7 @@ function makeCreateRunContext(
       throw new actorError.Disabled();
     }
 
-    return {
+    const context: IAgentRunContext = {
       id: generateUUID(),
       accountingEntityId: input.accountingEntityId,
       correlationId: input.correlationId,
@@ -75,10 +80,31 @@ function makeCreateRunContext(
         name: delegatingActor.displayName,
         actorId: delegatingActor.id,
       },
-      initiatedOn: input.initiatedOn,
+      initiatedOn,
       completedOn: null,
     };
+
+    await deps.runContextAgentRepo.save(context);
+
+    return context;
   };
+}
+
+/** Maps the run and actor identities to agent repository options. */
+function makeGetAgentRepoOptions(): IAgentContextAppService['getAgentRepoOptions'] {
+  return (context) => ({
+    accountingEntityId: context.accountingEntityId,
+    correlationId: context.correlationId,
+    agentActor: {
+      id: context.agentActor.id,
+      name: context.agentActor.name,
+    },
+    delegatingActor: {
+      id: context.delegatingActor.actorId,
+      name: context.delegatingActor.name,
+    },
+    contextId: context.id,
+  });
 }
 
 export default function makeAgentContextAppService(
@@ -86,6 +112,7 @@ export default function makeAgentContextAppService(
 ): IAgentContextAppService {
   const service: IAgentContextAppService = {
     createRunContext: makeCreateRunContext(deps),
+    getAgentRepoOptions: makeGetAgentRepoOptions(),
   };
 
   return Object.freeze(service);

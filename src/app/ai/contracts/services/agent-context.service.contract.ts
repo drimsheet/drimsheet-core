@@ -1,14 +1,14 @@
 import { IRepoOptions } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
+import { IAgentRepoOptions } from '@app/ai/types/agent-repo.types';
 import { IAgentRunContext } from '@app/ai/types/agent-run-context.types';
 
 interface ICreateRunContextInput {
   accountingEntityId: TEntityId;
   correlationId: TEntityId;
   agentActorUsername: string;
-  delegatingActorUsername: string;
-  initiatedOn: Date;
+  delegatingActorId: TEntityId;
 }
 
 export default interface IAgentContextAppService {
@@ -17,4 +17,6 @@ export default interface IAgentContextAppService {
     input: ICreateRunContextInput,
     repoOptions: IRepoOptions
   ): Promise<IAgentRunContext>;
+
+  getAgentRepoOptions(context: IAgentRunContext): IAgentRepoOptions;
 }

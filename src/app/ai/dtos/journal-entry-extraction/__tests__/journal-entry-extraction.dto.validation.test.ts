@@ -1,6 +1,5 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
-import { IAgentRunContextDto } from '@app/ai/dtos/agent-run-context/agent-run-context.dto';
 import {
   IJournalEntriesExtractionInput,
   IJournalEntryExtractionDto,
@@ -11,14 +10,10 @@ import {
 } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
 
 describe('journal entry extraction DTO validation', () => {
-  const context: IAgentRunContextDto = {
-    id: generateUUID(),
+  const context = {
     accountingEntityId: generateUUID(),
     correlationId: generateUUID(),
-    agentActor: { id: generateUUID(), name: 'Drimsheet AI' },
-    delegatingActor: { actorId: generateUUID(), name: 'Uploader' },
-    initiatedOn: '2026-11-20T10:00:00.000Z',
-    completedOn: null,
+    delegatingActorId: generateUUID(),
   };
   const attachment = {
     url: 'https://example.com/receipt.png',
@@ -39,20 +34,33 @@ describe('journal entry extraction DTO validation', () => {
     }
   );
 
-  it('requires the run context', () => {
+  it('requires the request context', () => {
     expect(
       journalEntryExtractionDtoValidation.safeParse({ value: attachment })
         .success
     ).toBe(false);
   });
 
-  it('reports invalid nested context fields', () => {
+  it.each(['accountingEntityId', 'correlationId', 'delegatingActorId'])(
+    'reports invalid nested context field %s',
+    (field) => {
+      const parsed = journalEntryExtractionDtoValidation.safeParse({
+        ...payload,
+        context: { ...context, [field]: 'invalid' },
+      });
+      expect(parsed.error?.issues).toEqual([
+        expect.objectContaining({ path: ['context', field] }),
+      ]);
+    }
+  );
+
+  it('rejects run metadata in the request context', () => {
     const parsed = journalEntryExtractionDtoValidation.safeParse({
       ...payload,
-      context: { ...context, correlationId: 'invalid' },
+      context: { ...context, initiatedOn: '2026-11-20T10:00:00.000Z' },
     });
     expect(parsed.error?.issues).toEqual([
-      expect.objectContaining({ path: ['context', 'correlationId'] }),
+      expect.objectContaining({ code: 'unrecognized_keys', path: ['context'] }),
     ]);
   });
 
