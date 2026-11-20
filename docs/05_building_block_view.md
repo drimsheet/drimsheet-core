@@ -20,21 +20,6 @@ _Figure 1: View the mermaid sourcecode here:&#x20;_[_05.1-level-1-system.mermaid
 | **Infrastructure Layer (`src/infra`)** | Contains technical capabilities that support the layers above. Named external-platform adapters live under `src/infra/integrations` and implement or translate into system-owned boundaries, while persistence, messaging, provider-neutral observability, runtime, and delivery retain dedicated owners. |
 | **Shared Layer (`src/shared`)**        | Cross-cutting concerns, ubiquitous utility functions (e.g., string and date utilities), value objects, shared errors, and shared domain types used across multiple boundaries.                                                                                                                            |
 
----
-
-### Agent storage contracts
-
-The application layer owns the agent storage boundary through
-`src/app/<namespace>/contracts/agent-repos/`. These contracts describe storage
-operations in application terms, independently of MongoDB.
-
-The infrastructure layer implements that boundary under
-`src/infra/persistence/repos/<namespace>`, using the shared MongoDB client
-configured in `src/infra/config/mongodb.config.ts`. MongoDB stores agent workflow
-state; PostgreSQL remains authoritative for accounting records. The rationale
-for this separation is recorded in
-[ADR 0021](adrs/0021-mongo-db-for-agent-workflow-storage.md).
-
 ## 5.2 Level 2 (Whitebox: Domain Layer)
 
 Zooming into the `Domain Layer` (the center of our architecture), the system is decomposed into bounded modules that enforce accounting entity ownership, ledger structure, journal posting rules, currency constraints, subledger detail, and user identity.

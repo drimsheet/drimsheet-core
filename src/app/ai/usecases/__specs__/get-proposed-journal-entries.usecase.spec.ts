@@ -8,11 +8,10 @@ import makeGetProposedJournalEntriesUsecase from '@app/ai/usecases/get-proposed-
 type TDependencies = Parameters<typeof makeGetProposedJournalEntriesUsecase>[0];
 
 describe('get proposed journal entries use case', () => {
-  const runContextAgentRepo: jest.Mocked<TDependencies['runContextAgentRepo']> =
-    {
-      save: jest.fn(),
-      findById: jest.fn(),
-    };
+  const runContextRepo: jest.Mocked<TDependencies['runContextRepo']> = {
+    save: jest.fn(),
+    findById: jest.fn(),
+  };
   const journalEntryProposalsRepo: jest.Mocked<
     TDependencies['journalEntryProposalsRepo']
   > = { save: jest.fn() };
@@ -20,7 +19,7 @@ describe('get proposed journal entries use case', () => {
     TDependencies['structuredLlmCall']
   > = jest.fn();
   const getProposedJournalEntries = makeGetProposedJournalEntriesUsecase({
-    runContextAgentRepo,
+    runContextRepo,
     agentContextAppService: mockAgentContextAppService,
     journalEntryProposalsRepo,
     structuredLlmCall,
@@ -51,7 +50,7 @@ describe('get proposed journal entries use case', () => {
       },
     };
     const proposals = { ledgerAccounts: [], counterparties: [], entries: [] };
-    runContextAgentRepo.findById.mockResolvedValue(runContext);
+    runContextRepo.findById.mockResolvedValue(runContext);
     mockAgentContextAppService.getAgentRepoOptions.mockReturnValue(repoOptions);
     structuredLlmCall.mockResolvedValue(proposals);
     journalEntryProposalsRepo.save.mockResolvedValue(undefined);
@@ -59,7 +58,7 @@ describe('get proposed journal entries use case', () => {
     await expect(getProposedJournalEntries(payload, contextId)).resolves.toBe(
       proposals
     );
-    expect(runContextAgentRepo.findById).toHaveBeenCalledWith(contextId);
+    expect(runContextRepo.findById).toHaveBeenCalledWith(contextId);
     expect(structuredLlmCall).toHaveBeenCalledWith(payload);
     expect(mockAgentContextAppService.getAgentRepoOptions).toHaveBeenCalledWith(
       runContext
@@ -76,11 +75,11 @@ describe('get proposed journal entries use case', () => {
     await expect(
       getProposedJournalEntries(invalidPayload, contextId)
     ).rejects.toBeInstanceOf(appError.UnprocessableEntity);
-    expect(runContextAgentRepo.findById).not.toHaveBeenCalled();
+    expect(runContextRepo.findById).not.toHaveBeenCalled();
   });
 
   it('rejects a missing run context before extracting or saving', async () => {
-    runContextAgentRepo.findById.mockResolvedValue(null);
+    runContextRepo.findById.mockResolvedValue(null);
 
     await expect(
       getProposedJournalEntries(payload, contextId)

@@ -27,8 +27,8 @@ have been defined yet.
 - Configure one lazy, shared `MongoClient` per process through `MONGODB_URL`.
   The driver connects when an operation needs it. HTTP and background shutdown
   close the client if it was created; unused MongoDB does not gate startup.
-- Follow the [agent storage convention](../05_building_block_view.md#agent-storage-contracts)
-  for application-owned contracts and infrastructure implementations.
+- Follow the [folder responsibility rules](../../.agents/rules/folder-responsibility.md#layers)
+  for application-owned repository contracts and infrastructure implementations.
 - This change establishes configuration and the convention only. It creates
   no collections, workflow contracts, repository implementations, or migration
   framework.
