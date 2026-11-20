@@ -3,9 +3,11 @@ import { Queue } from 'bullmq';
 import mockQueueMetrics from '@shared/contracts/__mocks__/queue-metrics.mock';
 import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
+import generateUUID from '@shared/utils/uuid-generator';
 
+import { IAgentRunContextDto } from '@app/ai/dtos/agent-run-context/agent-run-context.dto';
+import { IJournalEntryExtractionDto } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 import { JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME } from '@app/journal-entry/contracts/queues/journal-entry-extraction-queue.contract';
-import { IJournalEntryExtractionDto } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 
 import makeJournalEntryExtractionQueue from '@infra/messaging/queues/journal-entry-extraction.queue';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
@@ -26,14 +28,22 @@ jest.mock('@infra/runtime/lifecycle/queue.lifecycle', () => ({
 }));
 
 describe('makeJournalEntryExtractionQueue', () => {
+  const context: IAgentRunContextDto = {
+    id: generateUUID(),
+    accountingEntityId: generateUUID(),
+    correlationId: generateUUID(),
+    agentActor: { id: generateUUID(), name: 'Drimsheet AI' },
+    delegatingActor: { actorId: generateUUID(), name: 'Uploader' },
+    initiatedOn: '2026-11-20T10:00:00.000Z',
+    completedOn: null,
+  };
+
   const payload: IJournalEntryExtractionDto = {
-    accountId: '123e4567-e89b-12d3-a456-426614174002',
-    actorId: '123e4567-e89b-12d3-a456-426614174003',
-    accountingEntityId: '123e4567-e89b-12d3-a456-426614174004',
+    context,
     value: {
       url: 'https://example.com/receipt.png',
       name: 'receipt.png',
-      type: 'image/png',
+      type: 'png',
       size: 100,
     },
   };
@@ -54,8 +64,8 @@ describe('makeJournalEntryExtractionQueue', () => {
     );
     expect(Queue).not.toHaveBeenCalled();
 
-    await queue.add('producer-correlation', payload);
-    await queue.add('producer-correlation', payload);
+    await queue.add(payload);
+    await queue.add(payload);
 
     expect(Queue).toHaveBeenCalledTimes(1);
     expect(Queue).toHaveBeenCalledWith(JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME, {
@@ -68,7 +78,7 @@ describe('makeJournalEntryExtractionQueue', () => {
       JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME,
       {
         __observabilityEnvelopeVersion: 1,
-        correlationId: 'producer-correlation',
+        correlationId: context.correlationId,
         payload,
         trace: { baggage: 'sentry-environment=test' },
       },
@@ -95,9 +105,7 @@ describe('makeJournalEntryExtractionQueue', () => {
       mockTracer
     );
 
-    await expect(queue.add('producer-correlation', payload)).rejects.toBe(
-      failure
-    );
+    await expect(queue.add(payload)).rejects.toBe(failure);
 
     expect(mockQueueMetrics.recordEnqueueFailed).toHaveBeenCalledWith({
       queueName: JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME,

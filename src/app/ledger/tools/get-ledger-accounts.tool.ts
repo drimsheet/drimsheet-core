@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { getLedgerAccountQueryValidationSchema } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
 import type makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
 

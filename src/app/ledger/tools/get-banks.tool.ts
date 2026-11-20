@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { getBanksQueryValidationSchema } from '@app/ledger/dtos/bank-directory/bank-directory.dto.validation';
 import type makeGetBanksUseCase from '@app/ledger/usecases/get-banks.usecase';
 

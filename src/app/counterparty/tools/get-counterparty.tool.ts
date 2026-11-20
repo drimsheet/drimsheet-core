@@ -1,9 +1,8 @@
 import z from 'zod';
 
-import { IAgentTool } from '@shared/types/ai.types';
-
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import type makeGetCounterpartyUsecase from '@app/counterparty/usecases/get-counterparty.usecase';
 
 const inputSchema = z.object({

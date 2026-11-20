@@ -1,12 +1,14 @@
 import IPdfService from '@shared/contracts/pdf.service.contract';
 import { TEntityId } from '@shared/types/uuid';
+import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import { IActor } from '@domain/user/types/actor.types';
 
+import mockAgentContextService from '@app/ai/contracts/__mocks__/agent-context.service.mock';
+import { IAgentRunContext } from '@app/ai/types/agent-run-context.types';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { IAppContextData } from '@app/context/types/app-context.types';
 import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import fileAppError from '@app/file/errors/file.error';
 import makeFileManagementAppService from '@app/file/services/file-management.service';
@@ -15,8 +17,24 @@ import { IInitiateJournalEntryExtractionReq } from '@app/journal-entry/dtos/init
 import makeInitiateJournalEntryExtractionUsecase from '@app/journal-entry/usecases/initiate-journal-entry-extraction.usecase';
 
 describe('initiateJournalEntryExtractionUsecase', () => {
+  const agentRunContext: IAgentRunContext = {
+    id: generateUUID(),
+    accountingEntityId: generateUUID(),
+    correlationId: generateUUID(),
+    agentActor: { id: generateUUID(), name: 'Drimsheet AI' },
+    delegatingActor: { actorId: generateUUID(), name: 'Uploader' },
+    initiatedOn: new Date('2026-11-20T10:00:00Z'),
+    completedOn: null,
+  };
+
+  const expectedContext = {
+    ...agentRunContext,
+    initiatedOn: '2026-11-20T10:00:00.000Z',
+    completedOn: null,
+  };
+
   const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
-  const actorId = '123e4567-e89b-12d3-a456-426614174005' as TEntityId;
+  const actorId = agentRunContext.delegatingActor.actorId as TEntityId;
   const actor: IActor = {
     id: actorId,
     type: 'user',
@@ -50,6 +68,7 @@ describe('initiateJournalEntryExtractionUsecase', () => {
     convertToText: jest.fn(),
   };
   const usecase = makeInitiateJournalEntryExtractionUsecase({
+    agentContextService: mockAgentContextService,
     appContext: mockAppContext,
     fileStorageClient: mockFileStorageClient,
     pdfService,
@@ -62,15 +81,15 @@ describe('initiateJournalEntryExtractionUsecase', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockAppContext.get.mockReturnValue({
-      correlationId: 'upload-correlation',
+      correlationId: agentRunContext.correlationId,
       user: { id: userId },
       actor,
-      accountingEntity: { id: '123e4567-e89b-12d3-a456-426614174004' },
-    } as IAppContextData &
-      Required<Pick<IAppContextData, 'user' | 'actor' | 'accountingEntity'>>);
+      accountingEntity: { id: agentRunContext.accountingEntityId },
+    });
     mockFileStorageClient.getFileKey.mockReturnValue(key);
     mockFileStorageClient.readFile.mockResolvedValue(storedFile);
     mockFileStorageClient.getDownloadUrl.mockResolvedValue(downloadUrl);
+    mockAgentContextService.createRunContext.mockResolvedValue(agentRunContext);
     mockJournalEntryExtractionQueue.add.mockResolvedValue(undefined);
   });
 
@@ -90,21 +109,25 @@ describe('initiateJournalEntryExtractionUsecase', () => {
         range: { start: 0, end: 11 },
       });
       expect(pdfService.convertToText).not.toHaveBeenCalled();
-      expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith(
-        'upload-correlation',
+      expect(mockAgentContextService.createRunContext).toHaveBeenCalledWith(
         {
-          accountId: payload.accountId,
-          sourceType,
-          actorId,
-          accountingEntityId: '123e4567-e89b-12d3-a456-426614174004',
-          value: {
-            url: storedFile.fileUrl,
-            name: 'receipt.png',
-            type: EFileAttachmentType.Png,
-            size: storedFile.size,
-          },
-        }
+          accountingEntityId: agentRunContext.accountingEntityId,
+          correlationId: agentRunContext.correlationId,
+          agentActorUsername: 'drimsheet-core-ai',
+          delegatingActorUsername: actor.username,
+          initiatedOn: expect.any(Date),
+        },
+        { correlationId: agentRunContext.correlationId }
       );
+      expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith({
+        value: {
+          url: storedFile.fileUrl,
+          name: 'receipt.png',
+          type: EFileAttachmentType.Png,
+          size: storedFile.size,
+        },
+        context: expectedContext,
+      });
     }
   );
 
@@ -126,16 +149,10 @@ describe('initiateJournalEntryExtractionUsecase', () => {
 
     expect(mockFileStorageClient.getDownloadUrl).toHaveBeenCalledWith(fileUrl);
     expect(pdfService.convertToText).toHaveBeenCalledWith(downloadUrl);
-    expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith(
-      'upload-correlation',
-      {
-        accountId: payload.accountId,
-        sourceType: undefined,
-        actorId,
-        accountingEntityId: '123e4567-e89b-12d3-a456-426614174004',
-        value: pdfText,
-      }
-    );
+    expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith({
+      value: pdfText,
+      context: expectedContext,
+    });
   });
 
   it('rejects a missing upload', async () => {

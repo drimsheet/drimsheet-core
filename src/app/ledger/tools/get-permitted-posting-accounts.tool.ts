@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { getPermittedPostingAccountsQueryValidationSchema } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto.validation';
 import type makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
 

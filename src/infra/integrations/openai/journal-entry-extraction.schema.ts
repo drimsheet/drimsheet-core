@@ -1,13 +1,12 @@
 import z from 'zod';
 
-import { aiAssessmentValidation } from '@shared/values/ai-assessment/dto/ai-assessment.dto.validation';
-
+import { aiAssessmentValidation } from '@app/ai/dtos/ai-assessment/ai-assessment.dto.validation';
+import { IJournalEntryExtractionAiResponse } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 import { counterpartyAiProposalDtoValidation } from '@app/counterparty/dtos/counterparty-ai-proposal/counterparty-ai-proposal.dto.validation';
 import {
   journalEntryAiProposalDtoValidation,
   journalLineAiProposalDtoValidation,
 } from '@app/journal-entry/dtos/journal-entry-ai-proposal/journal-entry-proposals.dto.validation';
-import { IJournalEntryExtractionAiResponse } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 import { ledgerAccountAiProposalDtoValidation } from '@app/ledger/dtos/ledger-account-ai-proposal/ledger-account-ai-proposal.dto.validation';
 import { exchangeRateJsonDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 

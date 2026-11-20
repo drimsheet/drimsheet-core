@@ -1,10 +1,9 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
 import {
   IJournalEntriesExtractionInput,
   IJournalEntryExtractionAiResponse,
-} from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
-import { journalEntriesExtractionInputValidation } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+} from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { journalEntriesExtractionInputValidation } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+import { IAgentTool } from '@app/ai/types/agent-tool';
 
 interface IDependencies {
   structuredLlmCall: (

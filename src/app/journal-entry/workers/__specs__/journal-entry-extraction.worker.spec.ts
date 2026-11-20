@@ -1,10 +1,21 @@
+import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import { IJournalEntryExtractionDto } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { IAgentRunContextDto } from '@app/ai/dtos/agent-run-context/agent-run-context.dto';
 import makeJournalEntryExtractionWorker from '@app/journal-entry/workers/journal-entry-extraction.worker';
 
 describe('makeJournalEntryExtractionWorker', () => {
+  const context: IAgentRunContextDto = {
+    id: generateUUID(),
+    accountingEntityId: generateUUID(),
+    correlationId: generateUUID(),
+    agentActor: { id: generateUUID(), name: 'Drimsheet AI' },
+    delegatingActor: { actorId: generateUUID(), name: 'Uploader' },
+    initiatedOn: '2026-11-20T10:00:00.000Z',
+    completedOn: null,
+  };
+
   const file = {
     url: 'https://example.com/receipt.png',
     name: 'receipt.png',
@@ -12,24 +23,21 @@ describe('makeJournalEntryExtractionWorker', () => {
     size: 1024,
   };
   const pdfText = 'Receipt total: 100 NGN';
-  const payload: IJournalEntryExtractionDto = {
-    accountId: '123e4567-e89b-12d3-a456-426614174001',
-    actorId: '123e4567-e89b-12d3-a456-426614174002',
-    accountingEntityId: '123e4567-e89b-12d3-a456-426614174003',
-    value: pdfText,
-  };
   const worker = makeJournalEntryExtractionWorker();
 
   it.each([pdfText, file])(
     'accepts a valid job with value %j',
     async (value) => {
-      await expect(worker({ ...payload, value })).resolves.toBeUndefined();
+      await expect(worker({ value, context })).resolves.toBeUndefined();
     }
   );
 
   it('rejects invalid jobs', async () => {
     await expect(
-      worker({ ...payload, value: { ...file, size: 0 } })
+      worker({
+        value: { ...file, size: 0 },
+        context,
+      })
     ).rejects.toBeInstanceOf(appError.UnprocessableEntity);
   });
 });

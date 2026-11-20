@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { createExpenseAccountValidation } from '@app/ledger/dtos/expense-account/expense-account.dto.validation';
 import type makeCreateExpenseAccountUsecase from '@app/ledger/usecases/create-expense-account.usecase';
 

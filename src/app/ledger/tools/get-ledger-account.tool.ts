@@ -1,10 +1,10 @@
 import z from 'zod';
 
-import { IAgentTool } from '@shared/types/ai.types';
 import { TEntityId } from '@shared/types/uuid';
 
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import type makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
 
 const inputSchema = z.object({

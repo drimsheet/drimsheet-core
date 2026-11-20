@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { transferEntryJsonReqValidation } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto.validation';
 import type makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transfer.usecase';
 

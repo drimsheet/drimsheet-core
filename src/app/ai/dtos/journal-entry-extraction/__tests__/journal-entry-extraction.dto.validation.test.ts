@@ -1,13 +1,25 @@
+import generateUUID from '@shared/utils/uuid-generator';
+
+import { IAgentRunContextDto } from '@app/ai/dtos/agent-run-context/agent-run-context.dto';
 import {
   IJournalEntriesExtractionInput,
   IJournalEntryExtractionDto,
-} from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+} from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 import {
   journalEntriesExtractionInputValidation,
   journalEntryExtractionDtoValidation,
-} from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+} from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
 
 describe('journal entry extraction DTO validation', () => {
+  const context: IAgentRunContextDto = {
+    id: generateUUID(),
+    accountingEntityId: generateUUID(),
+    correlationId: generateUUID(),
+    agentActor: { id: generateUUID(), name: 'Drimsheet AI' },
+    delegatingActor: { actorId: generateUUID(), name: 'Uploader' },
+    initiatedOn: '2026-11-20T10:00:00.000Z',
+    completedOn: null,
+  };
   const attachment = {
     url: 'https://example.com/receipt.png',
     name: 'receipt.png',
@@ -15,52 +27,34 @@ describe('journal entry extraction DTO validation', () => {
     size: 1024,
   };
   const payload: IJournalEntryExtractionDto = {
-    accountId: '123e4567-e89b-12d3-a456-426614174001',
-    actorId: '123e4567-e89b-12d3-a456-426614174002',
-    accountingEntityId: '123e4567-e89b-12d3-a456-426614174003',
     value: attachment,
+    context,
   };
 
   it.each([attachment, 'Receipt total: 100 NGN'])(
-    'preserves extraction input %j with an optional source type',
+    'preserves extraction input %j',
     (value) => {
       const job = { ...payload, value };
       expect(journalEntryExtractionDtoValidation.parse(job)).toEqual(job);
-      expect(
-        journalEntryExtractionDtoValidation.parse({
-          ...job,
-          sourceType: 'payment',
-        })
-      ).toEqual({ ...job, sourceType: 'payment' });
     }
   );
 
-  it.each(['accountId', 'actorId', 'accountingEntityId'] as const)(
-    'rejects a missing, malformed, or undetermined %s',
-    (field) => {
-      for (const value of [undefined, 'invalid', '__undetermined__']) {
-        const parsed = journalEntryExtractionDtoValidation.safeParse({
-          ...payload,
-          [field]: value,
-        });
-        expect(parsed.error?.issues).toEqual([
-          expect.objectContaining({ path: [field] }),
-        ]);
-      }
-    }
-  );
+  it('requires the run context', () => {
+    expect(
+      journalEntryExtractionDtoValidation.safeParse({ value: attachment })
+        .success
+    ).toBe(false);
+  });
 
-  it.each(['invalid', '__undetermined__', null])(
-    'rejects unsupported source type %j',
-    (sourceType) => {
-      expect(
-        journalEntryExtractionDtoValidation.safeParse({
-          ...payload,
-          sourceType,
-        }).success
-      ).toBe(false);
-    }
-  );
+  it('reports invalid nested context fields', () => {
+    const parsed = journalEntryExtractionDtoValidation.safeParse({
+      ...payload,
+      context: { ...context, correlationId: 'invalid' },
+    });
+    expect(parsed.error?.issues).toEqual([
+      expect.objectContaining({ path: ['context', 'correlationId'] }),
+    ]);
+  });
 
   it('reports invalid attachments at their nested path', () => {
     const parsed = journalEntryExtractionDtoValidation.safeParse({

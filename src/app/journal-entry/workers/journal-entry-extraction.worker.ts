@@ -1,7 +1,7 @@
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
-import { IJournalEntryExtractionDto } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
-import { journalEntryExtractionDtoValidation } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+import { IJournalEntryExtractionDto } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { journalEntryExtractionDtoValidation } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
 
 export default function makeJournalEntryExtractionWorker() {
   return async (payload: IJournalEntryExtractionDto): Promise<void> => {

@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { getExchangeRatesJsonQueryValidationSchema } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
 import type makeGetExchangeRateUseCase from '@app/money/usecases/get-exchange-rates.usecase';
 

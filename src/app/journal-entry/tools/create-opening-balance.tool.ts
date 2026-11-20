@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { openingBalanceCreationJsonReqValidation } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
 import type makeCreateOpeningBalanceUseCase from '@app/journal-entry/usecases/create-opening-balance.usecase';
 

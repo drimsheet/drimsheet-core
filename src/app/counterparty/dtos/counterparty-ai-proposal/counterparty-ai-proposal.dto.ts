@@ -1,10 +1,10 @@
-import { TAiAssessmentValue } from '@shared/types/ai.types';
-
 import {
   ICounterpartyRoleDetails,
   UCounterpartyRole,
   UCounterpartyType,
 } from '@domain/counterparty/types/counterparty.types';
+
+import { TAiAssessmentValue } from '@app/ai/types/ai-assessment';
 
 export interface ICounterpartyAiProposal {
   temporaryId: string;

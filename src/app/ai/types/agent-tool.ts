@@ -16,11 +16,3 @@ export interface IAgentTool<
   annotations?: { readOnlyHint: boolean };
   func(input: z.output<InputSchema>): Promise<Output> | Output;
 }
-
-export type TAiAssessmentValue<T> = T | '__undetermined__';
-
-export interface IAiAssessment<T> {
-  value: TAiAssessmentValue<T>;
-  confidence: number;
-  evidence: string[];
-}

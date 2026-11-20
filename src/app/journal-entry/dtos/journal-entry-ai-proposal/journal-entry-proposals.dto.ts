@@ -1,8 +1,7 @@
-import { TAiAssessmentValue } from '@shared/types/ai.types';
-
 import { UJournalEntrySourceType } from '@domain/journal-entry/types/journal-entry.types';
 import { UJournalSide } from '@domain/journal-entry/types/journal-line.types';
 
+import { TAiAssessmentValue } from '@app/ai/types/ai-assessment';
 import { IExchangeRateDto } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import { IMoneyDto } from '@app/money/dtos/money/money.dto';
 

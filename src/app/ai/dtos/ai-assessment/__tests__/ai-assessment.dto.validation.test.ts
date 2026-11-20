@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { aiAssessmentValidation } from '@shared/values/ai-assessment/dto/ai-assessment.dto.validation';
+import { aiAssessmentValidation } from '@app/ai/dtos/ai-assessment/ai-assessment.dto.validation';
 
 describe('aiAssessmentValidation', () => {
   const validation = aiAssessmentValidation(z.object({ name: z.string() }));

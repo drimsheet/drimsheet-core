@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { paymentEntryJsonReqValidation } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto.validation';
 import type makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment.usecase';
 

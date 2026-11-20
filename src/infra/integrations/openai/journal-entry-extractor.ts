@@ -4,12 +4,12 @@ import z from 'zod';
 import getFileAttachmentTypeHelper from '@shared/values/file-attachments/helpers/get-file-attachment-type.helper';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import {
   IJournalEntriesExtractionInput,
   IJournalEntryExtractionAiResponse,
-} from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
-import { journalEntriesExtractionInputValidation } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+} from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { journalEntriesExtractionInputValidation } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import journalEntryAppError from '@app/journal-entry/errors/journal-entry.error';
 
 import openAiClient from './client';

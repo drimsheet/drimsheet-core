@@ -2,10 +2,10 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import z from 'zod';
 
 import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
-import { IAgentTool } from '@shared/types/ai.types';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { IJournalEntryListDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import makeGetJournalEntriesTool from '@app/journal-entry/tools/get-journal-entries.tool';
 import makeGetLedgerAccountsTool from '@app/ledger/tools/get-ledger-accounts.tool';

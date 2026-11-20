@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { receiptEntryJsonReqValidation } from '@app/journal-entry/dtos/receipt-entry/receipt-entry.dto.validation';
 import type makeCreateReceiptUsecase from '@app/journal-entry/usecases/create-receipt.usecase';
 

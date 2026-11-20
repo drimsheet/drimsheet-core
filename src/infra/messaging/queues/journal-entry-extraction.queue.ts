@@ -7,10 +7,10 @@ import IReporter from '@shared/contracts/reporter.contract';
 import ITracer from '@shared/contracts/tracer.contract';
 import { ITraceEnvelope } from '@shared/types/observability.types';
 
+import { IJournalEntryExtractionDto } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 import IJournalEntryExtractionQueue, {
   JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME,
 } from '@app/journal-entry/contracts/queues/journal-entry-extraction-queue.contract';
-import { IJournalEntryExtractionDto } from '@app/journal-entry/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
 import { makeTraceEnvelope } from '@infra/observability/queue-tracing';
@@ -50,11 +50,11 @@ export default function makeJournalEntryExtractionQueue(
   tracer: ITracer
 ): IJournalEntryExtractionQueue {
   return {
-    async add(correlationId, payload) {
+    async add(payload) {
       try {
         await getJournalEntryExtractionQueue().add(
           JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME,
-          makeTraceEnvelope(correlationId, payload, tracer),
+          makeTraceEnvelope(payload.context.correlationId, payload, tracer),
           getConfig()
         );
         queueMetrics.recordEnqueueSucceeded({

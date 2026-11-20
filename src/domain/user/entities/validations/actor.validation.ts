@@ -61,10 +61,12 @@ function validate(actor: IActor): void {
     throw new actorError.InvalidUsername();
   }
 
+  const { ownerActorId } = actor;
+
   const isOwnedAgent =
-    actor.type === EActorType.AiAgent && actor.ownerActorId !== null;
+    actor.type === EActorType.AiAgent && ownerActorId !== null;
   if (isOwnedAgent) {
-    stringUtils.validateUUID(actor.ownerActorId, actorError.InvalidOwner);
+    stringUtils.validateUUID(ownerActorId, actorError.InvalidOwner);
     validateAgentName(actor.agentName as string);
     const separator = actor.username.lastIndexOf('/');
     const isInvalidSuffix =

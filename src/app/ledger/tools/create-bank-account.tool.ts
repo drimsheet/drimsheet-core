@@ -1,5 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
-
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import { bankAccountCreationJsonReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import type makeCreateBankAccountUseCase from '@app/ledger/usecases/create-bank-account.usecase';
 

@@ -1,9 +1,8 @@
 import z from 'zod';
 
-import { IAgentTool } from '@shared/types/ai.types';
-
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 
+import { IAgentTool } from '@app/ai/types/agent-tool';
 import type makeGetJournalEntryUsecase from '@app/journal-entry/usecases/get-journal-entry.usecase';
 
 const inputSchema = z.object({

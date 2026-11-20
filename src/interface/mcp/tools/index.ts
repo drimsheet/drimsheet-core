@@ -1,4 +1,4 @@
-import { IAgentTool } from '@shared/types/ai.types';
+import { IAgentTool } from '@app/ai/types/agent-tool';
 
 import { counterpartyTools } from '@infra/ioc/tools/counterparty';
 import { journalEntryTools } from '@infra/ioc/tools/journal-entry';
