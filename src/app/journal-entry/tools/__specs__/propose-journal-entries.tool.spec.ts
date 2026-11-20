@@ -1,16 +1,14 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
 import agentContextAppError from '@app/ai/errors/agent-context.error';
-import makeGetProposedJournalEntriesTool from '@app/journal-entry/tools/get-proposed-journal-entries.tool';
+import makeProposeJournalEntriesTool from '@app/journal-entry/tools/propose-journal-entries.tool';
 
-type TUseCase = Parameters<
-  typeof makeGetProposedJournalEntriesTool
->[0]['usecase'];
+type TUseCase = Parameters<typeof makeProposeJournalEntriesTool>[0]['usecase'];
 
-describe('get proposed journal entries tool', () => {
+describe('propose journal entries tool', () => {
   const usecase = jest.fn<ReturnType<TUseCase>, Parameters<TUseCase>>();
   const contextId = generateUUID();
-  const tool = makeGetProposedJournalEntriesTool({ usecase, contextId });
+  const tool = makeProposeJournalEntriesTool({ usecase, contextId });
   const payload = { value: 'Receipt text' };
 
   beforeEach(() => jest.resetAllMocks());
@@ -20,6 +18,7 @@ describe('get proposed journal entries tool', () => {
     usecase.mockResolvedValue(proposals);
     const input = tool.inputSchema.parse(payload);
 
+    expect(tool.name).toBe('propose_journal_entries');
     await expect(tool.func(input)).resolves.toBe(proposals);
     expect(usecase).toHaveBeenCalledTimes(1);
     expect(usecase).toHaveBeenCalledWith(input, contextId);

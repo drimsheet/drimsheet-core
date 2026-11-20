@@ -47,7 +47,7 @@ const openAiJournalEntryProposalValidation =
     lines: z.array(openAiJournalLineProposalValidation),
   });
 
-const openAiJournalEntryExtractionValidation = z.strictObject({
+const openAiJournalEntryProposalResponseValidation = z.strictObject({
   ledgerAccounts: z.array(
     aiAssessmentValidation(ledgerAccountAiProposalDtoValidation)
   ),
@@ -59,4 +59,4 @@ const openAiJournalEntryExtractionValidation = z.strictObject({
   ),
 }) satisfies z.ZodType<IJournalEntryExtractionAiResponse>;
 
-export default openAiJournalEntryExtractionValidation;
+export default openAiJournalEntryProposalResponseValidation;

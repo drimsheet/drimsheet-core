@@ -20,9 +20,7 @@ interface IDependencies {
   ) => Promise<IJournalEntryExtractionAiResponse>;
 }
 
-export default function makeGetProposedJournalEntriesUsecase(
-  deps: IDependencies
-) {
+export default function makeProposeJournalEntriesUsecase(deps: IDependencies) {
   return async (
     payload: IJournalEntriesExtractionInput,
     contextId: TEntityId

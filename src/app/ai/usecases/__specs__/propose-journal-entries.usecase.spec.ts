@@ -4,18 +4,18 @@ import appError from '@shared/values/errors/app.error';
 import mockAgentRunContextRepo from '@app/ai/contracts/repos/__mocks__/agent-run-context.repo.mock';
 import mockAgentContextAppService from '@app/ai/contracts/services/__mocks__/agent-context.service.mock';
 import agentContextAppError from '@app/ai/errors/agent-context.error';
-import makeGetProposedJournalEntriesUsecase from '@app/ai/usecases/get-proposed-journal-entries.usecase';
+import makeProposeJournalEntriesUsecase from '@app/ai/usecases/propose-journal-entries.usecase';
 
-type TDependencies = Parameters<typeof makeGetProposedJournalEntriesUsecase>[0];
+type TDependencies = Parameters<typeof makeProposeJournalEntriesUsecase>[0];
 
-describe('get proposed journal entries use case', () => {
+describe('propose journal entries use case', () => {
   const journalEntryProposalsRepo: jest.Mocked<
     TDependencies['journalEntryProposalsRepo']
   > = { save: jest.fn() };
   const structuredLlmCall: jest.MockedFunction<
     TDependencies['structuredLlmCall']
   > = jest.fn();
-  const getProposedJournalEntries = makeGetProposedJournalEntriesUsecase({
+  const proposeJournalEntries = makeProposeJournalEntriesUsecase({
     agentRunContextRepo: mockAgentRunContextRepo,
     agentContextAppService: mockAgentContextAppService,
     journalEntryProposalsRepo,
@@ -26,7 +26,7 @@ describe('get proposed journal entries use case', () => {
 
   beforeEach(() => jest.resetAllMocks());
 
-  it('saves and returns the extraction response for the run', async () => {
+  it('saves and returns the proposals for the run', async () => {
     const runContext = {
       id: contextId,
       accountingEntityId: generateUUID(),
@@ -52,7 +52,7 @@ describe('get proposed journal entries use case', () => {
     structuredLlmCall.mockResolvedValue(proposals);
     journalEntryProposalsRepo.save.mockResolvedValue(undefined);
 
-    await expect(getProposedJournalEntries(payload, contextId)).resolves.toBe(
+    await expect(proposeJournalEntries(payload, contextId)).resolves.toBe(
       proposals
     );
     expect(mockAgentRunContextRepo.findById).toHaveBeenCalledWith(contextId);
@@ -70,16 +70,16 @@ describe('get proposed journal entries use case', () => {
     const invalidPayload = { ...payload, unexpected: true };
 
     await expect(
-      getProposedJournalEntries(invalidPayload, contextId)
+      proposeJournalEntries(invalidPayload, contextId)
     ).rejects.toBeInstanceOf(appError.UnprocessableEntity);
     expect(mockAgentRunContextRepo.findById).not.toHaveBeenCalled();
   });
 
-  it('rejects a missing run context before extracting or saving', async () => {
+  it('rejects a missing run context before generating or saving proposals', async () => {
     mockAgentRunContextRepo.findById.mockResolvedValue(null);
 
     await expect(
-      getProposedJournalEntries(payload, contextId)
+      proposeJournalEntries(payload, contextId)
     ).rejects.toBeInstanceOf(agentContextAppError.NotFound);
     expect(structuredLlmCall).not.toHaveBeenCalled();
     expect(journalEntryProposalsRepo.save).not.toHaveBeenCalled();

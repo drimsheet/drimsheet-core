@@ -3,7 +3,7 @@ import { Response } from 'openai/resources/responses/responses';
 import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import journalEntryAppError from '@app/journal-entry/errors/journal-entry.error';
 
-import makeJournalEntryLlmExtractor from '@infra/ai/structured-calls/journal-entry-extraction/journal-entry-extractor';
+import makeJournalEntryLlmProposer from '@infra/ai/structured-calls/journal-entry-proposer/journal-entry-proposer';
 import openAiClient from '@infra/config/openai.config';
 
 jest.mock('@infra/config/openai.config', () => ({
@@ -11,7 +11,7 @@ jest.mock('@infra/config/openai.config', () => ({
   default: { responses: { create: jest.fn() } },
 }));
 
-const emptyExtraction = {
+const emptyProposals = {
   ledgerAccounts: [],
   counterparties: [],
   entries: [],
@@ -28,7 +28,7 @@ const providerResponse: Response = {
   model: 'gpt-5.5',
   object: 'response',
   output: [],
-  output_text: JSON.stringify(emptyExtraction),
+  output_text: JSON.stringify(emptyProposals),
   parallel_tool_calls: false,
   status: 'completed',
   temperature: null,
@@ -46,7 +46,7 @@ const address = {
   countryCode: 'ng',
 };
 
-const extractedCounterparty = {
+const proposedCounterparty = {
   temporaryId: 'counterparty-1',
   name: ' Example Ltd ',
   type: 'organization',
@@ -58,7 +58,7 @@ const extractedCounterparty = {
   },
 };
 
-const extractedLine = {
+const proposedLine = {
   temporaryId: 'line-1',
   accountTemporaryId: 'account-1',
   sequenceOrder: 1,
@@ -81,12 +81,12 @@ const extractedLine = {
   },
 };
 
-const extractedEntry = {
+const proposedEntry = {
   temporaryId: 'entry-1',
   sourceType: 'payment',
   memo: null,
   effectiveDate: '2026-11-17',
-  lines: [extractedLine],
+  lines: [proposedLine],
 };
 
 /** Checks the provider contract for every nested JSON Schema object. */
@@ -112,11 +112,11 @@ function expectClosedObjects(schema: unknown): void {
   }
 }
 
-describe('OpenAI journal-entry extractor', () => {
+describe('OpenAI journal-entry proposer', () => {
   const createResponse = jest.mocked(openAiClient.responses.create);
   const getDownloadUrl = mockFileStorageClient.getDownloadUrl;
   const downloadUrl = 'https://example.com/source?signature=test';
-  const journalEntryLlmExtractor = makeJournalEntryLlmExtractor(
+  const journalEntryLlmProposer = makeJournalEntryLlmProposer(
     mockFileStorageClient
   );
 
@@ -125,11 +125,11 @@ describe('OpenAI journal-entry extractor', () => {
     getDownloadUrl.mockReset().mockResolvedValue(downloadUrl);
   });
 
-  it('sends source text with a strict schema and returns extracted data', async () => {
+  it('sends source text with a strict schema and returns proposals', async () => {
     const value = 'No transactions in this document.';
 
-    await expect(journalEntryLlmExtractor({ value })).resolves.toEqual(
-      emptyExtraction
+    await expect(journalEntryLlmProposer({ value })).resolves.toEqual(
+      emptyProposals
     );
 
     expect(createResponse).toHaveBeenCalledTimes(1);
@@ -166,7 +166,7 @@ describe('OpenAI journal-entry extractor', () => {
         size: 1024,
       };
 
-      await journalEntryLlmExtractor({ value });
+      await journalEntryLlmProposer({ value });
 
       expect(getDownloadUrl).toHaveBeenCalledWith(value.url);
       expect(createResponse).toHaveBeenCalledWith(
@@ -192,7 +192,7 @@ describe('OpenAI journal-entry extractor', () => {
         size: 1024,
       };
 
-      await journalEntryLlmExtractor({ value });
+      await journalEntryLlmProposer({ value });
 
       expect(getDownloadUrl).toHaveBeenCalledWith(value.url);
       expect(createResponse).toHaveBeenCalledWith(
@@ -219,7 +219,7 @@ describe('OpenAI journal-entry extractor', () => {
     getDownloadUrl.mockRejectedValue(signingError);
 
     await expect(
-      journalEntryLlmExtractor({
+      journalEntryLlmProposer({
         value: {
           url: 'https://example.com/receipt',
           name: 'receipt.png',
@@ -233,7 +233,7 @@ describe('OpenAI journal-entry extractor', () => {
   });
 
   it('validates and normalizes counterparties, dates, money, and references', async () => {
-    const extraction = {
+    const proposals = {
       ledgerAccounts: [
         {
           value: {
@@ -249,26 +249,26 @@ describe('OpenAI journal-entry extractor', () => {
         },
       ],
       counterparties: [
-        { value: extractedCounterparty, confidence: 0.9, evidence: [] },
+        { value: proposedCounterparty, confidence: 0.9, evidence: [] },
       ],
-      entries: [{ value: extractedEntry, confidence: 1, evidence: ['Row 1'] }],
+      entries: [{ value: proposedEntry, confidence: 1, evidence: ['Row 1'] }],
     };
     createResponse.mockResolvedValue({
       ...providerResponse,
-      output_text: JSON.stringify(extraction),
+      output_text: JSON.stringify(proposals),
     });
 
-    const extractionResponse = await journalEntryLlmExtractor({
+    const proposalResponse = await journalEntryLlmProposer({
       value: 'Statement text',
     });
 
-    expect(extractionResponse).toEqual({
-      ...extraction,
+    expect(proposalResponse).toEqual({
+      ...proposals,
       counterparties: [
         {
-          ...extraction.counterparties[0],
+          ...proposals.counterparties[0],
           value: {
-            ...extractedCounterparty,
+            ...proposedCounterparty,
             name: 'Example Ltd',
             roleDetails: {
               employer: {
@@ -283,15 +283,15 @@ describe('OpenAI journal-entry extractor', () => {
       ],
       entries: [
         {
-          ...extraction.entries[0],
+          ...proposals.entries[0],
           value: {
-            ...extractedEntry,
+            ...proposedEntry,
             lines: [
               {
-                ...extractedLine,
+                ...proposedLine,
                 exchangeRate: {
-                  ...extractedLine.exchangeRate,
-                  asOf: new Date(extractedLine.exchangeRate.asOf),
+                  ...proposedLine.exchangeRate,
+                  asOf: new Date(proposedLine.exchangeRate.asOf),
                 },
               },
             ],
@@ -305,11 +305,11 @@ describe('OpenAI journal-entry extractor', () => {
     createResponse.mockResolvedValue({
       ...providerResponse,
       output_text: JSON.stringify({
-        ...emptyExtraction,
+        ...emptyProposals,
         counterparties: [
           {
             value: {
-              ...extractedCounterparty,
+              ...proposedCounterparty,
               roles: [],
               roleDetails: {
                 employer: null,
@@ -324,9 +324,9 @@ describe('OpenAI journal-entry extractor', () => {
       }),
     });
 
-    const extractionResponse = await journalEntryLlmExtractor({ value: '' });
+    const proposalResponse = await journalEntryLlmProposer({ value: '' });
 
-    expect(extractionResponse.counterparties).toEqual([
+    expect(proposalResponse.counterparties).toEqual([
       expect.objectContaining({
         value: expect.objectContaining({ roleDetails: {} }),
       }),
@@ -337,20 +337,20 @@ describe('OpenAI journal-entry extractor', () => {
     'preserves an exchange rate of %s',
     async (exchangeRate) => {
       const entry = {
-        ...extractedEntry,
-        lines: [{ ...extractedLine, exchangeRate }],
+        ...proposedEntry,
+        lines: [{ ...proposedLine, exchangeRate }],
       };
-      const extraction = {
-        ...emptyExtraction,
+      const proposals = {
+        ...emptyProposals,
         entries: [{ value: entry, confidence: 1, evidence: [] }],
       };
       createResponse.mockResolvedValue({
         ...providerResponse,
-        output_text: JSON.stringify(extraction),
+        output_text: JSON.stringify(proposals),
       });
 
-      await expect(journalEntryLlmExtractor({ value: '' })).resolves.toEqual(
-        extraction
+      await expect(journalEntryLlmProposer({ value: '' })).resolves.toEqual(
+        proposals
       );
     }
   );
@@ -358,19 +358,19 @@ describe('OpenAI journal-entry extractor', () => {
   it.each(['ledgerAccounts', 'counterparties', 'entries'])(
     'preserves an undetermined assessment in %s',
     async (collection) => {
-      const extraction = {
-        ...emptyExtraction,
+      const proposals = {
+        ...emptyProposals,
         [collection]: [
           { value: '__undetermined__', confidence: 0, evidence: [] },
         ],
       };
       createResponse.mockResolvedValue({
         ...providerResponse,
-        output_text: JSON.stringify(extraction),
+        output_text: JSON.stringify(proposals),
       });
 
-      await expect(journalEntryLlmExtractor({ value: '' })).resolves.toEqual(
-        extraction
+      await expect(journalEntryLlmProposer({ value: '' })).resolves.toEqual(
+        proposals
       );
     }
   );
@@ -386,7 +386,7 @@ describe('OpenAI journal-entry extractor', () => {
     async (status) => {
       createResponse.mockResolvedValue({ ...providerResponse, status });
 
-      await expect(journalEntryLlmExtractor({ value: '' })).rejects.toEqual(
+      await expect(journalEntryLlmProposer({ value: '' })).rejects.toEqual(
         new journalEntryAppError.ExtractionUnexpected()
       );
     }
@@ -397,19 +397,19 @@ describe('OpenAI journal-entry extractor', () => {
     ['{', 'malformed JSON'],
     ['null', 'null output'],
     ['{}', 'missing collections'],
-    [JSON.stringify({ ...emptyExtraction, extra: true }), 'extra fields'],
+    [JSON.stringify({ ...emptyProposals, extra: true }), 'extra fields'],
     [
       JSON.stringify({
-        ...emptyExtraction,
+        ...emptyProposals,
         entries: [
           {
             value: {
-              ...extractedEntry,
+              ...proposedEntry,
               lines: [
                 {
-                  ...extractedLine,
+                  ...proposedLine,
                   exchangeRate: {
-                    ...extractedLine.exchangeRate,
+                    ...proposedLine.exchangeRate,
                     asOf: 'not-a-date',
                   },
                 },
@@ -425,14 +425,14 @@ describe('OpenAI journal-entry extractor', () => {
   ])('rejects %s (%s)', async (output_text) => {
     createResponse.mockResolvedValue({ ...providerResponse, output_text });
 
-    await expect(journalEntryLlmExtractor({ value: '' })).rejects.toEqual(
+    await expect(journalEntryLlmProposer({ value: '' })).rejects.toEqual(
       new journalEntryAppError.ExtractionUnexpected()
     );
   });
 
   it('rejects invalid attachments before contacting OpenAI', async () => {
     await expect(
-      journalEntryLlmExtractor({
+      journalEntryLlmProposer({
         value: {
           url: 'https://example.com/receipt',
           name: 'receipt',
@@ -448,6 +448,6 @@ describe('OpenAI journal-entry extractor', () => {
     const error = new Error('OpenAI unavailable');
     createResponse.mockRejectedValue(error);
 
-    await expect(journalEntryLlmExtractor({ value: '' })).rejects.toBe(error);
+    await expect(journalEntryLlmProposer({ value: '' })).rejects.toBe(error);
   });
 });

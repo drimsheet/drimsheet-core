@@ -2,10 +2,10 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { journalEntriesExtractionInputValidation } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
 import { IAgentTool } from '@app/ai/types/agent-tool';
-import type makeGetProposedJournalEntriesUsecase from '@app/ai/usecases/get-proposed-journal-entries.usecase';
+import type makeProposeJournalEntriesUsecase from '@app/ai/usecases/propose-journal-entries.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeGetProposedJournalEntriesUsecase>;
+  usecase: ReturnType<typeof makeProposeJournalEntriesUsecase>;
   contextId: TEntityId;
 }
 
@@ -14,13 +14,13 @@ type TTool = IAgentTool<
   Awaited<ReturnType<IDependencies['usecase']>>
 >;
 
-export default function makeGetProposedJournalEntriesTool(
+export default function makeProposeJournalEntriesTool(
   deps: IDependencies
 ): TTool {
   return {
-    name: 'get_proposed_journal_entries',
+    name: 'propose_journal_entries',
     description:
-      'Extract and save proposed journal entries, ledger accounts, and counterparties from text or a file attachment for the current agent run.',
+      'Propose journal entries, ledger accounts, and counterparties from text or a file attachment and save the proposals for the current agent run.',
     inputSchema: journalEntriesExtractionInputValidation,
     annotations: { readOnlyHint: false },
     func: (input) => deps.usecase(input, deps.contextId),
