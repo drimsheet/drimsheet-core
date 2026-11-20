@@ -3,10 +3,10 @@ import { Response } from 'openai/resources/responses/responses';
 import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import journalEntryAppError from '@app/journal-entry/errors/journal-entry.error';
 
-import openAiClient from '@infra/integrations/openai/client';
-import makeJournalEntryLlmExtractor from '@infra/integrations/openai/journal-entry-extractor';
+import makeJournalEntryLlmExtractor from '@infra/ai/structured-calls/journal-entry-extraction/journal-entry-extractor';
+import openAiClient from '@infra/config/openai.config';
 
-jest.mock('@infra/integrations/openai/client', () => ({
+jest.mock('@infra/config/openai.config', () => ({
   __esModule: true,
   default: { responses: { create: jest.fn() } },
 }));

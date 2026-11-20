@@ -12,7 +12,8 @@ import { journalEntriesExtractionInputValidation } from '@app/ai/dtos/journal-en
 import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import journalEntryAppError from '@app/journal-entry/errors/journal-entry.error';
 
-import openAiClient from './client';
+import openAiClient from '@infra/config/openai.config';
+
 import openAiJournalEntryExtractionValidation from './journal-entry-extraction.schema';
 
 const extractionInstructions = `Extract proposed journal entries, ledger accounts,
