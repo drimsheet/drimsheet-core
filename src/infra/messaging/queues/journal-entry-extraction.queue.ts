@@ -7,10 +7,10 @@ import IReporter from '@shared/contracts/reporter.contract';
 import ITracer from '@shared/contracts/tracer.contract';
 import { ITraceEnvelope } from '@shared/types/observability.types';
 
-import { IJournalEntryExtractionDto } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 import IJournalEntryExtractionQueue, {
   JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME,
-} from '@app/journal-entry/contracts/queues/journal-entry-extraction-queue.contract';
+} from '@app/ai/contracts/queues/journal-entry-extraction-queue.contract';
+import { IJournalEntryExtractionDto } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
 
 import { getQueueConnection } from '@infra/config/redis.config';
 import { makeTraceEnvelope } from '@infra/observability/queue-tracing';

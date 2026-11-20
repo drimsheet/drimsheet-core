@@ -1,7 +1,7 @@
-import IAgentContextService from '@app/ai/contracts/agent-run-context.service.contract';
+import IAgentContextAppService from '@app/ai/contracts/agent-run-context.service.contract';
 
-const mockAgentContextService: jest.Mocked<IAgentContextService> = {
+const mockAgentContextAppService: jest.Mocked<IAgentContextAppService> = {
   createRunContext: jest.fn(),
 };
 
-export default mockAgentContextService;
+export default mockAgentContextAppService;

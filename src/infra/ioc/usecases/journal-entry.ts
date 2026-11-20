@@ -51,7 +51,7 @@ import appContext from '@infra/services/app-context.service';
 export const initiateJournalEntryExtractionUseCase = makeTracedUseCase(
   'journalEntry.initiateJournalEntryExtractionUseCase',
   makeInitiateJournalEntryExtractionUsecase({
-    agentContextService: agentContextAppService,
+    agentContextAppService,
     appContext,
     fileStorageClient,
     pdfService,

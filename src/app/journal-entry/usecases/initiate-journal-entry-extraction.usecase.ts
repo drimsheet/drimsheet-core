@@ -15,18 +15,18 @@ import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import IAgentContextService from '@app/ai/contracts/agent-run-context.service.contract';
+import IAgentContextAppService from '@app/ai/contracts/agent-run-context.service.contract';
+import IJournalEntryExtractionQueue from '@app/ai/contracts/queues/journal-entry-extraction-queue.contract';
 import agentRunContextDtoMapper from '@app/ai/dtos/agent-run-context/agent-run-context.dto.mapper';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import IFileManagementAppService from '@app/file/contracts/services/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
-import IJournalEntryExtractionQueue from '@app/journal-entry/contracts/queues/journal-entry-extraction-queue.contract';
 import { IInitiateJournalEntryExtractionReq } from '@app/journal-entry/dtos/initiate-journal-entry-extraction/initiate-journal-entry-extraction.dto';
 import { initiateJournalEntryExtractionReqValidation } from '@app/journal-entry/dtos/initiate-journal-entry-extraction/initiate-journal-entry-extraction.dto.validation';
 
 interface IDependencies {
-  agentContextService: IAgentContextService;
+  agentContextAppService: IAgentContextAppService;
   appContext: IAppContextService<IAppContextData>;
   fileStorageClient: IFileStorageClient;
   pdfService: IPdfService;
@@ -66,7 +66,7 @@ export default function makeInitiateJournalEntryExtractionUsecase(
       initiatedOn: new Date(),
     };
 
-    const runContext = await deps.agentContextService.createRunContext(
+    const runContext = await deps.agentContextAppService.createRunContext(
       agentRunContextInput,
       repoOptions
     );

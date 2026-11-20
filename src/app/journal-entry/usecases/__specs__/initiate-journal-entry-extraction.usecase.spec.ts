@@ -6,13 +6,13 @@ import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-
 
 import { IActor } from '@domain/user/types/actor.types';
 
-import mockAgentContextService from '@app/ai/contracts/__mocks__/agent-context.service.mock';
+import mockAgentContextAppService from '@app/ai/contracts/__mocks__/agent-context.service.mock';
+import mockJournalEntryExtractionQueue from '@app/ai/contracts/queues/__mocks__/journal-entry-extraction-queue.mock';
 import { IAgentRunContext } from '@app/ai/types/agent-run-context.types';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import fileAppError from '@app/file/errors/file.error';
 import makeFileManagementAppService from '@app/file/services/file-management.service';
-import mockJournalEntryExtractionQueue from '@app/journal-entry/contracts/queues/__mocks__/journal-entry-extraction-queue.mock';
 import { IInitiateJournalEntryExtractionReq } from '@app/journal-entry/dtos/initiate-journal-entry-extraction/initiate-journal-entry-extraction.dto';
 import makeInitiateJournalEntryExtractionUsecase from '@app/journal-entry/usecases/initiate-journal-entry-extraction.usecase';
 
@@ -68,7 +68,7 @@ describe('initiateJournalEntryExtractionUsecase', () => {
     convertToText: jest.fn(),
   };
   const usecase = makeInitiateJournalEntryExtractionUsecase({
-    agentContextService: mockAgentContextService,
+    agentContextAppService: mockAgentContextAppService,
     appContext: mockAppContext,
     fileStorageClient: mockFileStorageClient,
     pdfService,
@@ -89,7 +89,9 @@ describe('initiateJournalEntryExtractionUsecase', () => {
     mockFileStorageClient.getFileKey.mockReturnValue(key);
     mockFileStorageClient.readFile.mockResolvedValue(storedFile);
     mockFileStorageClient.getDownloadUrl.mockResolvedValue(downloadUrl);
-    mockAgentContextService.createRunContext.mockResolvedValue(agentRunContext);
+    mockAgentContextAppService.createRunContext.mockResolvedValue(
+      agentRunContext
+    );
     mockJournalEntryExtractionQueue.add.mockResolvedValue(undefined);
   });
 
@@ -109,7 +111,7 @@ describe('initiateJournalEntryExtractionUsecase', () => {
         range: { start: 0, end: 11 },
       });
       expect(pdfService.convertToText).not.toHaveBeenCalled();
-      expect(mockAgentContextService.createRunContext).toHaveBeenCalledWith(
+      expect(mockAgentContextAppService.createRunContext).toHaveBeenCalledWith(
         {
           accountingEntityId: agentRunContext.accountingEntityId,
           correlationId: agentRunContext.correlationId,

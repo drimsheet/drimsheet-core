@@ -11,7 +11,7 @@ interface ICreateRunContextInput {
   initiatedOn: Date;
 }
 
-export default interface IAgentContextService {
+export default interface IAgentContextAppService {
   /** Rejects invalid correlation IDs, missing records, and ineligible agents. */
   createRunContext(
     input: ICreateRunContextInput,

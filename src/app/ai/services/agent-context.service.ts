@@ -7,7 +7,7 @@ import IActorRepo from '@domain/user/repos/actor.repo';
 import { EActorStatus, EActorType } from '@domain/user/types/actor.types';
 
 import accountingAppError from '@app/accounting/errors/accounting.error';
-import IAgentContextService from '@app/ai/contracts/agent-run-context.service.contract';
+import IAgentContextAppService from '@app/ai/contracts/agent-run-context.service.contract';
 import agentContextAppError from '@app/ai/errors/agent-context.error';
 
 interface IDependencies {
@@ -21,7 +21,7 @@ interface IDependencies {
  */
 function makeCreateRunContext(
   deps: IDependencies
-): IAgentContextService['createRunContext'] {
+): IAgentContextAppService['createRunContext'] {
   return async (input, repoOptions) => {
     stringUtils.validateUUID(
       input.correlationId,
@@ -83,8 +83,8 @@ function makeCreateRunContext(
 
 export default function makeAgentContextAppService(
   deps: IDependencies
-): IAgentContextService {
-  const service: IAgentContextService = {
+): IAgentContextAppService {
+  const service: IAgentContextAppService = {
     createRunContext: makeCreateRunContext(deps),
   };
 

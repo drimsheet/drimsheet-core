@@ -3,7 +3,7 @@ import appError from '@shared/values/errors/app.error';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import { IAgentRunContextDto } from '@app/ai/dtos/agent-run-context/agent-run-context.dto';
-import makeJournalEntryExtractionWorker from '@app/journal-entry/workers/journal-entry-extraction.worker';
+import makeJournalEntryExtractionWorker from '@app/ai/workers/journal-entry-extraction.worker';
 
 describe('makeJournalEntryExtractionWorker', () => {
   const context: IAgentRunContextDto = {

@@ -5,9 +5,9 @@ import mockReporter from '@shared/contracts/__mocks__/reporter.mock';
 import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 
+import { JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME } from '@app/ai/contracts/queues/journal-entry-extraction-queue.contract';
 import { IAgentRunContextDto } from '@app/ai/dtos/agent-run-context/agent-run-context.dto';
 import { IJournalEntryExtractionDto } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
-import { JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME } from '@app/journal-entry/contracts/queues/journal-entry-extraction-queue.contract';
 
 import makeJournalEntryExtractionQueue from '@infra/messaging/queues/journal-entry-extraction.queue';
 import queueLifecycle from '@infra/runtime/lifecycle/queue.lifecycle';
