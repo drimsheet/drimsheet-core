@@ -12,7 +12,10 @@ interface ICreateRunContextInput {
 }
 
 export default interface IAgentContextAppService {
-  /** Rejects invalid correlation IDs, missing records, and ineligible agents. */
+  /**
+   * Prepares a new context for persistence. Rejects invalid correlation IDs,
+   * missing records, and ineligible agents.
+   */
   createRunContext(
     input: ICreateRunContextInput,
     repoOptions: IRepoOptions

@@ -7,7 +7,6 @@ import IActorRepo from '@domain/user/repos/actor.repo';
 import { EActorStatus, EActorType } from '@domain/user/types/actor.types';
 
 import accountingAppError from '@app/accounting/errors/accounting.error';
-import IAgentRunContextRepo from '@app/ai/contracts/repos/agent-run-context.repo.contract';
 import IAgentContextAppService from '@app/ai/contracts/services/agent-context.service.contract';
 import agentContextAppError from '@app/ai/errors/agent-context.error';
 import { IAgentRunContext } from '@app/ai/types/agent-run-context.types';
@@ -15,7 +14,6 @@ import { IAgentRunContext } from '@app/ai/types/agent-run-context.types';
 interface IDependencies {
   actorRepo: IActorRepo;
   accountingEntityRepo: IAccountingEntityRepo;
-  agentRunContextRepo: IAgentRunContextRepo;
 }
 
 /**
@@ -83,8 +81,6 @@ function makeCreateRunContext(
       initiatedOn,
       completedOn: null,
     };
-
-    await deps.agentRunContextRepo.create(context);
 
     return context;
   };

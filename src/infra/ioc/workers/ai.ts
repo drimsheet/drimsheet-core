@@ -1,7 +1,7 @@
 import makeJournalEntryExtractionWorker from '@app/ai/workers/journal-entry-extraction.worker';
 
-import { agentContextAppService } from '@infra/ioc/services/ai';
+import { createAgentRunContextUseCase } from '@infra/ioc/usecases/ai';
 
 export const journalEntryExtractionWorker = makeJournalEntryExtractionWorker({
-  agentContextAppService,
+  createAgentRunContextUseCase,
 });

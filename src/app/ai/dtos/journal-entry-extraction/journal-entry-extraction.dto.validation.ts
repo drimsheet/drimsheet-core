@@ -1,9 +1,6 @@
 import z from 'zod';
 
-import accountingError from '@domain/accounting/errors/accounting.error';
-import actorError from '@domain/user/errors/actor.error';
-
-import agentContextAppError from '@app/ai/errors/agent-context.error';
+import { agentRunContextIdentifiersValidation } from '@app/ai/dtos/agent-run-context/agent-run-context.dto.validation';
 import { fileAttachmentDtoValidation } from '@app/file/dtos/file-attachment/file-attachment.dto.validation';
 
 import {
@@ -17,13 +14,5 @@ export const journalEntriesExtractionInputValidation = z.strictObject({
 
 export const journalEntryExtractionDtoValidation =
   journalEntriesExtractionInputValidation.extend({
-    context: z.strictObject({
-      accountingEntityId: z.uuid(
-        new accountingError.InvalidAccountingEntityId().errorKey
-      ),
-      correlationId: z.uuid(
-        new agentContextAppError.InvalidCorrelationId().errorKey
-      ),
-      delegatingActorId: z.uuid(new actorError.InvalidId().errorKey),
-    }),
+    context: agentRunContextIdentifiersValidation,
   }) satisfies z.ZodType<IJournalEntryExtractionDto>;

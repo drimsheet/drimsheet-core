@@ -2,8 +2,9 @@ import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import mockAgentContextAppService from '@app/ai/contracts/services/__mocks__/agent-context.service.mock';
 import makeJournalEntryExtractionWorker from '@app/ai/workers/journal-entry-extraction.worker';
+
+type TDependencies = Parameters<typeof makeJournalEntryExtractionWorker>[0];
 
 describe('makeJournalEntryExtractionWorker', () => {
   const context = {
@@ -28,13 +29,16 @@ describe('makeJournalEntryExtractionWorker', () => {
     size: 1024,
   };
   const pdfText = 'Receipt total: 100 NGN';
+  const createAgentRunContextUseCase: jest.MockedFunction<
+    TDependencies['createAgentRunContextUseCase']
+  > = jest.fn();
   const worker = makeJournalEntryExtractionWorker({
-    agentContextAppService: mockAgentContextAppService,
+    createAgentRunContextUseCase,
   });
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockAgentContextAppService.createRunContext.mockResolvedValue(runContext);
+    createAgentRunContextUseCase.mockResolvedValue(runContext);
   });
 
   it.each([pdfText, file])(
@@ -42,13 +46,10 @@ describe('makeJournalEntryExtractionWorker', () => {
     async (value) => {
       await worker({ value, context });
 
-      expect(mockAgentContextAppService.createRunContext).toHaveBeenCalledWith(
-        {
-          ...context,
-          agentActorUsername: 'drimsheet-core-ai',
-        },
-        { correlationId: context.correlationId }
-      );
+      expect(createAgentRunContextUseCase).toHaveBeenCalledWith({
+        ...context,
+        agentActorUsername: 'drimsheet-core-ai',
+      });
     }
   );
 
@@ -56,12 +57,12 @@ describe('makeJournalEntryExtractionWorker', () => {
     await expect(
       worker({ value: { ...file, size: 0 }, context })
     ).rejects.toBeInstanceOf(appError.UnprocessableEntity);
-    expect(mockAgentContextAppService.createRunContext).not.toHaveBeenCalled();
+    expect(createAgentRunContextUseCase).not.toHaveBeenCalled();
   });
 
   it('propagates failures from context creation', async () => {
     const failure = new Error('Could not create run context');
-    mockAgentContextAppService.createRunContext.mockRejectedValue(failure);
+    createAgentRunContextUseCase.mockRejectedValue(failure);
 
     await expect(worker({ value: pdfText, context })).rejects.toBe(failure);
   });
