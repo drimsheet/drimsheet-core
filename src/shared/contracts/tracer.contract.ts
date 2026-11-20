@@ -1,5 +1,7 @@
 export type UTraceOperation =
-  'app.usecase' | 'integration.run' | 'queue.process';
+  | 'app.usecase'
+  | 'integration.run'
+  | 'queue.process';
 
 export interface ITraceCarrier {
   baggage?: string;
