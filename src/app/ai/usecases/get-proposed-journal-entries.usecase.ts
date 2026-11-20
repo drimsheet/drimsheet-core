@@ -1,8 +1,8 @@
 import { TEntityId } from '@shared/types/uuid';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
+import IAgentRunContextRepo from '@app/ai/contracts/repos/agent-run-context.repo.contract';
 import IProposedJournalEntriesRepo from '@app/ai/contracts/repos/proposed-journal-entries.repo.contract';
-import IRunContextRepo from '@app/ai/contracts/repos/run-context.repo.contract';
 import IAgentContextAppService from '@app/ai/contracts/services/agent-context.service.contract';
 import {
   IJournalEntriesExtractionInput,
@@ -12,7 +12,7 @@ import { journalEntriesExtractionInputValidation } from '@app/ai/dtos/journal-en
 import agentContextAppError from '@app/ai/errors/agent-context.error';
 
 interface IDependencies {
-  runContextRepo: IRunContextRepo;
+  agentRunContextRepo: IAgentRunContextRepo;
   agentContextAppService: IAgentContextAppService;
   journalEntryProposalsRepo: IProposedJournalEntriesRepo;
   structuredLlmCall: (
@@ -29,7 +29,7 @@ export default function makeGetProposedJournalEntriesUsecase(
   ): Promise<IJournalEntryExtractionAiResponse> => {
     zodValidationRunner(journalEntriesExtractionInputValidation, payload);
 
-    const runContext = await deps.runContextRepo.findById(contextId);
+    const runContext = await deps.agentRunContextRepo.findById(contextId);
     if (!runContext) {
       throw new agentContextAppError.NotFound();
     }

@@ -8,6 +8,7 @@ import { EActorStatus } from '@domain/user/types/actor.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
 import accountingAppError from '@app/accounting/errors/accounting.error';
+import mockAgentRunContextRepo from '@app/ai/contracts/repos/__mocks__/agent-run-context.repo.mock';
 import agentContextAppError from '@app/ai/errors/agent-context.error';
 import makeAgentContextAppService from '@app/ai/services/agent-context.service';
 import { mockActorRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
@@ -37,6 +38,7 @@ describe('agentContextAppService', () => {
   const service = makeAgentContextAppService({
     actorRepo: mockActorRepo,
     accountingEntityRepo: mockAccountingEntityRepo,
+    agentRunContextRepo: mockAgentRunContextRepo,
   });
 
   beforeEach(() => {
@@ -78,6 +80,7 @@ describe('agentContextAppService', () => {
       initiatedOn,
       completedOn: null,
     });
+    expect(mockAgentRunContextRepo.create).toHaveBeenCalledWith(context);
   });
 
   it('maps an agent run context to repository options', () => {
