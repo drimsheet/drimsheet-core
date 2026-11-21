@@ -1,4 +1,3 @@
-import IPdfService from '@shared/contracts/pdf.service.contract';
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
@@ -51,14 +50,8 @@ describe('initiateJournalEntryExtractionUsecase', () => {
     },
     data: Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   };
-  const downloadUrl = 'https://example.com/receipt?signature=test';
-  const pdfService: jest.Mocked<IPdfService> = {
-    convertToText: jest.fn(),
-  };
   const usecase = makeInitiateJournalEntryExtractionUsecase({
     appContext: mockAppContext,
-    fileStorageClient: mockFileStorageClient,
-    pdfService,
     fileManagementAppService: makeFileManagementAppService({
       fileStorageClient: mockFileStorageClient,
     }),
@@ -75,7 +68,6 @@ describe('initiateJournalEntryExtractionUsecase', () => {
     });
     mockFileStorageClient.getFileKey.mockReturnValue(key);
     mockFileStorageClient.readFile.mockResolvedValue(storedFile);
-    mockFileStorageClient.getDownloadUrl.mockResolvedValue(downloadUrl);
     mockJournalEntryExtractionQueue.add.mockResolvedValue(undefined);
   });
 
@@ -94,22 +86,20 @@ describe('initiateJournalEntryExtractionUsecase', () => {
         key,
         range: { start: 0, end: 11 },
       });
-      expect(pdfService.convertToText).not.toHaveBeenCalled();
       expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith({
-        value: {
+        ...expectedContext,
+        file: {
           url: storedFile.fileUrl,
           name: 'receipt.png',
           type: EFileAttachmentType.Png,
           size: storedFile.size,
         },
-        context: expectedContext,
       });
     }
   );
 
-  it('enqueues extracted text for a PDF upload', async () => {
+  it('enqueues the original PDF attachment', async () => {
     const fileUrl = 'https://example.com/receipt.pdf';
-    const pdfText = 'Receipt total: 100 NGN';
     mockFileStorageClient.readFile.mockResolvedValue({
       ...storedFile,
       fileUrl,
@@ -119,15 +109,18 @@ describe('initiateJournalEntryExtractionUsecase', () => {
       },
       data: Uint8Array.from([0x25, 0x50, 0x44, 0x46, 0x2d]),
     });
-    pdfService.convertToText.mockResolvedValue(pdfText);
 
     await usecase(payload);
 
-    expect(mockFileStorageClient.getDownloadUrl).toHaveBeenCalledWith(fileUrl);
-    expect(pdfService.convertToText).toHaveBeenCalledWith(downloadUrl);
+    expect(mockFileStorageClient.getDownloadUrl).not.toHaveBeenCalled();
     expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith({
-      value: pdfText,
-      context: expectedContext,
+      ...expectedContext,
+      file: {
+        url: fileUrl,
+        name: 'receipt.pdf',
+        type: EFileAttachmentType.Pdf,
+        size: storedFile.size,
+      },
     });
   });
 

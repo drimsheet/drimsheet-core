@@ -2,17 +2,17 @@ import { ResponseInputContent } from 'openai/resources/responses/responses';
 import z from 'zod';
 
 import getFileAttachmentTypeHelper from '@shared/values/file-attachments/helpers/get-file-attachment-type.helper';
-import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
-
 import {
-  IJournalEntriesExtractionInput,
-  IJournalEntryExtractionAiResponse,
-} from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
-import { journalEntriesExtractionInputValidation } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto.validation';
+  EFileAttachmentType,
+  IFileAttachment,
+} from '@shared/values/file-attachments/types/file-attachment.types';
+
+import { IAiProposedJournalEntriesResponse } from '@app/ai/dtos/proposed-journal-entries/proposed-journal-entries.dto';
 import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
+import { fileAttachmentDtoValidation } from '@app/file/dtos/file-attachment/file-attachment.dto.validation';
 import journalEntryAppError from '@app/journal-entry/errors/journal-entry.error';
 
-import openAiClient from '@infra/config/openai.config';
+import { getOpenAiClient } from '@infra/config/openai.config';
 
 import openAiJournalEntryProposalResponseValidation from './journal-entry-proposal.schema';
 
@@ -58,25 +58,25 @@ export default function makeJournalEntryLlmProposer(
   fileStorageClient: IFileStorageClient
 ) {
   return async (
-    input: IJournalEntriesExtractionInput
-  ): Promise<IJournalEntryExtractionAiResponse> => {
-    const { value } = journalEntriesExtractionInputValidation.parse(input);
+    input: IFileAttachment | string
+  ): Promise<IAiProposedJournalEntriesResponse> => {
     let content: ResponseInputContent;
-    if (typeof value === 'string') {
-      content = { type: 'input_text', text: value };
+    if (typeof input === 'string') {
+      content = { type: 'input_text', text: input };
     } else {
-      const fileType = getFileAttachmentTypeHelper(value.type);
+      const file = fileAttachmentDtoValidation.parse(input);
+      const fileType = getFileAttachmentTypeHelper(file.type);
       const isImage =
         fileType === EFileAttachmentType.Jpg ||
         fileType === EFileAttachmentType.Png;
-      const downloadUrl = await fileStorageClient.getDownloadUrl(value.url);
+      const downloadUrl = await fileStorageClient.getDownloadUrl(file.url);
 
       content = isImage
         ? { type: 'input_image', image_url: downloadUrl, detail: 'auto' }
         : { type: 'input_file', file_url: downloadUrl };
     }
 
-    const response = await openAiClient.responses.create({
+    const response = await getOpenAiClient().responses.create({
       model: 'gpt-5.5',
       instructions: proposalInstructions,
       input: [{ role: 'user', content: [content] }],

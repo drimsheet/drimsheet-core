@@ -2,8 +2,9 @@ import OpenAI from 'openai';
 
 import vars from '@infra/config/vars.config';
 
-const openAiClient = new OpenAI({
-  apiKey: vars.OPEN_AI_KEY,
-});
+let client: OpenAI | undefined;
 
-export default openAiClient;
+export function getOpenAiClient(): OpenAI {
+  client ??= new OpenAI({ apiKey: vars.OPEN_AI_KEY });
+  return client;
+}

@@ -21,11 +21,7 @@ import makeVoidAndReplaceReceiptUsecase from '@app/journal-entry/usecases/void-a
 import makeVoidAndReplaceTransferUsecase from '@app/journal-entry/usecases/void-and-replace-transfer.usecase';
 import makeVoidJournalEntryUsecase from '@app/journal-entry/usecases/void-journal-entry.usecase';
 
-import {
-  fileManagementAppService,
-  fileStorageClient,
-  pdfService,
-} from '@infra/ioc/services/file';
+import { fileManagementAppService } from '@infra/ioc/services/file';
 import {
   fxCostBasisLotService,
   fxCostBasisPersistenceAppService,
@@ -51,8 +47,6 @@ export const initiateJournalEntryExtractionUseCase = makeTracedUseCase(
   'journalEntry.initiateJournalEntryExtractionUseCase',
   makeInitiateJournalEntryExtractionUsecase({
     appContext,
-    fileStorageClient,
-    pdfService,
     fileManagementAppService,
     journalEntryExtractionQueue: messaging.queues.journalEntryExtraction,
   })

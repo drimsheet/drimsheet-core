@@ -123,6 +123,7 @@ describe('makeFxCostBasisLotService', () => {
       accountingEntityId: entityId,
       sourceType: EJournalEntrySourceType.Payment,
       memo: null,
+      meta: null,
       status,
       effectiveDate: date,
       postedAt: status === EJournalEntryStatus.Posted ? date : null,

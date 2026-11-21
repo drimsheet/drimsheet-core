@@ -1,5 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
+import { IJournalEntryMeta } from '@domain/journal-entry/types/journal-entry.types';
+
 import {
   IJournalEntryDetails,
   IJournalLineDetails,
@@ -68,6 +70,7 @@ const journalEntryDetailsMapper = {
       accountingEntityId: payload.accountingEntityId as TEntityId,
       sourceType: payload.sourceType,
       memo: payload.memo,
+      meta: payload.meta as IJournalEntryMeta,
       status: payload.status,
       effectiveDate: fromRepoDate(payload.effectiveDate),
       postedAt: payload.postedAt ? fromRepoDate(payload.postedAt) : null,

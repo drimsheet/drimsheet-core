@@ -1,7 +1,7 @@
 import z from 'zod';
 
 import { aiAssessmentValidation } from '@app/ai/dtos/ai-assessment/ai-assessment.dto.validation';
-import { IJournalEntryExtractionAiResponse } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { IAiProposedJournalEntriesResponse } from '@app/ai/dtos/proposed-journal-entries/proposed-journal-entries.dto';
 import { counterpartyAiProposalDtoValidation } from '@app/counterparty/dtos/counterparty-ai-proposal/counterparty-ai-proposal.dto.validation';
 import {
   journalEntryAiProposalDtoValidation,
@@ -57,6 +57,6 @@ const openAiJournalEntryProposalResponseValidation = z.strictObject({
   entries: z.array(
     aiAssessmentValidation(openAiJournalEntryProposalValidation)
   ),
-}) satisfies z.ZodType<IJournalEntryExtractionAiResponse>;
+}) satisfies z.ZodType<IAiProposedJournalEntriesResponse>;
 
 export default openAiJournalEntryProposalResponseValidation;

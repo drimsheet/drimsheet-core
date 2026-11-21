@@ -118,6 +118,28 @@ describe('JournalEntry Entity', () => {
       expect(audit).toBeNull();
     });
 
+    it('preserves immutable extraction provenance through edits and archiving', () => {
+      const sourceFile = { ...attachments[0], type: EFileAttachmentType.Pdf };
+      const [entry] = journalEntryEntity.make({
+        ...validPayload,
+        fileExtractionSource: sourceFile,
+      });
+
+      expect(entry.meta).toEqual({ fileExtractionSource: sourceFile });
+      expect(Object.isFrozen(entry.meta)).toBe(true);
+      expect(Object.isFrozen(entry.meta?.fileExtractionSource)).toBe(true);
+
+      const [updated] = journalEntryEntity.update(
+        entry,
+        { id: entry.id, memo: 'Reviewed' },
+        entry.createdBy
+      );
+      const [archived] = journalEntryEntity.archive(updated);
+
+      expect(updated.meta).toBe(entry.meta);
+      expect(archived.meta).toBe(entry.meta);
+    });
+
     it.each([
       EJournalEntryStatus.Posted,
       EJournalEntryStatus.Archived,
@@ -158,6 +180,7 @@ describe('JournalEntry Entity', () => {
       expect(entry.sourceType).toBe(validPayload.sourceType);
       expect(entry).not.toHaveProperty('counterpartyId');
       expect(entry.memo).toBe('Test entry memo');
+      expect(entry.meta).toBeNull();
       expect(entry.status).toBe(EJournalEntryStatus.Draft);
       expect(entry.effectiveDate).toEqual(validPayload.effectiveDate);
       expect(entry.postedAt).toBeNull();

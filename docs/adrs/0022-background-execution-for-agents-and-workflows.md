@@ -12,9 +12,10 @@ run in separate processes, so live chat needs a way to receive worker progress.
 
 ## Decision
 
-- Use cases hand off AI work through application queue contracts. Tools,
-  structured LLM calls, agents, and workflows stay outside use-case
-  dependencies.
+- Use cases in the AI module (`src/app/ai`) may call structured LLMs
+  directly. Use cases in other application modules must delegate AI work
+  through background queue contracts. Tools, agents, and workflows stay
+  outside use-case dependencies.
 - Background workers start or resume agents and workflows. A worker can also
   execute a standalone structured LLM call, which performs one model operation
   and returns schema-validated output.
@@ -47,6 +48,3 @@ same run to resume.
   used by BullMQ. A missed signal can delay a live update until the API
   reloads the saved state. RabbitMQ Streams would add a broker and event
   retention for updates recoverable from saved state.
-- The existing journal-entry extraction use case calls a structured LLM
-  operation directly. Moving that call to the worker is implementation
-  follow-up.

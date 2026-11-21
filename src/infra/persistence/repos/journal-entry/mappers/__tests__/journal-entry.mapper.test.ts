@@ -130,6 +130,27 @@ describe('Journal Entry Mapper', () => {
     }
   );
 
+  it('round-trips extraction provenance through the journal header', async () => {
+    const fileExtractionSource = {
+      url: 'https://files.example.com/statement.pdf',
+      name: 'statement.pdf',
+      type: 'pdf',
+      size: 1024,
+    };
+    const entry = await makeEntry();
+    const meta = { fileExtractionSource };
+    const model = journalEntryMapper.toRepo({ ...entry, meta });
+
+    expect(model.meta).toEqual(meta);
+    expect(
+      journalEntryMapper.toDomain({
+        ...model,
+        journalEntryAttachmentsInCores: [],
+        journalLinesInCores: entry.lines.map(journalLineMapper.toRepo),
+      }).meta
+    ).toEqual(meta);
+  });
+
   describe('toRepo', () => {
     it('maps a journal entry to a repo model', async () => {
       const entry = await makeEntry();
@@ -139,6 +160,7 @@ describe('Journal Entry Mapper', () => {
         accountingEntityId: entry.accountingEntityId,
         sourceType: EJournalEntrySourceType.Transfer,
         memo: 'Cash transfer',
+        meta: null,
         status: EJournalEntryStatus.Posted,
         effectiveDate: entry.effectiveDate.toISOString(),
         postedAt: entry.postedAt?.toISOString(),

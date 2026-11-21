@@ -34,8 +34,8 @@ describe('makeJournalEntryExtractionQueue', () => {
   };
 
   const payload: IJournalEntryExtractionDto = {
-    context,
-    value: {
+    ...context,
+    file: {
       url: 'https://example.com/receipt.png',
       name: 'receipt.png',
       type: 'png',

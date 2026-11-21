@@ -54,7 +54,7 @@ export default function makeJournalEntryExtractionQueue(
       try {
         await getJournalEntryExtractionQueue().add(
           JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME,
-          makeTraceEnvelope(payload.context.correlationId, payload, tracer),
+          makeTraceEnvelope(payload.correlationId, payload, tracer),
           getConfig()
         );
         queueMetrics.recordEnqueueSucceeded({

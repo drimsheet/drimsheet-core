@@ -3,16 +3,9 @@ import z from 'zod';
 import { agentRunContextIdentifiersValidation } from '@app/ai/dtos/agent-run-context/agent-run-context.dto.validation';
 import { fileAttachmentDtoValidation } from '@app/file/dtos/file-attachment/file-attachment.dto.validation';
 
-import {
-  IJournalEntriesExtractionInput,
-  IJournalEntryExtractionDto,
-} from './journal-entry-extraction.dto';
-
-export const journalEntriesExtractionInputValidation = z.strictObject({
-  value: fileAttachmentDtoValidation.or(z.string()),
-}) satisfies z.ZodType<IJournalEntriesExtractionInput>;
+import { IJournalEntryExtractionDto } from './journal-entry-extraction.dto';
 
 export const journalEntryExtractionDtoValidation =
-  journalEntriesExtractionInputValidation.extend({
-    context: agentRunContextIdentifiersValidation,
+  agentRunContextIdentifiersValidation.extend({
+    file: fileAttachmentDtoValidation,
   }) satisfies z.ZodType<IJournalEntryExtractionDto>;

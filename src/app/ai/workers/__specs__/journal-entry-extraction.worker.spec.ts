@@ -28,12 +28,15 @@ describe('makeJournalEntryExtractionWorker', () => {
     type: EFileAttachmentType.Png,
     size: 1024,
   };
-  const pdfText = 'Receipt total: 100 NGN';
   const createAgentRunContextUseCase: jest.MockedFunction<
     TDependencies['createAgentRunContextUseCase']
   > = jest.fn();
+  const proposeJournalEntriesUseCase: jest.MockedFunction<
+    TDependencies['proposeJournalEntriesUseCase']
+  > = jest.fn();
   const worker = makeJournalEntryExtractionWorker({
     createAgentRunContextUseCase,
+    proposeJournalEntriesUseCase,
   });
 
   beforeEach(() => {
@@ -41,21 +44,22 @@ describe('makeJournalEntryExtractionWorker', () => {
     createAgentRunContextUseCase.mockResolvedValue(runContext);
   });
 
-  it.each([pdfText, file])(
-    'creates a run context for a valid job with value %j',
-    async (value) => {
-      await worker({ value, context });
+  it('passes the original file and generated run context ID to the use case', async () => {
+    await worker({ ...context, file });
 
-      expect(createAgentRunContextUseCase).toHaveBeenCalledWith({
-        ...context,
-        agentActorUsername: 'drimsheet-core-ai',
-      });
-    }
-  );
+    expect(createAgentRunContextUseCase).toHaveBeenCalledWith({
+      ...context,
+      agentActorUsername: 'drimsheet-core-ai',
+    });
+    expect(proposeJournalEntriesUseCase).toHaveBeenCalledWith(
+      file,
+      runContext.id
+    );
+  });
 
   it('rejects invalid jobs', async () => {
     await expect(
-      worker({ value: { ...file, size: 0 }, context })
+      worker({ ...context, file: { ...file, size: 0 } })
     ).rejects.toBeInstanceOf(appError.UnprocessableEntity);
     expect(createAgentRunContextUseCase).not.toHaveBeenCalled();
   });
@@ -64,6 +68,14 @@ describe('makeJournalEntryExtractionWorker', () => {
     const failure = new Error('Could not create run context');
     createAgentRunContextUseCase.mockRejectedValue(failure);
 
-    await expect(worker({ value: pdfText, context })).rejects.toBe(failure);
+    await expect(worker({ ...context, file })).rejects.toBe(failure);
+    expect(proposeJournalEntriesUseCase).not.toHaveBeenCalled();
+  });
+
+  it('propagates extraction use-case failures', async () => {
+    const failure = new Error('Could not extract proposals');
+    proposeJournalEntriesUseCase.mockRejectedValue(failure);
+
+    await expect(worker({ ...context, file })).rejects.toBe(failure);
   });
 });

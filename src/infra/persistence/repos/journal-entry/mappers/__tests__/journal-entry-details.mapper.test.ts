@@ -18,6 +18,12 @@ describe('Journal Entry Details Mapper', () => {
   const counterpartyId = '123e4567-e89b-12d3-a456-426614174005' as TEntityId;
   const createdAt = '2026-09-16T09:00:00.000Z';
   const updatedAt = '2026-09-16T10:00:00.000Z';
+  const fileExtractionSource = {
+    url: 'https://files.example.com/statement.pdf',
+    name: 'statement.pdf',
+    type: 'pdf',
+    size: 1024,
+  };
 
   function makeModel(): TJournalEntryDetailsModel {
     return {
@@ -25,6 +31,7 @@ describe('Journal Entry Details Mapper', () => {
       accountingEntityId,
       sourceType: EJournalEntrySourceType.Receipt,
       memo: 'Customer receipt',
+      meta: { fileExtractionSource },
       status: 'posted',
       effectiveDate: '2026-09-15',
       postedAt: createdAt,
@@ -86,6 +93,7 @@ describe('Journal Entry Details Mapper', () => {
       id: entryId,
       accountingEntityId,
       sourceType: EJournalEntrySourceType.Receipt,
+      meta: { fileExtractionSource },
       effectiveDate: new Date('2026-09-15T00:00:00.000Z'),
       postedAt: new Date(createdAt),
       voidedAt: new Date(updatedAt),

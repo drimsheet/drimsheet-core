@@ -7,6 +7,7 @@ import { IEvent } from '@shared/values/events/types/event.types';
 import fileAttachmentValue from '@shared/values/file-attachments/file-attachment.vo';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
+import getJournalEntryMetaHelper from '@domain/journal-entry/entities/helpers/get-journal-entry-meta.helper';
 import getJournalEntryMemoHelper from '@domain/journal-entry/entities/helpers/get-memo.helper';
 import journalEntryValidation from '@domain/journal-entry/entities/validations/journal-entry.validation';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -77,6 +78,7 @@ function makeEntry<TLine>(
   journalEntryValidation.validateAttachmentCount(requestedAttachments.length);
   const rawAttachments = requestedAttachments.map(fileAttachmentValue.make);
   const attachments = Object.freeze(rawAttachments) as IFileAttachment[];
+  const meta = getJournalEntryMetaHelper(payload.fileExtractionSource);
 
   const status = payload.postedAt
     ? EJournalEntryStatus.Posted
@@ -89,6 +91,7 @@ function makeEntry<TLine>(
     lines,
     attachments,
     memo,
+    meta,
     status,
     effectiveDate: payload.effectiveDate,
     postedAt: payload.postedAt,
@@ -245,6 +248,7 @@ function update(
     lines,
     attachments,
     memo,
+    meta: entry.meta,
     status,
     effectiveDate,
     postedAt,
@@ -366,6 +370,7 @@ function makeTransitionedEntry(
     lines: entry.lines,
     attachments: entry.attachments,
     memo: entry.memo,
+    meta: entry.meta,
     status,
     effectiveDate: entry.effectiveDate,
     postedAt: entry.postedAt,

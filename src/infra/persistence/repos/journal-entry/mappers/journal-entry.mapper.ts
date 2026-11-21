@@ -4,6 +4,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import {
   IJournalEntry,
+  IJournalEntryMeta,
   IJournalHeader,
 } from '@domain/journal-entry/types/journal-entry.types';
 
@@ -37,6 +38,7 @@ const journalEntryMapper = {
       accountingEntityId: payload.accountingEntityId as TEntityId,
       sourceType: payload.sourceType,
       memo: payload.memo,
+      meta: payload.meta as IJournalEntryMeta,
       status: payload.status,
       attachments: payload.journalEntryAttachmentsInCores[0]
         ? journalEntryAttachmentMapper.toDomain(
@@ -63,6 +65,7 @@ const journalEntryMapper = {
       accountingEntityId: payload.accountingEntityId,
       sourceType: payload.sourceType,
       memo: payload.memo,
+      meta: payload.meta,
       status: payload.status,
       effectiveDate: toRepoDate(payload.effectiveDate),
       postedAt: payload.postedAt ? toRepoDate(payload.postedAt) : null,

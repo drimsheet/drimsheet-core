@@ -4,12 +4,12 @@ import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-st
 import journalEntryAppError from '@app/journal-entry/errors/journal-entry.error';
 
 import makeJournalEntryLlmProposer from '@infra/ai/structured-calls/journal-entry-proposer/journal-entry-proposer';
-import openAiClient from '@infra/config/openai.config';
+import { getOpenAiClient } from '@infra/config/openai.config';
 
-jest.mock('@infra/config/openai.config', () => ({
-  __esModule: true,
-  default: { responses: { create: jest.fn() } },
-}));
+jest.mock('@infra/config/openai.config', () => {
+  const client = { responses: { create: jest.fn() } };
+  return { getOpenAiClient: () => client };
+});
 
 const emptyProposals = {
   ledgerAccounts: [],
@@ -113,7 +113,7 @@ function expectClosedObjects(schema: unknown): void {
 }
 
 describe('OpenAI journal-entry proposer', () => {
-  const createResponse = jest.mocked(openAiClient.responses.create);
+  const createResponse = jest.mocked(getOpenAiClient().responses.create);
   const getDownloadUrl = mockFileStorageClient.getDownloadUrl;
   const downloadUrl = 'https://example.com/source?signature=test';
   const journalEntryLlmProposer = makeJournalEntryLlmProposer(
@@ -128,7 +128,7 @@ describe('OpenAI journal-entry proposer', () => {
   it('sends source text with a strict schema and returns proposals', async () => {
     const value = 'No transactions in this document.';
 
-    await expect(journalEntryLlmProposer({ value })).resolves.toEqual(
+    await expect(journalEntryLlmProposer(value)).resolves.toEqual(
       emptyProposals
     );
 
@@ -166,7 +166,7 @@ describe('OpenAI journal-entry proposer', () => {
         size: 1024,
       };
 
-      await journalEntryLlmProposer({ value });
+      await journalEntryLlmProposer(value);
 
       expect(getDownloadUrl).toHaveBeenCalledWith(value.url);
       expect(createResponse).toHaveBeenCalledWith(
@@ -192,7 +192,7 @@ describe('OpenAI journal-entry proposer', () => {
         size: 1024,
       };
 
-      await journalEntryLlmProposer({ value });
+      await journalEntryLlmProposer(value);
 
       expect(getDownloadUrl).toHaveBeenCalledWith(value.url);
       expect(createResponse).toHaveBeenCalledWith(
@@ -220,12 +220,10 @@ describe('OpenAI journal-entry proposer', () => {
 
     await expect(
       journalEntryLlmProposer({
-        value: {
-          url: 'https://example.com/receipt',
-          name: 'receipt.png',
-          type: 'png',
-          size: 1024,
-        },
+        url: 'https://example.com/receipt',
+        name: 'receipt.png',
+        type: 'png',
+        size: 1024,
       })
     ).rejects.toBe(signingError);
 
@@ -258,9 +256,7 @@ describe('OpenAI journal-entry proposer', () => {
       output_text: JSON.stringify(proposals),
     });
 
-    const proposalResponse = await journalEntryLlmProposer({
-      value: 'Statement text',
-    });
+    const proposalResponse = await journalEntryLlmProposer('Statement text');
 
     expect(proposalResponse).toEqual({
       ...proposals,
@@ -324,7 +320,7 @@ describe('OpenAI journal-entry proposer', () => {
       }),
     });
 
-    const proposalResponse = await journalEntryLlmProposer({ value: '' });
+    const proposalResponse = await journalEntryLlmProposer('');
 
     expect(proposalResponse.counterparties).toEqual([
       expect.objectContaining({
@@ -349,9 +345,7 @@ describe('OpenAI journal-entry proposer', () => {
         output_text: JSON.stringify(proposals),
       });
 
-      await expect(journalEntryLlmProposer({ value: '' })).resolves.toEqual(
-        proposals
-      );
+      await expect(journalEntryLlmProposer('')).resolves.toEqual(proposals);
     }
   );
 
@@ -369,9 +363,7 @@ describe('OpenAI journal-entry proposer', () => {
         output_text: JSON.stringify(proposals),
       });
 
-      await expect(journalEntryLlmProposer({ value: '' })).resolves.toEqual(
-        proposals
-      );
+      await expect(journalEntryLlmProposer('')).resolves.toEqual(proposals);
     }
   );
 
@@ -386,7 +378,7 @@ describe('OpenAI journal-entry proposer', () => {
     async (status) => {
       createResponse.mockResolvedValue({ ...providerResponse, status });
 
-      await expect(journalEntryLlmProposer({ value: '' })).rejects.toEqual(
+      await expect(journalEntryLlmProposer('')).rejects.toEqual(
         new journalEntryAppError.ExtractionUnexpected()
       );
     }
@@ -425,7 +417,7 @@ describe('OpenAI journal-entry proposer', () => {
   ])('rejects %s (%s)', async (output_text) => {
     createResponse.mockResolvedValue({ ...providerResponse, output_text });
 
-    await expect(journalEntryLlmProposer({ value: '' })).rejects.toEqual(
+    await expect(journalEntryLlmProposer('')).rejects.toEqual(
       new journalEntryAppError.ExtractionUnexpected()
     );
   });
@@ -433,12 +425,10 @@ describe('OpenAI journal-entry proposer', () => {
   it('rejects invalid attachments before contacting OpenAI', async () => {
     await expect(
       journalEntryLlmProposer({
-        value: {
-          url: 'https://example.com/receipt',
-          name: 'receipt',
-          type: 'unsupported',
-          size: 1024,
-        },
+        url: 'https://example.com/receipt',
+        name: 'receipt',
+        type: 'unsupported',
+        size: 1024,
       })
     ).rejects.toMatchObject({ name: 'ZodError' });
     expect(createResponse).not.toHaveBeenCalled();
@@ -448,6 +438,6 @@ describe('OpenAI journal-entry proposer', () => {
     const error = new Error('OpenAI unavailable');
     createResponse.mockRejectedValue(error);
 
-    await expect(journalEntryLlmProposer({ value: '' })).rejects.toBe(error);
+    await expect(journalEntryLlmProposer('')).rejects.toBe(error);
   });
 });

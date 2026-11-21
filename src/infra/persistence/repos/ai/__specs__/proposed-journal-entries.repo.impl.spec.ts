@@ -1,6 +1,6 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
-import { IJournalEntryExtractionAiResponse } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { IProposedJournalEntriesResult } from '@app/ai/dtos/proposed-journal-entries/proposed-journal-entries.dto';
 
 import proposedJournalEntriesRepo from '@infra/persistence/repos/ai/proposed-journal-entries.repo.impl';
 
@@ -20,7 +20,14 @@ describe('proposedJournalEntriesRepo', () => {
       agentActor: { id: generateUUID(), name: 'Drimsheet AI' },
       delegatingActor: { id: generateUUID(), name: 'Uploader' },
     };
-    const proposals: IJournalEntryExtractionAiResponse = {
+    const sourceFile = {
+      url: 'https://example.com/receipt.pdf',
+      name: 'receipt.pdf',
+      type: 'pdf',
+      size: 1024,
+    };
+    const proposals: IProposedJournalEntriesResult = {
+      sourceFile,
       ledgerAccounts: [],
       counterparties: [],
       entries: [
@@ -38,6 +45,7 @@ describe('proposedJournalEntriesRepo', () => {
       ],
     };
     const emptyExtraction = {
+      sourceFile,
       ledgerAccounts: [],
       counterparties: [],
       entries: [],

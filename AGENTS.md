@@ -71,8 +71,10 @@ below `1.0.0`:
 
 ## AI Execution
 
-- Use cases hand off AI work through queue contracts. Keep tools, structured
-  LLM calls, agents, and workflows out of use-case dependencies.
+- Use cases in `src/app/ai` may call structured LLMs directly. Use cases
+  in other application modules must delegate AI work through background
+  queue contracts. Keep tools, agents, and workflows out of use-case
+  dependencies.
 - Each tool wraps one use case or one structured LLM call.
 - Background workers start or resume agents and workflows and can run standalone
   structured LLM calls. Agents select tools. Workflows follow predefined steps

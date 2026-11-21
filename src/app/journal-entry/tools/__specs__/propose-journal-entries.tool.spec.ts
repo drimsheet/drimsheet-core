@@ -8,32 +8,43 @@ type TUseCase = Parameters<typeof makeProposeJournalEntriesTool>[0]['usecase'];
 describe('propose journal entries tool', () => {
   const usecase = jest.fn<ReturnType<TUseCase>, Parameters<TUseCase>>();
   const contextId = generateUUID();
-  const tool = makeProposeJournalEntriesTool({ usecase, contextId });
-  const payload = { value: 'Receipt text' };
+  const file = {
+    url: 'https://example.com/receipt.pdf',
+    name: 'receipt.pdf',
+    type: 'pdf',
+    size: 1024,
+  };
+  const proposals = { ledgerAccounts: [], counterparties: [], entries: [] };
+  const tool = makeProposeJournalEntriesTool({
+    usecase,
+    contextId,
+    file,
+  });
 
   beforeEach(() => jest.resetAllMocks());
 
-  it('passes parsed input and the run context ID to the use case', async () => {
-    const proposals = { ledgerAccounts: [], counterparties: [], entries: [] };
-    usecase.mockResolvedValue(proposals);
-    const input = tool.inputSchema.parse(payload);
+  it('passes the bound file and run context to the use case', async () => {
+    const extraction = { ...proposals, sourceFile: file };
+    usecase.mockResolvedValue(extraction);
+    const input = tool.inputSchema.parse({});
 
     expect(tool.name).toBe('propose_journal_entries');
-    await expect(tool.func(input)).resolves.toBe(proposals);
+    await expect(tool.func(input)).resolves.toBe(extraction);
     expect(usecase).toHaveBeenCalledTimes(1);
-    expect(usecase).toHaveBeenCalledWith(input, contextId);
+    expect(usecase).toHaveBeenCalledWith(file, contextId);
   });
 
-  it('rejects a run context ID in the tool input', () => {
-    expect(tool.inputSchema.safeParse({ ...payload, contextId }).success).toBe(
-      false
-    );
-  });
+  it.each([{ contextId }, { file }, { proposals }])(
+    'rejects attempts to replace bound values',
+    (input) => {
+      expect(tool.inputSchema.safeParse(input).success).toBe(false);
+    }
+  );
 
   it('propagates use-case failures to its caller', async () => {
     const error = new agentContextAppError.NotFound();
     usecase.mockRejectedValue(error);
 
-    await expect(tool.func(payload)).rejects.toBe(error);
+    await expect(tool.func({})).rejects.toBe(error);
   });
 });
