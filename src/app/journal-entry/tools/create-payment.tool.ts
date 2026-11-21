@@ -1,9 +1,10 @@
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
+import type { IPaymentEntryReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
 import { paymentEntryJsonReqValidation } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto.validation';
-import type makeCreatePaymentUsecase from '@app/journal-entry/usecases/create-payment.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeCreatePaymentUsecase>;
+  usecase: (payload: IPaymentEntryReq) => Promise<IJournalEntryDto>;
 }
 
 type TTool = IAgentTool<

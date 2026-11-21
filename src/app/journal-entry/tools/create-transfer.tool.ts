@@ -1,9 +1,10 @@
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
+import type { ITransferEntryReq } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto';
 import { transferEntryJsonReqValidation } from '@app/journal-entry/dtos/transfer-entry/transfer-entry.dto.validation';
-import type makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transfer.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeCreateTransferUsecase>;
+  usecase: (payload: ITransferEntryReq) => Promise<IJournalEntryDto>;
 }
 
 type TTool = IAgentTool<

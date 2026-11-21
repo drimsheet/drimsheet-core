@@ -5,14 +5,14 @@ import { TEntityId } from '@shared/types/uuid';
 import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 
 import { IAgentTool } from '@app/ai/types/agent-tool';
-import type makeGetLedgerAccountUseCase from '@app/ledger/usecases/get-ledger-account.usecase';
+import type { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 
 const inputSchema = z.object({
   accountId: z.uuid(new ledgerAccountError.InvalidId().errorKey),
 });
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeGetLedgerAccountUseCase>;
+  usecase: (accountId: TEntityId) => Promise<ILedgerAccountDto>;
 }
 
 type TTool = IAgentTool<

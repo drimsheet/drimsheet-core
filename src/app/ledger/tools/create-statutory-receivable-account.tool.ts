@@ -1,9 +1,12 @@
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import type { ICreateStatutoryReceivableAccountDto } from '@app/ledger/dtos/receivable-account/receivable-account.dto';
 import { createStatutoryReceivableAccountValidation } from '@app/ledger/dtos/receivable-account/receivable-account.dto.validation';
-import type makeCreateStatutoryReceivableAccountUsecase from '@app/ledger/usecases/create-statutory-receivable-account.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeCreateStatutoryReceivableAccountUsecase>;
+  usecase: (
+    payload: ICreateStatutoryReceivableAccountDto
+  ) => Promise<ILedgerAccountDto>;
 }
 
 type TTool = IAgentTool<

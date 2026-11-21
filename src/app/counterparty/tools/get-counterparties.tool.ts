@@ -1,9 +1,16 @@
+import type { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
+
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type {
+  ICounterpartyDto,
+  IGetCounterpartiesQuery,
+} from '@app/counterparty/dtos/counterparty/counterparty.dto';
 import { getCounterpartiesQueryValidationSchema } from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
-import type makeGetCounterpartiesUsecase from '@app/counterparty/usecases/get-counterparties.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeGetCounterpartiesUsecase>;
+  usecase: (
+    query: IGetCounterpartiesQuery
+  ) => Promise<IPaginatedResponse<ICounterpartyDto>>;
 }
 
 type TTool = IAgentTool<

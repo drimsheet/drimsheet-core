@@ -1,9 +1,16 @@
+import type { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
+
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type {
+  IGetJournalEntriesQuery,
+  IJournalEntryListDto,
+} from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { getJournalEntriesQueryValidationSchema } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.validation';
-import type makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeGetJournalEntriesUsecase>;
+  usecase: (
+    query: IGetJournalEntriesQuery
+  ) => Promise<IPaginatedResponse<IJournalEntryListDto>>;
 }
 
 type TTool = IAgentTool<

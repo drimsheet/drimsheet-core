@@ -1,9 +1,12 @@
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { IPettyCashAccountCreationReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { pettyCashCreationJsonReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
-import type makeCreatePettyCashAccountUseCase from '@app/ledger/usecases/create-petty-cash-account.usecase';
+import type { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeCreatePettyCashAccountUseCase>;
+  usecase: (
+    payload: IPettyCashAccountCreationReq
+  ) => Promise<ILedgerAccountDto>;
 }
 
 type TTool = IAgentTool<

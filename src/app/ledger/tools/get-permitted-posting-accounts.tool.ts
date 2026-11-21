@@ -1,9 +1,14 @@
+import type { IPaginatedResponse } from '@shared/values/pagination/types/pagination.types';
+
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import type { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 import { getPermittedPostingAccountsQueryValidationSchema } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto.validation';
-import type makeGetPermittedPostingAccountsUsecase from '@app/ledger/usecases/get-permitted-posting-accounts.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeGetPermittedPostingAccountsUsecase>;
+  usecase: (
+    query: IGetPermittedPostingAccountsQuery
+  ) => Promise<IPaginatedResponse<ILedgerAccountDto>>;
 }
 
 type TTool = IAgentTool<

@@ -1,9 +1,10 @@
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
+import type { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/suspense-account.dto';
 import { createSuspenseAccountValidation } from '@app/ledger/dtos/suspense-account/suspense-account.dto.validation';
-import type makeCreateSuspenseAccountUsecase from '@app/ledger/usecases/create-suspense-account.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeCreateSuspenseAccountUsecase>;
+  usecase: (payload: ICreateSuspenseAccountDto) => Promise<ILedgerAccountDto>;
 }
 
 type TTool = IAgentTool<

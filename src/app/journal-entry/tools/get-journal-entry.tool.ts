@@ -3,14 +3,14 @@ import z from 'zod';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
 
 import { IAgentTool } from '@app/ai/types/agent-tool';
-import type makeGetJournalEntryUsecase from '@app/journal-entry/usecases/get-journal-entry.usecase';
+import type { IJournalEntryListDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 
 const inputSchema = z.object({
   id: z.uuid(new journalEntryError.InvalidJournalEntry().errorKey),
 });
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeGetJournalEntryUsecase>;
+  usecase: (id: string) => Promise<IJournalEntryListDto>;
 }
 
 type TTool = IAgentTool<

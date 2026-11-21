@@ -3,11 +3,14 @@ import z from 'zod';
 import { TEntityId } from '@shared/types/uuid';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
+import type { IProposedJournalEntriesResult } from '@app/ai/dtos/proposed-journal-entries/proposed-journal-entries.dto';
 import { IAgentTool } from '@app/ai/types/agent-tool';
-import type makeProposeJournalEntriesUsecase from '@app/ai/usecases/propose-journal-entries.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeProposeJournalEntriesUsecase>;
+  usecase: (
+    file: IFileAttachment,
+    contextId: TEntityId
+  ) => Promise<IProposedJournalEntriesResult>;
   contextId: TEntityId;
   file: IFileAttachment;
 }

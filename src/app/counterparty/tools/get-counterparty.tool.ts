@@ -3,14 +3,14 @@ import z from 'zod';
 import counterpartyError from '@domain/counterparty/errors/counterparty.error';
 
 import { IAgentTool } from '@app/ai/types/agent-tool';
-import type makeGetCounterpartyUsecase from '@app/counterparty/usecases/get-counterparty.usecase';
+import type { ICounterpartyDto } from '@app/counterparty/dtos/counterparty/counterparty.dto';
 
 const inputSchema = z.object({
   id: z.uuid(new counterpartyError.InvalidCounterpartyId().errorKey),
 });
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeGetCounterpartyUsecase>;
+  usecase: (id: string) => Promise<ICounterpartyDto>;
 }
 
 type TTool = IAgentTool<

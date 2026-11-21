@@ -1,9 +1,12 @@
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type {
+  ICounterpartyCreateReq,
+  ICounterpartyDto,
+} from '@app/counterparty/dtos/counterparty/counterparty.dto';
 import { counterpartyCreateReqValidation } from '@app/counterparty/dtos/counterparty/counterparty.dto.validation';
-import type makeCreateCounterpartyUsecase from '@app/counterparty/usecases/create-counterparty.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeCreateCounterpartyUsecase>;
+  usecase: (payload: ICounterpartyCreateReq) => Promise<ICounterpartyDto>;
 }
 
 type TTool = IAgentTool<

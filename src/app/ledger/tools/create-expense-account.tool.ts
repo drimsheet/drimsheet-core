@@ -1,9 +1,10 @@
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { ICreateExpenseAccountDto } from '@app/ledger/dtos/expense-account/expense-account.dto';
 import { createExpenseAccountValidation } from '@app/ledger/dtos/expense-account/expense-account.dto.validation';
-import type makeCreateExpenseAccountUsecase from '@app/ledger/usecases/create-expense-account.usecase';
+import type { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeCreateExpenseAccountUsecase>;
+  usecase: (payload: ICreateExpenseAccountDto) => Promise<ILedgerAccountDto>;
 }
 
 type TTool = IAgentTool<

@@ -1,9 +1,11 @@
+import type { IExchangeRate } from '@domain/money/types/exchange-rate.types';
+
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { IExchangeRateQueryParam } from '@app/money/dtos/exchange-rate/exchange-rate.dto';
 import { getExchangeRatesJsonQueryValidationSchema } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';
-import type makeGetExchangeRateUseCase from '@app/money/usecases/get-exchange-rates.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeGetExchangeRateUseCase>;
+  usecase: (query: IExchangeRateQueryParam) => Promise<IExchangeRate[]>;
 }
 
 type TTool = IAgentTool<

@@ -1,9 +1,9 @@
 import { IAgentTool } from '@app/ai/types/agent-tool';
+import type { IOpeningBalanceCreationReq } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
 import { openingBalanceCreationJsonReqValidation } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto.validation';
-import type makeCreateOpeningBalanceUseCase from '@app/journal-entry/usecases/create-opening-balance.usecase';
 
 interface IDependencies {
-  usecase: ReturnType<typeof makeCreateOpeningBalanceUseCase>;
+  usecase: (payload: IOpeningBalanceCreationReq) => Promise<void>;
 }
 
 type TTool = IAgentTool<
