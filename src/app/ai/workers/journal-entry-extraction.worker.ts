@@ -21,10 +21,14 @@ interface IDependencies {
 
 export default function makeJournalEntryExtractionWorker(deps: IDependencies) {
   return async (payload: IJournalEntryExtractionDto): Promise<void> => {
+    console.log('>>>>>>>>>>>>>>>>>> starting worker >>>>>>>>>>>>>>>>');
+
     zodValidationRunner(journalEntryExtractionDtoValidation, payload);
+
     const { file, accountingEntityId, correlationId, delegatingActorId } =
       payload;
 
+    console.log('>>>>>>>>>>>>>>>>>> Creating Run Context >>>>>>>>>>>>>>>>');
     const runContext = await deps.createAgentRunContextUseCase({
       accountingEntityId,
       correlationId,
@@ -32,6 +36,9 @@ export default function makeJournalEntryExtractionWorker(deps: IDependencies) {
       agentActorUsername: 'drimsheet-core-ai',
     });
 
-    await deps.proposeJournalEntriesUseCase(file, runContext.id);
+    console.log('>>>>>>>>>>>>>>>>>> Getting Proposed Entries >>>>>>>>>>>>>>>>');
+    const result = await deps.proposeJournalEntriesUseCase(file, runContext.id);
+
+    console.log('>>>>>>>>>>>>>>>>>>>>>>>>', result.sourceFile);
   };
 }

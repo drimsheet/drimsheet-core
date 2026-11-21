@@ -45,6 +45,13 @@ describe('makeJournalEntryExtractionWorker', () => {
   });
 
   it('passes the original file and generated run context ID to the use case', async () => {
+    proposeJournalEntriesUseCase.mockResolvedValueOnce({
+      ledgerAccounts: [],
+      counterparties: [],
+      entries: [],
+      sourceFile: file,
+    });
+
     await worker({ ...context, file });
 
     expect(createAgentRunContextUseCase).toHaveBeenCalledWith({
