@@ -12941,16 +12941,9 @@
             "type": "string",
             "description": "Opaque handle returned when preparing the journal-entry creation upload.",
             "format": "uuid"
-          },
-          "accountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "sourceType": {
-            "$ref": "#/components/schemas/UJournalEntrySourceType"
           }
         },
-        "required": ["reference", "accountId"],
+        "required": ["reference"],
         "type": "object",
         "additionalProperties": false
       },

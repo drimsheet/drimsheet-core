@@ -2287,8 +2287,6 @@ const models: TsoaRoute.Models = {
     dataType: 'refObject',
     properties: {
       reference: { dataType: 'string', required: true },
-      accountId: { dataType: 'string', required: true },
-      sourceType: { ref: 'UJournalEntrySourceType' },
     },
     additionalProperties: false,
   },

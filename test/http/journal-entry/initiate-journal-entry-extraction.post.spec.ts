@@ -65,7 +65,6 @@ const accountingEntityId = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
 
 const payload = {
   reference: '123e4567-e89b-12d3-a456-426614174004',
-  accountId: '123e4567-e89b-12d3-a456-426614174003',
 };
 
 describe('POST /journal-entries/initiate-extraction', () => {
@@ -107,18 +106,12 @@ describe('POST /journal-entries/initiate-extraction', () => {
       .send(body);
 
   describe('204 Response', () => {
-    it.each([undefined, 'payment', 'receipt'])(
-      'accepts the DTO with sourceType %s',
-      async (sourceType) => {
-        const body = { ...payload, sourceType };
-        const response = await send(body);
-        expect(response.status).toBe(204);
-        expect(response.text).toBe('');
-        expect(mockInitiateExtraction).toHaveBeenCalledWith(
-          expect.objectContaining(payload)
-        );
-      }
-    );
+    it('accepts a body with only an upload reference', async () => {
+      const response = await send();
+      expect(response.status).toBe(204);
+      expect(response.text).toBe('');
+      expect(mockInitiateExtraction).toHaveBeenCalledWith(payload);
+    });
   });
 
   describe('400 Response', () => {
@@ -158,8 +151,9 @@ describe('POST /journal-entries/initiate-extraction', () => {
 
   describe('422 Response', () => {
     it.each([
-      { accountId: payload.accountId },
-      { ...payload, sourceType: 'invalid' },
+      {},
+      { ...payload, accountId: '123e4567-e89b-12d3-a456-426614174003' },
+      { ...payload, sourceType: 'payment' },
       { ...payload, reference: 123 },
       { ...payload, reference: null },
     ])('rejects malformed DTOs', async (body) => {

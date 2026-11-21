@@ -37,10 +37,7 @@ describe('initiateJournalEntryExtractionUsecase', () => {
   };
   const reference = '123e4567-e89b-12d3-a456-426614174002';
   const key = `${userId}/journal_entry_creation/${reference}`;
-  const payload: IInitiateJournalEntryExtractionReq = {
-    reference,
-    accountId: '123e4567-e89b-12d3-a456-426614174003',
-  };
+  const payload: IInitiateJournalEntryExtractionReq = { reference };
   const storedFile = {
     fileUrl: 'https://example.com/receipt.png',
     contentType: 'image/png',
@@ -71,32 +68,27 @@ describe('initiateJournalEntryExtractionUsecase', () => {
     mockJournalEntryExtractionQueue.add.mockResolvedValue(undefined);
   });
 
-  it.each(['payment', 'receipt', undefined] as const)(
-    'claims and enqueues the upload with source type %s',
-    async (sourceType) => {
-      await expect(
-        usecase({ ...payload, sourceType })
-      ).resolves.toBeUndefined();
-      expect(mockAppContext.get).toHaveBeenCalledWith([
-        'user',
-        'actor',
-        'accountingEntity',
-      ]);
-      expect(mockFileStorageClient.readFile).toHaveBeenCalledWith({
-        key,
-        range: { start: 0, end: 11 },
-      });
-      expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith({
-        ...expectedContext,
-        file: {
-          url: storedFile.fileUrl,
-          name: 'receipt.png',
-          type: EFileAttachmentType.Png,
-          size: storedFile.size,
-        },
-      });
-    }
-  );
+  it('claims and enqueues the upload by reference', async () => {
+    await expect(usecase(payload)).resolves.toBeUndefined();
+    expect(mockAppContext.get).toHaveBeenCalledWith([
+      'user',
+      'actor',
+      'accountingEntity',
+    ]);
+    expect(mockFileStorageClient.readFile).toHaveBeenCalledWith({
+      key,
+      range: { start: 0, end: 11 },
+    });
+    expect(mockJournalEntryExtractionQueue.add).toHaveBeenCalledWith({
+      ...expectedContext,
+      file: {
+        url: storedFile.fileUrl,
+        name: 'receipt.png',
+        type: EFileAttachmentType.Png,
+        size: storedFile.size,
+      },
+    });
+  });
 
   it('enqueues the original PDF attachment', async () => {
     const fileUrl = 'https://example.com/receipt.pdf';
@@ -174,9 +166,6 @@ describe('initiateJournalEntryExtractionUsecase', () => {
     { ...payload, reference: undefined },
     { ...payload, reference: null },
     { ...payload, reference: storedFile.fileUrl },
-    { ...payload, accountId: 'invalid' },
-    { ...payload, sourceType: 'invalid' },
-    { ...payload, sourceType: null },
   ])(
     'rejects invalid DTO fields before accessing storage',
     async (invalidPayload) => {
