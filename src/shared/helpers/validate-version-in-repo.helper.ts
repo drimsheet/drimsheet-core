@@ -22,7 +22,8 @@ function validateVersion(version: unknown) {
 export default function validateVersionInRepoHelper(
   entity: IVersionedEntity,
   options:
-    IVersionedRepoWriteOptions | IVersionedRepoWriteOptions<TVersionedHistory>
+    | IVersionedRepoWriteOptions
+    | IVersionedRepoWriteOptions<TVersionedHistory>
 ) {
   validateVersion(options.expectedVersion);
   validateVersion(entity.version);

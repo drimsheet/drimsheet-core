@@ -121,6 +121,19 @@ Drimsheet does not store raw `.env` files anywhere in version control or directl
 2.  **Injection (Coolify Pipeline)**: When Coolify initiates a deployment of the Drimsheet Core, it utilizes the Doppler CLI (or Doppler Service Token) to securely pull and inject these keys into the Node.js Docker environment at startup.
 3.  **Application Consumption (`vars.config.ts` & `IVarsConfig`)**: Within the codebase, configurations are not arbitrarily fetched. The file `src/infra/config/vars.config.ts` parses `process.env` and acts as the secure internal schema for the application. Application-layer code accesses these values through the `IVarsConfig` contract interface (`src/shared/contracts/vars-config.contract.ts`), ensuring that environment configuration does not leak into testable application logic.
 
+### MongoDB agent storage configuration
+
+MongoDB provides separate persistence for agent workflow data. Core receives
+the connection URI through `MONGODB_URL`, supplied through Doppler alongside
+other deployment secrets. The URI contains the MongoDB endpoint, application
+database, and application-user credentials.
+
+MongoDB connections are established on first use. The current application
+startup does not depend on MongoDB availability.
+
+See [ADR 0021](adrs/0021-mongo-db-for-agent-workflow-storage.md) for the rationale
+behind the separate datastore.
+
 ### 7.3.1 Backblaze B2 upload configuration
 
 Core requires these environment variables to issue direct upload instructions:

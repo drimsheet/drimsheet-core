@@ -29,7 +29,7 @@ import IJournalEntryRepo from '@domain/journal-entry/repos/journal-entry.repo';
 import IJournalLineRepo from '@domain/journal-entry/repos/journal-line.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
+import IFileManagementAppService from '@app/file/contracts/services/file-management.service.contract';
 import { IJournalEntryDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import journalEntryDtoMapper from '@app/journal-entry/dtos/journal-entry/journal-entry.dto.mapper';
 import { IJournalEntryMetaUpdateReq } from '@app/journal-entry/dtos/meta-update/meta-update.dto';

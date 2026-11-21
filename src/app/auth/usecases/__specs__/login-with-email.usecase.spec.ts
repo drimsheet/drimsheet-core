@@ -6,14 +6,14 @@ import actorError from '@domain/user/errors/actor.error';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockPasswordAppService from '@app/auth/contracts/__mocks__/password-service.mock';
-import mockUserAuthRepo from '@app/auth/contracts/__mocks__/user-auth.repo.mock';
-import mockUserAuthAppService from '@app/auth/contracts/__mocks__/user-auth.service.mock';
-import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
-import { IUserAuth, IUserSession } from '@app/auth/contracts/auth.types';
-import { IUserSessionReference } from '@app/auth/contracts/user-session.service.contract';
+import mockUserAuthRepo from '@app/auth/contracts/repos/__mocks__/user-auth.repo.mock';
+import mockPasswordAppService from '@app/auth/contracts/services/__mocks__/password-service.mock';
+import mockUserAuthAppService from '@app/auth/contracts/services/__mocks__/user-auth.service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/services/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/services/__mocks__/user-session.service.mock';
+import { IUserSessionReference } from '@app/auth/contracts/services/user-session.service.contract';
 import authError from '@app/auth/errors/auth.error';
+import { IUserAuth, IUserSession } from '@app/auth/types/auth.types';
 import makeLoginWithEmailUseCase from '@app/auth/usecases/login-with-email.usecase';
 import mockAppContext, {
   mockClientSession,

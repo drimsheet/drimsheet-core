@@ -3,10 +3,10 @@ import generateUUID from '@shared/utils/uuid-generator';
 import fileAttachmentValue from '@shared/values/file-attachments/file-attachment.vo';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
+import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import IFileManagementAppService, {
   IClaimManagedFileUploadsPayload,
-} from '@app/file/contracts/file-management.service.contract';
-import IFileStorageClient from '@app/file/contracts/file-storage-client.contract';
+} from '@app/file/contracts/services/file-management.service.contract';
 import fileAppError from '@app/file/errors/file.error';
 import fileUploadPolicy from '@app/file/policies/file-upload.policy';
 import { UFileUploadPurpose } from '@app/file/types/file.types';
@@ -63,7 +63,11 @@ async function claimUpload(
     throw new fileAppError.InvalidUploadReference({ reference });
   }
 
-  const key = `${payload.userId}/${payload.purpose}/${reference}`;
+  const key = deps.fileStorageClient.getFileKey({
+    userId: payload.userId,
+    purpose: payload.purpose,
+    reference,
+  });
   let storedFile;
 
   try {
@@ -140,8 +144,13 @@ function makePreSignUploads(
 
       const signedUploads = await Promise.all(
         uploadRequests.map(async (uploadRequest) => {
+          const key = deps.fileStorageClient.getFileKey({
+            userId: payload.userId,
+            purpose: uploadRequest.file.purpose,
+            reference: uploadRequest.reference,
+          });
           const upload = await deps.fileStorageClient.preSignUpload({
-            key: `${payload.userId}/${uploadRequest.file.purpose}/${uploadRequest.reference}`,
+            key,
             contentType: uploadRequest.contentType,
             metadata: Object.freeze({
               [ORIGINAL_NAME_METADATA_KEY]: uploadRequest.encodedName,

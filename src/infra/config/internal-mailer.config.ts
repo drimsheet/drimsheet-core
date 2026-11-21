@@ -1,4 +1,4 @@
-import { IInternalMailer } from '@app/notification/contracts/transactional-email-agent.contract';
+import { IInternalMailer } from '@app/notification/contracts/clients/transactional-email-agent.contract';
 import { ITransactionalEmailDto } from '@app/notification/dtos/transactional-email/transactional-email.dto';
 
 const sentEmails: Map<string, ITransactionalEmailDto> = new Map();

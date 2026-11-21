@@ -18,7 +18,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import IJournalEntryPersistenceAppService, {
   IJournalEntryUpdatePersistencePayload,
-} from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+} from '@app/journal-entry/contracts/services/journal-entry-persistence.service.contract';
 
 interface IDependencies {
   repoService: IRepoService;
@@ -140,8 +140,8 @@ async function persistEntryUpdate(
     await deps.journalLineRepo.create(update.linesToCreate, {
       ...writeOptions,
       accountingEntityId: header.accountingEntityId,
-      history: update.linesToCreate.map((line) =>
-        lineHistoryById.get(line.id)!
+      history: update.linesToCreate.map(
+        (line) => lineHistoryById.get(line.id)!
       ),
     });
   }

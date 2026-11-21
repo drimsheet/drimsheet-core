@@ -7,10 +7,11 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-import IFileStorageClient from '@app/file/contracts/file-storage-client.contract';
+import IFileStorageClient from '@app/file/contracts/clients/file-storage-client.contract';
 import fileAppError from '@app/file/errors/file.error';
 
 const UPLOAD_URL_EXPIRY_SECONDS = 5 * 60;
+const DOWNLOAD_URL_EXPIRY_SECONDS = 5 * 60;
 
 interface IBlackblazeConfig {
   appKeyId: string;
@@ -67,6 +68,13 @@ function isMissingObjectError(error: unknown) {
   );
 }
 
+/** Builds the canonical user- and purpose-scoped object key. */
+function makeGetFileKey(): IFileStorageClient['getFileKey'] {
+  return ({ userId, purpose, reference }) => {
+    return `${userId}/${purpose}/${reference}`;
+  };
+}
+
 /**
  * Creates the storage capability that prepares a presigned object write.
  */
@@ -107,6 +115,35 @@ function makePreSignUpload(
       });
     } catch {
       throw new fileAppError.UploadUnexpected();
+    }
+  };
+}
+
+/**
+ * Signs a five-minute object read URL and maps provider signing failures.
+ */
+function makeGetDownloadUrl(
+  deps: IDependencies
+): IFileStorageClient['getDownloadUrl'] {
+  return async (fileUrl) => {
+    try {
+      const url = new URL(fileUrl);
+      const bucketPath = `/${encodeURIComponent(deps.config.bucketName)}/`;
+      const objectPath = url.pathname.startsWith(bucketPath)
+        ? url.pathname.slice(bucketPath.length)
+        : url.pathname.slice(1);
+      const key = decodeURIComponent(objectPath);
+
+      return await getSignedUrl(
+        deps.getClient(),
+        new GetObjectCommand({
+          Bucket: deps.config.bucketName,
+          Key: key,
+        }),
+        { expiresIn: DOWNLOAD_URL_EXPIRY_SECONDS }
+      );
+    } catch {
+      throw new fileAppError.DownloadUnexpected();
     }
   };
 }
@@ -190,7 +227,9 @@ export default function makeBlackblazeClient(
     config,
   };
   const storageClient: IFileStorageClient = {
+    getFileKey: makeGetFileKey(),
     preSignUpload: makePreSignUpload(deps),
+    getDownloadUrl: makeGetDownloadUrl(deps),
     readFile: makeReadFile(deps),
     deleteFile: makeDeleteFile(deps),
   };

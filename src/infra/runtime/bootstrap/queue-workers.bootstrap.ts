@@ -1,10 +1,12 @@
-import { CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-accounting-period-queue.contract';
-import { CURRENT_REPORTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-reporting-period-queue.contract';
+import { CURRENT_ACCOUNTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/queues/current-accounting-period-queue.contract';
+import { CURRENT_REPORTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/queues/current-reporting-period-queue.contract';
 import { INextCurrentAccountingPeriodDto } from '@app/accounting/dtos/current-accounting-period/current-accounting-period.dto';
 import { INextCurrentReportingPeriodDto } from '@app/accounting/dtos/current-reporting-period/current-reporting-period.dto';
-import { LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME } from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
+import { JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME } from '@app/ai/contracts/queues/journal-entry-extraction-queue.contract';
+import { IJournalEntryExtractionDto } from '@app/ai/dtos/journal-entry-extraction/journal-entry-extraction.dto';
+import { LEDGER_BALANCE_ADJUSTMENT_QUEUE_NAME } from '@app/ledger/contracts/queues/ledger-balance-adjustment-queue.contract';
 import { ILedgerAccountBalanceAdjustmentDto } from '@app/ledger/dtos/ledger-account-balance-adjustment/ledger-account-balance-adjustment.dto';
-import { TRANSACTIONAL_EMAIL_QUEUE_NAME } from '@app/notification/contracts/transactional-email-queue.contract';
+import { TRANSACTIONAL_EMAIL_QUEUE_NAME } from '@app/notification/contracts/queues/transactional-email-queue.contract';
 import { ITransactionalEmailDto } from '@app/notification/dtos/transactional-email/transactional-email.dto';
 
 import { registerBullMQWorker } from '@infra/config/bullmq.config';
@@ -12,6 +14,7 @@ import {
   setCurrentAccountingPeriodWorker,
   setCurrentReportingPeriodWorker,
 } from '@infra/ioc/workers/accounting';
+import { journalEntryExtractionWorker } from '@infra/ioc/workers/ai';
 import { ledgerAccountBalanceAdjustmentWorker } from '@infra/ioc/workers/ledger';
 import { transactionalEmailWorker } from '@infra/ioc/workers/notification';
 import observability from '@infra/observability';
@@ -66,9 +69,22 @@ function registerCurrentReportingPeriodWorker(): void {
   queueLifecycle.registerWorker(worker);
 }
 
+function registerJournalEntryExtractionWorker(): void {
+  const worker = registerBullMQWorker<IJournalEntryExtractionDto>(
+    JOURNAL_ENTRY_EXTRACTION_QUEUE_NAME,
+    journalEntryExtractionWorker,
+    appContext,
+    observability.queueMetrics,
+    observability.tracer
+  );
+
+  queueLifecycle.registerWorker(worker);
+}
+
 export default Object.freeze([
   registerTransactionalEmailWorker,
   registerLedgerAccountBalanceAdjustmentWorker,
   registerCurrentAccountingPeriodWorker,
   registerCurrentReportingPeriodWorker,
+  registerJournalEntryExtractionWorker,
 ]);

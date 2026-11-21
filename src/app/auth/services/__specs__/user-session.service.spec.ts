@@ -3,7 +3,7 @@ import generateUUID from '@shared/utils/uuid-generator';
 
 import { IUser } from '@domain/user/types/user.types';
 
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
 import makeUserSessionAppService from '@app/auth/services/user-session.service';
 
 jest.mock('@shared/utils/uuid-generator', () => ({

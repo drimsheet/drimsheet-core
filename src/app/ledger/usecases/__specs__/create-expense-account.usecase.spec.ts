@@ -13,7 +13,6 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import {
   mockAssetDisposalLossAccountService,
   mockBankChargeAccountService,
@@ -24,6 +23,7 @@ import {
   mockTaxExpenseAccountService,
   mockUnrealizedLossAccountService,
 } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/services/__mocks__/ledger-account-persistence.service.mock';
 import { ICreateExpenseAccountDto } from '@app/ledger/dtos/expense-account/expense-account.dto';
 import makeCreateExpenseAccountUsecase from '@app/ledger/usecases/create-expense-account.usecase';
 

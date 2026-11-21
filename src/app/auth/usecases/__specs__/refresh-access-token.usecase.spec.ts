@@ -2,9 +2,9 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IUser } from '@domain/user/types/user.types';
 
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/services/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/services/__mocks__/user-session.service.mock';
 import authError from '@app/auth/errors/auth.error';
 import makeRefreshAccessTokenUseCase from '@app/auth/usecases/refresh-access-token.usecase';
 import mockAppContext, {

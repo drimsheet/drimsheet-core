@@ -9,6 +9,7 @@ const EErrorKeys = {
   InvalidUploadType: 'app_error_file_upload_type_invalid',
   InvalidUploadSize: 'app_error_file_upload_size_invalid',
   UploadUnexpected: 'app_error_file_upload_unexpected',
+  DownloadUnexpected: 'app_error_file_download_unexpected',
   ReadUnexpected: 'app_error_file_read_unexpected',
   ClaimUnexpected: 'app_error_file_claim_unexpected',
   DeleteUnexpected: 'app_error_file_delete_unexpected',

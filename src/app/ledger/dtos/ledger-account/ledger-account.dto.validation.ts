@@ -8,7 +8,7 @@ import ledgerAccountError from '@domain/ledger/errors/ledger-account.error';
 import {
   ELedgerAccountBehavior,
   ULedgerAccountBehavior,
-} from '@domain/ledger/types/account-behaviors.tyypes';
+} from '@domain/ledger/types/account-behaviors.types';
 import {
   ELedgerAccountSubType,
   ULedgerAccountSubType,
@@ -22,7 +22,7 @@ import {
 import {
   ELedgerAccountSortBy,
   ULedgerAccountSortBy,
-} from '@app/ledger/contracts/ledger-account.query.repo.contract';
+} from '@app/ledger/contracts/query-repos/ledger-account.query.repo.contract';
 
 // =========== error keys start ===========
 const invalidTypeKey = new ledgerAccountError.InvalidType().errorKey;

@@ -25,7 +25,7 @@ import ledgerBalanceEffectRule from '@domain/accounting/rules/ledger-balance-eff
 import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IAccountTransactionQueryRepo from '@app/ledger/contracts/account-transaction.query.repo.contract';
+import IAccountTransactionQueryRepo from '@app/ledger/contracts/query-repos/account-transaction.query.repo.contract';
 import { IAccountTransactionRes } from '@app/ledger/dtos/account-transaction/account-transaction.dto';
 import accountTransactionMapper from '@app/ledger/dtos/account-transaction/account-transaction.dto.mapper';
 import ledgerAppError from '@app/ledger/errors/ledger.error';

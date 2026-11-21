@@ -29,20 +29,20 @@ import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/__mocks__/journal-entry-persistence.service.mock';
 import makeCreateOpeningBalanceUseCase from '@app/journal-entry/usecases/create-opening-balance.usecase';
-import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/queues/__mocks__/ledger-balance-adjustment-queue.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
-import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/services/__mocks__/exchange-rate.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import { makeFxAcquisitionResult } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
-import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/services/__mocks__/fx-cost-basis-persistence.service.mock';
 
 const actor = {
   ...actorEntity.makeUser({

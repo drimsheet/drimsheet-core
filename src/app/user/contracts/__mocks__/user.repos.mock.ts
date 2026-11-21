@@ -4,16 +4,8 @@ import IUserHistoryRepo from '@domain/user/repos/user-history.repo';
 import IUserRepo from '@domain/user/repos/user.repo';
 import IWaitListMemberRepo from '@domain/user/repos/waitlist-member.repo';
 
-import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
-
 export const mockUserHistoryRepo: jest.Mocked<IUserHistoryRepo> = {
   save: jest.fn(),
-};
-
-export const mockUserPreferencesRepo: jest.Mocked<IUserPreferencesRepo> = {
-  clearAccountingEntity: jest.fn(),
-  findById: jest.fn(),
-  update: jest.fn(),
 };
 
 export const mockUserRepo: jest.Mocked<IUserRepo> = {

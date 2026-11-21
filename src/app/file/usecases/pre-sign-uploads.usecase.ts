@@ -21,7 +21,7 @@ import IAppContextService from '@shared/contracts/app-context.service.contract';
 import zodValidationRunner from '@shared/utils/zod-validation-runner';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
+import IFileManagementAppService from '@app/file/contracts/services/file-management.service.contract';
 import {
   IFileUploadDto,
   IFileUploadReq,

@@ -6,7 +6,7 @@ import { ICurrency } from '@domain/money/types/currency.types';
 import { IMoney } from '@domain/money/types/money.types';
 import moneyValue from '@domain/money/values/money.vo';
 
-import { IBalanceHistoryRepoQueryOutput } from '@app/ledger/contracts/balance-history.repo-query.contract';
+import { IBalanceHistoryRepoQueryOutput } from '@app/ledger/contracts/query-repos/balance-history.repo-query.contract';
 import { IBalanceHistoryByAccountDto } from '@app/ledger/usecases/reporting/balance-history-by-account/dto';
 import { IBalanceHistoryByBehaviorDto } from '@app/ledger/usecases/reporting/balance-history-by-behavior/dto';
 import { IBalanceHistoryBySubTypeDto } from '@app/ledger/usecases/reporting/balance-history-by-sub-type/dto';

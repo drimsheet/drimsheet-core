@@ -7,18 +7,25 @@ export const EActorType = {
   AiAgent: 'ai_agent',
 } as const;
 
-export const EActorStatus = { Active: 'active', Disabled: 'disabled' } as const;
+export type UActorType = (typeof EActorType)[keyof typeof EActorType];
+
+export const EActorStatus = {
+  Active: 'active',
+  Disabled: 'disabled',
+} as const;
+
+export type UActorStatus = (typeof EActorStatus)[keyof typeof EActorStatus];
 
 export interface IActor {
-  readonly id: TEntityId;
-  readonly type: (typeof EActorType)[keyof typeof EActorType];
-  readonly username: string;
-  readonly displayName: string;
-  readonly ownerActorId: TEntityId | null;
-  readonly agentName: string | null;
-  readonly status: (typeof EActorStatus)[keyof typeof EActorStatus];
-  readonly createdBy: TEntityId;
-  readonly version: number;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
+  id: TEntityId;
+  type: UActorType;
+  username: string;
+  displayName: string;
+  ownerActorId: TEntityId | null;
+  agentName: string | null;
+  status: UActorStatus;
+  createdBy: TEntityId;
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
 }

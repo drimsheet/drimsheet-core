@@ -21,7 +21,7 @@ import {
 import {
   EJournalEntrySortBy,
   UJournalEntrySortBy,
-} from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+} from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 import { ledgerAccountTypeValidation } from '@app/ledger/dtos/ledger-account/ledger-account.dto.validation';
 import { currencyCodeValidation } from '@app/money/dtos/currency/currency.dto.validation';
 import { exchangeRateDtoValidation } from '@app/money/dtos/exchange-rate/exchange-rate.dto.validation';

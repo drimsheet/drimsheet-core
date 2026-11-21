@@ -2,9 +2,9 @@ import mockRepoService from '@shared/contracts/__mocks__/repo.mock';
 import { ITransactionContext } from '@shared/types/repo.types';
 import { TEntityId } from '@shared/types/uuid';
 
-import mockUserSessionRepo from '@app/auth/contracts/__mocks__/user-session.repo.mock';
-import { IUserSession } from '@app/auth/contracts/auth.types';
+import mockUserSessionRepo from '@app/auth/contracts/repos/__mocks__/user-session.repo.mock';
 import makeUserSessionPersistenceAppService from '@app/auth/services/user-session-persistence.service';
+import { IUserSession } from '@app/auth/types/auth.types';
 
 describe('userSessionPersistenceAppService', () => {
   const userId = '123e4567-e89b-42d3-a456-426614174000' as TEntityId;

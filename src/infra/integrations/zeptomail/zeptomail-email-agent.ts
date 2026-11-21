@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import ITransactionalEmailAgent from '@app/notification/contracts/transactional-email-agent.contract';
+import ITransactionalEmailAgent from '@app/notification/contracts/clients/transactional-email-agent.contract';
 import { ITransactionalEmailDto } from '@app/notification/dtos/transactional-email/transactional-email.dto';
 
 import vars from '@infra/config/vars.config';

@@ -2,6 +2,7 @@ import cron from 'node-cron';
 
 import { ELogOutcome } from '@shared/types/observability.types';
 
+import { closeMongoConnection } from '@infra/config/mongodb.config';
 import { postgres } from '@infra/config/postgres.config';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
 import logger from '@infra/observability/logger';
@@ -40,6 +41,12 @@ export default async function runBackground(): Promise<void> {
 
     try {
       await postgres.$client.end();
+    } catch (error) {
+      process.exitCode = 1;
+      reporter.report('runtime.background.cleanup_failed', error);
+    }
+    try {
+      await closeMongoConnection();
     } catch (error) {
       process.exitCode = 1;
       reporter.report('runtime.background.cleanup_failed', error);
@@ -84,3 +91,5 @@ export default async function runBackground(): Promise<void> {
     }
   }
 }
+
+export { runBackground };

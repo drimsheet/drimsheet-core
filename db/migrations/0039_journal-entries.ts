@@ -11,7 +11,7 @@ import toSchemaString from '../utils/to-schema-string';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export function up(pgm: MigrationBuilder) {
   pgm.createType(journalEntryStatus, ['draft', 'posted', 'voided', 'archived']);
   pgm.createType(journalEntrySourceType, [
     'sale',
@@ -54,6 +54,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
     memo: {
       type: 'varchar(100)',
+    },
+
+    meta: {
+      type: 'jsonb',
     },
 
     status: {
@@ -115,7 +119,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   });
 }
 
-export async function down(pgm: MigrationBuilder): Promise<void> {
+export function down(pgm: MigrationBuilder) {
   pgm.dropTable(journalEntriesTable);
 
   pgm.dropType(journalEntryStatus);

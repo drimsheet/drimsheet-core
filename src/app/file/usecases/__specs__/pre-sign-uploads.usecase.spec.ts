@@ -3,7 +3,7 @@ import appError from '@shared/values/errors/app.error';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import mockFileManagementAppService from '@app/file/contracts/services/__mocks__/file-management.service.mock';
 import fileAppError from '@app/file/errors/file.error';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import makePreSignUploadsUsecase from '@app/file/usecases/pre-sign-uploads.usecase';

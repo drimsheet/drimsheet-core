@@ -6,7 +6,7 @@ import { TEntityId } from '@shared/types/uuid';
 import {
   TBalanceHistoryFilter,
   TBalanceHistoryRepoQuery,
-} from '@app/ledger/contracts/balance-history.repo-query.contract';
+} from '@app/ledger/contracts/query-repos/balance-history.repo-query.contract';
 
 import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 import balanceHistoryRepoQuery from '@infra/persistence/repos/ledger/queries/balance-history.reporting';

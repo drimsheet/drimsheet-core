@@ -14,8 +14,8 @@ import {
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
 import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockLedgerAccountQueryRepo from '@app/ledger/contracts/query-repos/__mocks__/ledger-account.query.repo.mock';
 import ledgerAccountMapper from '@app/ledger/dtos/ledger-account/ledger-account.dto.mapper';
 import makeGetChartOfAccountsUsecase from '@app/ledger/usecases/get-chart-of-accounts.usecase';
 

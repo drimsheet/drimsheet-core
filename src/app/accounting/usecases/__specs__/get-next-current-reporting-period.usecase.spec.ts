@@ -1,6 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import mockNextCurrentReportingPeriodQueryRepo from '@app/accounting/contracts/__mocks__/next-current-reporting-period.query.repo.mock';
+import mockNextCurrentReportingPeriodQueryRepo from '@app/accounting/contracts/query-repos/__mocks__/next-current-reporting-period.query.repo.mock';
 import makeGetNextCurrentReportingPeriodUsecase from '@app/accounting/usecases/get-next-current-reporting-period.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 

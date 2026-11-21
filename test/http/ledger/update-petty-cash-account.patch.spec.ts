@@ -23,21 +23,21 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
-import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 import { mockOpeningBalanceEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
-import mockBalanceQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/__mocks__/journal-entry-persistence.service.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountBalanceRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockBalanceQueue from '@app/ledger/contracts/queues/__mocks__/ledger-balance-adjustment-queue.mock';
 import makeUpdatePettyCashAccountUsecase from '@app/ledger/usecases/update-petty-cash-account.usecase';
-import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import mockExchangeRateAppService from '@app/money/contracts/services/__mocks__/exchange-rate.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
-import mockFxCostBasisService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockFxCostBasisService from '@app/subledger/fx-cost-basis/contracts/services/__mocks__/fx-cost-basis-persistence.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
@@ -58,7 +58,7 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual(
-    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+    '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock'
   ).default,
 }));
 jest.mock('@infra/ioc/services/auth', () => ({

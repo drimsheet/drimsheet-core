@@ -1,7 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import IFileManagementAppService from '@app/file/contracts/file-management.service.contract';
+import IFileManagementAppService from '@app/file/contracts/services/file-management.service.contract';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import { IJournalEntryAttachmentsUpdateReq } from '@app/journal-entry/dtos/journal-entry/journal-entry-attachments.dto';
 

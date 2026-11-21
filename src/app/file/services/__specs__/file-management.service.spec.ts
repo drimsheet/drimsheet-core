@@ -1,7 +1,8 @@
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
-import mockFileStorageClient from '@app/file/contracts/__mocks__/file-storage-client.mock';
+import mockFileStorageClient from '@app/file/contracts/clients/__mocks__/file-storage-client.mock';
 import fileAppError from '@app/file/errors/file.error';
 import makeFileManagementAppService from '@app/file/services/file-management.service';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
@@ -11,11 +12,14 @@ jest.mock('@shared/utils/uuid-generator', () => ({
   default: jest.fn(),
 }));
 
-describe('FileManagementAppService', () => {
+describe.each([
+  [EFileUploadPurpose.JournalEntryAttachment, 5 * 1024 * 1024],
+  [EFileUploadPurpose.JournalEntryCreation, 15 * 1024 * 1024],
+] as const)('FileManagementAppService %s', (purpose, maxBytes) => {
   const reference = '123e4567-e89b-12d3-a456-426614174002' as TEntityId;
   const secondReference = '123e4567-e89b-12d3-a456-426614174003' as TEntityId;
   const userId = '123e4567-e89b-12d3-a456-426614174001' as TEntityId;
-  const purpose = EFileUploadPurpose.JournalEntryAttachment;
+  const key = 'storage-managed-upload-key';
   const mockedGenerateUUID = jest.mocked(generateUUID);
 
   const getService = () =>
@@ -38,6 +42,7 @@ describe('FileManagementAppService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedGenerateUUID.mockReturnValue(reference);
+    mockFileStorageClient.getFileKey.mockReturnValue(key);
     mockFileStorageClient.preSignUpload.mockResolvedValue({
       uploadUrl: 'https://example.com/file?signature=secret',
       fileUrl: 'https://example.com/file',
@@ -54,14 +59,19 @@ describe('FileManagementAppService', () => {
         {
           name: '  Réçeipt (FINAL).png  ',
           type: ' image/png ',
-          size: 5 * 1024 * 1024,
+          size: maxBytes,
           purpose,
         },
       ],
     });
 
+    expect(mockFileStorageClient.getFileKey).toHaveBeenCalledWith({
+      userId,
+      purpose,
+      reference,
+    });
     expect(mockFileStorageClient.preSignUpload).toHaveBeenNthCalledWith(1, {
-      key: `${userId}/${purpose}/${reference}`,
+      key,
       contentType: 'image/png',
       metadata: {
         'original-name': Buffer.from('  Réçeipt (FINAL).png  ').toString(
@@ -77,8 +87,8 @@ describe('FileManagementAppService', () => {
         file: {
           url: 'https://example.com/file',
           name: '  Réçeipt (FINAL).png  ',
-          type: 'image/png',
-          size: 5 * 1024 * 1024,
+          type: EFileAttachmentType.Png,
+          size: maxBytes,
         },
       },
     ]);
@@ -88,7 +98,7 @@ describe('FileManagementAppService', () => {
 
   it.each([
     ['image/svg+xml', 1024, fileAppError.InvalidUploadType],
-    ['image/png', 5 * 1024 * 1024 + 1, fileAppError.InvalidUploadSize],
+    ['image/png', maxBytes + 1, fileAppError.InvalidUploadSize],
   ])(
     'rejects invalid upload metadata before signing',
     async (type, size, ErrorClass) => {
@@ -163,10 +173,9 @@ describe('FileManagementAppService', () => {
   });
 
   it('claims an uploaded file using canonical storage data', async () => {
-    const maxSize = 5 * 1024 * 1024;
     mockFileStorageClient.readFile.mockResolvedValue({
       ...storedPng,
-      size: maxSize,
+      size: maxBytes,
     });
     const result = await getService().claimUploads({
       userId,
@@ -174,16 +183,21 @@ describe('FileManagementAppService', () => {
       references: [reference],
     });
 
+    expect(mockFileStorageClient.getFileKey).toHaveBeenCalledWith({
+      userId,
+      purpose,
+      reference,
+    });
     expect(mockFileStorageClient.readFile).toHaveBeenNthCalledWith(1, {
-      key: `${userId}/${purpose}/${reference}`,
+      key,
       range: { start: 0, end: 11 },
     });
     expect(result).toEqual([
       {
         url: storedPng.fileUrl,
         name: '  Réçeipt (FINAL).png  ',
-        type: 'image/png',
-        size: maxSize,
+        type: EFileAttachmentType.Png,
+        size: maxBytes,
       },
     ]);
     expect(Object.isFrozen(result)).toBe(true);
@@ -221,7 +235,7 @@ describe('FileManagementAppService', () => {
     ],
     [
       'oversized stored file',
-      { ...storedPng, size: 5 * 1024 * 1024 + 1 },
+      { ...storedPng, size: maxBytes + 1 },
       fileAppError.InvalidUploadSize,
     ],
     [
@@ -241,9 +255,7 @@ describe('FileManagementAppService', () => {
           references: [reference],
         })
       ).rejects.toThrow(ErrorClass);
-      expect(mockFileStorageClient.deleteFile).toHaveBeenCalledWith(
-        `${userId}/${purpose}/${reference}`
-      );
+      expect(mockFileStorageClient.deleteFile).toHaveBeenCalledWith(key);
     }
   );
 
@@ -268,6 +280,7 @@ describe('FileManagementAppService', () => {
         references: ['not-a-uuid'],
       })
     ).rejects.toThrow(fileAppError.InvalidUploadReference);
+    expect(mockFileStorageClient.getFileKey).not.toHaveBeenCalled();
     expect(mockFileStorageClient.readFile).not.toHaveBeenCalled();
   });
 

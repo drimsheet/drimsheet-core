@@ -13,10 +13,10 @@ import generateUUID from '@shared/utils/uuid-generator';
 import accountingEntityEntity from '@domain/accounting/entities/accounting-entity.entity';
 import { EAccountingEntityType } from '@domain/accounting/types/accounting-entity.types';
 
-import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
+import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/query-repos/__mocks__/journal-entry.query.repo.mock';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
-import mockLedgerAccountQueryRepo from '@app/ledger/contracts/__mocks__/ledger-account.query.repo.mock';
 import { mockLedgerAccountBalanceRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockLedgerAccountQueryRepo from '@app/ledger/contracts/query-repos/__mocks__/ledger-account.query.repo.mock';
 import makeGetLedgerAccountsUsecase from '@app/ledger/usecases/get-ledger-accounts.usecase';
 
 import { configureRateLimiter } from '@infra/config/rate-limiter.config';
@@ -99,9 +99,9 @@ jest.mock('@infra/ioc/handlers/http', () => ({
   default: {},
   mcpRouteHandler: jest.fn(),
   healthHandlers: jest
-    .requireActual<typeof import('@interface/http/handlers/health.handler')>(
-      '@interface/http/handlers/health.handler'
-    )
+    .requireActual<
+      typeof import('@interface/http/handlers/health.handler')
+    >('@interface/http/handlers/health.handler')
     .default({
       isReady: async () => false,
     }),

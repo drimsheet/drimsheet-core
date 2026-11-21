@@ -5,7 +5,10 @@ import mockRepoService, {
 import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
-import { IFileAttachment } from '@shared/values/file-attachments/types/file-attachment.types';
+import {
+  EFileAttachmentType,
+  IFileAttachment,
+} from '@shared/values/file-attachments/types/file-attachment.types';
 
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
 import journalEntryError from '@domain/journal-entry/errors/journal-entry.error';
@@ -23,7 +26,7 @@ import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import mockFileManagementAppService from '@app/file/contracts/services/__mocks__/file-management.service.mock';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 import {
   mockJournalEntryAttachmentRepo,
@@ -49,7 +52,7 @@ describe('makeUpdateJournalEntryMetaUsecase', () => {
   const attachment = {
     url: 'https://files.example.com/receipt.pdf',
     name: 'receipt.pdf',
-    type: 'application/pdf',
+    type: EFileAttachmentType.Pdf,
     size: 1024,
   };
   const usecase = makeUpdateJournalEntryMetaUsecase({

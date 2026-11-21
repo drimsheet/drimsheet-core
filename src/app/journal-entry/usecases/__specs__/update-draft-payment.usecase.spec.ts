@@ -2,6 +2,7 @@ import mockEventBus from '@shared/contracts/__mocks__/event-bus.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 import appError from '@shared/values/errors/app.error';
 import repoError from '@shared/values/errors/repo.error';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 import counterpartyEntity from '@domain/counterparty/entities/counterparty.entity';
 import journalEntryEntity from '@domain/journal-entry/entities/journal-entry.entity';
@@ -13,11 +14,11 @@ import moneyValue from '@domain/money/values/money.vo';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockFileManagementAppService from '@app/file/contracts/__mocks__/file-management.service.mock';
+import mockFileManagementAppService from '@app/file/contracts/services/__mocks__/file-management.service.mock';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
-import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockPaymentEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/__mocks__/journal-entry-persistence.service.mock';
 import { IUpdateDraftPaymentReq } from '@app/journal-entry/dtos/payment-entry/payment-entry.dto';
 import makeUpdateDraftPaymentUsecase from '@app/journal-entry/usecases/update-draft-payment.usecase';
 
@@ -219,7 +220,7 @@ describe('update draft payment use case', () => {
       {
         url: 'https://files.example.com/payment.pdf',
         name: 'payment.pdf',
-        type: 'application/pdf',
+        type: EFileAttachmentType.Pdf,
         size: 1024,
       },
     ];

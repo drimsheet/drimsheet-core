@@ -4,7 +4,7 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockUserPreferencesAppService from '@app/user/contracts/__mocks__/user-preferences.service.mock';
+import mockUserPreferencesAppService from '@app/user/contracts/services/__mocks__/user-preferences.service.mock';
 import {
   EAppThemePreference,
   EAppUsageModePreference,

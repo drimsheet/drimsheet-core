@@ -13,13 +13,13 @@ import IFxCostBasisLotRepo from '@domain/subledger/fx-cost-basis/repos/lot.repo'
 import { IFxCostBasisLotAcquisition } from '@domain/subledger/fx-cost-basis/types/acquisition.types';
 import { IFxCostBasisLotDisposition } from '@domain/subledger/fx-cost-basis/types/disposition.types';
 
-import IOutboxRepo from '@app/outbox/contracts/outbox.repo.contract';
+import IOutboxRepo from '@app/outbox/contracts/repos/outbox.repo.contract';
 import {
   EMissingOfficialFxRateEffectKind,
   IMissingOfficialFxRateOutbox,
   UMissingOfficialFxRateEffectKind,
 } from '@app/outbox/types/missing-official-fx-rate.types';
-import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/services/fx-cost-basis-persistence.service.contract';
 
 interface IDependencies {
   lotRepo: IFxCostBasisLotRepo;

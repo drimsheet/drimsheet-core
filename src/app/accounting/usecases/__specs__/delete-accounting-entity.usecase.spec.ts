@@ -18,7 +18,7 @@ import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeDeleteAccountingEntityUsecase from '@app/accounting/usecases/delete-accounting-entity.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
-import { mockUserPreferencesRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
+import { mockUserPreferencesRepo } from '@app/user/contracts/repos/__mocks__/user-preferences.repo.mock';
 
 const actorId = 'a1111111-1111-4111-8111-111111111111' as TEntityId;
 const [current] = accountingEntityEntity.make({

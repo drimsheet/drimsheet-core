@@ -10,7 +10,7 @@ import { ILedgerAccount } from '@domain/ledger/types/ledger.types';
 import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
@@ -38,7 +38,7 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual(
-    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+    '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock'
   ).default,
 }));
 jest.mock('@infra/ioc/services/auth', () => ({

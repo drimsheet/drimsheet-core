@@ -24,15 +24,15 @@ import IUserRepo from '@domain/user/repos/user.repo';
 import IActorService from '@domain/user/types/actor.service.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import { EAuthStrategy } from '@app/auth/contracts/auth.types';
-import IPasswordAppService from '@app/auth/contracts/password-service.contract';
-import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
-import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
-import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
-import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
+import IUserAuthRepo from '@app/auth/contracts/repos/user-auth.repo.contract';
+import IPasswordAppService from '@app/auth/contracts/services/password-service.contract';
+import IUserAuthAppService from '@app/auth/contracts/services/user-auth.service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/services/user-session-persistence.service.contract';
+import IUserSessionAppService from '@app/auth/contracts/services/user-session.service.contract';
 import { IAccessToken, IEmailLoginReq } from '@app/auth/dtos/auth/auth.dto';
 import { emailLoginReqValidation } from '@app/auth/dtos/auth/auth.dto.validation';
 import authError from '@app/auth/errors/auth.error';
+import { EAuthStrategy } from '@app/auth/types/auth.types';
 import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {

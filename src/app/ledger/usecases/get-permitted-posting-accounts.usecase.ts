@@ -40,7 +40,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import ILedgerAccountQueryRepo, {
   IFindAllLedgerAccountsOptions,
-} from '@app/ledger/contracts/ledger-account.query.repo.contract';
+} from '@app/ledger/contracts/query-repos/ledger-account.query.repo.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { IGetPermittedPostingAccountsQuery } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto';
 import { getPermittedPostingAccountsQueryValidationSchema } from '@app/ledger/dtos/permitted-posting-account/permitted-posting-account.dto.validation';

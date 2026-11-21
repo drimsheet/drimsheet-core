@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import validateVersionInRepoHelper from '@shared/helpers/validate-version-in-repo.helper';
 import repoError from '@shared/values/errors/repo.error';
 
-import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
+import IUserAuthRepo from '@app/auth/contracts/repos/user-auth.repo.contract';
 
 import { userAuthInCore as userAuth } from '@infra/config/drizzle/schema';
 import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';

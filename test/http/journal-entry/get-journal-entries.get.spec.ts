@@ -11,8 +11,8 @@ import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.ty
 import { IUser } from '@domain/user/types/user.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
-import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
+import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/query-repos/__mocks__/journal-entry.query.repo.mock';
 import { IJournalEntryListDto } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 
@@ -35,8 +35,9 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual<
-    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
-  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+    typeof import('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+    .default,
 }));
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({

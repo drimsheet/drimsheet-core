@@ -26,12 +26,12 @@ import mockAppContext, {
   mockClientSession,
 } from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import mockAccountTransactionQueryRepo from '@app/ledger/contracts/__mocks__/account-transaction.query.repo.mock';
 import { mockLedgerAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
 import {
   mockBankAccountRepo,
   mockLedgerAccountRepo,
 } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockAccountTransactionQueryRepo from '@app/ledger/contracts/query-repos/__mocks__/account-transaction.query.repo.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import makeGetAccountTransactionsUseCase from '@app/ledger/usecases/get-account-transactions.usecase';
 

@@ -3,6 +3,7 @@ import { Server } from 'node:http';
 import express from 'express';
 import request from 'supertest';
 
+import { getJournalEntryExtractionQueue } from '@infra/messaging/queues/journal-entry-extraction.queue';
 import { getLedgerAccountBalanceAdjustmentQueue } from '@infra/messaging/queues/ledger-account-balance.queue';
 import { getTransactionalEmailQueue } from '@infra/messaging/queues/transactional-email.queue';
 
@@ -30,6 +31,13 @@ jest.mock('@infra/messaging/queues/ledger-account-balance.queue', () => ({
   })),
 }));
 
+jest.mock('@infra/messaging/queues/journal-entry-extraction.queue', () => ({
+  getJournalEntryExtractionQueue: jest.fn(() => ({
+    name: 'journal-entry-extraction-queue',
+    metaValues: { version: 'bullmq:test' },
+  })),
+}));
+
 describe('BullMQ dashboard route', () => {
   let app: express.Express;
   let server: Server;
@@ -46,6 +54,7 @@ describe('BullMQ dashboard route', () => {
   it('does not initialize queues while assembling HTTP routes', () => {
     expect(getTransactionalEmailQueue).not.toHaveBeenCalled();
     expect(getLedgerAccountBalanceAdjustmentQueue).not.toHaveBeenCalled();
+    expect(getJournalEntryExtractionQueue).not.toHaveBeenCalled();
   });
 
   it('serves repeated dashboard requests without reinitializing the queues', async () => {
@@ -60,6 +69,7 @@ describe('BullMQ dashboard route', () => {
     expect(repeatedResponse.text).toContain('/bullmq-board-admin');
     expect(getTransactionalEmailQueue).toHaveBeenCalledTimes(1);
     expect(getLedgerAccountBalanceAdjustmentQueue).toHaveBeenCalledTimes(1);
+    expect(getJournalEntryExtractionQueue).toHaveBeenCalledTimes(1);
   });
 
   it('leaves other paths to the remaining routes', async () => {

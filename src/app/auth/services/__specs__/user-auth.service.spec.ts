@@ -1,7 +1,7 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import { EAuthStrategy } from '@app/auth/contracts/auth.types';
 import makeUserAuthAppService from '@app/auth/services/user-auth.service';
+import { EAuthStrategy } from '@app/auth/types/auth.types';
 
 describe('userAuthAppService', () => {
   const userId = '123e4567-e89b-42d3-a456-426614174000' as TEntityId;

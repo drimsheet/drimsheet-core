@@ -23,7 +23,7 @@ import { IPaginatedResponse } from '@shared/values/pagination/types/pagination.t
 import { IAppContextData } from '@app/context/types/app-context.types';
 import IJournalEntryQueryRepo, {
   IFindAllJournalEntriesOptions,
-} from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+} from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 import {
   IGetJournalEntriesQuery,
   IJournalEntryListDto,

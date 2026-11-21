@@ -34,7 +34,7 @@ import { ITaxExpenseAccountService } from '@domain/ledger/types/tax-expense.serv
 import { IUnrealizedLossAccountService } from '@domain/ledger/types/unrealized-loss.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/services/ledger-account-persistence.service.contract';
 import { ICreateExpenseAccountDto } from '@app/ledger/dtos/expense-account/expense-account.dto';
 import { createExpenseAccountValidation } from '@app/ledger/dtos/expense-account/expense-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';

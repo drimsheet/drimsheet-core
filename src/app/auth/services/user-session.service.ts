@@ -1,7 +1,7 @@
 import generateUUID from '@shared/utils/uuid-generator';
 
-import ITokenAppService from '@app/auth/contracts/token-service.contract';
-import IUserSessionAppService from '@app/auth/contracts/user-session.service.contract';
+import ITokenAppService from '@app/auth/contracts/services/token-service.contract';
+import IUserSessionAppService from '@app/auth/contracts/services/user-session.service.contract';
 
 interface IDependencies {
   tokenAppService: ITokenAppService;

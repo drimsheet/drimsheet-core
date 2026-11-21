@@ -6,6 +6,7 @@ import makeCreateTransferUsecase from '@app/journal-entry/usecases/create-transf
 import makeDeleteJournalEntryUsecase from '@app/journal-entry/usecases/delete-journal-entry.usecase';
 import makeGetJournalEntriesUsecase from '@app/journal-entry/usecases/get-journal-entries.usecase';
 import makeGetJournalEntryUsecase from '@app/journal-entry/usecases/get-journal-entry.usecase';
+import makeInitiateJournalEntryExtractionUsecase from '@app/journal-entry/usecases/initiate-journal-entry-extraction.usecase';
 import makePostDraftOpeningBalanceUsecase from '@app/journal-entry/usecases/post-draft-opening-balance.usecase';
 import makePostDraftPaymentUsecase from '@app/journal-entry/usecases/post-draft-payment.usecase';
 import makePostDraftReceiptUsecase from '@app/journal-entry/usecases/post-draft-receipt.usecase';
@@ -41,6 +42,15 @@ import counterpartyRepos from '@infra/persistence/repos/counterparty';
 import journalEntryRepos from '@infra/persistence/repos/journal-entry';
 import ledgerRepos from '@infra/persistence/repos/ledger';
 import appContext from '@infra/services/app-context.service';
+
+export const initiateJournalEntryExtractionUseCase = makeTracedUseCase(
+  'journalEntry.initiateJournalEntryExtractionUseCase',
+  makeInitiateJournalEntryExtractionUsecase({
+    appContext,
+    fileManagementAppService,
+    journalEntryExtractionQueue: messaging.queues.journalEntryExtraction,
+  })
+);
 
 export const updateJournalEntryMetaUseCase = makeTracedUseCase(
   'journalEntry.updateJournalEntryMetaUseCase',

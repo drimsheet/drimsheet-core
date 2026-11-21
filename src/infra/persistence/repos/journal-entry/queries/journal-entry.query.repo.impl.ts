@@ -9,7 +9,7 @@ import {
 
 import IJournalEntryQueryRepo, {
   EJournalEntrySortBy,
-} from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+} from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 
 import {
   journalEntriesInCore,

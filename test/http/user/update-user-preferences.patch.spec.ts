@@ -9,7 +9,7 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import authError from '@app/auth/errors/auth.error';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';
 import {
   EAppThemePreference,
@@ -34,8 +34,9 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual<
-    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
-  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+    typeof import('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+    .default,
 }));
 
 jest.mock('../../../src/infra/ioc/services/auth', () => ({

@@ -1,7 +1,7 @@
 import mockTracer from '@shared/contracts/__mocks__/tracer.mock';
 import generateUUID from '@shared/utils/uuid-generator';
 
-import { CURRENT_REPORTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/current-reporting-period-queue.contract';
+import { CURRENT_REPORTING_PERIOD_QUEUE_NAME } from '@app/accounting/contracts/queues/current-reporting-period-queue.contract';
 import { INextCurrentReportingPeriodDto } from '@app/accounting/dtos/current-reporting-period/current-reporting-period.dto';
 
 type TQueueFactory =
@@ -28,9 +28,9 @@ describe('current reporting period queue', () => {
     mockQueueAdd.mockReset().mockResolvedValue(undefined);
     mockQueueConstructor.mockImplementation(() => ({ add: mockQueueAdd }));
     await jest.isolateModulesAsync(async () => {
-      const makeQueue = (
-        await import('@infra/messaging/queues/current-reporting-period.queue')
-      ).default;
+      const makeQueue = jest.requireActual<
+        typeof import('@infra/messaging/queues/current-reporting-period.queue')
+      >('@infra/messaging/queues/current-reporting-period.queue').default;
       queue = makeQueue(mockTracer);
     });
     mockTracer.getPropagationCarrier.mockReturnValue({

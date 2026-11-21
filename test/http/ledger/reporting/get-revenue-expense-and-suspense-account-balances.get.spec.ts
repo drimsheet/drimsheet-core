@@ -8,7 +8,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IAccountingEntity } from '@domain/accounting/types/accounting-entity.types';
 import { IUser } from '@domain/user/types/user.types';
 
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 
 import { tokenAppService } from '@infra/ioc/services/auth';
 import observability from '@infra/observability';
@@ -37,7 +37,7 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual(
-    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+    '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock'
   ).default,
 }));
 jest.mock('@infra/ioc/services/auth', () => ({

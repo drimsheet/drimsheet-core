@@ -4,7 +4,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IJournalEntry } from '@domain/journal-entry/types/journal-entry.types';
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 
-import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
+import IExchangeRateAppService from '@app/money/contracts/services/exchange-rate.service.contract';
 
 export default async function resolveOfficialRateHelper(
   exchangeRateAppService: IExchangeRateAppService,

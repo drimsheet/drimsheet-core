@@ -4937,6 +4937,80 @@
         ]
       }
     },
+    "/journal-entries/initiate-extraction": {
+      "post": {
+        "operationId": "initiateJournalEntryExtraction",
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IHttpErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "description": "Initiates journal entry extraction from an uploaded file.",
+        "tags": ["Journal Entry"],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IInitiateJournalEntryExtractionReq"
+              }
+            }
+          }
+        }
+      }
+    },
     "/journal-entries/payment": {
       "post": {
         "operationId": "createPayment",
@@ -12861,6 +12935,18 @@
         "type": "object",
         "additionalProperties": false
       },
+      "IInitiateJournalEntryExtractionReq": {
+        "properties": {
+          "reference": {
+            "type": "string",
+            "description": "Opaque handle returned when preparing the journal-entry creation upload.",
+            "format": "uuid"
+          }
+        },
+        "required": ["reference"],
+        "type": "object",
+        "additionalProperties": false
+      },
       "IJournalLineDto": {
         "properties": {
           "createdBy": {
@@ -13625,8 +13711,7 @@
       },
       "UFileUploadPurpose": {
         "type": "string",
-        "enum": ["journal_entry_attachment"],
-        "nullable": false
+        "enum": ["journal_entry_attachment", "journal_entry_creation"]
       },
       "IFileUploadReq": {
         "properties": {

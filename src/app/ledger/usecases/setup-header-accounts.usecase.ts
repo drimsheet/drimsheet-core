@@ -48,7 +48,7 @@ import { IUnrealizedLossAccountService } from '@domain/ledger/types/unrealized-l
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/services/ledger-account-persistence.service.contract';
 import { IHeaderAccountNameAliasesReq } from '@app/ledger/dtos/header-account/header-account.dto';
 import { headerAccountNameAliasesReqValidation } from '@app/ledger/dtos/header-account/header-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';

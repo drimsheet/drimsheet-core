@@ -5,7 +5,7 @@ import request from 'supertest';
 
 import { IExchangeRate } from '@domain/money/types/exchange-rate.types';
 
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 
 import * as moneyUseCases from '@infra/ioc/usecases/money';
 
@@ -23,8 +23,9 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual<
-    typeof import('@app/context/contracts/__mocks__/feature-flag-app.service.mock')
-  >('@app/context/contracts/__mocks__/feature-flag-app.service.mock').default,
+    typeof import('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+  >('@app/context/contracts/services/__mocks__/feature-flag-app.service.mock')
+    .default,
 }));
 
 jest.mock('../../../src/infra/ioc/usecases/money', () => ({

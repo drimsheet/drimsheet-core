@@ -14,8 +14,8 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import { mockPayablesAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/services/__mocks__/ledger-account-persistence.service.mock';
 import { ICreateStatutoryPayableAccountDto } from '@app/ledger/dtos/payable-account/payable-account.dto';
 import makeCreateStatutoryPayableAccountUsecase from '@app/ledger/usecases/create-statutory-payable-account.usecase';
 

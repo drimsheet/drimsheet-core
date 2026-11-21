@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import IUserPreferencesRepo from '@app/user/contracts/user-preferences.repo.contract';
+import IUserPreferencesRepo from '@app/user/contracts/repos/user-preferences.repo.contract';
 
 import { userPreferencesInCore } from '@infra/config/drizzle/schema';
 import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';

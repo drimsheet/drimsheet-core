@@ -38,9 +38,9 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import IFxCostBasisLotService from '@domain/subledger/fx-cost-basis/types/lot.service.types';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import IJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/journal-entry-persistence.service.contract';
 import getJournalEntryPersistencePayloadHelper from '@app/journal-entry/usecases/helpers/get-journal-entry-persistence-payload.helper';
-import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/ledger-balance-adjustment-queue.contract';
+import ILedgerBalanceAdjustmentQueue from '@app/ledger/contracts/queues/ledger-balance-adjustment-queue.contract';
 import { IPettyCashAccountUpdateReq } from '@app/ledger/dtos/asset-account/asset-account.dto';
 import { pettyCashUpdateReqValidation } from '@app/ledger/dtos/asset-account/asset-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
@@ -49,9 +49,9 @@ import ledgerAccountToDtoMapperHelper from '@app/ledger/usecases/helpers/ledger-
 import loadLedgerAccountDtosWithBalancesHelper from '@app/ledger/usecases/helpers/load-ledger-account-dtos-with-balances.helper';
 import openingBalanceExchangeRateGetterHelper from '@app/ledger/usecases/helpers/opening-balance-exchange-rate-getter.helper';
 import prepareOpeningBalanceEditHelper from '@app/ledger/usecases/helpers/prepare-opening-balance-edit.helper';
-import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
+import IExchangeRateAppService from '@app/money/contracts/services/exchange-rate.service.contract';
 import moneyMapper from '@app/money/dtos/money/money.dto.mapper';
-import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/fx-cost-basis-persistence.service.contract';
+import IFxCostBasisPersistenceAppService from '@app/subledger/fx-cost-basis/contracts/services/fx-cost-basis-persistence.service.contract';
 import getFxLotEventsHelper from '@app/subledger/fx-cost-basis/get-fx-lot-events.helper';
 import resolveOfficialRateHelper from '@app/subledger/fx-cost-basis/resolve-official-rate.helper';
 

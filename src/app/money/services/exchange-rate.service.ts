@@ -1,7 +1,7 @@
 import IExchangeRateRepo from '@domain/money/repos/exchange-rate.repo';
 import { EExchangeRateType } from '@domain/money/types/exchange-rate.types';
 
-import IExchangeRateAppService from '@app/money/contracts/exchange-rate.service.contract';
+import IExchangeRateAppService from '@app/money/contracts/services/exchange-rate.service.contract';
 
 interface IDependencies {
   exchangeRateRepo: IExchangeRateRepo;

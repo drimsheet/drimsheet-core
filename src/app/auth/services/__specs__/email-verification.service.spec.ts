@@ -5,11 +5,11 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
 import makeEmailVerificationAppService, {
   EMAIL_VERIFICATION_COOL_DOWN_SECONDS,
 } from '@app/auth/services/email-verification.service';
-import mockTransactionalEmailAppService from '@app/notification/contracts/__mocks__/transactional-email-service.mock';
+import mockTransactionalEmailAppService from '@app/notification/contracts/services/__mocks__/transactional-email-service.mock';
 
 describe('makeEmailVerificationAppService', () => {
   const correlationId = 'test-corr-id';

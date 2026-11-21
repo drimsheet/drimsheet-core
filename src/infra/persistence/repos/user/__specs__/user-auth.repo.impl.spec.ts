@@ -4,7 +4,7 @@ import { TEntityId } from '@shared/types/uuid';
 import generateUUID from '@shared/utils/uuid-generator';
 import repoError from '@shared/values/errors/repo.error';
 
-import { IUserAuth } from '@app/auth/contracts/auth.types';
+import { IUserAuth } from '@app/auth/types/auth.types';
 
 import { userAuthInCore } from '@infra/config/drizzle/schema';
 import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';

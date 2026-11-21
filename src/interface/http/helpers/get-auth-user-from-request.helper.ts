@@ -5,7 +5,7 @@ import { IReadRepoOptions } from '@shared/types/repo.types';
 import IUserRepo from '@domain/user/repos/user.repo';
 import { IUser } from '@domain/user/types/user.types';
 
-import ITokenAppService from '@app/auth/contracts/token-service.contract';
+import ITokenAppService from '@app/auth/contracts/services/token-service.contract';
 
 import getHttpHeaderValueHelper from './get-http-header-value.helper';
 

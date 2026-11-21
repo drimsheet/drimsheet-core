@@ -1,6 +1,6 @@
 import { TEntityId } from '@shared/types/uuid';
 
-import { mockUserPreferencesRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
+import { mockUserPreferencesRepo } from '@app/user/contracts/repos/__mocks__/user-preferences.repo.mock';
 import makeUserPreferencesAppService from '@app/user/services/user-preferences.service';
 import {
   EAppThemePreference,

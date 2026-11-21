@@ -8,7 +8,7 @@ import {
 } from '@domain/ledger/types/ledger.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/__mocks__/journal-entry.query.repo.mock';
+import mockJournalEntryQueryRepo from '@app/journal-entry/contracts/query-repos/__mocks__/journal-entry.query.repo.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
 import ledgerAppError from '@app/ledger/errors/ledger.error';
 import makeGetLedgerAccountOpeningBalanceUsecase from '@app/ledger/usecases/get-ledger-account-opening-balance.usecase';

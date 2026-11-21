@@ -32,8 +32,11 @@ const {
   B2_S3_ENDPOINT = '',
   B2_REGION = '',
 
+  OPEN_AI_KEY = '',
+
   PORT = 3000,
   POSTGRES_URL = '',
+  MONGODB_URL = '',
   REDIS_URL = '',
   SENTRY_DSN = '',
   SENTRY_TRACES_SAMPLE_RATE = '0',
@@ -68,8 +71,10 @@ const vars: IVarsConfig = Object.freeze({
   B2_BUCKET_NAME,
   B2_S3_ENDPOINT,
   B2_REGION,
+  OPEN_AI_KEY,
   PORT: +PORT,
   POSTGRES_URL,
+  MONGODB_URL,
   REDIS_URL,
   SENTRY_DSN,
   SENTRY_TRACES_SAMPLE_RATE,

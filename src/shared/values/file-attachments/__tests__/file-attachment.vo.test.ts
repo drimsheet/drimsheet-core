@@ -1,5 +1,6 @@
 import fileAttachmentError from '@shared/values/file-attachments/file-attachment.error';
 import fileAttachment from '@shared/values/file-attachments/file-attachment.vo';
+import { EFileAttachmentType } from '@shared/values/file-attachments/types/file-attachment.types';
 
 describe('FileAttachment Value Object', () => {
   const validPayload = {
@@ -15,20 +16,66 @@ describe('FileAttachment Value Object', () => {
 
       expect(result.url).toBe(validPayload.url);
       expect(result.name).toBe(validPayload.name);
-      expect(result.type).toBe(validPayload.type);
+      expect(result.type).toBe(EFileAttachmentType.Pdf);
       expect(result.size).toBe(validPayload.size);
       expect(Object.isFrozen(result)).toBe(true);
     });
 
-    it('should preserve the original name and trim the type', () => {
+    it('should preserve the original name and normalize the type', () => {
       const result = fileAttachment.make({
         ...validPayload,
         name: '  Réçeipt (FINAL).pdf  ',
-        type: '  application/pdf  ',
+        type: '  APPLICATION/PDF  ',
       });
 
       expect(result.name).toBe('  Réçeipt (FINAL).pdf  ');
-      expect(result.type).toBe('application/pdf');
+      expect(result.type).toBe(EFileAttachmentType.Pdf);
+    });
+
+    it.each([
+      ['pdf', EFileAttachmentType.Pdf],
+      ['application/pdf', EFileAttachmentType.Pdf],
+      ['excel', EFileAttachmentType.Excel],
+      ['xls', EFileAttachmentType.Excel],
+      ['xlsx', EFileAttachmentType.Excel],
+      ['application/vnd.ms-excel', EFileAttachmentType.Excel],
+      [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        EFileAttachmentType.Excel,
+      ],
+      ['jpg', EFileAttachmentType.Jpg],
+      ['jpeg', EFileAttachmentType.Jpg],
+      ['image/jpeg', EFileAttachmentType.Jpg],
+      ['png', EFileAttachmentType.Png],
+      ['image/png', EFileAttachmentType.Png],
+      ['csv', EFileAttachmentType.Csv],
+      ['text/csv', EFileAttachmentType.Csv],
+    ])('maps %s to the supported attachment type', (type, expected) => {
+      const attachment = fileAttachment.make({ ...validPayload, type });
+
+      expect(attachment.type).toBe(expected);
+      expect(fileAttachment.make(attachment)).toEqual(attachment);
+    });
+
+    it.each([
+      'image/webp',
+      'image/gif',
+      'application/octet-stream',
+      'application/msword',
+      'unknown',
+      'constructor',
+      '__proto__',
+      '   ',
+      null,
+      undefined,
+      42,
+    ])('rejects unsupported attachment type %s', (type) => {
+      expect(() =>
+        fileAttachment.make({
+          ...validPayload,
+          type: type as string,
+        })
+      ).toThrow(fileAttachmentError.InvalidType);
     });
 
     it('should throw InvalidUrl for non-URL string', () => {

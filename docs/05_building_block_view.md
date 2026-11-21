@@ -20,8 +20,6 @@ _Figure 1: View the mermaid sourcecode here:&#x20;_[_05.1-level-1-system.mermaid
 | **Infrastructure Layer (`src/infra`)** | Contains technical capabilities that support the layers above. Named external-platform adapters live under `src/infra/integrations` and implement or translate into system-owned boundaries, while persistence, messaging, provider-neutral observability, runtime, and delivery retain dedicated owners. |
 | **Shared Layer (`src/shared`)**        | Cross-cutting concerns, ubiquitous utility functions (e.g., string and date utilities), value objects, shared errors, and shared domain types used across multiple boundaries.                                                                                                                            |
 
----
-
 ## 5.2 Level 2 (Whitebox: Domain Layer)
 
 Zooming into the `Domain Layer` (the center of our architecture), the system is decomposed into bounded modules that enforce accounting entity ownership, ledger structure, journal posting rules, currency constraints, subledger detail, and user identity.

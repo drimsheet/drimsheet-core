@@ -1,8 +1,8 @@
-import { ELedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
+import { ELedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.types';
 import { ELedgerAccountSubType } from '@domain/ledger/types/ledger-aggregate.types';
 import { ELedgerType } from '@domain/ledger/types/ledger.types';
 
-import { ELedgerAccountSortBy } from '@app/ledger/contracts/ledger-account.query.repo.contract';
+import { ELedgerAccountSortBy } from '@app/ledger/contracts/query-repos/ledger-account.query.repo.contract';
 import {
   bankAccountCreationReqValidation,
   pettyCashCreationReqValidation,

@@ -32,7 +32,7 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
-import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/ledger-account-persistence.service.contract';
+import ILedgerAccountPersistenceAppService from '@app/ledger/contracts/services/ledger-account-persistence.service.contract';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import { ICreateSuspenseAccountDto } from '@app/ledger/dtos/suspense-account/suspense-account.dto';
 import { createSuspenseAccountValidation } from '@app/ledger/dtos/suspense-account/suspense-account.dto.validation';

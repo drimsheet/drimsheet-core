@@ -32,11 +32,11 @@ import IActorService from '@domain/user/types/actor.service.types';
 
 import ITokenAppService, {
   IAuthTokenPayload,
-} from '@app/auth/contracts/token-service.contract';
-import IUserSessionPersistenceAppService from '@app/auth/contracts/user-session-persistence.service.contract';
+} from '@app/auth/contracts/services/token-service.contract';
+import IUserSessionPersistenceAppService from '@app/auth/contracts/services/user-session-persistence.service.contract';
 import IUserSessionAppService, {
   IPreparedUserSession,
-} from '@app/auth/contracts/user-session.service.contract';
+} from '@app/auth/contracts/services/user-session.service.contract';
 import { IAccessToken } from '@app/auth/dtos/auth/auth.dto';
 import authError from '@app/auth/errors/auth.error';
 import { IAppContextData } from '@app/context/types/app-context.types';

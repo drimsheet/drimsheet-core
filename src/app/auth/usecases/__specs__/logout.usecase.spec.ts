@@ -2,8 +2,8 @@ import { TEntityId } from '@shared/types/uuid';
 
 import userEntity from '@domain/user/entities/user.entity';
 
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockUserSessionRepo from '@app/auth/contracts/__mocks__/user-session.repo.mock';
+import mockUserSessionRepo from '@app/auth/contracts/repos/__mocks__/user-session.repo.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
 import authError from '@app/auth/errors/auth.error';
 import makeLogoutUseCase from '@app/auth/usecases/logout.usecase';
 import mockAppContext, {

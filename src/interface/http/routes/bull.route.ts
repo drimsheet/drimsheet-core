@@ -3,6 +3,7 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { Router } from 'express';
 
+import { getJournalEntryExtractionQueue } from '@infra/messaging/queues/journal-entry-extraction.queue';
 import { getLedgerAccountBalanceAdjustmentQueue } from '@infra/messaging/queues/ledger-account-balance.queue';
 import { getTransactionalEmailQueue } from '@infra/messaging/queues/transactional-email.queue';
 
@@ -20,6 +21,7 @@ function getBullMqDashboardRouter() {
     queues: [
       new BullMQAdapter(getTransactionalEmailQueue()),
       new BullMQAdapter(getLedgerAccountBalanceAdjustmentQueue()),
+      new BullMQAdapter(getJournalEntryExtractionQueue()),
     ],
     serverAdapter,
   });

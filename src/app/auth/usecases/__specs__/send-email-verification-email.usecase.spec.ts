@@ -5,7 +5,7 @@ import appError from '@shared/values/errors/app.error';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockEmailVerificationAppService from '@app/auth/contracts/__mocks__/email-verification.service.mock';
+import mockEmailVerificationAppService from '@app/auth/contracts/services/__mocks__/email-verification.service.mock';
 import authError from '@app/auth/errors/auth.error';
 import makeSendEmailVerificationEmailUseCase from '@app/auth/usecases/send-email-verification-email.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';

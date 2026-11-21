@@ -3,6 +3,7 @@ import type { Server } from 'node:http';
 
 import { ELogOutcome } from '@shared/types/observability.types';
 
+import { closeMongoConnection } from '@infra/config/mongodb.config';
 import vars from '@infra/config/vars.config';
 import launchDarklyLifecycle from '@infra/integrations/launchdarkly/launchdarkly.lifecycle';
 import reporter from '@infra/integrations/sentry/sentry-reporter';
@@ -15,7 +16,8 @@ import queueLifecycle from './queue.lifecycle';
 export default async function runHttp(): Promise<void> {
   let server: Server | undefined;
   let postgres:
-    typeof import('@infra/config/postgres.config').postgres | undefined;
+    | typeof import('@infra/config/postgres.config').postgres
+    | undefined;
 
   let stopping = false;
   let shutdownPromise: Promise<void> | undefined;
@@ -76,6 +78,7 @@ export default async function runHttp(): Promise<void> {
     );
     await closeResource('messaging', () => queueLifecycle.shutdown());
     await closeResource('postgres', () => postgres?.$client.end());
+    await closeResource('mongodb', closeMongoConnection);
     await closeResource('observability', () =>
       observabilityLifecycle.shutdown(signal)
     );
@@ -99,8 +102,7 @@ export default async function runHttp(): Promise<void> {
       if (stopping) {
         return;
       }
-      const { default: setupServer } =
-        await import('@infra/runtime/servers/express');
+      const { setupServer } = await import('@infra/runtime/servers/express');
       if (stopping) {
         return;
       }
@@ -127,7 +129,7 @@ export default async function runHttp(): Promise<void> {
     const loadInitializers = [
       () =>
         import('@infra/runtime/bootstrap/currencies.bootstrap').then(
-          (module) => module.default
+          (module) => module.bootstrapCurrencies
         ),
       () =>
         import('@infra/runtime/bootstrap/accounting-context.bootstrap').then(
@@ -135,7 +137,7 @@ export default async function runHttp(): Promise<void> {
         ),
       () =>
         import('@infra/runtime/bootstrap/events.bootstrap').then(
-          (module) => module.default
+          (module) => module.eventsRegistry
         ),
     ];
     for (const load of loadInitializers) {
@@ -166,3 +168,5 @@ export default async function runHttp(): Promise<void> {
     }
   }
 }
+
+export { runHttp };

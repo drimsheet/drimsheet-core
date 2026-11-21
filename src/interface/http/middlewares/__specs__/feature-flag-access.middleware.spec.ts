@@ -5,7 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 import featureFlagError from '@app/context/errors/feature-flag.error';
 import { IAppContextData } from '@app/context/types/app-context.types';
 

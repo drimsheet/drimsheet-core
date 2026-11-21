@@ -8,7 +8,7 @@ import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/ac
 import accountingAppError from '@app/accounting/errors/accounting.error';
 import makeGetCurrentAccountingEntityUseCase from '@app/accounting/usecases/get-active-accounting-entity.usecase';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import { mockUserPreferencesRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
+import { mockUserPreferencesRepo } from '@app/user/contracts/repos/__mocks__/user-preferences.repo.mock';
 import { IUserPreferences } from '@app/user/types/user-preferences.types';
 
 describe('getActiveAccountingEntityUseCase', () => {

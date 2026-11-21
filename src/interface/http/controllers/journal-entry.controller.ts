@@ -17,6 +17,7 @@ import {
 
 import { IHttpErrorDto } from '@shared/values/errors/error.dto';
 
+import { IInitiateJournalEntryExtractionReq } from '@app/journal-entry/dtos/initiate-journal-entry-extraction/initiate-journal-entry-extraction.dto';
 import { IGetJournalEntriesQuery } from '@app/journal-entry/dtos/journal-entry/journal-entry.dto';
 import { IJournalEntryMetaUpdateReq } from '@app/journal-entry/dtos/meta-update/meta-update.dto';
 import { IUpdateDraftOpeningBalanceReq } from '@app/journal-entry/dtos/opening-balance/opening-balance.dto';
@@ -42,6 +43,7 @@ import {
   deleteJournalEntryUseCase,
   getJournalEntriesUseCase,
   getJournalEntryUseCase,
+  initiateJournalEntryExtractionUseCase,
   postDraftOpeningBalanceUseCase,
   postDraftPaymentUseCase,
   postDraftReceiptUseCase,
@@ -98,6 +100,26 @@ export class JournalEntryController extends Controller {
   )
   public async getJournalEntry(@Path() id: string) {
     return getJournalEntryUseCase(id);
+  }
+
+  /** Initiates journal entry extraction from an uploaded file. */
+  @Post('/initiate-extraction')
+  @OperationId('initiateJournalEntryExtraction')
+  @SuccessResponse('204')
+  @Response<IHttpErrorDto>('400')
+  @Response<IHttpErrorDto>('401')
+  @Response<IHttpErrorDto>('403')
+  @Response<IHttpErrorDto>('422')
+  @Response<IHttpErrorDto>('500')
+  @Middlewares(
+    middlewares.isAuthenticatedUser,
+    middlewares.featureFlagAccess.canAccessAlpha1,
+    middlewares.accountingEntityAccess
+  )
+  public async initiateJournalEntryExtraction(
+    @Body() body: IInitiateJournalEntryExtractionReq
+  ): Promise<void> {
+    await initiateJournalEntryExtractionUseCase(body);
   }
 
   /**

@@ -1,9 +1,9 @@
+import IUserAuthAppService from '@app/auth/contracts/services/user-auth.service.contract';
 import {
   EAuthStrategy,
   IUserAuth,
   UAuthStrategy,
-} from '@app/auth/contracts/auth.types';
-import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
+} from '@app/auth/types/auth.types';
 
 /** Builds one immutable next-version authentication-state transition. */
 function makeTransition(

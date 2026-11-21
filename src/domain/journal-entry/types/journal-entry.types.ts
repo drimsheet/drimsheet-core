@@ -37,6 +37,7 @@ export interface IJournalHeader {
   accountingEntityId: TEntityId;
   sourceType: UJournalEntrySourceType;
   memo: string | null;
+  meta: IJournalEntryMeta | null;
   status: UJournalEntryStatus;
   effectiveDate: Date;
   postedAt: Date | null;
@@ -46,6 +47,10 @@ export interface IJournalHeader {
   createdBy: TEntityId;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface IJournalEntryMeta {
+  fileExtractionSource?: IFileAttachment;
 }
 
 export interface IJournalEntry extends IJournalHeader {
@@ -66,4 +71,5 @@ export interface IJournalEntryMakePayload extends Pick<
   functionalCurrency: ICurrency;
   lines: IJournalLineMakePayload[];
   attachments?: IFileAttachment[];
+  fileExtractionSource?: IFileAttachment;
 }

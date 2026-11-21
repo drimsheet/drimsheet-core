@@ -2,9 +2,10 @@ import fileAppError from '@app/file/errors/file.error';
 import fileUploadPolicy from '@app/file/policies/file-upload.policy';
 import { EFileUploadPurpose } from '@app/file/types/file.types';
 
-describe('fileUploadPolicy', () => {
-  const purpose = EFileUploadPurpose.JournalEntryAttachment;
-
+describe.each([
+  [EFileUploadPurpose.JournalEntryAttachment, 5 * 1024 * 1024],
+  [EFileUploadPurpose.JournalEntryCreation, 15 * 1024 * 1024],
+] as const)('fileUploadPolicy %s', (purpose, maxBytes) => {
   it('rejects an unsupported purpose at the policy boundary', () => {
     expect(() =>
       fileUploadPolicy.validateType('unknown' as typeof purpose, 'image/png')
@@ -12,19 +13,20 @@ describe('fileUploadPolicy', () => {
   });
 
   it.each(['image/png', 'image/jpeg', 'image/webp', 'application/pdf'])(
-    'accepts the %s MIME type at the 5 MiB limit',
+    'accepts the %s MIME type at the size limit',
     (type) => {
       expect(
         fileUploadPolicy.validateType(purpose, ` ${type.toUpperCase()} `)
       ).toBe(type);
       expect(() =>
-        fileUploadPolicy.validateSize(purpose, 5 * 1024 * 1024)
+        fileUploadPolicy.validateSize(purpose, maxBytes)
       ).not.toThrow();
     }
   );
 
-  it('exposes the journal-entry attachment file limit', () => {
+  it('exposes the purpose-specific file limits', () => {
     expect(fileUploadPolicy.getPolicy(purpose).maxFiles).toBe(1);
+    expect(fileUploadPolicy.getPolicy(purpose).maxBytes).toBe(maxBytes);
   });
 
   it.each([0, 1])('accepts the valid upload count %s', (count) => {
@@ -49,7 +51,7 @@ describe('fileUploadPolicy', () => {
     }
   );
 
-  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, 5 * 1024 * 1024 + 1])(
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, maxBytes + 1])(
     'rejects the invalid size %s',
     (size) => {
       expect(() => fileUploadPolicy.validateSize(purpose, size)).toThrow(

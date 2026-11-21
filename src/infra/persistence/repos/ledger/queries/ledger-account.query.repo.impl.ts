@@ -13,7 +13,7 @@ import paginationValue from '@shared/values/pagination/pagination.vo';
 
 import ILedgerAccountQueryRepo, {
   ELedgerAccountSortBy,
-} from '@app/ledger/contracts/ledger-account.query.repo.contract';
+} from '@app/ledger/contracts/query-repos/ledger-account.query.repo.contract';
 
 import {
   currenciesInCore,

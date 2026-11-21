@@ -69,6 +69,24 @@ below `1.0.0`:
 - Treat saved plans as implementation artifacts, not architectural authority.
   Revalidate them against durable rules and current code before editing.
 
+## AI Execution
+
+- Use cases in `src/app/ai` may call structured LLMs directly. Use cases
+  in other application modules must delegate AI work through background
+  queue contracts. Keep tools, agents, and workflows out of use-case
+  dependencies.
+- Each tool wraps one use case or one structured LLM call.
+- Background workers start or resume agents and workflows and can run standalone
+  structured LLM calls. Agents select tools. Workflows follow predefined steps
+  and can invoke an agent within the same worker.
+- Save run progress through a use case before publishing a Redis Pub/Sub signal.
+  The API reads saved state and sends SSE updates. When a run needs user input,
+  save the pending request and resume state, then end the job. A use case
+  records the validated reply or approval and queues the same run to resume.
+
+See [ADR 0022](docs/adrs/0022-background-execution-for-agents-and-workflows.md)
+for the decision and rationale.
+
 ## Skills
 
 Skills are directories with a `SKILL.md` file. Use YAML frontmatter with `name`

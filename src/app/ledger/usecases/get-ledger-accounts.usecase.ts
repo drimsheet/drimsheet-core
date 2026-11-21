@@ -24,7 +24,7 @@ import { ELedgerAccountStatus } from '@domain/ledger/types/ledger.types';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import ILedgerAccountQueryRepo, {
   IFindAllLedgerAccountsOptions,
-} from '@app/ledger/contracts/ledger-account.query.repo.contract';
+} from '@app/ledger/contracts/query-repos/ledger-account.query.repo.contract';
 import {
   IGetLedgerAccountsQuery,
   ILedgerAccountDto,

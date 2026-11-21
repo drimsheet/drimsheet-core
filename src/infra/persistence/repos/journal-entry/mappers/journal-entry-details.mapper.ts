@@ -1,9 +1,11 @@
 import { TEntityId } from '@shared/types/uuid';
 
+import { IJournalEntryMeta } from '@domain/journal-entry/types/journal-entry.types';
+
 import {
   IJournalEntryDetails,
   IJournalLineDetails,
-} from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+} from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 
 import { fromRepoDate } from '@infra/persistence/helpers/date.mapper';
 import { ICounterpartyModel } from '@infra/persistence/repos/counterparty/mappers/counterparty.mapper';
@@ -68,6 +70,7 @@ const journalEntryDetailsMapper = {
       accountingEntityId: payload.accountingEntityId as TEntityId,
       sourceType: payload.sourceType,
       memo: payload.memo,
+      meta: payload.meta as IJournalEntryMeta,
       status: payload.status,
       effectiveDate: fromRepoDate(payload.effectiveDate),
       postedAt: payload.postedAt ? fromRepoDate(payload.postedAt) : null,

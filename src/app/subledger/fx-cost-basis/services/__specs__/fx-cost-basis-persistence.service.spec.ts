@@ -8,7 +8,7 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import moneyValue from '@domain/money/values/money.vo';
 import fxCostBasisLotEntity from '@domain/subledger/fx-cost-basis/entities/lot.entity';
 
-import mockOutboxRepo from '@app/outbox/contracts/__mocks__/outbox.repo.mock';
+import mockOutboxRepo from '@app/outbox/contracts/repos/__mocks__/outbox.repo.mock';
 import { EMissingOfficialFxRateEffectKind } from '@app/outbox/types/missing-official-fx-rate.types';
 import {
   mockFxCostBasisLotAcquisitionRepo,

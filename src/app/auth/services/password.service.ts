@@ -1,6 +1,6 @@
 import IHasher from '@shared/contracts/hasher.contract';
 
-import IPasswordAppService from '@app/auth/contracts/password-service.contract';
+import IPasswordAppService from '@app/auth/contracts/services/password-service.contract';
 import authError from '@app/auth/errors/auth.error';
 import {
   PASSWORD_MAX_LENGTH,

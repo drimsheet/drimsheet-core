@@ -9,7 +9,7 @@ import actorError from '@domain/user/errors/actor.error';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockActorService } from '@app/user/contracts/__mocks__/actor.services.mock';

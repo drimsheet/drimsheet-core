@@ -3,7 +3,7 @@ import z from 'zod';
 import {
   ELedgerAccountBehavior,
   ULedgerAccountBehavior,
-} from '@domain/ledger/types/account-behaviors.tyypes';
+} from '@domain/ledger/types/account-behaviors.types';
 import { ULedgerType } from '@domain/ledger/types/ledger.types';
 
 import reportingError from '@app/ledger/errors/reporting.error';

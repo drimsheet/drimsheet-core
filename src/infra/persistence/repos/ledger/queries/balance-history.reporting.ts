@@ -4,7 +4,7 @@ import {
   IBalanceHistoryRepoQueryOutput,
   TBalanceHistoryFilter,
   TBalanceHistoryRepoQuery,
-} from '@app/ledger/contracts/balance-history.repo-query.contract';
+} from '@app/ledger/contracts/query-repos/balance-history.repo-query.contract';
 
 import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';
 

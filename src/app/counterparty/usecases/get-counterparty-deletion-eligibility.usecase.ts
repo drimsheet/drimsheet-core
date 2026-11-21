@@ -24,7 +24,7 @@ import ICounterpartyRepo from '@domain/counterparty/repos/counterparty.repo';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { ICounterpartyDeletionEligibilityDto } from '@app/counterparty/dtos/counterparty/counterparty.dto';
-import IJournalEntryQueryRepo from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import IJournalEntryQueryRepo from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 
 interface IDependencies {
   appContext: IAppContextService<IAppContextData>;

@@ -5,6 +5,9 @@ import {
 } from '@app/file/types/file.types';
 
 const JOURNAL_ENTRY_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+
+const JOURNAL_ENTRY_UPLOAD_MAX_BYTES = 15 * 1024 * 1024;
+
 const FILE_SIGNATURE_BYTE_COUNT = 12;
 
 interface IFileUploadPolicy {
@@ -18,6 +21,16 @@ const fileUploadPolicies: Readonly<
 > = {
   [EFileUploadPurpose.JournalEntryAttachment]: {
     maxBytes: JOURNAL_ENTRY_ATTACHMENT_MAX_BYTES,
+    maxFiles: 1,
+    permittedMimeTypes: [
+      'image/png',
+      'image/jpeg',
+      'image/webp',
+      'application/pdf',
+    ],
+  },
+  [EFileUploadPurpose.JournalEntryCreation]: {
+    maxBytes: JOURNAL_ENTRY_UPLOAD_MAX_BYTES,
     maxFiles: 1,
     permittedMimeTypes: [
       'image/png',

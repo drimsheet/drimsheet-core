@@ -10,3 +10,5 @@ export default function eventsRegistry() {
     messaging.eventBus.subscribe(eventType, handler);
   });
 }
+
+export { eventsRegistry };

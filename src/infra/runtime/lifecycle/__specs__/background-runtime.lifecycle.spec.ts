@@ -8,6 +8,7 @@ import runBackground from '@infra/runtime/lifecycle/background-runtime.lifecycle
 const mockInitializeFirst = jest.fn();
 const mockInitializeSecond = jest.fn();
 const mockCloseDatabase = jest.fn();
+const mockCloseMongoConnection = jest.fn();
 const mockShutdownQueues = jest.fn();
 const mockShutdownObservability = jest.fn();
 const mockRegisterAccountingWorker = jest.fn();
@@ -34,6 +35,9 @@ jest.mock('@infra/integrations/sentry/sentry-reporter', () => ({
   __esModule: true,
   default: jest.requireActual('@shared/contracts/__mocks__/reporter.mock')
     .default,
+}));
+jest.mock('@infra/config/mongodb.config', () => ({
+  closeMongoConnection: () => mockCloseMongoConnection(),
 }));
 jest.mock('@infra/config/postgres.config', () => ({
   postgres: { $client: { end: () => mockCloseDatabase() } },
@@ -71,6 +75,10 @@ describe('background runtime lifecycle', () => {
       expect(cron.getTasks().size).toBe(0);
     });
     mockShutdownObservability.mockImplementation(async () => {
+      expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
+      expect(mockCloseMongoConnection).toHaveBeenCalledTimes(1);
+    });
+    mockCloseMongoConnection.mockImplementation(async () => {
       expect(mockCloseDatabase).toHaveBeenCalledTimes(1);
     });
   });
@@ -329,6 +337,42 @@ describe('background runtime lifecycle', () => {
       expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
     }
   );
+
+  it('waits for MongoDB cleanup before closing telemetry', async () => {
+    let finish!: () => void;
+    mockCloseMongoConnection.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    await runBackground();
+    process.emit('SIGTERM');
+    process.emit('SIGINT');
+    await tick();
+
+    expect(mockCloseMongoConnection).toHaveBeenCalledTimes(1);
+    expect(mockShutdownObservability).not.toHaveBeenCalled();
+
+    finish();
+    await tick();
+
+    expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+  });
+
+  it('continues telemetry cleanup after a MongoDB close failure', async () => {
+    const failure = new Error('MongoDB close failed');
+    mockCloseMongoConnection.mockRejectedValue(failure);
+    await runBackground();
+    process.emit('SIGTERM');
+    await tick();
+
+    expect(process.exitCode).toBe(1);
+    expect(mockShutdownObservability).toHaveBeenCalledTimes(1);
+    expect(mockReporter.report).toHaveBeenCalledWith(
+      'runtime.background.cleanup_failed',
+      failure
+    );
+  });
 
   it('continues telemetry cleanup after a database close failure', async () => {
     const failure = new Error('Close failed');

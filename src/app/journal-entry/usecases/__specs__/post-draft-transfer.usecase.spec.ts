@@ -16,19 +16,19 @@ import { SYSTEM_CURRENCIES } from '@domain/money/config/currencies.config';
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
 import { IAppContextData } from '@app/context/types/app-context.types';
 import { mockCounterpartyRepo } from '@app/counterparty/contracts/__mocks__/counterparty.repos.mock';
-import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/__mocks__/journal-entry-persistence.service.mock';
 import { mockTransferEntryService } from '@app/journal-entry/contracts/__mocks__/journal-entry.domain.services.mock';
 import { mockJournalEntryRepo } from '@app/journal-entry/contracts/__mocks__/journal-entry.repos.mock';
+import mockJournalEntryPersistenceAppService from '@app/journal-entry/contracts/services/__mocks__/journal-entry-persistence.service.mock';
 import makePostDraftTransferUsecase from '@app/journal-entry/usecases/post-draft-transfer.usecase';
-import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/__mocks__/ledger-balance-adjustment-queue.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
-import mockExchangeRateAppService from '@app/money/contracts/__mocks__/exchange-rate.service.mock';
+import mockLedgerAccountBalanceAdjustmentQueue from '@app/ledger/contracts/queues/__mocks__/ledger-balance-adjustment-queue.mock';
+import mockExchangeRateAppService from '@app/money/contracts/services/__mocks__/exchange-rate.service.mock';
 import { mockFxCostBasisLotService } from '@app/subledger/contracts/__mocks__/subledger.domain.services.mock';
 import {
   makeFxAcquisitionResult,
   makeFxDispositionResult,
 } from '@app/subledger/fx-cost-basis/__fixtures__/fx-lot-results.fixture';
-import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/__mocks__/fx-cost-basis-persistence.service.mock';
+import mockFxLotCostBasisAppService from '@app/subledger/fx-cost-basis/contracts/services/__mocks__/fx-cost-basis-persistence.service.mock';
 
 const actorId = generateUUID();
 const effectiveDate = new Date('2026-03-01T00:00:00.000Z');

@@ -15,10 +15,10 @@ import actorEntity from '@domain/user/entities/actor.entity';
 import { IUser } from '@domain/user/types/user.types';
 
 import { mockAccountingEntityRepo } from '@app/accounting/contracts/__mocks__/accounting.repos.mock';
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
-import mockFeatureFlagAppService from '@app/context/contracts/__mocks__/feature-flag-app.service.mock';
-import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
+import mockFeatureFlagAppService from '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock';
 import { mockLedgerAccountRepo } from '@app/ledger/contracts/__mocks__/ledger.repos.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/services/__mocks__/ledger-account-persistence.service.mock';
 import { headerAccountNameAliasesReqValidation } from '@app/ledger/dtos/header-account/header-account.dto.validation';
 import { ILedgerAccountDto } from '@app/ledger/dtos/ledger-account/ledger-account.dto';
 import makeSetupHeaderAccountsUsecase from '@app/ledger/usecases/setup-header-accounts.usecase';
@@ -42,12 +42,12 @@ jest.mock('@infra/ioc/services/user', () => ({
 jest.mock('@infra/ioc/services/context', () => ({
   __esModule: true,
   featureFlagAppService: jest.requireActual(
-    '@app/context/contracts/__mocks__/feature-flag-app.service.mock'
+    '@app/context/contracts/services/__mocks__/feature-flag-app.service.mock'
   ).default,
 }));
 jest.mock('@infra/ioc/services/auth', () => ({
   tokenAppService: jest.requireActual(
-    '@app/auth/contracts/__mocks__/token-service.mock'
+    '@app/auth/contracts/services/__mocks__/token-service.mock'
   ).default,
 }));
 jest.mock('@infra/ioc/usecases/ledger', () => ({

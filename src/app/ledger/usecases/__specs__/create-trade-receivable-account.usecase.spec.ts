@@ -14,8 +14,8 @@ import currencyEntity from '@domain/money/entities/currency.entity';
 import actorEntity from '@domain/user/entities/actor.entity';
 
 import mockAppContext from '@app/context/contracts/__mocks__/app-context.mock';
-import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/__mocks__/ledger-account-persistence.service.mock';
 import { mockReceivablesAccountService } from '@app/ledger/contracts/__mocks__/ledger.domain.services.mock';
+import mockLedgerAccountPersistenceAppService from '@app/ledger/contracts/services/__mocks__/ledger-account-persistence.service.mock';
 import { ICreateTradeReceivableAccountDto } from '@app/ledger/dtos/receivable-account/receivable-account.dto';
 import makeCreateTradeReceivableAccountUsecase from '@app/ledger/usecases/create-trade-receivable-account.usecase';
 

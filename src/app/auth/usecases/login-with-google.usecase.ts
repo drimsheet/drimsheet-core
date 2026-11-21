@@ -32,14 +32,14 @@ import IActorService from '@domain/user/types/actor.service.types';
 import IUserIdentityService from '@domain/user/types/user-identity.service.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import { EAuthStrategy } from '@app/auth/contracts/auth.types';
-import IUserAuthRepo from '@app/auth/contracts/user-auth.repo.contract';
-import IUserAuthAppService from '@app/auth/contracts/user-auth.service.contract';
+import IUserAuthRepo from '@app/auth/contracts/repos/user-auth.repo.contract';
+import IUserAuthAppService from '@app/auth/contracts/services/user-auth.service.contract';
 import {
   IOAuthProfile,
   TOAuthDoneCallback,
 } from '@app/auth/dtos/auth/auth.dto';
 import authError from '@app/auth/errors/auth.error';
+import { EAuthStrategy } from '@app/auth/types/auth.types';
 import { IAppContextData } from '@app/context/types/app-context.types';
 
 interface IDependencies {

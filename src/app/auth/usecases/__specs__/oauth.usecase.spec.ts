@@ -3,8 +3,8 @@ import { TEntityId } from '@shared/types/uuid';
 import { IUser } from '@domain/user/types/user.types';
 import emailValue from '@domain/user/values/email.vo';
 
-import mockUserSessionPersistenceAppService from '@app/auth/contracts/__mocks__/user-session-persistence.service.mock';
-import mockUserSessionAppService from '@app/auth/contracts/__mocks__/user-session.service.mock';
+import mockUserSessionPersistenceAppService from '@app/auth/contracts/services/__mocks__/user-session-persistence.service.mock';
+import mockUserSessionAppService from '@app/auth/contracts/services/__mocks__/user-session.service.mock';
 import makeOauthUsecase from '@app/auth/usecases/oauth.usecase';
 import mockAppContext, {
   mockClientSession,

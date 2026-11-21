@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 
-import IOutboxRepo from '@app/outbox/contracts/outbox.repo.contract';
+import IOutboxRepo from '@app/outbox/contracts/repos/outbox.repo.contract';
 
 import { outboxInCore } from '@infra/config/drizzle/schema';
 import getDbQueryHelper from '@infra/persistence/helpers/get-db-query.helper';

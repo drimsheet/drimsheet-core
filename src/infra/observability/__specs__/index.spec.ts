@@ -52,7 +52,9 @@ jest.mock('../queue-metrics', () => ({
 
 describe('observability composition', () => {
   it('wires one Better Stack config into the existing concrete graph', async () => {
-    const module = await import('@infra/observability');
+    const module = jest.requireActual<typeof import('@infra/observability')>(
+      '@infra/observability'
+    );
 
     expect(makeMetricsRuntime).toHaveBeenCalledWith(
       mockBetterStackConfig,

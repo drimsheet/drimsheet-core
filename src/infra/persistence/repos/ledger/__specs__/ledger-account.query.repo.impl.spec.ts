@@ -3,11 +3,11 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 
 import { TEntityId } from '@shared/types/uuid';
 
-import { ELedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.tyypes';
+import { ELedgerAccountBehavior } from '@domain/ledger/types/account-behaviors.types';
 import { EAssetSubType } from '@domain/ledger/types/asset-account.types';
 import { ELedgerType, ILedgerAccount } from '@domain/ledger/types/ledger.types';
 
-import { ELedgerAccountSortBy } from '@app/ledger/contracts/ledger-account.query.repo.contract';
+import { ELedgerAccountSortBy } from '@app/ledger/contracts/query-repos/ledger-account.query.repo.contract';
 
 import {
   ledgerAccountBalancesInCore,

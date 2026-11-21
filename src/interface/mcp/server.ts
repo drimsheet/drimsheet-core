@@ -1,5 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/server';
 
+import mcpHandlers from '@infra/ioc/handlers/mcp';
+
+import toToolResultHelper from '@interface/mcp/helpers/to-tool-result.helper';
 import { mcpTools } from '@interface/mcp/tools';
 
 interface IParams {
@@ -22,7 +25,14 @@ export default function createMcpServer(params: IParams): McpServer {
         outputSchema: tool.outputSchema,
         annotations: tool.annotations,
       },
-      tool.func
+      async (input) => {
+        try {
+          const response = await tool.func(input);
+          return toToolResultHelper(response);
+        } catch (error) {
+          return mcpHandlers.error(error);
+        }
+      }
     );
   }
 

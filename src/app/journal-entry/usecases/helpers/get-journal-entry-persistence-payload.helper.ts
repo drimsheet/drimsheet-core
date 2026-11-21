@@ -4,7 +4,7 @@ import historyValue from '@shared/values/history/history.vo';
 import { TAuditedJournalEntry } from '@domain/journal-entry/types/journal-entry-audit.types';
 import { IJournalEntryRectificationUpdate } from '@domain/journal-entry/types/journal-entry-rectification.types';
 
-import { IJournalEntryRectificationPersistencePayload } from '@app/journal-entry/contracts/journal-entry-persistence.service.contract';
+import { IJournalEntryRectificationPersistencePayload } from '@app/journal-entry/contracts/services/journal-entry-persistence.service.contract';
 
 interface IJournalEntryPersistencePreparation {
   entriesToCreate: TAuditedJournalEntry[];

@@ -2,7 +2,7 @@ import bootstrapObservability from '@infra/runtime/bootstrap/observability.boots
 
 async function startApplication(): Promise<void> {
   // Load clients only after observability has installed instrumentation.
-  const { default: runHttp } =
+  const { runHttp } =
     await import('@infra/runtime/lifecycle/http-runtime.lifecycle');
   await runHttp();
 }

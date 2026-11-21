@@ -5,7 +5,7 @@ import { TEntityId } from '@shared/types/uuid';
 
 import { IUser } from '@domain/user/types/user.types';
 
-import mockTokenAppService from '@app/auth/contracts/__mocks__/token-service.mock';
+import mockTokenAppService from '@app/auth/contracts/services/__mocks__/token-service.mock';
 import { mockUserRepo } from '@app/user/contracts/__mocks__/user.repos.mock';
 
 import getAuthUserFromRequestHelper from '@interface/http/helpers/get-auth-user-from-request.helper';

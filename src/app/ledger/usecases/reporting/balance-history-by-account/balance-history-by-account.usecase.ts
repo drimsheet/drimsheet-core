@@ -29,7 +29,7 @@ import ILedgerAccountRepo from '@domain/ledger/repos/ledger-account.repo';
 import currencyEntity from '@domain/money/entities/currency.entity';
 
 import { IAppContextData } from '@app/context/types/app-context.types';
-import type { TBalanceHistoryRepoQuery } from '@app/ledger/contracts/balance-history.repo-query.contract';
+import type { TBalanceHistoryRepoQuery } from '@app/ledger/contracts/query-repos/balance-history.repo-query.contract';
 import reportingError from '@app/ledger/errors/reporting.error';
 import buildBalanceHistoryHelper from '@app/ledger/usecases/helpers/reporting/build-balance-history.helper';
 import { dateRangeMapper } from '@app/ledger/usecases/reporting/shared/date-range';

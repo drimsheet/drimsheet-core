@@ -4,7 +4,7 @@ import {
 } from '@domain/journal-entry/types/journal-entry.types';
 import { EJournalSide } from '@domain/journal-entry/types/journal-line.types';
 
-import { EJournalEntrySortBy } from '@app/journal-entry/contracts/journal-entry.query.repo.contract';
+import { EJournalEntrySortBy } from '@app/journal-entry/contracts/query-repos/journal-entry.query.repo.contract';
 import {
   getJournalEntriesQueryValidationSchema,
   journalEntrySideValidation,

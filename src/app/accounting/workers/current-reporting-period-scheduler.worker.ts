@@ -1,6 +1,6 @@
 import IAppContextService from '@shared/contracts/app-context.service.contract';
 
-import ICurrentReportingPeriodQueue from '@app/accounting/contracts/current-reporting-period-queue.contract';
+import ICurrentReportingPeriodQueue from '@app/accounting/contracts/queues/current-reporting-period-queue.contract';
 import { INextCurrentReportingPeriodDto } from '@app/accounting/dtos/current-reporting-period/current-reporting-period.dto';
 import { IAppContextData } from '@app/context/types/app-context.types';
 

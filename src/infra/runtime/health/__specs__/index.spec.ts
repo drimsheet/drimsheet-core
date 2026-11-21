@@ -9,8 +9,12 @@ jest.mock('@infra/config/postgres.config', () => ({
 describe('runtime health', () => {
   beforeEach(async () => {
     jest.resetModules();
-    ({ postgres } = await import('@infra/config/postgres.config'));
-    ({ default: runtimeHealth } = await import('@infra/runtime/health'));
+    ({ postgres } = jest.requireMock<
+      typeof import('@infra/config/postgres.config')
+    >('@infra/config/postgres.config'));
+    ({ default: runtimeHealth } = jest.requireActual<
+      typeof import('@infra/runtime/health')
+    >('@infra/runtime/health'));
   });
 
   it('does not probe PostgreSQL before startup completes', async () => {
